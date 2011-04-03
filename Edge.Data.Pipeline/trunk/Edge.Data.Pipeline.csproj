@@ -125,15 +125,5 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="AfterBuild">
-    <!--<Copy SkipUnchangedFiles="false" SourceFiles="$(TargetPath)" DestinationFiles="..\..\Tools\ServiceTester\bin\Debug\Services\$(TargetFileName)" />-->
-    <Copy SkipUnchangedFiles="false" SourceFiles="$(TargetPath)" DestinationFiles="..\..\Applications\EdgeServiceHost\bin\Debug\Services\$(TargetFileName)" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  
 </Project>
