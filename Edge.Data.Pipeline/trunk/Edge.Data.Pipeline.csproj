@@ -53,9 +53,12 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.4.369, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+    <Reference Include="GotDotNet.XPath">
+      <HintPath>..\..\(third party)\GotDotNet.XPath\Compiled\GotDotNet.XPath.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\(third party)\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\..\(third party)\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
@@ -96,32 +99,6 @@
     <Compile Include="Readers\XPathRowReader.cs" />
     <Compile Include="Readers\XmlRowReader.cs" />
     <Compile Include="Readers\RowReader.cs" />
-    <Compile Include="ThirdParty\XPathReader\arraymanager.cs" />
-    <Compile Include="ThirdParty\XPathReader\astnode.cs" />
-    <Compile Include="ThirdParty\XPathReader\axis.cs" />
-    <Compile Include="ThirdParty\XPathReader\AxisQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\BaseQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\ExprQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\filter.cs" />
-    <Compile Include="ThirdParty\XPathReader\FilterQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\function.cs" />
-    <Compile Include="ThirdParty\XPathReader\FunctionQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\group.cs" />
-    <Compile Include="ThirdParty\XPathReader\IQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\operand.cs" />
-    <Compile Include="ThirdParty\XPathReader\OperandQuery.cs" />
-    <Compile Include="ThirdParty\XPathReader\operator.cs" />
-    <Compile Include="ThirdParty\XPathReader\queryBuilder.cs" />
-    <Compile Include="ThirdParty\XPathReader\root.cs" />
-    <Compile Include="ThirdParty\XPathReader\variable.cs" />
-    <Compile Include="ThirdParty\XPathReader\xmlchartype.cs" />
-    <Compile Include="ThirdParty\XPathReader\XPathCollection.cs" />
-    <Compile Include="ThirdParty\XPathReader\xpathexpr.cs" />
-    <Compile Include="ThirdParty\XPathReader\xpathnodetype.cs" />
-    <Compile Include="ThirdParty\XPathReader\xpathparser.cs" />
-    <Compile Include="ThirdParty\XPathReader\xpathreader.cs" />
-    <Compile Include="ThirdParty\XPathReader\XPathReaderException.cs" />
-    <Compile Include="ThirdParty\XPathReader\xpathscanner.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
