@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{53391A99-E8CA-4262-A8E0-5F05A1CC6608}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Edge.Data.Pipeline</RootNamespace>
+    <AssemblyName>Edge.Data.Pipeline</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <UpgradeBackupLocation />
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.4.369, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\(third party)\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.ServiceModel">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Xml.Linq">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Example.txt" />
+    <Compile Include="%28misc%29\GK.cs" />
+    <Compile Include="Configuration\ReportFields.cs" />
+    <Compile Include="%28misc%29\GkManager\GkManager.cs" />
+    <Compile Include="%28misc%29\GkManager\ColumnNames.cs" />
+    <Compile Include="Deliveries\Delivery.cs" />
+    <Compile Include="%28misc%29\Enums.cs" />
+    <Compile Include="%28misc%29\FileManager.cs" />
+    <Compile Include="Deliveries\DeliveryDB.cs" />
+    <Compile Include="Deliveries\DeliveryFile.cs" />
+    <Compile Include="Deliveries\DeliveryHistory.cs" />
+    <Compile Include="Services\UrlRetrieverService.cs" />
+    <Compile Include="Services\PipelineService.cs" />
+    <Compile Include="%28misc%29\DateTimeRange.cs" />
+    <Compile Include="%28misc%29\DbMappper.cs" />
+    <Compile Include="%28misc%29\PpcDataUnit.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Readers\IRowReader.cs" />
+    <Compile Include="Readers\XPathRowReader.cs" />
+    <Compile Include="Readers\XmlRowReader.cs" />
+    <Compile Include="Readers\RowReader.cs" />
+    <Compile Include="ThirdParty\XPathReader\arraymanager.cs" />
+    <Compile Include="ThirdParty\XPathReader\astnode.cs" />
+    <Compile Include="ThirdParty\XPathReader\axis.cs" />
+    <Compile Include="ThirdParty\XPathReader\AxisQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\BaseQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\ExprQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\filter.cs" />
+    <Compile Include="ThirdParty\XPathReader\FilterQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\function.cs" />
+    <Compile Include="ThirdParty\XPathReader\FunctionQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\group.cs" />
+    <Compile Include="ThirdParty\XPathReader\IQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\operand.cs" />
+    <Compile Include="ThirdParty\XPathReader\OperandQuery.cs" />
+    <Compile Include="ThirdParty\XPathReader\operator.cs" />
+    <Compile Include="ThirdParty\XPathReader\queryBuilder.cs" />
+    <Compile Include="ThirdParty\XPathReader\root.cs" />
+    <Compile Include="ThirdParty\XPathReader\variable.cs" />
+    <Compile Include="ThirdParty\XPathReader\xmlchartype.cs" />
+    <Compile Include="ThirdParty\XPathReader\XPathCollection.cs" />
+    <Compile Include="ThirdParty\XPathReader\xpathexpr.cs" />
+    <Compile Include="ThirdParty\XPathReader\xpathnodetype.cs" />
+    <Compile Include="ThirdParty\XPathReader\xpathparser.cs" />
+    <Compile Include="ThirdParty\XPathReader\xpathreader.cs" />
+    <Compile Include="ThirdParty\XPathReader\XPathReaderException.cs" />
+    <Compile Include="ThirdParty\XPathReader\xpathscanner.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 3.1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
+      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
+      <Name>Edge.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <!--<Copy SkipUnchangedFiles="false" SourceFiles="$(TargetPath)" DestinationFiles="..\..\Tools\ServiceTester\bin\Debug\Services\$(TargetFileName)" />-->
+    <Copy SkipUnchangedFiles="false" SourceFiles="$(TargetPath)" DestinationFiles="..\..\Applications\EdgeServiceHost\bin\Debug\Services\$(TargetFileName)" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

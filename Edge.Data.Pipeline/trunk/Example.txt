@@ -1,0 +1,130 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Easynet.Edge.Core.Services;
+using Easynet.Edge.Core;
+using Eggplant.Persistence;
+using Easynet.Edge.Core.Data;
+
+namespace Edge.Data.Pipeline
+{
+	public class ExampleRetrieverService : Service
+	{
+		protected override ServiceOutcome DoWork()
+		{
+			// Create a new delivery with a description
+			Delivery delivery = new Delivery{Description="Adwords Creative delivery for 888 split accounts [95] 2010/08/10"};
+
+			// Assign this delivery to an account/client/scope
+			delivery.AccountID = Instance.AccountID;
+
+			// Add files
+			delivery.Files.Add(new DeliveryFile
+			{
+				Url = "http://wwww.chunk.com?file=1",
+				ReaderType = typeof(ExampleReader), // this is optional, depending on processor
+				ReaderParams = new Settings() // parameters for the reader
+				{
+					{"FilterCampaigns", "Casino*"},
+					{"UseAccoutHeader", true}
+				}
+			});
+			delivery.Files.Add(new DeliveryFile
+			{
+				Url = "http://wwww.chunk.com?file=2",
+				ReaderType = typeof(ExampleReader)
+			});
+
+			// Save settings to DB
+			delivery.Save();
+			
+			// Download and report download progress
+			delivery.Retrieve(p => ReportProgress(p));
+
+			// Remember this delivery for the processor
+			// TODO: implement ServiceContext in Edge.Core.Service
+			ServiceContext["DeliveryID"] = delivery.ID;
+
+			return ServiceOutcome.Success;
+		}
+	}
+
+	public class ExampleProcessorService : Service
+	{
+		protected override ServiceOutcome DoWork()
+		{
+			// Get the delivery ID either from configuration or from service context
+			int deliveryID;
+			if (ServiceContext.Contains("DeliveryID"))
+			{
+				deliveryID = (Int32)Instance.ServiceContext["DeliveryID"];
+			}
+			else if (Instance.Configuration.Options.Contains("DeliveryID"))
+			{
+				deliveryID = Int32.Parse(Instance.Configuration.Options["DeliveryID"]);
+			}
+			else
+			{
+				throw new ConfigurationException("DeliveryID must be specified in configuration.");
+			}
+
+			// Get the delivery created by the retriever
+			Delivery delivery = Delivery.Get(deliveryID);
+
+			// Create an identity manager for identity-based properties
+			IdentityManager campaignManager = new IdentityManager<Campaign>
+			(
+				Campaign.Properties.Channel,
+				Campaign.Properties.Name
+			);
+
+			using (PersistenceProvider.Open("otlp"))
+			{
+				campaignManager.PrepareCache(Campaign.Queries.GetByAccount, accountID);
+			}
+
+			// Iterate delivery files
+			foreach (DeliveryFile file in delivery.Files)
+			{
+				using (PersistenceProvider.Open("otlp"))
+				{
+					PersistenceProvider.Current.TransactionStart();
+
+					// Constructor gets reference to campaignManager so that the batch knows which rows
+					// are dependent on the campaign manager first being comitted
+					Batch<PpcDataUnit> batch = PersistenceProvider.Current.CreateBatch<PpcDataUnit>(campaignManager);
+					
+					// Commit every 30 rows that do require new campaigns
+					batch.BufferSize = 30;
+
+					// Delivery row type can be inherited to add custom transactions
+					using (AdwordsReader reader = (AdwordsReader) file.OpenReader())
+					{
+						while (reader.Read())
+						{
+							PpcDataUnit unit = new PpcDataUnit();
+							unit.DayCode = reader.Current.DayCode;
+							unit.Campaign = campaignManager.Get(
+								reader.Current.AccountID,
+								reader.Current.CampaignName
+							);
+
+							batch.Add(unit);
+						}
+					}
+
+					//  this would throw an exception because there are references to uncommitted new objects
+					//batch.Commit();
+
+					manager.Flush();
+					batch.Flush();
+
+					PersistenceProvider.Current.TransactionCommit();
+				}
+			}
+		}
+	}
+
+
+}
