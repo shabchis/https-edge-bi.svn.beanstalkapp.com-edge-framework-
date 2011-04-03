@@ -6,16 +6,17 @@ using System.Xml;
 using System.IO;
 using System.Collections;
 
-namespace Edge.Data.Pipeline
+namespace Edge.Data.Pipeline.Readers
 {
 
-	public abstract class RowReader<RowT> : IRowReader<RowT> where RowT: class
+	public abstract class ReaderBase<T> : IReader<T>
 	{
 		#region Fields
 		/*=========================*/
 
 		private bool _readerOpen = false;
-		private RowT _currentRow = null;
+		private bool _hasCurrent;
+		private T _current;
 
 		/*=========================*/
 		#endregion
@@ -23,11 +24,16 @@ namespace Edge.Data.Pipeline
 		#region Core functionality
 		/*=========================*/
 
-		public RowT CurrentRow
+		public bool HasCurrent
+		{
+			get { return _hasCurrent; }
+		}
+
+		public T Current
 		{
 			get
 			{
-				return _currentRow;
+				return _current;
 			}
 		}
 
@@ -39,18 +45,11 @@ namespace Edge.Data.Pipeline
 				_readerOpen = true;
 			}
 
-			// Call this abstract function to 
-			// initalize the current row with the xml row.
-			_currentRow = NextRow();
+			_hasCurrent = Next(ref _current);
+			if (!_hasCurrent)
+				_current = default(T);
 
-			if (_currentRow == null)
-			{
-				return false;
-			}
-			else
-			{
-				return true;
-			}
+			return _hasCurrent;
 		}
 
 		/*=========================*/
@@ -63,7 +62,7 @@ namespace Edge.Data.Pipeline
 		/// 
 		/// </summary>
 		/// <returns></returns>
-		protected abstract RowT NextRow();
+		protected abstract bool Next(ref T next);
 
 		/// <summary>
 		/// 
@@ -78,12 +77,12 @@ namespace Edge.Data.Pipeline
 		/*=========================*/
 		#endregion
 
-		#region IRowReader Members
+		#region IReader Members
 		/*=========================*/
 
-		object IRowReader.CurrentRow
+		object IReader.Current
 		{
-			get { return this.CurrentRow; }
+			get { return this.Current; }
 		}
 
 		/*=========================*/

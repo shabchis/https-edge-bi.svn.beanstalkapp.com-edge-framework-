@@ -109,7 +109,7 @@ namespace Edge.Data.Pipeline.GkManager
 				);
 		}
 
-		static long GetID(Type businessObjectType, params object[] parameters)
+		static GKey GetID(Type businessObjectType, params object[] parameters)
 		{
 			string cmdText = null;
 			if (!_commands.TryGetValue(businessObjectType, out cmdText))
@@ -136,13 +136,14 @@ namespace Edge.Data.Pipeline.GkManager
 			if (retValue is DBNull)
 				throw new ArgumentException(String.Format("{0} GK could not be retrieved because one or parameters were passed as null.", businessObjectType.Name));
 
-			return (long) retValue;
+			throw new NotImplementedException("New GKeyManager not yet ready for use.");
+			return new GKey(GKeyType.Tracker, (long) retValue);
 		}
 
 		#region Public static methods
 		/*=========================*/
 
-		public static long GetKeywordGK(int accountID, string value)
+		public static GKey GetKeywordGK(int accountID, string value)
 		{
 			return GetID(typeof(Keyword),
 				accountID,
@@ -150,7 +151,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetSiteGK(int accountID, string siteName)
+		public static GKey GetSiteGK(int accountID, string siteName)
 		{
 			return GetID(typeof(Site),
 				accountID,
@@ -158,7 +159,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetCreativeGK(int accountID, string title, string desc1, string desc2)
+		public static GKey GetCreativeGK(int accountID, string title, string desc1, string desc2)
 		{
 			return GetID(typeof(Creative),
 				accountID,
@@ -168,7 +169,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetTrackerGK(int accountID, string identifier, int channelID, long? campaignGK, long? adgroupGK, string name, string destinationUrl, TrackerReferenceType? referenceType, long? referenceGK)
+		public static GKey GetTrackerGK(int accountID, string identifier, int channelID, long? campaignGK, long? adgroupGK, string name, string destinationUrl, TrackerReferenceType? referenceType, long? referenceGK)
 		{
 			return GetID(typeof(Tracker),
 				accountID,
@@ -183,7 +184,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetTrackerGK(int accountID, long identifier)
+		public static GKey GetTrackerGK(int accountID, long identifier)
 		{
 			return GetID(typeof(Tracker), 
 				accountID,
@@ -191,7 +192,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetCampaignGK(int accountID, int channelID, string name, string originalID)
+		public static GKey GetCampaignGK(int accountID, int channelID, string name, string originalID)
 		{
 			return GetID(typeof(Campaign), 
 				accountID,
@@ -201,7 +202,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetAdgroupGK(int accountID, int channelID, long campaignGK, string name, string originalID)
+		public static GKey GetAdgroupGK(int accountID, int channelID, long campaignGK, string name, string originalID)
 		{
 			return GetID(typeof(Adgroup), 
 				accountID,
@@ -212,7 +213,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetAdgroupKeywordGK(int accountID, int channelID, long campaignGK, long adgroupGK, long keywordGK, MatchType matchType, string destinationUrl, long? gatewayGK)
+		public static GKey GetAdgroupKeywordGK(int accountID, int channelID, long campaignGK, long adgroupGK, long keywordGK, MatchType matchType, string destinationUrl, long? gatewayGK)
 		{
 			return GetID(typeof(AdgroupKeyword), 
 				accountID,
@@ -226,7 +227,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetAdgroupCreativeGK(int accountID, int channelID, long campaignGK, long adgroupGK, long creativeGK, string destinationUrl, string visibleUrl, long? gatewayGK)
+		public static GKey GetAdgroupCreativeGK(int accountID, int channelID, long campaignGK, long adgroupGK, long creativeGK, string destinationUrl, string visibleUrl, long? gatewayGK)
 		{
 			return GetID(typeof(AdgroupCreative), 
 				accountID,
@@ -240,7 +241,7 @@ namespace Edge.Data.Pipeline.GkManager
 			);
 		}
 
-		public static long GetAdgroupSiteGK(int accountID, int channelID, long campaignGK, long adgroupGK, long siteGK, string destinationUrl, MatchType matchType, long? gatewayGK)
+		public static GKey GetAdgroupSiteGK(int accountID, int channelID, long campaignGK, long adgroupGK, long siteGK, string destinationUrl, MatchType matchType, long? gatewayGK)
 		{
 			return GetID(typeof(AdgroupSite), 
 				accountID,

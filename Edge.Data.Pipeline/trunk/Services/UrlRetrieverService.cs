@@ -20,19 +20,19 @@ namespace Edge.Data.Pipeline
 		protected override ServiceOutcome DoWork()
 		{
 			// Download and show progress out of 75% (37.5% per file)
-			foreach (DeliveryFile file in this.Delivery.Files.Values)
+			foreach (DeliveryFile file in this.Delivery.Files)
 			{
 				// Ignore files that have already been downloaded (unless RedownloadAll is true)
-				if (!RedownloadAll && file.History.Count(entry => entry.Operation == DeliveryOperation.Downloaded) > 0)
+				if (!RedownloadAll && file.History.Count(entry => entry.Operation == DeliveryOperation.Retrieved) > 0)
 				{
-					Log.Write(String.Format("Delivery file '{0}' (1) has already been downloaded.", file.Name, file.FileID), LogMessageType.Information);
+					Log.Write(String.Format("Delivery file '{0}' (1) has already been retrieved.", file.Name, file.FileID), LogMessageType.Information);
 					continue;
 				}
 				else
 				{
 					// Download the file, and report progress of the download divided by total number of files
 					FileManager.Download(file, p => ReportProgress(p / this.Delivery.Files.Count));
-					file.History.Add(DeliveryOperation.Downloaded, this.Instance.InstanceID);
+					file.History.Add(DeliveryOperation.Retrieved, this.Instance.InstanceID);
 					file.Save();
 				}
 			}

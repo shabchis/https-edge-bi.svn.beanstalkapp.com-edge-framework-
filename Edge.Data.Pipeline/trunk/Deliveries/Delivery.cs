@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
-		Dictionary<string,DeliveryFile> _files;
+		DeliveryFileList _files;
 		DateTimeRange _targetPeriod;
 		DateTime _dateCreated = DateTime.Now;
 		DateTime _dateModified = DateTime.Now;
@@ -87,9 +87,9 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Gets the files of the delivery.
 		/// </summary>
-		public Dictionary<string,DeliveryFile> Files
+		public DeliveryFileList Files
 		{
-			get { return _files ?? (_files = new Dictionary<string,DeliveryFile>()); }
+			get { return _files ?? (_files = new DeliveryFileList()); }
 		}
 
 		/// <summary>
@@ -124,8 +124,8 @@ namespace Edge.Data.Pipeline
 	public enum DeliveryOperation
 	{
 		Created = 1,
-		Downloaded = 2,
-		Comitted = 3,
+		Retrieved = 2,
+		Processed = 3,
 		RolledBack = 4
 	}
     
