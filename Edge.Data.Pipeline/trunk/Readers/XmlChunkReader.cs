@@ -7,7 +7,7 @@ using System.Xml;
 
 namespace Edge.Data.Pipeline.Readers
 {
-	public class XmlChunkReader : XmlObjectReader<XmlChunk>
+	public class XmlChunkReader : XmlObjectReader<Chunk>
 	{
 		public readonly XmlChunkReaderOptions Options;
 
@@ -18,78 +18,32 @@ namespace Edge.Data.Pipeline.Readers
 			this.OnObjectRequired = GetChunk;
 		}
 
-		XmlChunk GetChunk(XmlReader reader)
+		Chunk GetChunk(XmlReader reader)
 		{
-			return new XmlChunk(reader, this.Options);
-		}
-	}
+			Dictionary<string, string> dict = new Dictionary<string, string>();
 
-	/// <summary>
-	/// Contains the data of a chunk found by an XmlChunkReader.
-	/// </summary>
-	public class XmlChunk: IEnumerable<KeyValuePair<string,string>>
-	{
-		Dictionary<string, string> _dict = new Dictionary<string, string>();
-
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="reader"></param>
-		/// <param name="options"></param>
-		internal XmlChunk(XmlReader reader, XmlChunkReaderOptions options = XmlChunkReaderOptions.ElementsAsValues | XmlChunkReaderOptions.AttributesAsValues)
-		{
 			// Read attributes
-			if (reader.HasAttributes && (int)(options & XmlChunkReaderOptions.AttributesAsValues) != 0)
+			if (reader.HasAttributes && (int)(Options & XmlChunkReaderOptions.AttributesAsValues) != 0)
 			{
 				while (reader.MoveToNextAttribute())
-					_dict[reader.Name] = reader.Value;
+					dict[reader.Name] = reader.Value;
 			}
 
 			// Read value elements
-			if ((int)(options & XmlChunkReaderOptions.ElementsAsValues) != 0)
+			if ((int)(Options & XmlChunkReaderOptions.ElementsAsValues) != 0)
 			{
 				using (var r = reader.ReadSubtree())
 				{
 					while (r.Read())
 					{
 						if (r.NodeType == XmlNodeType.Element)
-							_dict[r.Name] = r.ReadElementContentAsString();
+							dict[r.Name] = r.ReadElementContentAsString();
 					}
 				}
 			}
+
+			return new Chunk(dict);
 		}
-
-		/// <summary>
-		/// Gets the value of an attribute or element in the chunk.
-		/// </summary>
-		/// <param name="key">The attribute or element name.</param>
-		/// <returns></returns>
-		public string this[string key]
-		{
-			get
-			{
-				string val;
-				return _dict.TryGetValue(key, out val) ? val : null;
-			}
-		}
-
-		#region IEnumerable<KeyValuePair<string,string>> Members
-
-		public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
-		{
-			return _dict.GetEnumerator();
-		}
-
-		#endregion
-
-		#region IEnumerable Members
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
-
-		#endregion
 	}
 
 	[Flags]

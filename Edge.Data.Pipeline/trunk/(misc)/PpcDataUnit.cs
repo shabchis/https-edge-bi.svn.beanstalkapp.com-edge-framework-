@@ -7,7 +7,7 @@ using Edge.Data.Pipeline;
 
 namespace Edge.Data.Pipeline
 {
-    public class PpcKeywordDataUnit
+    public class AdDataUnit
     {
 		public int AccountID;
 
@@ -30,14 +30,14 @@ namespace Edge.Data.Pipeline
 		public double AveragePosition;
 		public int Conversions;
 
-		public PpcKeywordDataUnitExtra Extra;
+		public AdDataUnitExtra Extra;
 
         public void Save()
         {
         }
     }
 
-	public class PpcKeywordDataUnitExtra
+	public class AdDataUnitExtra
 	{
 		public string Account_OriginalID;
 		public string Campaign_Name;
