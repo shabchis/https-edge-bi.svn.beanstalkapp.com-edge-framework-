@@ -72,6 +72,7 @@ namespace Edge.Data.Pipeline
 		public Dictionary<string, object> Parameters
 		{
 			get { return _parameters ?? (_parameters = new Dictionary<string, object>()); }
+			set { _parameters = value; }
 		}
 
 		/// <summary>

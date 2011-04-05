@@ -93,7 +93,7 @@ namespace Edge.Data.Pipeline
 
 					// Constructor gets reference to campaignManager so that the batch knows which rows
 					// are dependent on the campaign manager first being comitted
-					Batch<PpcDataUnit> batch = PersistenceProvider.Current.CreateBatch<PpcDataUnit>(campaignManager);
+					Batch<PpcKeywordDataUnit> batch = PersistenceProvider.Current.CreateBatch<PpcKeywordDataUnit>(campaignManager);
 					
 					// Commit every 30 rows that do require new campaigns
 					batch.BufferSize = 30;
@@ -103,7 +103,7 @@ namespace Edge.Data.Pipeline
 					{
 						while (reader.Read())
 						{
-							PpcDataUnit unit = new PpcDataUnit();
+							PpcKeywordDataUnit unit = new PpcKeywordDataUnit();
 							unit.DayCode = reader.Current.DayCode;
 							unit.Campaign = campaignManager.Get(
 								reader.Current.AccountID,

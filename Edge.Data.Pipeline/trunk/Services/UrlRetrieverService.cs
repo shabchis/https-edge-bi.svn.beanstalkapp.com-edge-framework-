@@ -15,9 +15,9 @@ using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline
 {
-    public class DeliveryDownloaderService : PipelineService 
+    public class UrlRetrieverService : PipelineService 
     {
-		protected override ServiceOutcome DoWork()
+		protected override ServiceOutcome DoPipelineWork()
 		{
 			// Download and show progress out of 75% (37.5% per file)
 			foreach (DeliveryFile file in this.Delivery.Files)
@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline
 				// Ignore files that have already been downloaded (unless RedownloadAll is true)
 				if (!RedownloadAll && file.History.Count(entry => entry.Operation == DeliveryOperation.Retrieved) > 0)
 				{
-					Log.Write(String.Format("Delivery file '{0}' (1) has already been retrieved.", file.Name, file.FileID), LogMessageType.Information);
+					Log.Write(String.Format("Delivery file '{0}' (1) has already been downloaded.", file.Name, file.FileID), LogMessageType.Information);
 					continue;
 				}
 				else

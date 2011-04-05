@@ -7,21 +7,19 @@ using Edge.Data.Pipeline;
 
 namespace Edge.Data.Pipeline
 {
-    public class PpcDataUnit
+    public class PpcKeywordDataUnit
     {
 		public int AccountID;
 
 		public GKey TrackerGK;
 		public GKey KeywordGK;
 		public GKey CreativeGK;
-		public GKey SiteGK;
 		public GKey CampaignGK;
 		public GKey AdgroupGK;
 		public GKey AdgroupKeywordGK;
 		public GKey AdgroupCreativeGK;
-		public GKey AdgroupSiteGK;
 
-		public DateTime DateTime;
+		public DateTime TargetDateTime;
 		
 		public int CurrencyID;
 		public double CurrencyRate;
@@ -32,19 +30,14 @@ namespace Edge.Data.Pipeline
 		public double AveragePosition;
 		public int Conversions;
 
-		public PpcDataUnitExtra Extra;
+		public PpcKeywordDataUnitExtra Extra;
 
         public void Save()
         {
         }
-
-		public PpcDataUnit Merge(PpcDataUnit unit)
-		{
-			throw new NotImplementedException();
-		}
     }
 
-	public class PpcDataUnitExtra
+	public class PpcKeywordDataUnitExtra
 	{
 		public string Account_OriginalID;
 		public string Campaign_Name;

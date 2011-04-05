@@ -54,5 +54,23 @@ namespace Edge.Data.Pipeline
 				_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryID"] = _delivery.DeliveryID.ToString());
 			}
 		}
+
+		protected sealed override void OnInit()
+		{
+			// TODO: check for required configuration options
+		}
+
+		protected sealed override ServiceOutcome DoWork()
+		{
+			ServiceOutcome outcome = DoPipelineWork();
+
+			// Don't allow unsupported outcomes
+			if (outcome != ServiceOutcome.Success && outcome != ServiceOutcome.Failure)
+				throw new Exception(String.Format("DoPipelineWork returned an invalid outcome '{0}' - only Success and Failure are valid.", outcome));
+
+			return outcome;
+		}
+
+		protected abstract ServiceOutcome DoPipelineWork();
 	}
 }
