@@ -20,7 +20,34 @@ namespace Edge.Data.Pipeline
 			throw new NotImplementedException();
 		}
 
-		public static string GetDeliveryFilePath(string targetDir, DateTime targetDate, int deliveryID, string fileName, int? accountID)
+		public static string Download(Uri url, Action<double> onProgress = null)
+		{
+			throw new NotImplementedException();
+		}
+
+		public static string Download(Stream stream, Action<double> onProgress = null)
+		{
+			throw new NotImplementedException();
+		}
+
+		public static FileInfo GetFileSystemInfo(DeliveryFile file)
+		{
+			if (String.IsNullOrWhiteSpace(file.SavedPath))
+				throw new InvalidOperationException(String.Format("The delivery file{0} does not have a SavedPath; it might not have been retrieved yet.",
+					file.Name == null ? null : " '" + file.Name + "'"
+					));
+
+			return GetFileSystemInfo(file.SavedPath);
+		}
+
+		public static FileInfo GetFileSystemInfo(string path)
+		{
+			return new FileInfo(path);
+		}
+
+		#region Ronen
+		//===========================================================
+		private static string GetDeliveryFilePath(string targetDir, DateTime targetDate, int deliveryID, string fileName, int? accountID)
         {
             if (accountID != null)
                 targetDir = String.Format(@"{0}\Accounts\{1}",targetDir, accountID );
@@ -54,7 +81,7 @@ namespace Edge.Data.Pipeline
             }
         }
 
-        public static void DownloadFile(string downloadUrl, string FilePath)
+        private static void DownloadFile(string downloadUrl, string FilePath)
         {
             // Open a connection to the URL where the report is available.
             HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(downloadUrl);
@@ -98,7 +125,7 @@ namespace Edge.Data.Pipeline
             }
         }
 
-        public static void ZipFiles(string inputFolderPath, string outputPathAndFile, string password)
+        private static void ZipFiles(string inputFolderPath, string outputPathAndFile, string password)
         {
             ArrayList ar = GenerateFileList(inputFolderPath); // generate file list
             int TrimLength = (Directory.GetParent(inputFolderPath)).ToString().Length;
@@ -160,7 +187,7 @@ namespace Edge.Data.Pipeline
         }
 
 
-        public static string UnZipFiles(string zipPathAndFile, string outputFolder, string password, bool deleteZipFile)
+        private static string UnZipFiles(string zipPathAndFile, string outputFolder, string password, bool deleteZipFile)
         {
             string fullPath = string.Empty;
             if(outputFolder == string.Empty || outputFolder  == null)
@@ -209,6 +236,9 @@ namespace Edge.Data.Pipeline
                 File.Delete(zipPathAndFile);
             return fullPath;
         }
-    }
+
+		//===========================================================
+		#endregion
+	}
 }
     

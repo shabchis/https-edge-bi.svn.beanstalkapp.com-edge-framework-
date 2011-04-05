@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline
 				// Ignore files that have already been downloaded (unless RedownloadAll is true)
 				if (!RedownloadAll && file.History.Count(entry => entry.Operation == DeliveryOperation.Retrieved) > 0)
 				{
-					Log.Write(String.Format("Delivery file '{0}' (1) has already been downloaded.", file.Name, file.FileID), LogMessageType.Information);
+					Log.Write(String.Format("Delivery file '{0}' (1) has already been retrieved.", file.Name, file.FileID), LogMessageType.Information);
 					continue;
 				}
 				else
