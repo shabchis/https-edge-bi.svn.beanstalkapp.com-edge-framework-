@@ -22,23 +22,27 @@ namespace Edge.Data.Pipeline.Readers
 		{
 			Dictionary<string, string> dict = new Dictionary<string, string>();
 
+			string nodeName = reader.Name;
+			int nodeDepth = reader.Depth;
+
 			// Read attributes
 			if (reader.HasAttributes && (int)(Options & XmlChunkReaderOptions.AttributesAsValues) != 0)
 			{
 				while (reader.MoveToNextAttribute())
 					dict[reader.Name] = reader.Value;
 			}
+			
 
 			// Read value elements
-			if ((int)(Options & XmlChunkReaderOptions.ElementsAsValues) != 0)
+			while (reader.Read())
 			{
-				using (var r = reader.ReadSubtree())
+				if (reader.NodeType == XmlNodeType.EndElement && reader.Name == nodeName && reader.Depth == nodeDepth)
 				{
-					while (r.Read())
-					{
-						if (r.NodeType == XmlNodeType.Element)
-							dict[r.Name] = r.ReadElementContentAsString();
-					}
+					break;
+				}
+				else if ((int)(Options & XmlChunkReaderOptions.ElementsAsValues) != 0 && reader.NodeType == XmlNodeType.Element)
+				{
+					dict[reader.Name] = reader.ReadInnerXml();
 				}
 			}
 
