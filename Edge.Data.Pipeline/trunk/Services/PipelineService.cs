@@ -5,8 +5,9 @@ using System.Text;
 using Edge.Core.Services;
 using Edge.Data.Pipeline.Configuration;
 using Edge.Data.Pipeline;
+using Edge.Data.Pipeline.Deliveries;
 
-namespace Edge.Data.Pipeline
+namespace Edge.Data.Pipeline.Services
 {
 	public abstract class PipelineService: Service
 	{

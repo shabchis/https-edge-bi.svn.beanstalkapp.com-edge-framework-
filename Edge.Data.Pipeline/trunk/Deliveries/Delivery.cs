@@ -6,8 +6,9 @@ using Edge.Core;
 using Edge.Data.Pipeline;
 using Edge.Core.Data;
 using System.Data;
+using Edge.Data.Pipeline.Objects;
 
-namespace Edge.Data.Pipeline
+namespace Edge.Data.Pipeline.Deliveries
 {
 	public class Delivery
 	{
@@ -38,7 +39,7 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Gets or sets the channel for which this channel is relevant
 		/// </summary>
-		public int ChannelID
+		public Channel Channel
 		{
 			get; set;
 		}

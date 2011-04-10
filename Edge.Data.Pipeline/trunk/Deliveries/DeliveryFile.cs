@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Edge.Data.Pipeline.Readers;
 
-namespace Edge.Data.Pipeline
+namespace Edge.Data.Pipeline.Deliveries
 {
 	public class DeliveryFile
 	{

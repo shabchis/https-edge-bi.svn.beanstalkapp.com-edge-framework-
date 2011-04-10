@@ -11,9 +11,10 @@ using System.Configuration;
 using Edge.Data.Pipeline.Configuration;
 using Edge.Core;
 using Edge.Core.Utilities;
+using Edge.Data.Pipeline.Deliveries;
 
 
-namespace Edge.Data.Pipeline
+namespace Edge.Data.Pipeline.Services
 {
     public class UrlRetrieverService : PipelineService 
     {
