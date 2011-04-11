@@ -7,6 +7,7 @@ namespace Edge.Data.Pipeline.Objects
 {
 	public class Tracker
 	{
+		public string Value { get; set; }
 		Ad _ad;
 		List<Target> _targets;
 

@@ -23,5 +23,6 @@ namespace Edge.Data.Pipeline.Objects
 		public long Impressions;
 		public long Clicks;
 		public double AveragePosition;
+		public Dictionary<string, double> Conversions;
 	}
 }

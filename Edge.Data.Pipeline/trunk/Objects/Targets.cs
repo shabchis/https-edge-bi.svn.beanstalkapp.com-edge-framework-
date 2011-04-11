@@ -13,7 +13,7 @@ namespace Edge.Data.Pipeline.Objects
 	public class KeywordTarget : Target
 	{
 		public KeywordMatchType MatchType;
-		public string Value;
+		public string Keyword;
 	}
 
 	public enum KeywordMatchType
@@ -25,5 +25,22 @@ namespace Edge.Data.Pipeline.Objects
 		Content = 4,
 		WebSite = 5
 	};
+
+	public class GenderTarget : Target
+	{
+		public Gender Gender;
+	}
+
+	public enum Gender
+	{
+		Male = 1,
+		Female = 2
+	}
+
+	public class AgeTarget : Target
+	{
+		public int FromAge;
+		public int ToAge;
+	}
 
 }
