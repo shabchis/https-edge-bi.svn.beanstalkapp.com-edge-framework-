@@ -8,16 +8,16 @@ using DataStreams.Csv;
 
 namespace Edge.Data.Pipeline.Readers
 {
-	public class CsvChunkReader : CsvObjectReader<Chunk>
+	public class CsvDynamicReader : CsvObjectReader<dynamic>
 	{
-		public CsvChunkReader(string url, char delimeter = ',', Encoding encoding = null)
+		public CsvDynamicReader(string url, char delimeter = ',', Encoding encoding = null)
 			: base(url, delimeter, encoding)
 		{
 			throw new NotImplementedException();
-			//this.OnObjectRequired = GetChunk;
+			//this.OnObjectRequired = ReadRow;
 		}
 
-		Chunk GetChunk(CsvReader reader)
+		dynamic ReadRow(CsvReader reader)
 		{
 			throw new NotImplementedException();
 		}
