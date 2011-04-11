@@ -94,10 +94,18 @@ namespace Edge.Data.Pipeline.Readers
 
 		public override bool TrySetMember(SetMemberBinder binder, object value)
 		{
+			SetMember(binder.Name, value);
+			return true;
+		}
+
+		private void SetMember(string name, object value)
+		{
 			if (Children == null)
 				Children = new Dictionary<string, object>();
 
-			string name = CaseSensitive ? binder.Name : binder.Name.ToLower();
+			if (CaseSensitive)
+				name = name.ToLower();
+
 			object current;
 			if (ArrayAddingMode && Children.TryGetValue(name, out current))
 			{
@@ -119,6 +127,31 @@ namespace Edge.Data.Pipeline.Readers
 			{
 				Children[name] = value;
 			}
+		}
+
+		public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
+		{
+			if (Children == null || indexes.Length != 1 || !(indexes[0] is string))
+			{
+				result = null;
+				return false;
+			}
+
+			string name = indexes[0] as string;
+			if (CaseSensitive)
+				name = name.ToLower();
+
+			return Children.TryGetValue(name, out result);
+		}
+
+		public override bool TrySetIndex(SetIndexBinder binder, object[] indexes, object value)
+		{
+			if (indexes.Length != 1 || !(indexes[0] is string))
+			{
+				return false;
+			}
+
+			SetMember(indexes[0] as string, value);
 			return true;
 		}
 	}
