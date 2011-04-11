@@ -9,7 +9,7 @@ using System.Collections;
 
 namespace Edge.Data.Pipeline.Readers
 {
-	public class XmlDynamicReader : XmlObjectReader<XmlDynamicObject>
+	public class XmlDynamicReader : XmlObjectReader<dynamic>
 	{
 		public XmlDynamicReader(string url, string xpath, string[] treatAsArrayXPaths = null) : base(url, xpath)
 		{
