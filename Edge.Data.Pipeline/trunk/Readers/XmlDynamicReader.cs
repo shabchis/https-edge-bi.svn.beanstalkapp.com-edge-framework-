@@ -16,16 +16,21 @@ namespace Edge.Data.Pipeline.Readers
 			this.OnObjectRequired = ReadNode;
 		}
 
-		XmlDynamicObject ReadNode(XmlReader reader)
+		dynamic ReadNode(XmlReader reader)
 		{
 			dynamic xml = new XmlDynamicObject() { ArrayAddingMode = true };
+			var xmlObject = (XmlDynamicObject)xml;
 
 			string nodeName = reader.Name;
 			int nodeDepth = reader.Depth;
 
 			// Read attributes
 			while (reader.MoveToNextAttribute())
-				xml.Attributes[reader.Name] = reader.Value;
+			{
+				if (xmlObject.Attributes == null)
+					xmlObject.Attributes = new object();
+				xmlObject.Attributes[reader.Name] = reader.Value;
+			}
 
 			// Read value elements
 			while (reader.Read())
@@ -40,41 +45,61 @@ namespace Edge.Data.Pipeline.Readers
 				}
 				else if (reader.NodeType == XmlNodeType.Text)
 				{
-					xml.InnerText += reader.Value;
+					if (xml.InnerText == null)
+						xml.InnerText = string.Empty;
+					xmlObject.InnerText += reader.Value;
 				}
 			}
+			xmlObject.ArrayAddingMode = false;
 
-			((XmlDynamicObject)xml).ArrayAddingMode = false;
-			return xml;
+			// Decide what to return
+			object returnObj;
+			if (xmlObject.Children == null && xmlObject.Attributes == null)
+			{
+				// If nothing is defined inside this node, return null; if only the inner text, return a string
+				if (xmlObject.InnerText == null)
+					returnObj = null;
+				else
+					returnObj = xmlObject.InnerText;
+			}
+			else
+			{
+				// This node has children and/or attributes, return it as an object	
+				returnObj = xmlObject;
+			}
+
+			return returnObj;
 		}
 	}
 
 	public class XmlDynamicObject:DynamicObject
 	{
-		public dynamic Attributes { get; private set; }
+		public dynamic Attributes { get; internal set; }
 		public string InnerText { get; set; }
-
-		Dictionary<string, object> _children = new Dictionary<string, object>();
 		public bool ArrayAddingMode = false;
 		public bool CaseSensitive = true;
+		internal Dictionary<string, object> Children = null;
 
 		public XmlDynamicObject()
 		{
-			this.Attributes = new object();
-			this.InnerText = string.Empty;
+			this.Attributes = null;
+			this.InnerText = null;
 		}
 
 		public override bool TryGetMember(GetMemberBinder binder, out object result)
 		{
 			string name = CaseSensitive ? binder.Name : binder.Name.ToLower();
-			return _children.TryGetValue(name, out result);
+			return Children.TryGetValue(name, out result);
 		}
 
 		public override bool TrySetMember(SetMemberBinder binder, object value)
 		{
+			if (Children == null)
+				Children = new Dictionary<string, object>();
+
 			string name = CaseSensitive ? binder.Name : binder.Name.ToLower();
 			object current;
-			if (ArrayAddingMode && _children.TryGetValue(name, out current))
+			if (ArrayAddingMode && Children.TryGetValue(name, out current))
 			{
 				// In array adding mode, either expand an existing list or convert a value to a list
 				if (current is IList)
@@ -87,12 +112,12 @@ namespace Edge.Data.Pipeline.Readers
 					List<object> list = new List<object>();
 					list.Add(current);
 					list.Add(value);
-					_children[name] = list;
+					Children[name] = list;
 				}
 			}
 			else
 			{
-				_children[name] = value;
+				Children[name] = value;
 			}
 			return true;
 		}
