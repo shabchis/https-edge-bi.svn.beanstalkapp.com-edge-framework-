@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline.Readers
 {
 	public class XmlDynamicReader : XmlObjectReader<dynamic>
 	{
-		public XmlDynamicReader(string url, string xpath, string[] treatAsArrayXPaths = null) : base(url, xpath)
+		public XmlDynamicReader(string url, string xpath, XmlReaderSettings settings = null) : base(url, xpath, settings)
 		{
 			this.OnObjectRequired = ReadNode;
 		}
@@ -21,27 +21,29 @@ namespace Edge.Data.Pipeline.Readers
 			dynamic xml = new XmlDynamicObject() { ArrayAddingMode = true };
 			var xmlObject = (XmlDynamicObject)xml;
 
-			string nodeName = reader.Name;
+			string objectNodeName = GetNameWithPrefix(reader);
 			int nodeDepth = reader.Depth;
 
 			// Read attributes
 			while (reader.MoveToNextAttribute())
 			{
+				string attributeName = GetNameWithPrefix(reader);
 				if (xmlObject.Attributes == null)
-					xmlObject.Attributes = new object();
-				xmlObject.Attributes[reader.Name] = reader.Value;
+					xmlObject.Attributes = new XmlDynamicObject();
+				xmlObject.Attributes[attributeName] = reader.Value;
 			}
 
 			// Read value elements
 			while (reader.Read())
 			{
-				if (reader.NodeType == XmlNodeType.EndElement && reader.Name == nodeName && reader.Depth == nodeDepth)
+				string currentNodeName = GetNameWithPrefix(reader);
+				if (reader.NodeType == XmlNodeType.EndElement && currentNodeName == objectNodeName && reader.Depth == nodeDepth)
 				{
 					break;
 				}
 				else if (reader.NodeType == XmlNodeType.Element)
 				{
-					xml[reader.Name] = ReadNode(reader);
+					xml[currentNodeName] = ReadNode(reader);
 				}
 				else if (reader.NodeType == XmlNodeType.Text)
 				{
@@ -70,6 +72,11 @@ namespace Edge.Data.Pipeline.Readers
 
 			return returnObj;
 		}
+
+		private static string GetNameWithPrefix(XmlReader reader)
+		{
+			return String.Format("{0}{1}", reader.Prefix == string.Empty ? string.Empty : reader.Prefix + ":", reader.Name);
+		}
 	}
 
 	public class XmlDynamicObject:DynamicObject
@@ -85,11 +92,16 @@ namespace Edge.Data.Pipeline.Readers
 			this.Attributes = null;
 			this.InnerText = null;
 		}
+		public override IEnumerable<string> GetDynamicMemberNames()
+		{
+			return base.GetDynamicMemberNames();
+		}
 
 		public override bool TryGetMember(GetMemberBinder binder, out object result)
 		{
 			string name = CaseSensitive ? binder.Name : binder.Name.ToLower();
-			return Children.TryGetValue(name, out result);
+			Children.TryGetValue(name, out result);
+			return true; // always return true to avoid 'undefined member' exception
 		}
 
 		public override bool TrySetMember(SetMemberBinder binder, object value)
@@ -153,6 +165,40 @@ namespace Edge.Data.Pipeline.Readers
 
 			SetMember(indexes[0] as string, value);
 			return true;
+		}
+
+		/// <summary>
+		/// Returns a list of child elements of the specified type.
+		/// </summary>
+		/// <param name="childName">
+		///		The child element name to return.
+		///		For example, in the XML <code><parent><child/></parent></code>, use parent.GetArray("child").
+		///	</param>
+		/// <returns></returns>
+		public object[] GetArray(string childName)
+		{
+			object child;
+			object[] returnArray;
+
+			if (!Children.TryGetValue(childName, out child))
+			{
+				returnArray = new object[0];
+			}
+			else
+			{
+				if (child is IList)
+				{
+					IList list = (IList)child;
+					returnArray = new object[list.Count];
+					list.CopyTo(returnArray, 0);
+				}
+				else
+				{
+					returnArray = new object[] { child };
+				}
+			}
+
+			return returnArray;
 		}
 	}
 

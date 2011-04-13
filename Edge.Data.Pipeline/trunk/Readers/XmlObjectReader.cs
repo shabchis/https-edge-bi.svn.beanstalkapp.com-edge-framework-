@@ -17,7 +17,9 @@ namespace Edge.Data.Pipeline.Readers
 		public Func<XmlReader, T> OnObjectRequired = null;
 		private string _url;
 		private string _xpath;
+		private bool _ignoreNamespaces = true;
 		private XmlReader _xmlReader = null;
+		private XmlReaderSettings _settings = null;
 
 		/*=========================*/
 		#endregion
@@ -25,13 +27,14 @@ namespace Edge.Data.Pipeline.Readers
 		#region Implementation
 		/*=========================*/
 
-		public XmlObjectReader(string url, string xpath = null)
+		public XmlObjectReader(string url, string xpath = null, XmlReaderSettings settings = null)
 		{
 			if (String.IsNullOrEmpty(url))
 				throw new ArgumentNullException("url");
 
 			_url = url;
 			_xpath = xpath;
+			_settings = settings;
 		}
 
 		/// <summary>
@@ -49,6 +52,20 @@ namespace Edge.Data.Pipeline.Readers
 			}
 		}
 
+		public bool IgnoreNamespaces
+		{
+			get
+			{
+				return _ignoreNamespaces;
+			}
+			set
+			{
+				if (_xmlReader != null)
+					throw new InvalidOperationException("Cannot change IgnoreNamespaces after the reader has started reading.");
+				_ignoreNamespaces = true;
+			}
+		}
+
 		protected XmlReader InnerReader
 		{
 			get { return _xmlReader; }
@@ -58,14 +75,24 @@ namespace Edge.Data.Pipeline.Readers
 		{
 			if (_xpath == null)
 			{
-				_xmlReader = new XmlTextReader(_url)
-				{
-					WhitespaceHandling = WhitespaceHandling.None
-				};
+				_xmlReader = XmlTextReader.Create(_url, _settings);
 			}
 			else
 			{
-				_xmlReader = new XPathReader(_url, _xpath);
+				var xpaths = new XPathCollection();
+				xpaths.Add(_xpath);
+
+				var inner = new XmlTextReader(_url);
+				inner.Namespaces = !_ignoreNamespaces;
+				if (_settings != null)
+				{
+					// TODO: map more XmlReaderSettings to XmlTextReader properties (check in reflector)
+					if (_settings.IgnoreWhitespace)
+						inner.WhitespaceHandling = WhitespaceHandling.None;
+					inner.DtdProcessing = _settings.DtdProcessing;
+				}
+
+				_xmlReader = new XPathReader( inner, xpaths );
 			}
 		}
 

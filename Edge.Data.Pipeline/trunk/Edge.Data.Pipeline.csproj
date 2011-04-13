@@ -56,9 +56,6 @@
     <Reference Include="DataStreams">
       <HintPath>..\..\(third party)\CsvReader.com\DotNet 4.0\DataStreams.dll</HintPath>
     </Reference>
-    <Reference Include="GotDotNet.XPath">
-      <HintPath>..\..\(third party)\GotDotNet.XPath\Compiled\GotDotNet.XPath.dll</HintPath>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\(third party)\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
@@ -129,6 +126,10 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\%28third party%29\GotDotNet.XPath\GotDotNet.XPath.csproj">
+      <Project>{741664DD-C540-40EB-BBB9-FD4DFD8512E8}</Project>
+      <Name>GotDotNet.XPath</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
       <Name>Edge.Core</Name>
