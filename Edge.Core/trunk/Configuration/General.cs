@@ -15,6 +15,7 @@ namespace Edge.Core.Configuration
 	{
 		Executable=0,
 		Class=1,
+		Workflow=2
 	};
 
 	public enum FailureOutcome
@@ -22,17 +23,15 @@ namespace Edge.Core.Configuration
 		Unspecified=0,
 		Terminate=1,
 		Continue=2,
-		Handler=3,
-	};
+		Handler=3
+	}
 
 	public enum CalendarUnit
 	{
 		Month=0,
 		Week=1,
-		Day=2,
-		AlwaysOn=3,
-		ReRun=4,
-	};
+		Day=2
+	}
 
 	/*=========================*/
 	#endregion

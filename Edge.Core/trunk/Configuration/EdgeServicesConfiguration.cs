@@ -8,19 +8,71 @@ namespace Edge.Core.Configuration
 {
 
 	/// <summary>
-    /// Represents a service section. The service section contains all of the services defined in the system.
+    /// Represents the configuration section of the Edge services framework.
     /// </summary>
-    internal class ServicesSection : ConfigurationSection
+    public class EdgeServicesConfiguration : ConfigurationSection
     {
-        #region Fields
+		#region Wrapper
+		//===================
+
+		public const string DefaultFileName = "Edge.Services.config";
+ 		public const string DefaultSectionName = "edge.services";
+
+		public static EdgeServicesConfiguration Current
+		{
+			get;
+			private set;
+		}
+
+		/// <summary>
+		/// Loads the services configuration 'edge.services' from the current application's app.config file.
+		/// </summary>
+		public static void Load()
+		{
+			Load(null);
+		}
+
+		/// <summary>
+		/// Loads the services configuration from the specified file.
+		/// </summary>
+		/// <param name="configFileName">Path to configuration file, relative to current working directory. If null, uses current application's app.config file.</param>
+		/// <param name="sectionName">The name of the section to load, default is 'edge.services'.</param>
+		public static void Load(string configFileName, string sectionName = DefaultSectionName)
+		{
+			if (configFileName == null)
+			{
+				Current = (EdgeServicesConfiguration)ConfigurationManager.GetSection(sectionName);
+			}
+			else
+			{
+				var fileMap = new ExeConfigurationFileMap() { ExeConfigFilename = configFileName };
+				System.Configuration.Configuration configFile = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
+
+				Current = (EdgeServicesConfiguration)configFile.GetSection(sectionName);
+			}
+		}
+
+
+		//==================
+		#endregion
+
+		#region Section
+		//===================
+
+		#region Fields
+
         private static ConfigurationPropertyCollection s_properties;
         private static ConfigurationProperty s_services;
         private static ConfigurationProperty s_accounts;
 		private static ConfigurationProperty s_extensions;
-        #endregion
+
+		bool _loading = true;
+		ExtensionElementCollection _extensions;
+		
+		#endregion
 
         #region Constructor
-		static ServicesSection()
+		static EdgeServicesConfiguration()
         {
             s_services = new ConfigurationProperty(
                 "Services",
@@ -37,7 +89,7 @@ namespace Edge.Core.Configuration
 			s_extensions = new ConfigurationProperty(
 			   "Extensions",
 			   typeof(ExtensionElementCollection),
-			   new ExtensionElementCollection());
+			   null);
 			
 			s_properties = new ConfigurationPropertyCollection();
             s_properties.Add(s_services);
@@ -59,9 +111,31 @@ namespace Edge.Core.Configuration
 
 		public ExtensionElementCollection Extensions
 		{
-			get { return (ExtensionElementCollection) base[s_extensions]; }
+			get
+			{
+				if (_loading)
+					return _extensions;
+				else
+					return (ExtensionElementCollection) base[s_extensions];
+			}
+			internal set
+			{
+				if (!_loading)
+					throw new InvalidOperationException();
+				_extensions = value;
+			}
 		}
 		
+		public AccountElement SystemAccount
+		{
+			get { return Accounts.GetAccount(-1); }
+		}
+
+		public bool IsLoading
+		{
+			get { return _loading; }
+		}
+
 		protected override ConfigurationPropertyCollection Properties
         {
             get
@@ -69,6 +143,7 @@ namespace Edge.Core.Configuration
                 return s_properties;
             }
         }
+
         #endregion
 
 		#region Internal Methods
@@ -84,95 +159,15 @@ namespace Edge.Core.Configuration
 			{
 				account.ResolveReferences(this.Services, null);
 			}
+
+			// Done loading
+			_loading = false;
 		}
 		
 		#endregion
-	}
 
-	/// <summary>
-	/// 
-	/// </summary>
-	public class ServicesConfiguration
-	{
-		const string SectionName = "edge.services";
-		static ServicesSection _section;
-		static bool _loading = false;
-		static ExtensionElementCollection _extensions;
-
-		static void Load()
-		{
-			if (_section == null)
-			{
-				_loading = true;
-				_section = (ServicesSection) ConfigurationManager.GetSection(SectionName);
-				_loading = false;
-			}
-		}
-
-		public static bool IsLoading
-		{
-			get { return _loading; }
-		}
-
-		public static AccountElement SystemAccount
-		{
-			get
-			{
-				return Accounts.GetAccount(-1);
-			}
-		}
-
-		public static AccountElementCollection Accounts
-		{
-			get
-			{
-				if (_loading)
-					return null;
-
-				Load();
-				return _section.Accounts;
-			}
-		}
-
-		public static ServiceElementCollection Services
-		{
-			get
-			{
-				if (_loading)
-					return null;
-
-				Load();
-				return _section.Services;
-			}
-		}
-
-		public static ExtensionElementCollection Extensions
-		{
-			get
-			{
-				if (_loading)
-				{
-					return _extensions;
-				}
-				else
-				{
-					Load();
-					return _section.Extensions;
-				}
-			}
-
-			internal set
-			{
-				if (_loading)
-				{
-					_extensions = value;
-				}
-				else
-				{
-					throw new InvalidOperationException();
-				}
-			}
-		}
+		//==================
+		#endregion
 	}
 
 }

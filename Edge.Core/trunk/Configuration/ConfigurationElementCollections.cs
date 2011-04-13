@@ -10,6 +10,10 @@ namespace Edge.Core.Configuration
 	public abstract class ConfigurationElementCollectionBase<ElementT>: ConfigurationElementCollection, ISerializableConfigurationElement
 		where ElementT: ConfigurationElement
 	{
+		public ConfigurationElementCollectionBase()
+		{
+		}
+
 		public ElementT this[int index]
 		{
 			get
@@ -149,10 +153,10 @@ namespace Edge.Core.Configuration
     /// <summary>
     /// Represents a collection of execution step elements.
     /// </summary>
-	public class ExecutionStepElementCollection: ConfigurationElementCollectionBase<ExecutionStepElement>
+	public class WorkflowStepElementCollection: ConfigurationElementCollectionBase<WorkflowStepElement>
     {
         #region Constructor
-        public ExecutionStepElementCollection()
+        public WorkflowStepElementCollection()
         {
         }
         #endregion
@@ -184,22 +188,22 @@ namespace Edge.Core.Configuration
         #endregion
 
         #region Indexers
-        public new ExecutionStepElement this[string name]
+        public new WorkflowStepElement this[string name]
         {
             get
             {
-                return (ExecutionStepElement)base.BaseGet(name);
+                return (WorkflowStepElement)base.BaseGet(name);
             }
         }
         #endregion
 
         #region Methods
-        public void Add(ExecutionStepElement item)
+        public void Add(WorkflowStepElement item)
         {
             base.BaseAdd(item);
         }
 
-        public void Remove(ExecutionStepElement item)
+        public void Remove(WorkflowStepElement item)
         {
             base.BaseRemove(item);
         }
@@ -213,17 +217,17 @@ namespace Edge.Core.Configuration
         #region Overrides
         protected override ConfigurationElement CreateNewElement()
         {
-            return new ExecutionStepElement();
+            return new WorkflowStepElement();
         }
 
         protected override object GetElementKey(ConfigurationElement element)
         {
 			// Get index name
-			ExecutionStepElement step = (ExecutionStepElement)element;
+			WorkflowStepElement step = (WorkflowStepElement)element;
 
 			string name = step.Name != null ?
-				step.Name : 
-				(step.ServiceToUse.Element != null ? step.ServiceToUse.Element.Name : null);
+				step.Name :
+				(step.BaseConfiguration.Element != null ? step.BaseConfiguration.Element.Name : null);
 			
 			if (name == null || name.Trim().Length < 1)
 				return IndexOf(step).ToString();
@@ -237,13 +241,13 @@ namespace Edge.Core.Configuration
 	/// <summary>
 	/// Represents a collection of extension elements.
 	/// </summary>
-	public class ExtensionElementCollection: ConfigurationElementCollectionBase<ExecutionStepElement>
+	public class ExtensionElementCollection: ConfigurationElementCollectionBase<WorkflowStepElement>
 	{
 		#region Constructor
 		public ExtensionElementCollection()
 		{
-			if (ServicesConfiguration.IsLoading)
-				ServicesConfiguration.Extensions = this;
+			if (EdgeServicesConfiguration.Current.IsLoading)
+				EdgeServicesConfiguration.Current.Extensions = this;
 		}
 		#endregion
 
@@ -576,7 +580,7 @@ namespace Edge.Core.Configuration
 
         #region Properties
 
-		public AccountServiceSettingsElement this[ExecutionStepElement step]
+		public AccountServiceSettingsElement this[WorkflowStepElement step]
 		{
 			get
 			{

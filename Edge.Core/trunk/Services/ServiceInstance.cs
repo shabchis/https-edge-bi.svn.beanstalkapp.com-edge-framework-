@@ -393,8 +393,8 @@ namespace Edge.Core.Services
 			// Get the right constructor
 			if (config is ServiceElement)
 				activeConfig = new ActiveServiceElement((ServiceElement) config);
-			else if (config is ExecutionStepElement)
-				activeConfig = new ActiveServiceElement((ExecutionStepElement) config);
+			else if (config is WorkflowStepElement)
+				activeConfig = new ActiveServiceElement((WorkflowStepElement) config);
 			else if (config is AccountServiceElement)
 				activeConfig = new ActiveServiceElement((AccountServiceElement) config);
 			else if (config is AccountServiceSettingsElement)
@@ -623,7 +623,7 @@ namespace Edge.Core.Services
 		void OnChildServiceRequested(int stepNumber, int attemptNumber)
 		{
 			// Get the step configuration elements
-			ExecutionStepElement stepConfig = this.Configuration.ExecutionSteps[stepNumber];
+			WorkflowStepElement stepConfig = this.Configuration.Workflow[stepNumber];
 			AccountServiceSettingsElement stepSettings = 
 				this.Configuration.StepSettings != null ? 
 				this.Configuration.StepSettings[stepConfig] : 

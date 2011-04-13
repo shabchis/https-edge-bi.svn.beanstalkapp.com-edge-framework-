@@ -77,7 +77,7 @@
     <Compile Include="Configuration\AppSettings.cs" />
     <Compile Include="Configuration\ConfigurationElementCollections.cs" />
     <Compile Include="Configuration\ConfigurationElements.cs" />
-    <Compile Include="Configuration\ConfigurationSections.cs" />
+    <Compile Include="Configuration\EdgeServicesConfiguration.cs" />
     <Compile Include="Configuration\Converters.cs" />
     <Compile Include="Configuration\General.cs" />
     <Compile Include="Configuration\SettingsCollection.cs" />

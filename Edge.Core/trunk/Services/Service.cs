@@ -232,17 +232,7 @@ namespace Edge.Core.Services
 				return;
 
 			// Init the execution timer
-			if
-			(
-				_executionTimer == null &&
-				(
-					Instance.ActiveSchedulingRule == null ||
-					(
-						Instance.ActiveSchedulingRule != null &&
-						Instance.ActiveSchedulingRule.CalendarUnit != CalendarUnit.AlwaysOn
-					)
-				)
-			)
+			if(_executionTimer == null)
 			{
 				_executionTimer = new System.Timers.Timer(Instance.Configuration.MaxExecutionTime.TotalMilliseconds);
 				_executionTimer.Elapsed += new System.Timers.ElapsedEventHandler(MaxExecutionTimeElapsed);
@@ -262,8 +252,8 @@ namespace Edge.Core.Services
 				});
 
 				_process = new Process();
-				_process.StartInfo.FileName = Instance.Configuration.Path;
-				_process.StartInfo.Arguments = Instance.Configuration.Arguments;
+				_process.StartInfo.FileName = Instance.Configuration.ProcessPath;
+				_process.StartInfo.Arguments = Instance.Configuration.ProcessArguments;
 				_process.StartInfo.UseShellExecute = false;
 				_process.EnableRaisingEvents = true;
 				_process.Exited += _processEndHandler;
@@ -314,7 +304,7 @@ namespace Edge.Core.Services
 				Thread.Sleep(Instance.Configuration.DebugDelay);
 
 			// Service with no steps means instant success!
-			if (Instance.Configuration.ExecutionSteps.Count < 1)
+			if (Instance.Configuration.Workflow.Count < 1)
 			{
 				return ServiceOutcome.Success;
 			}
@@ -364,7 +354,7 @@ namespace Edge.Core.Services
 								(
 								!step.Config.IsFailureHandler &&
 								step.Config.FailureHandler.Element != null &&
-								step.Config.FailureHandler.Element.ServiceToUse.Element.Name != null &&
+								step.Config.FailureHandler.Element.BaseConfiguration.Element.Name != null &&
 								!IsInStepHistory(step.Config.FailureHandler.Element) &&
 								IsStepConditionValid(step.Config.FailureHandler.Element.ConditionOptions, step.Config.FailureHandler.Element.Condition)
 								)
@@ -398,7 +388,7 @@ namespace Edge.Core.Services
 						_stepHistory.Remove(step);
 
 					// Get the next step of a failure handler
-					ExecutionStepElement nextStepConfig = GetNextStep(step == null ? null : step.StepConfig);
+					WorkflowStepElement nextStepConfig = GetNextStep(step == null ? null : step.StepConfig);
 
 					if (nextStepConfig == null)
 					{
@@ -438,7 +428,7 @@ namespace Edge.Core.Services
 							}
 
 							// If the step is blocking or if it's a failure handler, stop adding steps, otherwise add the next
-							if (nextStepConfig.IsBlocking || nextStepConfig == Instance.Configuration.ExecutionSteps[Instance.Configuration.ExecutionSteps.Count - 1])
+							if (nextStepConfig.IsBlocking || nextStepConfig == Instance.Configuration.Workflow[Instance.Configuration.Workflow.Count - 1])
 							{
 								adding = false;
 							}
@@ -461,7 +451,7 @@ namespace Edge.Core.Services
 				foreach(StepInfo step in _stepHistory)
 				{
 					if (step.ServiceState == ServiceState.Uninitialized)
-						RequestChildService(Instance.Configuration.ExecutionSteps.IndexOf(step.StepConfig), step.FailureRepetitions+1);
+						RequestChildService(Instance.Configuration.Workflow.IndexOf(step.StepConfig), step.FailureRepetitions+1);
 				}
 			}
 			
@@ -473,7 +463,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		/// <param name="nextStepConfig"></param>
 		/// <returns></returns>
-		bool IsInStepHistory(ExecutionStepElement nextStepConfig)
+		bool IsInStepHistory(WorkflowStepElement nextStepConfig)
 		{
 			bool alreadyAdded = false;
 			foreach (StepInfo s in _stepHistory)
@@ -492,7 +482,7 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// 
 		/// </summary>
-		StepInfo GetStepFromHistory(ExecutionStepElement stepConfig)
+		StepInfo GetStepFromHistory(WorkflowStepElement stepConfig)
 		{
 			foreach (StepInfo s in _stepHistory)
 			{
@@ -509,22 +499,22 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// Gets the next step that is enabled and is not a failure handler. If there is none returns null.
 		/// </summary>
-		ExecutionStepElement GetNextStep(ExecutionStepElement stepConfig)
+		WorkflowStepElement GetNextStep(WorkflowStepElement stepConfig)
 		{
-			int indexOfCurrent = stepConfig == null ? 0 : Instance.Configuration.ExecutionSteps.IndexOf(stepConfig) + 1;
+			int indexOfCurrent = stepConfig == null ? 0 : Instance.Configuration.Workflow.IndexOf(stepConfig) + 1;
 
 			// Find the next non-failure handler step
-			ExecutionStepElement next = null;
-			for (int i = indexOfCurrent; i < Instance.Configuration.ExecutionSteps.Count; i++)
+			WorkflowStepElement next = null;
+			for (int i = indexOfCurrent; i < Instance.Configuration.Workflow.Count; i++)
 			{
-				ExecutionStepElement step = Instance.Configuration.ExecutionSteps[i];
+				WorkflowStepElement step = Instance.Configuration.Workflow[i];
 				if (
 					step.IsEnabled &&
 					!step.IsFailureHandler &&
 					IsStepConditionValid(step.ConditionOptions, step.Condition)
 				)
 				{
-					next = Instance.Configuration.ExecutionSteps[i];
+					next = Instance.Configuration.Workflow[i];
 					break;
 				}
 			}
@@ -821,7 +811,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		void IServiceEngine.ChildServiceOutcomeReported(int stepNumber, ServiceOutcome outcome)
 		{
-			StepInfo step = GetStepFromHistory(Instance.Configuration.ExecutionSteps[stepNumber]);
+			StepInfo step = GetStepFromHistory(Instance.Configuration.Workflow[stepNumber]);
 			if (step == null)
 				return;
 
@@ -837,7 +827,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		void IServiceEngine.ChildServiceStateChanged(int stepNumber, ServiceState state)
 		{
-			StepInfo step = GetStepFromHistory(Instance.Configuration.ExecutionSteps[stepNumber]);
+			StepInfo step = GetStepFromHistory(Instance.Configuration.Workflow[stepNumber]);
 			if (step == null)
 				return;
 
@@ -896,10 +886,10 @@ namespace Edge.Core.Services
 	{
 		#region Fields
 		/*=========================*/
-		public readonly ActiveExecutionStepElement Config;
+		public readonly ActiveWorkflowStepElement Config;
 		public int FailureRepetitions = 0;
 		public bool FailureWasHandled = false;
-		public readonly ExecutionStepElement StepConfig;
+		public readonly WorkflowStepElement StepConfig;
 		public readonly AccountServiceSettingsElement AccountStepConfig;
 		public ServiceState ServiceState;
 		public ServiceOutcome ServiceOutcome;
@@ -917,16 +907,16 @@ namespace Edge.Core.Services
 		{
 			StepConfig = accountStepConfig.Step.Element;
 			AccountStepConfig = accountStepConfig;
-			Config = new ActiveExecutionStepElement(AccountStepConfig);
+			Config = new ActiveWorkflowStepElement(AccountStepConfig);
 		}
 
 		/// <summary>
 		/// 
 		/// </summary>
-		public StepInfo(ExecutionStepElement stepConfig)
+		public StepInfo(WorkflowStepElement stepConfig)
 		{
 			StepConfig = stepConfig;
-			Config = new ActiveExecutionStepElement(StepConfig);
+			Config = new ActiveWorkflowStepElement(StepConfig);
 		}
 
 		/*=========================*/

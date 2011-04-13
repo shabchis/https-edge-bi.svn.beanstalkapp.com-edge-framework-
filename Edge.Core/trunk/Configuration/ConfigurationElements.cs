@@ -22,6 +22,7 @@ namespace Edge.Core.Configuration
 		#endregion
 
 		#region Constructor
+
 		public ReferencingConfigurationElement()
 		{
 			InnerProperties = new ConfigurationPropertyCollection();
@@ -78,13 +79,13 @@ namespace Edge.Core.Configuration
 						er.Element = element;
 					}
 				}
-				else if (property.Type == typeof(ElementReference<ExecutionStepElement>) && service != null)
+				else if (property.Type == typeof(ElementReference<WorkflowStepElement>) && service != null)
 				{
-					ElementReference<ExecutionStepElement> er = (ElementReference<ExecutionStepElement>) this[property];
+					ElementReference<WorkflowStepElement> er = (ElementReference<WorkflowStepElement>) this[property];
 
 					if (er.Value != null)
 					{
-						ExecutionStepElement element = service.ExecutionSteps[er.Value];
+						WorkflowStepElement element = service.Workflow[er.Value];
 						if (element == null)
 							throw new ConfigurationErrorsException(String.Format("'{0}' is not a valid execution step reference.", er.Value));
 
@@ -253,31 +254,23 @@ namespace Edge.Core.Configuration
         private ConfigurationProperty s_arguments;
         private ConfigurationProperty s_maxInstances;
         private ConfigurationProperty s_maxInstancesPerAccount;
-        private ConfigurationProperty s_maxExecutionTime;
         private ConfigurationProperty s_serviceType;
         private ConfigurationProperty s_executionFlow;
         private ConfigurationProperty s_schedulingRules;
 		private ConfigurationProperty s_debugDelay;
 		private Dictionary<string, ConfigurationElement> _extendedElements = new Dictionary<string,ConfigurationElement>();
 		
-		private static TimeSpan _defaultMaxExecutionTime = TimeSpan.MinValue;
-		
 		#endregion
 
         #region Constructor
         public ServiceElement(): base(true)
         {
-            s_isPublic = new ConfigurationProperty(
-                "IsPublic",
-                typeof(bool),
-                true);
-
             s_path = new ConfigurationProperty(
-                "Path",
+				"ProcessPath",
                 typeof(string));
 
             s_arguments = new ConfigurationProperty(
-                "Arguments",
+				"ProcessArguments",
                 typeof(string));
 
             s_class = new ConfigurationProperty(
@@ -285,19 +278,14 @@ namespace Edge.Core.Configuration
                 typeof(string));
 
             s_maxInstances = new ConfigurationProperty(
-                "MaxInstances",
+				"MaxConcurrent",
                 typeof(int),
                 0);
 
             s_maxInstancesPerAccount = new ConfigurationProperty(
-                "MaxInstancesPerAccount",
+				"MaxConcurrentPerAccount",
                 typeof(int),
                 0);
-
-            s_maxExecutionTime = new ConfigurationProperty(
-                "MaxExecutionTime",
-                typeof(TimeSpan),
-                ServiceElement.DefaultMaxExecutionTime);
 
             s_serviceType = new ConfigurationProperty(
                 "ServiceType",
@@ -305,8 +293,8 @@ namespace Edge.Core.Configuration
                 ServiceType.Class);
 
             s_executionFlow = new ConfigurationProperty(
-                "ExecutionSteps",
-                typeof(ExecutionStepElementCollection),
+                "Workflow",
+                typeof(WorkflowStepElementCollection),
                 null,
 				ConfigurationPropertyOptions.IsDefaultCollection);
 
@@ -321,13 +309,11 @@ namespace Edge.Core.Configuration
 				typeof(int),
 				0);
 
-            InnerProperties.Add(s_isPublic);
 			InnerProperties.Add(s_path);
 			InnerProperties.Add(s_arguments);
 			InnerProperties.Add(s_class);
             InnerProperties.Add(s_maxInstances);
             InnerProperties.Add(s_maxInstancesPerAccount);
-            InnerProperties.Add(s_maxExecutionTime);
             InnerProperties.Add(s_serviceType);
             InnerProperties.Add(s_executionFlow);
 			InnerProperties.Add(s_schedulingRules);
@@ -337,163 +323,70 @@ namespace Edge.Core.Configuration
 
         #region Properties
 
-		public static TimeSpan DefaultMaxExecutionTime
+		public string ProcessPath
 		{
-			get
-			{
-				if (_defaultMaxExecutionTime == TimeSpan.MinValue)
-				{
-					string raw = AppSettings.Get(typeof(ServiceElement), "DefaultMaxExecutionTime");
-					if (!TimeSpan.TryParse(raw, out _defaultMaxExecutionTime))
-						throw new ConfigurationErrorsException("Invalid value for DefaultMaxExecutionTime.");
-				}
-
-				return _defaultMaxExecutionTime;
-			}
+			get { return (string) base[s_path]; }
+			set { base[s_path] = value; }
 		}
 
-		public bool IsPublic
-        {
-            get
-            {
-                return (bool)base[s_isPublic];
-            }
-            set
-            {
-                base[s_isPublic] = value;
-            }
-        }
-
-		public string Path
+		public string ProcessArguments
 		{
-			get
-			{
-				return (string) base[s_path];
-			}
-			set
-			{
-				base[s_path] = value;
-			}
+			get { return (string)base[s_arguments]; }
+			set { base[s_arguments] = value; }
 		}
 
-      public string Class
+		public string Class
         {
-            get
-            {
-                return (string)base[s_class];
-            }
-            set
-            {
-                base[s_class] = value;
-            }
+            get { return (string)base[s_class]; }
+            set { base[s_class] = value; }
         }
 
-        public string Arguments
+       
+		public int MaxConcurrent
         {
-            get
-            {
-                return (string)base[s_arguments];
-            }
-            set
-            {
-                base[s_arguments] = value;
-            }
+            get { return (int)base[s_maxInstances]; }
+            set { base[s_maxInstances] = value; }
         }
 
-		public int MaxInstances
+        public int MaxConcurrentPerProfile
         {
-            get
-            {
-                return (int)base[s_maxInstances];
-            }
-            set
-            {
-                base[s_maxInstances] = value;
-            }
-        }
-
-        public int MaxInstancesPerAccount
-        {
-            get
-            {
-                return (int)base[s_maxInstancesPerAccount];
-            }
-            set
-            {
-                base[s_maxInstancesPerAccount] = value;
-            }
-        }
-
-        public TimeSpan MaxExecutionTime
-        {
-            get
-            {
-                return (TimeSpan)base[s_maxExecutionTime];
-            }
-            set
-            {
-                base[s_maxExecutionTime] = value;
-            }
+            get { return (int)base[s_maxInstancesPerAccount]; }
+            set { base[s_maxInstancesPerAccount] = value; }
         }
 
         public ServiceType ServiceType
         {
-            get
-            {
-                return (ServiceType)base[s_serviceType];
-            }
-            set
-            {
-                base[s_serviceType] = value;
-            }
+            get { return (ServiceType)base[s_serviceType]; }
+            set { base[s_serviceType] = value; }
         }
 
-        public ExecutionStepElementCollection ExecutionSteps
+        public WorkflowStepElementCollection Workflow
         {
-            get
-            {
-                return (ExecutionStepElementCollection)base[s_executionFlow];
-            }
-            set
-            {
-                base[s_executionFlow] = value;
-            }
+            get { return (WorkflowStepElementCollection)base[s_executionFlow]; }
+            set { base[s_executionFlow] = value; }
         }
 
         public SchedulingRuleElementCollection SchedulingRules
         {
-            get
-            {
-                return (SchedulingRuleElementCollection)base[s_schedulingRules];
-            }
-            set
-            {
-                base[s_schedulingRules] = value;
-            }
+            get { return (SchedulingRuleElementCollection)base[s_schedulingRules]; }
+            set { base[s_schedulingRules] = value; }
         }
 
 		public int DebugDelay
 		{
-			get
-			{
-				return (int) base[s_debugDelay];
-			}
-			set
-			{
-				base[s_debugDelay] = value;
-			}
+			get { return (int) base[s_debugDelay]; }
+			set { base[s_debugDelay] = value; }
 		}
 
 		public Dictionary<string, ConfigurationElement> ExtendedElements
 		{
-			get
-			{
-				return _extendedElements;
-			}
-			internal set
-			{
-				_extendedElements = value;
-			}
+			get { return _extendedElements; }
+			internal set { _extendedElements = value; }
+		}
+
+		public TimeSpan MaxExecutionTime
+		{
+			get { return TimeSpan.FromHours(1); }
 		}
 
 		#endregion
@@ -503,7 +396,7 @@ namespace Edge.Core.Configuration
 		internal override void ResolveReferences(ServiceElementCollection services, ServiceElement service)
 		{
 			base.ResolveReferences(services, service);
-			foreach(ExecutionStepElement step in this.ExecutionSteps)
+			foreach(WorkflowStepElement step in this.Workflow)
 				step.ResolveReferences(services, this);
 
 			foreach (ConfigurationElement element in this.ExtendedElements.Values)
@@ -516,7 +409,7 @@ namespace Edge.Core.Configuration
 		protected override bool OnDeserializeUnrecognizedElement(string elementName, XmlReader reader)
 		{
 			// Try to retrieve the extension type data
-			ExtensionElement extension = ServicesConfiguration.Extensions[elementName];
+			ExtensionElement extension = EdgeServicesConfiguration.Current.Extensions[elementName];
 			if (extension == null)
 				return false;
 
@@ -579,12 +472,11 @@ namespace Edge.Core.Configuration
     /// <summary>
     /// Represents a single execution step element.
     /// </summary>
-	public class ExecutionStepElement: NamedConfigurationElement
+	public class WorkflowStepElement: NamedConfigurationElement
     {
 		#region Members
         
         private ConfigurationProperty s_serviceToUse;
-        private ConfigurationProperty s_maxExecutionTime;
         private ConfigurationProperty s_waitForPrevious;
         private ConfigurationProperty s_blocking;
         private ConfigurationProperty s_failureRepeat;
@@ -599,21 +491,15 @@ namespace Edge.Core.Configuration
         #endregion
 
         #region Constructor
-        public ExecutionStepElement(): base(false)
+        public WorkflowStepElement(): base(false)
         {
             s_serviceToUse = new ConfigurationProperty(
-                "ServiceToUse",
+                "Base",
                 typeof(ElementReference<ServiceElement>),
 				new ElementReference<ServiceElement>(),
-				new Converters.ElementReferenceConverter<ServiceElement>(this, "ServiceToUse"),
+				new Converters.ElementReferenceConverter<ServiceElement>(this, "Base"),
 				null,
-                ConfigurationPropertyOptions.IsRequired);
-
-            s_maxExecutionTime = new ConfigurationProperty(
-                "MaxExecutionTime",
-                typeof(TimeSpan),
-				ServiceElement.DefaultMaxExecutionTime
-				);
+                ConfigurationPropertyOptions.None);
 
             s_waitForPrevious = new ConfigurationProperty(
                 "WaitForPrevious",
@@ -647,9 +533,9 @@ namespace Edge.Core.Configuration
 
             s_failureHandler = new ConfigurationProperty(
                 "FailureHandler",
-                typeof(ElementReference<ExecutionStepElement>),
-				new ElementReference<ExecutionStepElement>(),
-				new Converters.ElementReferenceConverter<ExecutionStepElement>(this, "FailureHandler"),
+                typeof(ElementReference<WorkflowStepElement>),
+				new ElementReference<WorkflowStepElement>(),
+				new Converters.ElementReferenceConverter<WorkflowStepElement>(this, "FailureHandler"),
 				null,
 				ConfigurationPropertyOptions.None
 				);
@@ -672,7 +558,6 @@ namespace Edge.Core.Configuration
 				);
 
             InnerProperties.Add(s_serviceToUse);
-            InnerProperties.Add(s_maxExecutionTime);
             InnerProperties.Add(s_waitForPrevious);
             InnerProperties.Add(s_blocking);
             InnerProperties.Add(s_failureRepeat);
@@ -688,7 +573,7 @@ namespace Edge.Core.Configuration
 
         #region Properties
 
-		public ElementReference<ServiceElement> ServiceToUse
+		public ElementReference<ServiceElement> BaseConfiguration
         {
             get
             {
@@ -697,19 +582,6 @@ namespace Edge.Core.Configuration
             set
             {
                 base[s_serviceToUse] = value;
-            }
-        }
-
-
-        public TimeSpan MaxExecutionTime
-        {
-            get
-            {
-                return (TimeSpan)base[s_maxExecutionTime];
-            }
-            set
-            {
-                base[s_maxExecutionTime] = value;
             }
         }
 
@@ -790,11 +662,11 @@ namespace Edge.Core.Configuration
             }
         }
 
-		public ElementReference<ExecutionStepElement> FailureHandler
+		public ElementReference<WorkflowStepElement> FailureHandler
         {
             get
             {
-				return (ElementReference<ExecutionStepElement>) base[s_failureHandler];
+				return (ElementReference<WorkflowStepElement>) base[s_failureHandler];
             }
             set
             {
@@ -835,6 +707,19 @@ namespace Edge.Core.Configuration
 			set
 			{
 				base[s_conditionOptions] = value;
+			}
+		}
+
+		public string ActualName
+		{
+			get
+			{
+				return this.Name ??
+				(
+					this.BaseConfiguration == null ? "(empty)" :
+					this.BaseConfiguration.Element == null ? "(empty)" :
+					this.BaseConfiguration.Element.Name
+				);
 			}
 		}
 
@@ -1061,13 +946,13 @@ namespace Edge.Core.Configuration
 
 		#region ISerializable Members
 
-		private SchedulingRuleElement(SerializationInfo info, StreamingContext context): this()
+		private SchedulingRuleElement(SerializationInfo info, StreamingContext context)
 		{
 			StringReader stringReader = new StringReader(info.GetString("xml"));
 			XmlTextReader reader = new XmlTextReader(stringReader);
 			reader.ReadToFollowing("SchedulingRule");
 			this.DeserializeElement(reader, false);
-			this.ResolveReferences(ServicesConfiguration.Services, null);
+			this.ResolveReferences(EdgeServicesConfiguration.Current.Services, null);
 		}
 
 		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
@@ -1320,9 +1205,9 @@ namespace Edge.Core.Configuration
         {
             s_step = new ConfigurationProperty(
                 "Step",
-                typeof(ElementReference<ExecutionStepElement>),
-				new ElementReference<ExecutionStepElement>(),
-				new Converters.ElementReferenceConverter<ExecutionStepElement>(this, "Step"),
+                typeof(ElementReference<WorkflowStepElement>),
+				new ElementReference<WorkflowStepElement>(),
+				new Converters.ElementReferenceConverter<WorkflowStepElement>(this, "Step"),
 				null,
                 ConfigurationPropertyOptions.IsRequired);
 
@@ -1361,11 +1246,11 @@ namespace Edge.Core.Configuration
         #endregion
 
         #region Properties
-		public ElementReference<ExecutionStepElement> Step
+		public ElementReference<WorkflowStepElement> Step
         {
             get
             {
-				return (ElementReference<ExecutionStepElement>) base[s_step];
+				return (ElementReference<WorkflowStepElement>) base[s_step];
             }
             set
             {
@@ -1489,8 +1374,8 @@ namespace Edge.Core.Configuration
 				this.Options[pair.Key] = pair.Value;
 		}
 
-		public ActiveServiceElement(ExecutionStepElement stepElement)
-			: this(stepElement.ServiceToUse.Element)
+		public ActiveServiceElement(WorkflowStepElement stepElement)
+			: this(stepElement.BaseConfiguration.Element)
 		{
 			// Apply account service property overrides
 			foreach (ConfigurationProperty property in stepElement.InnerProperties)
@@ -1610,7 +1495,7 @@ namespace Edge.Core.Configuration
 			XmlTextReader reader = new XmlTextReader(stringReader);
 			reader.ReadToFollowing("ActiveService");
 			this.DeserializeElement(reader, false);
-			this.ResolveReferences(ServicesConfiguration.Services, null);
+			this.ResolveReferences(EdgeServicesConfiguration.Current.Services, null);
 
 			//_options = (Dictionary<string, string>)info.GetValue("options", Dictionary<string, string>);
 		}
@@ -1634,11 +1519,11 @@ namespace Edge.Core.Configuration
 	/// <summary>
 	/// 
 	/// </summary>
-	public class ActiveExecutionStepElement: ExecutionStepElement
+	public class ActiveWorkflowStepElement: WorkflowStepElement
 	{
 		#region Constructors
 		/*=========================*/
-		public ActiveExecutionStepElement(ExecutionStepElement stepElement)
+		public ActiveWorkflowStepElement(WorkflowStepElement stepElement)
 		{
 			// Apply account service property overrides
 			foreach (ConfigurationProperty property in stepElement.InnerProperties)
@@ -1650,7 +1535,7 @@ namespace Edge.Core.Configuration
 		}
 
 
-		public ActiveExecutionStepElement(AccountServiceSettingsElement settingsElement)
+		public ActiveWorkflowStepElement(AccountServiceSettingsElement settingsElement)
 			: this(settingsElement.Step.Element)
 		{
 			// Apply settings properties
