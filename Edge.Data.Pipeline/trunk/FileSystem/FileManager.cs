@@ -16,38 +16,39 @@ namespace Edge.Data.Pipeline
     {
         public static string _rootPath;
 
-		public static void Download(DeliveryFile file, Action<double> onProgress = null)
+		/// <summary>
+		/// Download("http://sadasdsad", "Google/Adowrds/Accounts/7/asdasd.xml"
+		/// </summary>
+		/// <param name="url"></param>
+		/// <param name="targetLocation">Path to save the file to, relative to the root file system folder.</param>
+		/// <param name="async"></param>
+		/// <returns></returns>
+		public static FileDownloadOperation Download(string sourceUrl, string targetLocation, bool async = true)
+		{
+			// TODO: check how to ensure that targetLocation is relative
+			Uri uri = new Uri(targetLocation, UriKind.Relative);
+
+			throw new NotImplementedException();
+		}
+
+		public static FileDownloadOperation Download(Stream sourceStream, string targetLocation, bool async = true)
+		{
+			throw new NotImplementedException();
+		}
+		// file.zip/hg.txt
+		public static FileOpenOperation Open(string location, bool unzip = true)
 		{
 			throw new NotImplementedException();
 		}
 
-		public static string Download(Uri url, Action<double> onProgress = null)
+		public static FileInfo GetInfo(string location)
 		{
 			throw new NotImplementedException();
-		}
-
-		public static string Download(Stream stream, Action<double> onProgress = null)
-		{
-			throw new NotImplementedException();
-		}
-
-		public static FileInfo GetFileSystemInfo(DeliveryFile file)
-		{
-			if (String.IsNullOrWhiteSpace(file.SavedPath))
-				throw new InvalidOperationException(String.Format("The delivery file{0} does not have a SavedPath; it might not have been retrieved yet.",
-					file.Name == null ? null : " '" + file.Name + "'"
-					));
-
-			return GetFileSystemInfo(file.SavedPath);
-		}
-
-		public static FileInfo GetFileSystemInfo(string path)
-		{
-			return new FileInfo(path);
 		}
 
 		#region Ronen
 		//===========================================================
+		/*
 		private static string GetDeliveryFilePath(string targetDir, DateTime targetDate, int deliveryID, string fileName, int? accountID)
         {
             if (accountID != null)
@@ -237,9 +238,69 @@ namespace Edge.Data.Pipeline
                 File.Delete(zipPathAndFile);
             return fullPath;
         }
-
+		*/
 		//===========================================================
 		#endregion
 	}
+
+	public class FileInfo
+	{
+		public Uri Location {get; internal set;}
+		public string ContentType {get; internal set;}
+		public long TotalBytes { get; internal set; }
+		public DateTime FileCreated {get; internal set;}
+		public DateTime FileModified {get; internal set;}
+	}
+
+	public class FileDownloadOperation
+	{
+		public virtual FileInfo FileInfo { get; private set; }
+		public virtual Stream Stream { get; internal set; }
+		public event EventHandler<ProgressEventArgs> Progressed;
+		public event EventHandler<EndedEventArgs> Ended;
+
+		internal protected void RaiseProgress(ProgressEventArgs e)
+		{
+			if (this.Progressed != null)
+				this.Progressed(this, e);
+		}
+		internal protected void RaiseEnded(EndedEventArgs e)
+		{
+			if (this.Ended != null)
+				this.Ended(this, e);
+		}
+
+	}
+
+	public class ProgressEventArgs:EventArgs
+	{
+		public long DownloadedBytes;
+		public long TotalBytes;
+	}
+	public class EndedEventArgs : EventArgs
+	{
+		public bool Success;
+		public Exception Exception;
+	}
+
+	public class FileOpenOperation : IDisposable
+	{
+		public virtual FileInfo FileInfo { get; private set; }
+		public virtual Stream Stream { get; private set; }
+
+		internal FileOpenOperation(FileInfo info, Stream stream)
+		{
+			throw new NotImplementedException();
+		}
+
+		public virtual void Dispose()
+		{
+		
+			Stream.Close();
+
+			// TODO: if zip, clean up temp files
+		}
+	}
+
 }
     

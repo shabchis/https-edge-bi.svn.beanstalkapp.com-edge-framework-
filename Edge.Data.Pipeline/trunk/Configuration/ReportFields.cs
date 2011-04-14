@@ -7,6 +7,7 @@ using System.Configuration;
 
 namespace Edge.Data.Pipeline.Configuration
 {
+	/*
 	public class ReportConfigurationElement : ConfigurationElementCollectionBase<ReportFieldElementCollection>
 	{
 		public override ConfigurationElementCollectionType CollectionType
@@ -88,4 +89,5 @@ namespace Edge.Data.Pipeline.Configuration
 			set { this["property"] = value; }
 		}
 	}
+	*/
 }

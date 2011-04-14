@@ -81,6 +81,7 @@
   <ItemGroup>
     <Compile Include="Configuration\ReportFields.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
+    <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
     <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />

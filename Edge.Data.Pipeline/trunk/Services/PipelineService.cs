@@ -24,10 +24,12 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
+		/*
 		public ReportConfigurationElement ReportSettings
 		{
 			get { return Instance.Configuration.ExtendedElements["ReportSettings"] as ReportConfigurationElement; }
 		}
+		*/
 
 		public Delivery Delivery
 		{
@@ -64,14 +66,14 @@ namespace Edge.Data.Pipeline.Services
 		protected sealed override ServiceOutcome DoWork()
 		{
 			ServiceOutcome outcome = DoPipelineWork();
-
-			// Don't allow unsupported outcomes
-			if (outcome != ServiceOutcome.Success && outcome != ServiceOutcome.Failure)
-				throw new Exception(String.Format("DoPipelineWork returned an invalid outcome '{0}' - only Success and Failure are valid.", outcome));
-
 			return outcome;
 		}
 
 		protected abstract ServiceOutcome DoPipelineWork();
+
+		protected override void OnEnded(ServiceOutcome outcome)
+		{
+			// TODO: update delivery history automatically?
+		}
 	}
 }

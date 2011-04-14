@@ -32,7 +32,7 @@ namespace Edge.Data.Pipeline.Deliveries
 		/// <summary>
 		/// Gets the full path of the file after it was saved by FileManager to the internal file storage.
 		/// </summary>
-		public string SavedPath
+		public FileInfo FileInfo
 		{
 			get;
 			internal set;
@@ -123,94 +123,46 @@ namespace Edge.Data.Pipeline.Deliveries
 			throw new NotImplementedException();
 		}
 
+		public DeliveryFileDownloadOperation Download(bool async = true)
+		{
+			// TODO: create 'targetLocation' using: DeliveryID, FileName, AccountID, TargetPeriod etc.
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, "blah.xml", async));
+		}
 	}
 
-	public class DeliveryFileList:ICollection<DeliveryFile>
+	public class DeliveryFileDownloadOperation : FileDownloadOperation
 	{
-		Dictionary<string, DeliveryFile> _dict;
+		FileDownloadOperation _innerOperation;
 
-		Dictionary<string, DeliveryFile> Internal
+		internal DeliveryFileDownloadOperation(DeliveryFile file, FileDownloadOperation operation)
 		{
-			get { return _dict ?? (_dict = new Dictionary<string,DeliveryFile>()); }
+			this.DeliveryFile = file;
+
+			_innerOperation = operation;
+			_innerOperation.Progressed += new EventHandler<ProgressEventArgs>(_innerOperation_Progressed);
+			_innerOperation.Ended += new EventHandler<EndedEventArgs>(_innerOperation_Ended);
 		}
 
-		public void Add(DeliveryFile file)
-		{
-			if (String.IsNullOrWhiteSpace(file.Name))
-				throw new ArgumentException("DeliveryFile.Name must be specified.");
+		public DeliveryFile DeliveryFile { get; private set; }
 
-			Internal.Add(file.Name, file);
+		void _innerOperation_Progressed(object sender, ProgressEventArgs e)
+		{
+			RaiseProgress(e);
+		}
+		void _innerOperation_Ended(object sender, EndedEventArgs e)
+		{
+			RaiseEnded(e);
 		}
 
-		public bool Remove(DeliveryFile file)
+		public override FileInfo FileInfo
 		{
-			return Internal.Remove(file.Name);
-		}
-		
-		public bool Contains(string name)
-		{
-			return Internal.ContainsKey(name);
+			get { return _innerOperation.FileInfo; }
 		}
 
-		public bool Remove(string name)
+		public override System.IO.Stream Stream
 		{
-			return Internal.Remove(name);
+			get { return base.Stream; }
 		}
-
-		public DeliveryFile this[string name]
-		{
-			get
-			{
-				DeliveryFile file;
-				return Internal.TryGetValue(name, out file) ? file : null;
-			}
-		}
-
-		#region IEnumerable Members
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return ((IEnumerable<DeliveryFile>)this).GetEnumerator();
-		}
-
-		#endregion
-
-		#region IEnumerable<DeliveryFile> Members
-
-		IEnumerator<DeliveryFile> IEnumerable<DeliveryFile>.GetEnumerator()
-		{
-			return Internal.Values.GetEnumerator();
-		}
-
-		#endregion
-
-		#region ICollection<DeliveryFile> Members
-
-		public void Clear()
-		{
-			Internal.Clear();
-		}
-
-		public bool Contains(DeliveryFile item)
-		{
-			return Internal.ContainsValue(item);
-		}
-
-		public void CopyTo(DeliveryFile[] array, int arrayIndex)
-		{
-			Internal.Values.CopyTo(array, arrayIndex);
-		}
-
-		public int Count
-		{
-			get { return Internal.Count; }
-		}
-
-		public bool IsReadOnly
-		{
-			get { return false; }
-		}
-
-		#endregion
 	}
+
 }
