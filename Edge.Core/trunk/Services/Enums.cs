@@ -39,8 +39,7 @@ namespace Edge.Core.Services
 		Unspecified = 0,
 		Success = 1,
 		Failure = 2,
-		Aborted = 3,
-		CouldNotBeScheduled = 4
+		Aborted = 3
 	}
 
 	public enum ServicePriority

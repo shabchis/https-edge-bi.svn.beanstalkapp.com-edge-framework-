@@ -334,7 +334,7 @@ namespace Edge.Core.Services
 					// Indicates whether to process next step
 					moveToNextStep = step.ServiceOutcome == ServiceOutcome.Success;
 
-					if (!step.FailureWasHandled && (step.ServiceOutcome == ServiceOutcome.Failure || step.ServiceOutcome == ServiceOutcome.CouldNotBeScheduled || step.ServiceOutcome == ServiceOutcome.Aborted))
+					if (!step.FailureWasHandled && (step.ServiceOutcome == ServiceOutcome.Failure|| step.ServiceOutcome == ServiceOutcome.Aborted))
 					{
 						if (step.FailureRepetitions < step.Config.FailureRepeat - 1 && step.ServiceOutcome != ServiceOutcome.Aborted)
 						{
