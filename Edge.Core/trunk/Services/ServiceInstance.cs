@@ -348,7 +348,7 @@ namespace Edge.Core.Services
 				cmd.Parameters["@instanceID"].Value = this.InstanceID;
 			}
 
-			using (SqlConnection cn = new SqlConnection(AppSettings.GetAbsolute("Easynet.Edge.Services.DataRetrieval.BaseService.SourceConnectionString")))
+			using (SqlConnection cn = new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase", configFile: EdgeServicesConfiguration.Current.ConfigurationFile)))
 			{
 				cmd.Connection = cn;
 				cn.Open();

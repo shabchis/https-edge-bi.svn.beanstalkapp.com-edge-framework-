@@ -39,8 +39,6 @@ namespace Edge.Core.Utilities
 
 	internal class LogEntry
 	{
-		static string ConnectionString = AppSettings.GetAbsolute("Easynet.Edge.Services.DataRetrieval.BaseService.SourceConnectionString");
-
 		public string MachineName = Environment.MachineName;
 		public int ProcessID = Process.GetCurrentProcess().Id;
 		public string Source = null;
@@ -50,6 +48,11 @@ namespace Edge.Core.Utilities
 		public string Message = null;
 		public bool IsException = false;
 		public string ExceptionDetails = null;
+
+		string ConnectionString
+		{
+			get { return AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase", configFile: EdgeServicesConfiguration.Current.ConfigurationFile); }
+		}
 
 		public void Save()
 		{

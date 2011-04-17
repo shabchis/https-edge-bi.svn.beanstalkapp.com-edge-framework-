@@ -37,7 +37,7 @@ namespace Edge.Core.Configuration
 		/// </summary>
 		/// <param name="configFileName">Path to configuration file, relative to current working directory. If null, uses current application's app.config file.</param>
 		/// <param name="sectionName">The name of the section to load, default is 'edge.services'.</param>
-		public static void Load(string configFileName, string sectionName = DefaultSectionName)
+		public static void Load(string configFileName, string sectionName = DefaultSectionName, bool readOnly = true)
 		{
 			if (configFileName == null)
 			{
@@ -49,6 +49,10 @@ namespace Edge.Core.Configuration
 				System.Configuration.Configuration configFile = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
 
 				Current = (EdgeServicesConfiguration)configFile.GetSection(sectionName);
+				Current.ConfigurationFile = configFile;
+
+				if (readOnly)
+					Current.SetReadOnly();
 			}
 		}
 
@@ -134,6 +138,12 @@ namespace Edge.Core.Configuration
 		public bool IsLoading
 		{
 			get { return _loading; }
+		}
+
+		public System.Configuration.Configuration ConfigurationFile
+		{
+			get;
+			private set;
 		}
 
 		protected override ConfigurationPropertyCollection Properties

@@ -15,58 +15,7 @@ namespace Edge.Core.Configuration
 	/// </remarks>
 	public class AppSettings
 	{
-		#region Fields
-		/*=========================*/
-
-		/// <summary>
-		/// Stores the object that determines the
-		/// prefix of the settings retrieved by the instance of the class.
-		/// </summary>
-		private object _caller;
-		
-		/*=========================*/
-		#endregion
-
-		#region Constructors
-		/*=========================*/
-		
-		/// <summary>
-		///	Creates a new configuration accessor for the type of the specified object.
-		/// </summary>
-		/// 
-		/// <param name="caller">
-		///	If caller is a System.Type, the name of the type it references is used;
-		///	otherwise, the type of the object is used.
-		/// </param>
-		/// 
-		/// <remarks>
-		///	The full type name (including namespace) is used as the prefix of settings
-		///	retrieved using Get.
-		/// </remarks>
-		/// 
-		/// <example>
-		///	The following code retrieves the settings with the prefix "System.String.".
-		///	<code>
-		///	// Create a dedicated configuration accessor
-		///	Config strConfig = new Config(typeof(String));
-		///	
-		///	// Retrieves the setting "System.String.MinLength" and converts it to an integer value.
-		///	int minLength = Int32.Parse(strConfig.Get("MinLength"));
-		///	
-		///	// Retrieves the setting "System.string.DefaultValue"
-		///	string defaultValue = strConfig.Get("DefaultValue");
-		///	</code>
-		/// </example>
-		public AppSettings(object caller)
-		{
-			_caller = caller;
-		}
-
-
-		/*=========================*/
-		#endregion
-
-		#region Static Methods
+		#region Static
 		/*=========================*/
 
 		/// <summary>
@@ -98,111 +47,117 @@ namespace Edge.Core.Configuration
 		///	The following code retrieves the settings with the prefix "System.String.".
 		///	<code>
 		///	// Retrieves the setting "System.String.MinLength" and converts it to an integer value.
-		///	int minLength = Int32.Parse(Config.Get(typeof(String), "MinLength"));
+		///	int minLength = Int32.Parse(AppSettings.Get(typeof(String), "MinLength"));
 		///	
 		///	// Retrieves the setting "System.string.DefaultValue"
-		///	string defaultValue = Config.Get(typeof(String), "DefaultValue");
+		///	string defaultValue = AppSettings.Get(typeof(String), "DefaultValue");
 		///	</code>
 		/// </example>
 		/// <exception cref="PT.Data.ConfigurationException">
 		///	Thrown when the specified setting could not be found for any class up the hierarchy.
 		/// </exception>
-		public static string Get(object caller, string setting)
+		public static string Get(object caller, string setting, bool throwException = true, bool isConnectionString = false, System.Configuration.Configuration configFile = null)
 		{
-			return Get(caller, setting, true);
-		}
+			string prefix;
+			Type targetType = null;
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="caller"></param>
-		/// <param name="setting"></param>
-		/// <param name="throwWhenNotFound"></param>
-		/// <returns></returns>
-		public static string Get(object caller, string setting, bool throwException)
-		{
 			// Get the type to start the search with - either the passed Type object or the type of the object passed
-			Type targetType = caller is Type ? (Type) caller : caller.GetType();
+			if (caller is string)
+				prefix = (string)caller;
+			else
+			{
+				targetType = caller is Type ? (Type)caller :
+					caller.GetType();
+				prefix = targetType.FullName;
+			}
 
-			string originalKey = targetType.FullName + "." + setting;
+			string originalKey = prefix + "." + setting;
 
 			string settingKey = null;
 			string val = null;
 
 			// Go up the class hierarchy searching for requested config var
-			while (val == null && targetType != null)
+			while (val == null && prefix != null)
 			{
-				settingKey = targetType.FullName + "." + setting;
-				val = ConfigurationManager.AppSettings[settingKey];
+				settingKey = prefix + "." + setting;
+				
+				if (isConnectionString)
+				{
+					ConnectionStringSettings csEntry = configFile != null ?
+						configFile.ConnectionStrings.ConnectionStrings[settingKey] :
+						ConfigurationManager.ConnectionStrings[settingKey];
+					if (csEntry != null)
+						val = csEntry.ConnectionString;
+				}
+				else
+					val = configFile != null ?
+						configFile.AppSettings.Settings[settingKey].Value :
+						ConfigurationManager.AppSettings[settingKey];
 
 				// Nothing found, get the base class
-				if (val == null)
-					targetType = targetType.BaseType;
+				if (val == null && targetType != null)
+				{
+					targetType = targetType.BaseType == typeof(object) ? null : targetType.BaseType;
+					prefix = targetType == null ? null : targetType.FullName;
+				}
 			}
 
 			// Reached System.Object and nothing was found, throw an exception
 			if (val == null && throwException)
-				throw new ConfigurationErrorsException("Undefined configuration setting: " + originalKey);
+				throw new ConfigurationErrorsException(String.Format("Undefined {0}: {1}", isConnectionString ? "connection string" : "app setting", originalKey));
 			else
 				return val;
 		}
 
-		
-		/// <summary>
-		/// Gets the setting with the exact specified name.
-		/// </summary>
-		/// 
-		/// <param name="setting">
-		/// The full name of the setting to retrieve. Does not need to contain a namespace prefix.
-		/// </param>
-		/// 
-		/// <remarks>
-		/// This method is equivalent to using the .NET Framework's ConfigurationSettings.AppSettings[setting].
-		/// </remarks>
-		/// 
-		/// <returns>
-		/// The setting value.
-		/// </returns>
-		public static string GetAbsolute(string setting)
+		public static string GetConnectionString(object caller, string name, bool throwException = true, System.Configuration.Configuration configFile = null)
 		{
-			return ConfigurationManager.AppSettings[setting];
+			return Get(caller, name, throwException, true, configFile);
 		}
 
 		
 		/*=========================*/
 		#endregion
 
-		#region Public Methods
+		#region Instance
 		/*=========================*/
+
+		private object _caller;
+		private System.Configuration.Configuration _configFile;
+		
+		/// <summary>
+		///	Creates a new configuration accessor for the type of the specified object.
+		/// </summary>
+		/// 
+		/// <param name="caller">
+		///	If caller is a System.Type, the name of the type it references is used; if a string, the string is used;
+		///	otherwise, the type of the object is used.
+		/// </param>
+		/// 
+		/// <remarks>
+		///	The full type name (including namespace) is used as the prefix of settings
+		///	retrieved using Get.
+		/// </remarks>
+		public AppSettings(object caller, System.Configuration.Configuration configFile)
+		{
+			_caller = caller;
+			_configFile = configFile;
+		}
+
 
 		/// <summary>
 		/// Retrieves a setting with the current prefix.
 		/// </summary>
-		/// 
-		/// <param name="setting">
-		/// The name of the setting to retrieve, not including the prefix (which is the class name).
-		/// </param>
-		/// 
-		/// <returns>
-		///	The setting value.
-		/// </returns>
-		/// 
-		/// <example>
-		///	The following code retrieves the settings with the prefix "System.String.".
-		///	<code>
-		///	// Create a dedicated configuration accessor
-		///	Config strConfig = new Config(typeof(String));
-		///	
-		///	// Retrieves the setting "System.String.MinLength" and converts it to an integer value.
-		///	int minLength = Int32.Parse(strConfig.Get("MinLength"));
-		///	
-		///	// Retrieves the setting "System.string.DefaultValue"
-		///	string defaultValue = strConfig.Get("DefaultValue");
-		///	</code>
-		/// </example>
 		public string Get(string setting)
 		{
-			return Get(_caller, setting);
+			return Get(_caller, setting, configFile: _configFile);
+		}
+
+		/// <summary>
+		/// Retrieves a connection string with the current prefix.
+		/// </summary>
+		public string GetConnectionString(string name)
+		{
+			return Get(_caller, name, isConnectionString: true, configFile: _configFile);
 		}
 
 		/*=========================*/
