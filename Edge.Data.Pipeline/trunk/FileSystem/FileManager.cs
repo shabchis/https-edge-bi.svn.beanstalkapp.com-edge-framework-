@@ -8,13 +8,15 @@ using System.Data.SqlClient;
 using ICSharpCode.SharpZipLib.Zip;
 using System.Collections;
 using Edge.Data.Pipeline.Deliveries;
+using System.Threading;
+using Edge.Core.Configuration;
 
 
 namespace Edge.Data.Pipeline
 {
-    public static class FileManager 
-    {
-        public static string _rootPath;
+	public static class FileManager
+	{
+		public static string _rootPath = AppSettings.GetAbsolute("RootPath");
 
 		/// <summary>
 		/// Download("http://sadasdsad", "Google/Adowrds/Accounts/7/asdasd.xml"
@@ -25,25 +27,143 @@ namespace Edge.Data.Pipeline
 		/// <returns></returns>
 		public static FileDownloadOperation Download(string sourceUrl, string targetLocation, bool async = true)
 		{
-			// TODO: check how to ensure that targetLocation is relative
-			Uri uri = new Uri(targetLocation, UriKind.Relative);
+			Uri uri;
+			try
+			{
+				uri = new Uri(sourceUrl);
+			}
+			catch (Exception ex)
+			{
 
-			throw new NotImplementedException();
+				throw new Exception("sourceUrl format is invalid: ", ex);
+			}
+			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
+			//TODO: CHECK IF METHOD IS ALWAYS GET
+			request.Method = "GET";
+			request.Timeout = 9999999;
+			HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+			return Download(response.GetResponseStream(), targetLocation, true);
+
+
+
+
+
 		}
 
 		public static FileDownloadOperation Download(Stream sourceStream, string targetLocation, bool async = true)
 		{
-			throw new NotImplementedException();
+			Uri uri;
+			try
+			{
+				//check how to ensure that targetLocation is relative
+				uri = new Uri(targetLocation, UriKind.Relative);
+
+			}
+			catch (Exception ex)
+			{
+
+				throw new Exception("target Loacation format is invalid", ex);
+			}
+			//// Get full path
+			string fullPath = Path.Combine(_rootPath, uri.ToString());
+
+			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation();
+			ProgressEventArgs progressEventArgs = new ProgressEventArgs();
+
+			////save the file
+			long length = 0;
+			long postion = 0;
+			if (sourceStream.CanSeek)
+				length = sourceStream.Length;
+
+			int counter = 0;
+			Thread saveFileThread = new Thread(new ThreadStart(delegate()
+				{
+					StreamReader streamReader = new StreamReader(sourceStream);
+
+					using (StreamWriter streamWriter = new StreamWriter(fullPath, false, Encoding.UTF8))
+					{
+
+						string str;
+						try
+						{
+							while (!streamReader.EndOfStream)
+							{
+								str = streamReader.ReadLine();
+								postion += str.Length;
+								streamWriter.WriteLine(str);
+								//TODO: REPORT PROGRESS IF CAN SEEK;
+								counter++;
+
+								if (counter == 10 && sourceStream.CanSeek)
+								{
+									counter = 0;
+									//reportprogress;
+									progressEventArgs.DownloadedBytes = postion;
+									progressEventArgs.TotalBytes = length;
+									fileDownLoadOperation.RaiseProgress(progressEventArgs);
+								}
+							}
+						}
+						catch (Exception ex)
+						{
+
+							fileDownLoadOperation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
+						}
+						fileDownLoadOperation.RaiseEnded(new EndedEventArgs() { Success = true });
+						//TODO OTHER WAY THE USE SYSTEM.IO.FILEINFO
+						System.IO.FileInfo f = new System.IO.FileInfo(fullPath);
+						FileInfo fileInfo = new FileInfo();
+						fileInfo.Location = new Uri(fullPath);
+						fileInfo.TotalBytes = f.Length;
+						fileInfo.FileCreated = f.CreationTime;
+						fileInfo.Extenstion = f.Extension;
+						//TODO: OTHER PROPERTIES OF FILE INFO
+
+						//TODO: DB4O SAVE FILEINFOOBJECT;
+
+					}
+				}));
+
+
+			return fileDownLoadOperation;
 		}
 		// file.zip/hg.txt
 		public static FileOpenOperation Open(string location, bool unzip = true)
 		{
-			throw new NotImplementedException();
+			FileOpenOperation fileOpenOperation;
+
+			FileInfo fileInfo = GetInfo(location);
+			FileStream fileStream=File.OpenRead(fileInfo.Location.ToString());
+			Stream stream;
+			if (fileInfo.Extenstion.ToLower().Trim() == "zip")
+			{
+				ZipFile zipFile = new ZipFile(fileStream);
+				ZipEntry zipEntry = zipFile[0];
+				stream = zipFile.GetInputStream(zipEntry);
+				fileOpenOperation = new FileOpenOperation(fileInfo, stream);
+			}
+			else
+				fileOpenOperation = new FileOpenOperation(fileInfo, fileStream);
+
+			return fileOpenOperation;
 		}
 
 		public static FileInfo GetInfo(string location)
 		{
-			throw new NotImplementedException();
+			FileInfo fileInfo = null;
+			Uri uri;
+			try
+			{
+				uri = new Uri(location);
+			}
+			catch (Exception ex)
+			{
+
+				throw new Exception("location format is invalid: ", ex);
+			}
+			//TODO: GET FILE INFO FROM DB4O
+			return fileInfo;
 		}
 
 		#region Ronen
@@ -245,11 +365,12 @@ namespace Edge.Data.Pipeline
 
 	public class FileInfo
 	{
-		public Uri Location {get; internal set;}
-		public string ContentType {get; internal set;}
+		public Uri Location { get; internal set; }
+		public string ContentType { get; internal set; }
 		public long TotalBytes { get; internal set; }
-		public DateTime FileCreated {get; internal set;}
-		public DateTime FileModified {get; internal set;}
+		public DateTime FileCreated { get; internal set; }
+		public DateTime FileModified { get; internal set; }
+		public string Extenstion { get; internal set; } //Add by alon
 	}
 
 	public class FileDownloadOperation
@@ -272,7 +393,7 @@ namespace Edge.Data.Pipeline
 
 	}
 
-	public class ProgressEventArgs:EventArgs
+	public class ProgressEventArgs : EventArgs
 	{
 		public long DownloadedBytes;
 		public long TotalBytes;
@@ -295,7 +416,7 @@ namespace Edge.Data.Pipeline
 
 		public virtual void Dispose()
 		{
-		
+
 			Stream.Close();
 
 			// TODO: if zip, clean up temp files
@@ -303,4 +424,3 @@ namespace Edge.Data.Pipeline
 	}
 
 }
-    

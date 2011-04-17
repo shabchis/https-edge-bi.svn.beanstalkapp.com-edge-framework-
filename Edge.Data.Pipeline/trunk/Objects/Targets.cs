@@ -34,7 +34,8 @@ namespace Edge.Data.Pipeline.Objects
 	public enum Gender
 	{
 		Male = 1,
-		Female = 2
+		Female = 2,
+		UnSpecified=3
 	}
 
 	public class AgeTarget : Target
