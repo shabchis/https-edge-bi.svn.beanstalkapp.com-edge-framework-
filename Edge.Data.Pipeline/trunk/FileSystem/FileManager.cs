@@ -69,6 +69,10 @@ namespace Edge.Data.Pipeline
 
 			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation();
 			ProgressEventArgs progressEventArgs = new ProgressEventArgs();
+			FileInfo fileInfo = new FileInfo();
+			fileInfo.Location = fullPath;
+			fileDownLoadOperation.FileInfo = fileInfo;
+			
 
 			////save the file
 			long length = 0;
@@ -111,16 +115,13 @@ namespace Edge.Data.Pipeline
 							fileDownLoadOperation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
 						}
 						fileDownLoadOperation.RaiseEnded(new EndedEventArgs() { Success = true });
-						//TODO OTHER WAY THE USE SYSTEM.IO.FILEINFO
-						System.IO.FileInfo f = new System.IO.FileInfo(fullPath);
-						FileInfo fileInfo = new FileInfo();
-						fileInfo.Location = new Uri(fullPath);
+						
+						System.IO.FileInfo f = new System.IO.FileInfo(fullPath);						
 						fileInfo.TotalBytes = f.Length;
 						fileInfo.FileCreated = f.CreationTime;
-						fileInfo.Extenstion = f.Extension;
-						//TODO: OTHER PROPERTIES OF FILE INFO
-
-						//TODO: DB4O SAVE FILEINFOOBJECT;
+						//TODO:FileInfo.cONTENTtYPE???
+						
+					
 
 					}
 				}));
@@ -128,29 +129,39 @@ namespace Edge.Data.Pipeline
 
 			return fileDownLoadOperation;
 		}
-		// file.zip/hg.txt
+		// C:\a.zip\b\file\hg.txt
 		public static FileOpenOperation Open(string location, bool unzip = true)
 		{
 			FileOpenOperation fileOpenOperation;
+			FileStream fileStream;
+			Stream stream; ;
+
+			
 
 			FileInfo fileInfo = GetInfo(location);
-			FileStream fileStream=File.OpenRead(fileInfo.Location.ToString());
-			Stream stream;
-			if (fileInfo.Extenstion.ToLower().Trim() == "zip")
+			if (string.IsNullOrEmpty(fileInfo.ZipLocation)) //not zip
 			{
-				ZipFile zipFile = new ZipFile(fileStream);
-				ZipEntry zipEntry = zipFile[0];
-				stream = zipFile.GetInputStream(zipEntry);
-				fileOpenOperation = new FileOpenOperation(fileInfo, stream);
-			}
-			else
+				fileStream = File.OpenRead(fileInfo.Location);
 				fileOpenOperation = new FileOpenOperation(fileInfo, fileStream);
+			}
+			else //Zip File
+			{
+				fileStream = File.OpenRead(fileInfo.ZipLocation);
+				ZipFile zipFile = new ZipFile(fileStream);
+				ZipEntry zipEntry = zipFile.GetEntry(fileInfo.Location);
+				stream = zipFile.GetInputStream(zipEntry);
+					fileOpenOperation = new FileOpenOperation(fileInfo, stream);
+			}		
 
 			return fileOpenOperation;
 		}
 
 		public static FileInfo GetInfo(string location)
 		{
+			bool isZip = false;
+			string directory=string.Empty;
+			
+			string file=string.Empty;
 			FileInfo fileInfo = null;
 			Uri uri;
 			try
@@ -162,7 +173,45 @@ namespace Edge.Data.Pipeline
 
 				throw new Exception("location format is invalid: ", ex);
 			}
-			//TODO: GET FILE INFO FROM DB4O
+			if (!File.Exists(location))
+			{
+				isZip = true;
+				directory = Path.GetDirectoryName(location);
+				while (Directory.Exists(directory))
+				{
+					directory = Path.GetDirectoryName(directory);
+				}
+				if (!File.Exists(directory))
+					throw new FileNotFoundException("File not exists");
+
+				file = location.Replace(directory, "");
+			}
+			if (isZip)
+			{
+				fileInfo.ZipLocation = directory;
+				fileInfo.Location = file;
+				using (ZipFile zipFile=new ZipFile(fileInfo.ZipLocation))
+				{
+					ZipEntry zipEntry = zipFile.GetEntry(fileInfo.Location);
+					fileInfo.TotalBytes = zipEntry.Size;
+					fileInfo.FileCreated = zipEntry.DateTime; //TODO: CHECK THE MEANING OF ZIP DATETIME
+					
+				}
+				
+			}
+			else
+			{
+				fileInfo.Location = location;
+				System.IO.FileInfo ioFileInfo = new System.IO.FileInfo(location);
+				fileInfo.FileCreated = ioFileInfo.CreationTime;
+				fileInfo.FileModified = ioFileInfo.LastWriteTime;
+				fileInfo.TotalBytes = ioFileInfo.Length;
+
+			}
+			
+
+
+			
 			return fileInfo;
 		}
 
@@ -365,17 +414,18 @@ namespace Edge.Data.Pipeline
 
 	public class FileInfo
 	{
-		public Uri Location { get; internal set; }
+		public string Location { get; internal set; }
+		public string ZipLocation { get; internal set; }
 		public string ContentType { get; internal set; }
 		public long TotalBytes { get; internal set; }
 		public DateTime FileCreated { get; internal set; }
 		public DateTime FileModified { get; internal set; }
-		public string Extenstion { get; internal set; } //Add by alon
+		
 	}
 
 	public class FileDownloadOperation
 	{
-		public virtual FileInfo FileInfo { get; private set; }
+		public virtual FileInfo FileInfo { get;internal set; } 
 		public virtual Stream Stream { get; internal set; }
 		public event EventHandler<ProgressEventArgs> Progressed;
 		public event EventHandler<EndedEventArgs> Ended;
