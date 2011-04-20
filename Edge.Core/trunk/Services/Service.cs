@@ -300,7 +300,7 @@ namespace Edge.Core.Services
 			}
 
 			// Simulate processing execution time
-			if (Instance.Configuration.DebugDelay > 0)
+			if (Instance.Configuration.DebugDelay != TimeSpan.Zero)
 				Thread.Sleep(Instance.Configuration.DebugDelay);
 
 			// Service with no steps means instant success!
@@ -696,6 +696,7 @@ namespace Edge.Core.Services
 				{
 					// Apply outcome
 					_outcome = outcome;
+					ReportProgress(1.0);
 				}
 
 				// Call finalizers

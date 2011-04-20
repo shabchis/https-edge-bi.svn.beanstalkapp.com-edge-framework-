@@ -1,6 +1,7 @@
 using System;
 using System.Configuration;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace Edge.Core.Configuration
 {
@@ -13,10 +14,19 @@ namespace Edge.Core.Configuration
 	///	App.config. The standard format used in the solution is (full name of class) + (setting name).
 	///	This allows grouping of settings based on the class that uses them, and simple access notation.
 	/// </remarks>
+	[DebuggerNonUserCode]
 	public class AppSettings
 	{
 		#region Static
 		/*=========================*/
+
+		/// <summary>
+		///	Gets a configuration setting using the full type name of the caller as a prefix.
+		/// </summary>	
+		public static string Get(object caller, string setting)
+		{
+			return Get(caller, setting, true);
+		}
 
 		/// <summary>
 		///	Gets a configuration setting using the full type name of the caller as a prefix.
@@ -80,19 +90,39 @@ namespace Edge.Core.Configuration
 			while (val == null && prefix != null)
 			{
 				settingKey = prefix + "." + setting;
-				
-				if (isConnectionString)
+
+				// Try getting app setting/conn string from custom config file
+				bool useExeConfig = true;
+				if (configFile != null)
 				{
-					ConnectionStringSettings csEntry = configFile != null ?
-						configFile.ConnectionStrings.ConnectionStrings[settingKey] :
-						ConfigurationManager.ConnectionStrings[settingKey];
-					if (csEntry != null)
-						val = csEntry.ConnectionString;
+					if (isConnectionString)
+					{
+						ConnectionStringSettings csEntry = configFile.ConnectionStrings.ConnectionStrings[settingKey];
+						if (csEntry != null)
+							val = csEntry.ConnectionString;
+					}
+					else
+					{
+						KeyValueConfigurationElement elem = configFile.AppSettings.Settings[settingKey];
+						val = elem == null ? null : elem.Value;
+					}
+
+					if (val != null)
+						useExeConfig = false;
 				}
-				else
-					val = configFile != null ?
-						configFile.AppSettings.Settings[settingKey].Value :
-						ConfigurationManager.AppSettings[settingKey];
+
+				// Fallback to exe config if nothing found in custom config file
+				if (useExeConfig)
+				{
+					if (isConnectionString)
+					{
+						ConnectionStringSettings csEntry = ConfigurationManager.ConnectionStrings[settingKey];
+						if (csEntry != null)
+							val = csEntry.ConnectionString;
+					}
+					else
+						val = ConfigurationManager.AppSettings[settingKey];
+				}
 
 				// Nothing found, get the base class
 				if (val == null && targetType != null)
@@ -114,7 +144,12 @@ namespace Edge.Core.Configuration
 			return Get(caller, name, throwException, true, configFile);
 		}
 
-		
+		public static string GetConnectionString(object caller, string name)
+		{
+			return GetConnectionString(caller, name, true);
+		}
+
+
 		/*=========================*/
 		#endregion
 
@@ -123,7 +158,7 @@ namespace Edge.Core.Configuration
 
 		private object _caller;
 		private System.Configuration.Configuration _configFile;
-		
+
 		/// <summary>
 		///	Creates a new configuration accessor for the type of the specified object.
 		/// </summary>

@@ -15,13 +15,23 @@ namespace Edge.Core.Configuration
 		#region Wrapper
 		//===================
 
-		public const string DefaultFileName = "Edge.Services.config";
- 		public const string DefaultSectionName = "edge.services";
+		public static string DefaultFileName = "Edge.Services.config";
+ 		public static string DefaultSectionName = "edge.services";
+
+		private static EdgeServicesConfiguration _current = null;
 
 		public static EdgeServicesConfiguration Current
 		{
-			get;
-			private set;
+			get
+			{
+				if (_current == null)
+				{
+					// Auto load default config file
+					Load(DefaultFileName, DefaultSectionName, true);
+				}
+				return _current;
+			}
+			private set { _current = value; }
 		}
 
 		/// <summary>
@@ -36,9 +46,12 @@ namespace Edge.Core.Configuration
 		/// Loads the services configuration from the specified file.
 		/// </summary>
 		/// <param name="configFileName">Path to configuration file, relative to current working directory. If null, uses current application's app.config file.</param>
-		/// <param name="sectionName">The name of the section to load, default is 'edge.services'.</param>
-		public static void Load(string configFileName, string sectionName = DefaultSectionName, bool readOnly = true)
+		/// <param name="sectionName">The name of the section to load, default (if null) is 'edge.services'.</param>
+		public static void Load(string configFileName, string sectionName = null, bool readOnly = true)
 		{
+			if (sectionName == null)
+				sectionName = DefaultSectionName;
+
 			if (configFileName == null)
 			{
 				Current = (EdgeServicesConfiguration)ConfigurationManager.GetSection(sectionName);

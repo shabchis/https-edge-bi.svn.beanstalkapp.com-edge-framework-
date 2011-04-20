@@ -155,6 +155,7 @@ namespace Edge.Core.Data
 
 		static DataManager()
 		{
+			/*
 			string cmdtimeout = AppSettings.Get(typeof(DataManager), "Command.Timeout", false);
 			if (cmdtimeout == null)
 				_commandTimeout = 60;
@@ -162,6 +163,7 @@ namespace Edge.Core.Data
 				_commandTimeout = Int32.Parse(cmdtimeout);
 
 			_connectionString = AppSettings.Get(typeof(DataManager), "Connection.String", false);
+			*/
 		}
 
 		/// <summary>

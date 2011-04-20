@@ -283,13 +283,13 @@ namespace Edge.Core.Services
 			bool isInsert = this.InstanceID < 0;
 			string cmdText = isInsert ?
 				@"
-				insert into CORE_ServiceInstance (AccountID, ParentInstanceID, ServiceName, TimeScheduled, TimeStarted, Priority, State, Progress, Outcome, ServiceUrl, Configuration, ActiveRule)
+				insert into ServiceInstance (AccountID, ParentInstanceID, ServiceName, TimeScheduled, TimeStarted, Priority, State, Progress, Outcome, ServiceUrl, Configuration, ActiveRule)
 				values (@accountID:Int, @parentInstanceID:BigInt, @serviceName:NVarChar, @timeScheduled:DateTime, @timeStarted:DateTime, @priority:Int, @state:Int, @progress:Float, @outcome:Int, @serviceUrl:NVarChar, @configuration:Xml, @activeRule:Xml);
 				select scope_identity();
 				" :
 				this.State == ServiceState.Uninitialized || this.State == ServiceState.Initializing ? 
 					@"
-					update CORE_ServiceInstance set
+					update ServiceInstance set
 						ServiceName = @serviceName:NVarChar,
 						TimeScheduled = @timeScheduled:DateTime,
 						TimeStarted = @timeStarted:DateTime,
@@ -304,7 +304,7 @@ namespace Edge.Core.Services
 						InstanceID = @instanceID:BigInt
 					" : 
 					@"
-					update CORE_ServiceInstance set
+					update ServiceInstance set
 						TimeStarted = @timeStarted:DateTime,
 						State = @state:Int,
 						Progress = @progress:Float,
@@ -430,68 +430,60 @@ namespace Edge.Core.Services
 				string baseUrl = AppSettings.Get(typeof(Service), "BaseListeningUrl");
 				ServiceUrlProperty.SetValue(this, String.Format(baseUrl, this.InstanceID));
 			}
+			
+			AppDomainSetup setup = new AppDomainSetup();
+			setup.ApplicationBase = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;
 
-			// Check whether the service is accessible via WCF. If it is, skip the Appdomain loading
-			try
+			/*
+			string assemblyDir = AppSettings.Get(typeof(Service), "AssemblyDirectory");
+			setup.PrivateBinPath = Path.IsPathRooted(assemblyDir) ?
+				assemblyDir :
+				Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyDir);
+			*/
+
+			// Load the AppDomain in a different thread
+			Action loadAppDomain = new Action(delegate()
 			{
+				try
+				{
+					_appDomain = AppDomain.CreateDomain(this.ToString(), null, setup);
+				}
+				catch (Exception ex)
+				{
+					// Report failure
+					State = ServiceState.Ended;
+					OnOutcomeReported(ServiceOutcome.Failure);
+
+					// EXCEPTION:
+					throw new Exception(String.Format("Failed to create a new AppDomain for the service. Service name: {0}.", Configuration.Name), ex);
+				}
+			});
+
+			// Once the app domain loading create the instance
+			loadAppDomain.BeginInvoke(new AsyncCallback(delegate(IAsyncResult result)
+			{
+				try
+				{
+					_appDomain.CreateInstance(typeof(ServiceStart).Assembly.FullName, typeof(ServiceStart).FullName,
+						false, BindingFlags.CreateInstance, null, new object[] { new ServiceInstanceInfo(this) }, null, null, null);
+				}
+				catch (Exception ex)
+				{
+					// Unload app domain because we can't use it anymore
+					AppDomain.Unload(_appDomain);
+						
+					// Report failure
+					State = ServiceState.Ended;
+					OnOutcomeReported(ServiceOutcome.Failure);
+
+					// EXCEPTION:
+					throw new Exception(String.Format("Failed to initialize the service. Service name: {0}.", Configuration.Name), ex);
+				}
+
+				// Try to open it again now that the service is running
 				OpenChannelAndSubscribe();
 			}
-			catch
-			{
-				// Communcation test failed, meaning we need to set up the service (assumisng it's down)
-				_commChannel.Abort();
-
-				AppDomainSetup setup = new AppDomainSetup();
-				string assemblyDir = AppSettings.Get(typeof(Service), "AssemblyDirectory");
-				setup.ApplicationBase = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;
-				setup.PrivateBinPath = Path.IsPathRooted(assemblyDir) ?
-					assemblyDir :
-					Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyDir);
-
-				// Load the AppDomain in a different thread
-				Action loadAppDomain = new Action(delegate()
-				{
-					try
-					{
-						_appDomain = AppDomain.CreateDomain(this.ToString(), null, setup);
-					}
-					catch (Exception ex)
-					{
-						// Report failure
-						State = ServiceState.Ended;
-						OnOutcomeReported(ServiceOutcome.Failure);
-
-						// EXCEPTION:
-						throw new Exception(String.Format("Failed to create a new AppDomain for the service. Service name: {0}.", Configuration.Name), ex);
-					}
-				});
-
-				// Once the app domain loading create the instance
-				loadAppDomain.BeginInvoke(new AsyncCallback(delegate(IAsyncResult result)
-				{
-					try
-					{
-						_appDomain.CreateInstance(typeof(ServiceStart).Assembly.FullName, typeof(ServiceStart).FullName,
-							false, BindingFlags.CreateInstance, null, new object[] { new ServiceInstanceInfo(this) }, null, null, null);
-					}
-					catch (Exception ex)
-					{
-						// Unload app domain because we can't use it anymore
-						AppDomain.Unload(_appDomain);
-						
-						// Report failure
-						State = ServiceState.Ended;
-						OnOutcomeReported(ServiceOutcome.Failure);
-
-						// EXCEPTION:
-						throw new Exception(String.Format("Failed to initialize the service. Service name: {0}.", Configuration.Name), ex);
-					}
-
-					// Try to open it again now that the service is running
-					OpenChannelAndSubscribe();
-				}
-				),null);
-			}
+			),null);
 		}
 
 		/// <summary>
@@ -545,6 +537,7 @@ namespace Edge.Core.Services
 		#region Communication
 		/*=========================*/
 
+		[DebuggerNonUserCode]
 		void OpenChannelAndSubscribe()
 		{
 			// Open the communication channel
@@ -858,8 +851,8 @@ namespace Edge.Core.Services
 			ConstructorInfo constructor = defaultBindingType == null ? null : defaultBindingType.GetConstructor(new Type[] { typeof(string) });
 
 			Binding binding = constructor != null ?
-						(Binding) constructor.Invoke(new object[] { "edgeServiceCommBinding" }) : 
-						(Binding) new NetTcpBinding("edgeServiceCommBinding");
+						(Binding)constructor.Invoke(new object[] { "Edge.Core.Services.Service.InstanceToEngineBinding" }) :
+						(Binding)new NetTcpBinding("Edge.Core.Services.Service.InstanceToEngineBinding");
 
 			// Enable port sharing
 			if (binding is NetTcpBinding)

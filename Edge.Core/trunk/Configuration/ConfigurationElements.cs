@@ -265,6 +265,11 @@ namespace Edge.Core.Configuration
         #region Constructor
         public ServiceElement(): base(true)
         {
+			s_isPublic = new ConfigurationProperty(
+				"IsPublic",
+				typeof(bool),
+				true);
+
             s_path = new ConfigurationProperty(
 				"ProcessPath",
                 typeof(string));
@@ -306,9 +311,10 @@ namespace Edge.Core.Configuration
 
 			s_debugDelay = new ConfigurationProperty(
 				"DebugDelay",
-				typeof(int),
-				0);
+				typeof(TimeSpan),
+				TimeSpan.Zero);
 
+			InnerProperties.Add(s_isPublic);
 			InnerProperties.Add(s_path);
 			InnerProperties.Add(s_arguments);
 			InnerProperties.Add(s_class);
@@ -322,6 +328,12 @@ namespace Edge.Core.Configuration
         #endregion
 
         #region Properties
+
+		public bool IsPublic
+		{
+			get { return (bool)base[s_isPublic]; }
+			set { base[s_isPublic] = value; }
+		}
 
 		public string ProcessPath
 		{
@@ -372,9 +384,9 @@ namespace Edge.Core.Configuration
             set { base[s_schedulingRules] = value; }
         }
 
-		public int DebugDelay
+		public TimeSpan DebugDelay
 		{
-			get { return (int) base[s_debugDelay]; }
+			get { return (TimeSpan)base[s_debugDelay]; }
 			set { base[s_debugDelay] = value; }
 		}
 
