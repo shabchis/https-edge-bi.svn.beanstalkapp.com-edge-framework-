@@ -16,7 +16,8 @@ namespace Edge.Data.Pipeline
 {
 	public static class FileManager
 	{
-		public static string _rootPath = AppSettings.GetAbsolute("RootPath");
+	 
+	
 
 		/// <summary>
 		/// Download("http://sadasdsad", "Google/Adowrds/Accounts/7/asdasd.xml"
@@ -65,7 +66,7 @@ namespace Edge.Data.Pipeline
 				throw new Exception("target Loacation format is invalid", ex);
 			}
 			//// Get full path
-			string fullPath = Path.Combine(_rootPath, uri.ToString());
+			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
 
 			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation();
 			ProgressEventArgs progressEventArgs = new ProgressEventArgs();
@@ -80,7 +81,7 @@ namespace Edge.Data.Pipeline
 			if (sourceStream.CanSeek)
 				length = sourceStream.Length;
 
-			int counter = 0;
+			
 			Thread saveFileThread = new Thread(new ThreadStart(delegate()
 				{
 					StreamReader streamReader = new StreamReader(sourceStream);
@@ -88,20 +89,21 @@ namespace Edge.Data.Pipeline
 					using (StreamWriter streamWriter = new StreamWriter(fullPath, false, Encoding.UTF8))
 					{
 
-						string str;
+						
 						try
 						{
 							while (!streamReader.EndOfStream)
 							{
-								str = streamReader.ReadLine();
-								postion += str.Length;
-								streamWriter.WriteLine(str);
-								//TODO: REPORT PROGRESS IF CAN SEEK;
-								counter++;
 
-								if (counter == 10 && sourceStream.CanSeek)
+								streamWriter.Write(streamReader.Read());
+
+								postion += 1;
+								//TODO: REPORT PROGRESS IF CAN SEEK;
+								
+
+								if (postion/100==1 && sourceStream.CanSeek) //every 100 bytes
 								{
-									counter = 0;
+									
 									//reportprogress;
 									progressEventArgs.DownloadedBytes = postion;
 									progressEventArgs.TotalBytes = length;
