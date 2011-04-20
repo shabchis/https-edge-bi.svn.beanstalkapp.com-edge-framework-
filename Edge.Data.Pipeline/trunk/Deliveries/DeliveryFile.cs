@@ -13,6 +13,14 @@ namespace Edge.Data.Pipeline.Deliveries
 		DeliveryHistory<DeliveryOperation> _history;
 
 		/// <summary>
+		/// The delivery this file belongs to.
+		/// </summary>
+		public Delivery Delivery
+		{
+			get { throw new NotImplementedException(); }
+		}
+
+		/// <summary>
 		/// Gets the unique ID of the file (-1 if unsaved).
 		/// </summary>
 		public int FileID

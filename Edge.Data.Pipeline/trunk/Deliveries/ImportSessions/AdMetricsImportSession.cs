@@ -22,7 +22,7 @@ namespace Edge.Data.Pipeline.Deliveries
 
 		public override void Import(AdMetricsUnit deliveryItem)
 		{
-			// TODO: Add to bulk upload
+			// TODO: Add to bulk upload? (SqlBulkCopy)
 			throw new NotImplementedException();
 		}
 

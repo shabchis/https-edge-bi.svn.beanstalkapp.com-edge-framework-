@@ -11,5 +11,10 @@ namespace Edge.Data.Pipeline.Deliveries
 		{
 			throw new NotImplementedException();
 		}
+
+		public static void Save(Delivery delivery)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
