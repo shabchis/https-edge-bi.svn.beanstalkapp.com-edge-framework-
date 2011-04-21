@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline.Objects
 		public string Name;
 	}
 
-	[CreativeTypeID(1)]
+	[CreativeType(1)]
 	public class TextCreative : Creative
 	{
 		[CreativeColumn(1)]
@@ -20,7 +20,7 @@ namespace Edge.Data.Pipeline.Objects
 		public TextCreativeType TextType;
 	}
 
-	[CreativeTypeID(2)]
+	[CreativeType(2)]
 	public class ImageCreative : Creative
 	{
 		[CreativeColumn(1)]

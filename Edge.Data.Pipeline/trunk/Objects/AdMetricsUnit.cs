@@ -9,8 +9,8 @@ namespace Edge.Data.Pipeline.Objects
 	public class AdMetricsUnit
 	{
 		public DateTime TimeStamp;
-		public Ad Ad;
-		public List<Target> TargetMatches;
+		public Ad Ad; //table
+		public List<Target> TargetMatches; //table
 		public Tracker Tracker;
 
 		public Currency Currency;
@@ -20,6 +20,6 @@ namespace Edge.Data.Pipeline.Objects
 		public long Impressions;
 		public long Clicks;
 		public double AveragePosition;
-		public Dictionary<string, double> Conversions;
+		public Dictionary<int, double> Conversions; //40 columns conversion1,conversion2...etc where dicitionay key is column number
 	}
 }
