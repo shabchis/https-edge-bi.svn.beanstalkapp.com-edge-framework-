@@ -19,8 +19,8 @@ namespace Edge.Data.Pipeline.Deliveries
 			get { return _delivery; }
 		}
 
-		public abstract void Begin();
-		public abstract void Import(T deliveryItem);
+		public abstract void Begin(bool reset = true);
+		//public abstract void Import(T deliveryItem);
 		public abstract void Commit();
 	}
 }
