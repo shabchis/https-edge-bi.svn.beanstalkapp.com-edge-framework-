@@ -7,7 +7,7 @@ namespace Edge.Data.Pipeline.Objects
 {
 	public class Ad
 	{
-		public Guid Guid;
+		// NO GUID NEEDED HERE
 		public Campaign Campaign;
 		public string Name;
 		public string OriginalID;

@@ -88,13 +88,12 @@
     <Compile Include="Configuration\ReportFields.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
-    <Compile Include="Deliveries\ImportSessions\AdStructureImportSession.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
     <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
     <Compile Include="Deliveries\DeliveryHistory.cs" />
     <Compile Include="Deliveries\DeliveryImportSession.cs" />
-    <Compile Include="Deliveries\ImportSessions\AdMetricsImportSession.cs" />
+    <Compile Include="Deliveries\ImportSessions\AdDataImportSession.cs" />
     <Compile Include="Objects\Account.cs" />
     <Compile Include="Objects\Ad.cs" />
     <Compile Include="Objects\AdMetricsUnit.cs" />
