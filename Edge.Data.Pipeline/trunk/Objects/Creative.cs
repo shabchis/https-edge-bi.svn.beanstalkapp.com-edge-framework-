@@ -14,9 +14,9 @@ namespace Edge.Data.Pipeline.Objects
 
 	public enum CreativeType
 	{
-		Title,
-		Body,
-		Image,
-		DisplayUrl
+		Title=1,
+		Body=2,
+		Image=3,
+		DisplayUrl=3
 	}
 }

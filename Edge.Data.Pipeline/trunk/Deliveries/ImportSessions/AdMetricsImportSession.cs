@@ -17,6 +17,7 @@ namespace Edge.Data.Pipeline.Deliveries
 		public override void Begin()
 		{
 			// TODO: setup temp table
+			
 			throw new NotImplementedException();
 		}
 
