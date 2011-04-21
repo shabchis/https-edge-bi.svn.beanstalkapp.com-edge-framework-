@@ -7,6 +7,8 @@ namespace Edge.Data.Pipeline.Objects
 {
 	public class Campaign
 	{
+		public Account Account;
+		public Channel Channel;
 		public string Name;
 		public string OriginalID;
 		public CampaignStatus Status;
