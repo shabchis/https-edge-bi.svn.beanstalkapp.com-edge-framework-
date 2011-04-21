@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline.Objects
 		public string DestinationUrl;
 	}
 
-	[TargetTypeID(2)]
+	[TargetType(2)]
 	public class KeywordTarget : Target
 	{
 		[TargetColumn(1)]
