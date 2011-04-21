@@ -8,15 +8,31 @@ namespace Edge.Data.Pipeline.Objects
 	public class Creative
 	{
 		public string OriginalID;
-		public CreativeType CreativeType;
-		public string Value;
+		public string Name;
 	}
 
-	public enum CreativeType
+	[CreativeTypeID(1)]
+	public class TextCreative : Creative
 	{
-		Title=1,
-		Body=2,
-		Image=3,
-		DisplayUrl=3
+		[CreativeColumn(1)]
+		public string Text;
+		[CreativeColumn(2)]
+		public TextCreativeType TextType;
+	}
+
+	[CreativeTypeID(2)]
+	public class ImageCreative : Creative
+	{
+		[CreativeColumn(1)]
+		public string ImageUrl;
+		[CreativeColumn(2)]
+		public string ImageSize;
+	}
+
+	public enum TextCreativeType
+	{
+		Title,
+		Body,
+		DisplayUrl
 	}
 }

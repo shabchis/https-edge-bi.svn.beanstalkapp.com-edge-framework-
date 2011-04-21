@@ -9,9 +9,6 @@ namespace Edge.Data.Pipeline.Objects
 	public class AdMetricsUnit
 	{
 		public DateTime TimeStamp;
-		public Account Account;
-		public Channel Channel;
-		public Campaign Campaign;
 		public Ad Ad;
 		public List<Target> TargetMatches;
 		public Tracker Tracker;

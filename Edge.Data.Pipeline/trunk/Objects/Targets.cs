@@ -8,11 +8,15 @@ namespace Edge.Data.Pipeline.Objects
 	public abstract class Target
 	{
 		public string OriginalID;
+		public string DestinationUrl;
 	}
 
+	[TargetTypeID(2)]
 	public class KeywordTarget : Target
 	{
+		[TargetColumn(1)]
 		public KeywordMatchType MatchType;
+		[TargetColumn(2)]
 		public string Keyword;
 	}
 
@@ -28,6 +32,7 @@ namespace Edge.Data.Pipeline.Objects
 
 	public class GenderTarget : Target
 	{
+		[TargetColumn(1)]
 		public Gender Gender;
 	}
 
