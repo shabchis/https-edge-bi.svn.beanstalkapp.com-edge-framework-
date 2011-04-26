@@ -47,7 +47,7 @@ namespace Edge.Data.Pipeline.Services
 				if (!int.TryParse(did, out deliveryID))
 					throw new Exception(String.Format("'{0}' is not a valid delivery ID.", did));
 
-				_delivery = DeliveryDB.Get(deliveryID);
+				//_delivery = DeliveryDB.Get(deliveryID);
 				this.WorkflowContext["DeliveryID"] = did;
 				return _delivery;
 			}

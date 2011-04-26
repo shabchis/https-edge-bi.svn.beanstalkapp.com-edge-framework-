@@ -7,6 +7,7 @@ using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Data;
+using System.Reflection;
 
 
 namespace Edge.Data.Pipeline.Deliveries
@@ -18,10 +19,16 @@ namespace Edge.Data.Pipeline.Deliveries
 		private SqlBulkCopy _bulkAdMetricsUnit;
 		private DataTable _adMetricsUnitDataTable;
 		private SqlBulkCopy _bulkTargetMatches;
-		private DataTable _TargetMatchesDataTable;
+		private DataTable _targetMatchesDataTable;
+		private SqlBulkCopy _bulkCreatives;
+		private DataTable _creativesDataTable;
+		private SqlBulkCopy _bulkAds;
+		private DataTable _adsDataTable;
+		
 		private SqlConnection _sqlConnection;
 		private string _baseTableName;
 		private int _bufferSize;
+		private Dictionary<Type, int> _targetTypes;
 
 		public AdDataImportSession(Delivery delivery)
 			: base(delivery)
@@ -160,15 +167,15 @@ namespace Edge.Data.Pipeline.Deliveries
 			#region TargetMatches
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
 			_bulkTargetMatches.DestinationTableName = _baseTableName + "AdMetricsUnit";
-			_TargetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
-			_TargetMatchesDataTable.Columns.Add("Guid");
-			_TargetMatchesDataTable.Columns.Add("OriginalID");
-			_TargetMatchesDataTable.Columns.Add("DestinationUrl");
-			_TargetMatchesDataTable.Columns.Add("TargetType");
-			_TargetMatchesDataTable.Columns.Add("Field1");
-			_TargetMatchesDataTable.Columns.Add("Field2");
-			_TargetMatchesDataTable.Columns.Add("Field3");
-			_TargetMatchesDataTable.Columns.Add("Field4");
+			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
+			_targetMatchesDataTable.Columns.Add("Guid");
+			_targetMatchesDataTable.Columns.Add("OriginalID");
+			_targetMatchesDataTable.Columns.Add("DestinationUrl");
+			_targetMatchesDataTable.Columns.Add("TargetType");
+			_targetMatchesDataTable.Columns.Add("Field1");
+			_targetMatchesDataTable.Columns.Add("Field2");
+			_targetMatchesDataTable.Columns.Add("Field3");
+			_targetMatchesDataTable.Columns.Add("Field4");
 
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Guid", "Guid"));
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("OriginalID", "OriginalID"));
@@ -223,30 +230,136 @@ namespace Edge.Data.Pipeline.Deliveries
 
 			foreach (Target target in metrics.TargetMatches)
 			{
-				row = _TargetMatchesDataTable.NewRow();
+				row = _targetMatchesDataTable.NewRow();
 				row["Guid"] = adGuid;
 				row["OriginalID"] = target.OriginalID;
 				row["DestinationUrl"] = target.DestinationUrl;
 				int targetType=	GetTargetType(target.GetType());
 				row["TargetType"] = targetType;
-				//todo: talk to doron the specifc type fields should be taken by refelection-but it's heavy i don't think we have other posiblities
-
-
-
+				foreach (FieldInfo field in target.GetType().GetFields())
+				{
+					if (Attribute.IsDefined(field, typeof(TargetColumnAttribute)))
+					{
+						TargetColumnAttribute TargetColumn=(TargetColumnAttribute)Attribute.GetCustomAttribute(field,typeof(TargetColumnAttribute));
+						row[string.Format("Field{0}",TargetColumn.TargetColumnID)] = field.GetValue(target);					
+					}
+					
+					
+				}
+				_targetMatchesDataTable.Rows.Add(row);
+				if (_targetMatchesDataTable.Rows.Count==_bufferSize)
+				{
+					_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
+					_targetMatchesDataTable.Clear();
+					
+				}
 			}
+			
 		}
 
 		private int GetTargetType(Type type)
 		{
-			throw new NotImplementedException();
+			int targetType = -1;
+			if (_targetTypes==null)
+				_targetTypes=new Dictionary<Type,int>();
+			if (_targetTypes.ContainsKey(type))
+				targetType = _targetTypes[type];
+			else
+			{
+				if (Attribute.IsDefined(type, typeof(TargetTypeAttribute)))
+				{
+					targetType = ((TargetTypeAttribute)Attribute.GetCustomAttribute(type, typeof(TargetTypeAttribute))).TargetTypeID;
+					_targetTypes.Add(type, targetType);
+				}
+				else
+					throw new Exception("Mapping Probem, targettype attribute is not defined");
+			}
+			return targetType;
 		}
 
 		public void ImportAd(Ad ad)
 		{
 			Guid adGuid = GetAdGuid(ad);
 
-			// TODO: Add to bulk upload? (SqlBulkCopy)
-			throw new NotImplementedException();
+			DataRow row = _adsDataTable.NewRow();
+			row[""] = ad.Name;
+			row[""] = ad.OriginalID;
+			row[""] = ad.DestinationUrl;
+			row[""] = ad.Campaign.Account;
+			row[""] = ad.Campaign.Channel;
+			row[""] = ad.Campaign.Name;
+			row[""] = ad.Campaign.OriginalID;
+			row[""] = ad.Campaign.Status;
+
+			if (_adsDataTable.Rows.Count == _bufferSize)
+			{
+				_bulkAds.WriteToServer(_adsDataTable);
+				_adsDataTable.Clear();
+			}
+			
+			foreach (Target target in ad.Targets)
+			{
+				row = _targetMatchesDataTable.NewRow();
+				row["Guid"] = adGuid;
+				row["OriginalID"] = target.OriginalID;
+				row["DestinationUrl"] = target.DestinationUrl;
+				int targetType = GetTargetType(target.GetType());
+				row["TargetType"] = targetType;
+				foreach (FieldInfo field in target.GetType().GetFields())
+				{
+					if (Attribute.IsDefined(field, typeof(TargetColumnAttribute)))
+					{
+						TargetColumnAttribute TargetColumn = (TargetColumnAttribute)Attribute.GetCustomAttribute(field, typeof(TargetColumnAttribute));
+						row[string.Format("Field{0}", TargetColumn.TargetColumnID)] = field.GetValue(target);
+					}
+
+
+				}
+				_targetMatchesDataTable.Rows.Add(row);
+				if (_targetMatchesDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
+					_targetMatchesDataTable.Clear();
+
+				}
+			}
+			foreach (Creative creative in ad.Creatives)
+			{
+				row = _creativesDataTable.NewRow();
+				row["Guid"] = adGuid;
+				row["OriginalID"]=creative.OriginalID;
+				row["Name"] = creative.Name;
+				int creativeType = GetTargetType(creative.GetType());
+				row["CreativeType"] = creativeType;
+				foreach (FieldInfo field in creative.GetType().GetFields())
+				{
+					if (Attribute.IsDefined(field, typeof(CreativeColumnAttribute)))
+					{
+						CreativeColumnAttribute creativeColumn = (CreativeColumnAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeColumnAttribute));
+						row[string.Format("Field{0}", creativeColumn.CreativeColumnID)] = field.GetValue(creative);
+					}
+
+
+				}
+				_creativesDataTable.Rows.Add(row);
+				if (_creativesDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkCreatives.WriteToServer(_creativesDataTable);
+					_creativesDataTable.Clear();
+
+				}
+
+				
+			}
+
+
+
+
+
+			
+
+
+			
 		}
 
 		public override void Commit()
