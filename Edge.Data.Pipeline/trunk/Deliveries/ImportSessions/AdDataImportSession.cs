@@ -166,7 +166,7 @@ namespace Edge.Data.Pipeline.Deliveries
 			#endregion
 			#region TargetMatches
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
-			_bulkTargetMatches.DestinationTableName = _baseTableName + "AdMetricsUnit";
+			_bulkTargetMatches.DestinationTableName = _baseTableName + "TargetMatches";
 			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
 			_targetMatchesDataTable.Columns.Add("Guid");
 			_targetMatchesDataTable.Columns.Add("OriginalID");
@@ -189,6 +189,55 @@ namespace Edge.Data.Pipeline.Deliveries
 
 
 			#endregion
+			#region Creatives
+			
+			_bulkCreatives = new SqlBulkCopy(_sqlConnection);
+			_bulkCreatives.DestinationTableName = _baseTableName + "Creatives";
+			_creativesDataTable = new DataTable(_bulkCreatives.DestinationTableName);
+			_creativesDataTable.Columns.Add("Guid");
+			_creativesDataTable.Columns.Add("OriginalID");
+			_creativesDataTable.Columns.Add("Name");
+			_creativesDataTable.Columns.Add("CreativeType");
+			_creativesDataTable.Columns.Add("Field1");
+			_creativesDataTable.Columns.Add("Field2");
+			_creativesDataTable.Columns.Add("Field3");
+			_creativesDataTable.Columns.Add("Field4");
+
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Guid", "Guid"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("OriginalID", "OriginalID"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Name", "Name"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("CreativeType", "CreativeType"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
+			#endregion
+			#region Ads
+			_bulkAds = new SqlBulkCopy(_sqlConnection);
+			_bulkAds.DestinationTableName = _baseTableName + "Ads";
+			_adsDataTable = new DataTable(_bulkAds.DestinationTableName);
+			_adsDataTable.Columns.Add("Guid");
+			_adsDataTable.Columns.Add("Name");
+			_adsDataTable.Columns.Add("OriginalID");
+			_adsDataTable.Columns.Add("DestinationUrl");
+			_adsDataTable.Columns.Add("Campaign_Account");
+			_adsDataTable.Columns.Add("Campaign_Channel");
+			_adsDataTable.Columns.Add("Campaign_Name");
+			_adsDataTable.Columns.Add("Campaign_OriginalID");
+			_adsDataTable.Columns.Add("Campaign_Status");
+
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Guid", "Guid"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Name", "Name"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("OriginalID", "OriginalID"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("DestinationUrl", "DestinationUrl"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Account", "Campaign_Account"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Channel", "Campaign_Channel"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Name", "Campaign_Name"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_OriginalID", "Campaign_OriginalID"));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Status", "Campaign_Status"));		
+			#endregion
+
+			//todo:split targetmacthces from targets/
 
 		}
 
@@ -215,6 +264,7 @@ namespace Edge.Data.Pipeline.Deliveries
 			row["Clicks"] = metrics.Clicks;
 			row["AveragePosition"] = metrics.AveragePosition;
 
+			//Conversions
 			foreach (KeyValuePair<int, double> Conversion in metrics.Conversions)
 			{
 				row[string.Format("Conversion{0}", Conversion.Key)] = Conversion.Value;
@@ -227,7 +277,7 @@ namespace Edge.Data.Pipeline.Deliveries
 				_adMetricsUnitDataTable.Rows.Clear();
 			}
 
-
+			//tagetmatches
 			foreach (Target target in metrics.TargetMatches)
 			{
 				row = _targetMatchesDataTable.NewRow();
@@ -280,23 +330,29 @@ namespace Edge.Data.Pipeline.Deliveries
 		public void ImportAd(Ad ad)
 		{
 			Guid adGuid = GetAdGuid(ad);
-
 			DataRow row = _adsDataTable.NewRow();
-			row[""] = ad.Name;
-			row[""] = ad.OriginalID;
-			row[""] = ad.DestinationUrl;
-			row[""] = ad.Campaign.Account;
-			row[""] = ad.Campaign.Channel;
-			row[""] = ad.Campaign.Name;
-			row[""] = ad.Campaign.OriginalID;
-			row[""] = ad.Campaign.Status;
+			row["Guid"] = adGuid;
+			row["Name"] = ad.Name;
+			row["OriginalID"] = ad.OriginalID;
+			row["DestinationUrl"] = ad.DestinationUrl;
+			row["Campaign_Account"] = ad.Campaign.Account;
+			row["Campaign_Channel"] = ad.Campaign.Channel;
+			row["Campaign_Name"] = ad.Campaign.Name;
+			row["Campaign_OriginalID"] = ad.Campaign.OriginalID;
+			row["Campaign_Status"] = ad.Campaign.Status;
+
+			//TODO: segments
+			//foreach (KeyValuePair<Segment, object> Segment in ad.Segments)
+			//{
+			//    row[string.Format("Segment{0}", ad.Segments)] = Conversion.Value;
+			//}
 
 			if (_adsDataTable.Rows.Count == _bufferSize)
 			{
 				_bulkAds.WriteToServer(_adsDataTable);
 				_adsDataTable.Clear();
 			}
-			
+			//Targets
 			foreach (Target target in ad.Targets)
 			{
 				row = _targetMatchesDataTable.NewRow();
@@ -305,7 +361,7 @@ namespace Edge.Data.Pipeline.Deliveries
 				row["DestinationUrl"] = target.DestinationUrl;
 				int targetType = GetTargetType(target.GetType());
 				row["TargetType"] = targetType;
-				foreach (FieldInfo field in target.GetType().GetFields())
+				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
 				{
 					if (Attribute.IsDefined(field, typeof(TargetColumnAttribute)))
 					{
@@ -320,9 +376,11 @@ namespace Edge.Data.Pipeline.Deliveries
 				{
 					_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
 					_targetMatchesDataTable.Clear();
-
 				}
+
 			}
+
+			//Creatives
 			foreach (Creative creative in ad.Creatives)
 			{
 				row = _creativesDataTable.NewRow();
@@ -338,28 +396,14 @@ namespace Edge.Data.Pipeline.Deliveries
 						CreativeColumnAttribute creativeColumn = (CreativeColumnAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeColumnAttribute));
 						row[string.Format("Field{0}", creativeColumn.CreativeColumnID)] = field.GetValue(creative);
 					}
-
-
 				}
 				_creativesDataTable.Rows.Add(row);
 				if (_creativesDataTable.Rows.Count == _bufferSize)
 				{
 					_bulkCreatives.WriteToServer(_creativesDataTable);
 					_creativesDataTable.Clear();
-
-				}
-
-				
-			}
-
-
-
-
-
-			
-
-
-			
+				}				
+			}			
 		}
 
 		public override void Commit()
