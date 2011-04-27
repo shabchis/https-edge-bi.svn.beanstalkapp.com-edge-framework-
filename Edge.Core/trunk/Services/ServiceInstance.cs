@@ -432,7 +432,7 @@ namespace Edge.Core.Services
 			}
 			
 			AppDomainSetup setup = new AppDomainSetup();
-			setup.ApplicationBase = AppDomain.CurrentDomain.SetupInformation.ApplicationBase;
+			setup.ApplicationBase = Directory.GetCurrentDirectory();
 
 			/*
 			string assemblyDir = AppSettings.Get(typeof(Service), "AssemblyDirectory");
