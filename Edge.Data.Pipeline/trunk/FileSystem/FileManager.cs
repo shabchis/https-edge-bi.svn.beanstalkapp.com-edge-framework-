@@ -16,129 +16,161 @@ namespace Edge.Data.Pipeline
 {
 	public static class FileManager
 	{
-	 
-	
+		// Consts and statics
+		// =========================================
+		public static string UserAgentString = String.Format("Edge File Manager (version {0})", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+
+
+		// Download operations
+		// =========================================
 
 		/// <summary>
-		/// Download("http://sadasdsad", "Google/Adowrds/Accounts/7/asdasd.xml"
+		/// Downloads a file from a URL.
 		/// </summary>
-		/// <param name="url"></param>
-		/// <param name="targetLocation">Path to save the file to, relative to the root file system folder.</param>
-		/// <param name="async"></param>
-		/// <returns></returns>
 		public static FileDownloadOperation Download(string sourceUrl, string targetLocation, bool async = true)
 		{
 			Uri uri;
-			try
-			{
-				uri = new Uri(sourceUrl);
-			}
-			catch (Exception ex)
-			{
+			try { uri = new Uri(sourceUrl); }
+			catch (Exception ex) {  throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
 
-				throw new Exception("sourceUrl format is invalid: ", ex);
-			}
 			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
-			//TODO: CHECK IF METHOD IS ALWAYS GET
 			request.Method = "GET";
-			request.Timeout = 9999999;
-			HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-			return Download(response.GetResponseStream(), targetLocation, true);
-
-
-
-
-
+			request.Timeout = (int)TimeSpan.FromDays(7).TotalMilliseconds;
+			request.UserAgent = FileManager.UserAgentString;
+			return Download(request, targetLocation, true);
 		}
 
-		public static FileDownloadOperation Download(Stream sourceStream, string targetLocation, bool async = true)
+		/// <summary>
+		/// Downloads a file using the a web request.
+		/// </summary>
+		public static FileDownloadOperation Download(WebRequest request, string targetLocation, bool async = true)
+		{
+			if (request is HttpWebRequest)
+			{
+				// force user agent string, for good internet behavior :-)
+				var httpRequest = (HttpWebRequest) request;
+				if (String.IsNullOrEmpty(httpRequest.UserAgent))
+					httpRequest.UserAgent = FileManager.UserAgentString;
+			}
+
+			WebResponse response = request.GetResponse();
+			return Download(response.GetResponseStream(), targetLocation, async, response.ContentLength);
+		}
+
+		/// <summary>
+		/// Downloads a file from a raw stream.
+		/// </summary>
+		public static FileDownloadOperation Download(Stream sourceStream, string targetLocation, bool async = true, long length = -1)
 		{
 			Uri uri;
 			try
 			{
 				//check how to ensure that targetLocation is relative
 				uri = new Uri(targetLocation, UriKind.Relative);
-
 			}
 			catch (Exception ex)
 			{
-
-				throw new Exception("target Loacation format is invalid", ex);
+				throw new ArgumentException("Invalid target location - path must be relative. See inner exception for details.", "targetLocation", ex);
 			}
-			//// Get full path
+			
+			// Get full path
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
 
-			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation();
-			ProgressEventArgs progressEventArgs = new ProgressEventArgs();
-			FileInfo fileInfo = new FileInfo();
-			fileInfo.Location = fullPath;
-			fileDownLoadOperation.FileInfo = fileInfo;
-			
-
-			////save the file
-			long length = 0;
-			long postion = 0;
-			if (sourceStream.CanSeek)
+			// Get length from stream only if length was not specified
+			if (length <= 0 && sourceStream.CanSeek)
 				length = sourceStream.Length;
 
-			
-			Thread saveFileThread = new Thread(new ThreadStart(delegate()
-				{
-					StreamReader streamReader = new StreamReader(sourceStream);
+			// Object returned to caller for monitoring progress
+			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation();
+			fileDownLoadOperation.FileInfo = new FileInfo()
+			{
+				Location = uri.ToString(),
+				TotalBytes = length
+			};
 
-					using (StreamWriter streamWriter = new StreamWriter(fullPath, false, Encoding.UTF8))
-					{
+			InternalDownloadParams dparams = new InternalDownloadParams()
+			{
+				Operation = fileDownLoadOperation,
+				SourceStream = sourceStream,
+				TargetPath = fullPath
+			};
 
-						
-						try
-						{
-							while (!streamReader.EndOfStream)
-							{
+			Thread saveFileThread = new Thread(InternalDownload);
+			saveFileThread.Start(dparams);
 
-								streamWriter.Write(streamReader.Read());
-
-								postion += 1;
-								//TODO: REPORT PROGRESS IF CAN SEEK;
-								
-
-								if (postion/100==1 && sourceStream.CanSeek) //every 100 bytes
-								{
-									
-									//reportprogress;
-									progressEventArgs.DownloadedBytes = postion;
-									progressEventArgs.TotalBytes = length;
-									fileDownLoadOperation.RaiseProgress(progressEventArgs);
-								}
-							}
-						}
-						catch (Exception ex)
-						{
-
-							fileDownLoadOperation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
-						}
-						fileDownLoadOperation.RaiseEnded(new EndedEventArgs() { Success = true });
-						
-						System.IO.FileInfo f = new System.IO.FileInfo(fullPath);						
-						fileInfo.TotalBytes = f.Length;
-						fileInfo.FileCreated = f.CreationTime;
-						//TODO:FileInfo.cONTENTtYPE???
-						
-					
-
-					}
-				}));
-
+			// If not async, wait for the saving thread to finish
+			if (!async)
+				saveFileThread.Join();
 
 			return fileDownLoadOperation;
 		}
-		// C:\a.zip\b\file\hg.txt
-		public static FileOpenOperation Open(string location, bool unzip = true)
+
+		/// <summary>
+		/// Used for passing to InternalDownload()
+		/// </summary>
+		private class InternalDownloadParams
+		{
+			public FileDownloadOperation Operation;
+			public Stream SourceStream;
+			public string TargetPath;
+		}
+
+		/// <summary>
+		/// Does the actual downloading
+		/// </summary>
+		/// <param name="o">InternalDownloadParams containing relevant data.</param>
+		static void InternalDownload(object o)
+		{
+			var dparams = (InternalDownloadParams) o;
+			var streamReader = new StreamReader(dparams.SourceStream);
+			var progressEventArgs = new ProgressEventArgs() { TotalBytes = dparams.Operation.FileInfo.TotalBytes };
+			long bytesRead = 0;
+			const long notifyProgressEvery = 128;
+
+			using (StreamWriter streamWriter = new StreamWriter(dparams.TargetPath, false, Encoding.UTF8))
+			{
+				try
+				{
+					while (!streamReader.EndOfStream)
+					{
+						streamWriter.Write(streamReader.Read());
+						
+						bytesRead += 1;
+						if (bytesRead % notifyProgressEvery == 0)
+						{
+							// Report progress
+							progressEventArgs.DownloadedBytes = bytesRead;
+							dparams.Operation.RaiseProgress(progressEventArgs);
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					dparams.Operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
+				}
+
+				// Update the file info with physical file info
+				System.IO.FileInfo f = new System.IO.FileInfo(dparams.TargetPath);
+				dparams.Operation.FileInfo.TotalBytes = f.Length;
+				dparams.Operation.FileInfo.FileCreated = f.CreationTime;
+
+				// Notify that we have succeeded
+				dparams.Operation.RaiseEnded(new EndedEventArgs() { Success = true });
+			}
+		}
+
+		// Open operations
+		// =========================================
+
+		/// <summary>
+		/// Opens a file from the specified location.
+		/// </summary>
+		/// <param name="location">Relative location of file in the FileManager system.</param>
+		public static FileOpenOperation Open(string location)
 		{
 			FileOpenOperation fileOpenOperation;
 			FileStream fileStream;
-			Stream stream; ;
-
-			
+			Stream stream;
 
 			FileInfo fileInfo = GetInfo(location);
 			if (string.IsNullOrEmpty(fileInfo.ZipLocation)) //not zip
@@ -158,61 +190,62 @@ namespace Edge.Data.Pipeline
 			return fileOpenOperation;
 		}
 
+		// Info operations
+		// =========================================
+
 		public static FileInfo GetInfo(string location)
 		{
-			bool isZip = false;
-			string directory=string.Empty;
-			
-			string file=string.Empty;
-			FileInfo fileInfo = null;
 			Uri uri;
 			try
 			{
-				uri = new Uri(location);
+				// ensure that targetLocation is relative
+				uri = new Uri(location, UriKind.Relative);
 			}
 			catch (Exception ex)
 			{
-
-				throw new Exception("location format is invalid: ", ex);
+				throw new ArgumentException("Invalid file location - path must be relative. See inner exception for details.", "targetLocation", ex);
 			}
-			if (!File.Exists(location))
+
+			// Get full path
+			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
+
+			bool isZip = false;
+			string directory=string.Empty;
+			string file=string.Empty;
+			FileInfo fileInfo = new FileInfo() { Location = uri.ToString() };
+
+			if (!File.Exists(fullPath))
 			{
 				isZip = true;
-				directory = Path.GetDirectoryName(location);
+				directory = Path.GetDirectoryName(fullPath);
 				while (Directory.Exists(directory))
 				{
 					directory = Path.GetDirectoryName(directory);
 				}
 				if (!File.Exists(directory))
-					throw new FileNotFoundException("File not exists");
+					throw new FileNotFoundException();
 
-				file = location.Replace(directory, "");
+				file = fullPath.Replace(directory, string.Empty);
 			}
+
 			if (isZip)
 			{
 				fileInfo.ZipLocation = directory;
-				fileInfo.Location = file;
+				fileInfo.Location = uri.ToString();
 				using (ZipFile zipFile=new ZipFile(fileInfo.ZipLocation))
 				{
 					ZipEntry zipEntry = zipFile.GetEntry(fileInfo.Location);
 					fileInfo.TotalBytes = zipEntry.Size;
 					fileInfo.FileCreated = zipEntry.DateTime; //TODO: CHECK THE MEANING OF ZIP DATETIME
-					
 				}
-				
 			}
 			else
 			{
-				fileInfo.Location = location;
-				System.IO.FileInfo ioFileInfo = new System.IO.FileInfo(location);
+				System.IO.FileInfo ioFileInfo = new System.IO.FileInfo(fullPath);
 				fileInfo.FileCreated = ioFileInfo.CreationTime;
 				fileInfo.FileModified = ioFileInfo.LastWriteTime;
 				fileInfo.TotalBytes = ioFileInfo.Length;
-
 			}
-			
-
-
 			
 			return fileInfo;
 		}
@@ -469,7 +502,7 @@ namespace Edge.Data.Pipeline
 		public virtual void Dispose()
 		{
 
-			Stream.Close();
+			Stream.Dispose();
 
 			// TODO: if zip, clean up temp files
 		}
