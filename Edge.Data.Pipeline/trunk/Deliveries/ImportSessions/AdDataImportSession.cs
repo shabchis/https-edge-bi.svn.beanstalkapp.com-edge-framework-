@@ -256,6 +256,13 @@ namespace Edge.Data.Pipeline.Deliveries
 		{
 			Guid adGuid = GetAdGuid(metrics.Ad);
 			DataRow row = _adMetricsUnitDataTable.NewRow();
+
+			// !@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#
+			//
+			// TODO: all field names = const!!!
+			//
+			// !@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#
+
 			row["Guid"] = adGuid;
 			row["TimeStamp"] = metrics.TimeStamp;
 			row["Currency"] = metrics.Currency;
