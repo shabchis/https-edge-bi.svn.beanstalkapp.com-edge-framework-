@@ -16,6 +16,7 @@ namespace Edge.Data.Pipeline.Readers
 
 		public Func<XmlReader, T> OnObjectRequired = null;
 		private string _url;
+		private Stream _stream;
 		private string _xpath;
 		private bool _ignoreNamespaces = true;
 		private XmlReader _xmlReader = null;
@@ -33,6 +34,16 @@ namespace Edge.Data.Pipeline.Readers
 				throw new ArgumentNullException("url");
 
 			_url = url;
+			_xpath = xpath;
+			_settings = settings;
+		}
+
+		public XmlObjectReader(Stream stream, string xpath = null, XmlReaderSettings settings = null)
+		{
+			if (stream == null)
+				throw new ArgumentNullException("stream");
+
+			_stream = stream;
 			_xpath = xpath;
 			_settings = settings;
 		}
@@ -75,14 +86,19 @@ namespace Edge.Data.Pipeline.Readers
 		{
 			if (_xpath == null)
 			{
-				_xmlReader = XmlTextReader.Create(_url, _settings);
+				_xmlReader = _stream != null ?
+					XmlTextReader.Create(_stream, _settings) :
+					XmlTextReader.Create(_url, _settings);
 			}
 			else
 			{
 				var xpaths = new XPathCollection();
 				xpaths.Add(_xpath);
 
-				var inner = new XmlTextReader(_url);
+				var inner = _stream != null ?
+					new XmlTextReader(_stream) :
+					new XmlTextReader(_url);
+
 				inner.Namespaces = !_ignoreNamespaces;
 				if (_settings != null)
 				{
