@@ -23,6 +23,46 @@ namespace Edge.Data.Pipeline
 		{
 			throw new NotImplementedException();
 		}
+
+		#region Default values
+		//----------------------
+
+		/// <summary>
+		/// start: {d:-1, h:0}, end: {d:-1, h:'limit'}
+		/// </summary>
+		public readonly static DateTimeRange AllOfYesterday = new DateTimeRange()
+		{
+			Start = new DateTimeSpecification()
+			{
+				Day = new DateTimeTransformation()
+				{
+					Type = DateTimeTransformationType.Relative,
+					Value = -1
+				},
+				Hour = new DateTimeTransformation()
+				{
+					Type = DateTimeTransformationType.Exact,
+					Value = 0
+				}
+			},
+			End = new DateTimeSpecification()
+			{
+				Day = new DateTimeTransformation()
+				{
+					Type = DateTimeTransformationType.Relative,
+					Value = -1
+				},
+				Hour = new DateTimeTransformation()
+				{
+					Type = DateTimeTransformationType.Exact,
+					Value = 0
+				}
+			}
+		};
+
+
+		//----------------------
+		#endregion
 	}
 
 	public struct DateTimeSpecification
@@ -77,7 +117,7 @@ namespace Edge.Data.Pipeline
 			bool weekSpecified = Week.Value != 0 || Week.Limit;
 			if (weekSpecified)
 			{
-				throw new NotImplementedException("Week not yet supported.");
+				throw new NotImplementedException("Week transformation not yet implemented.");
 				limit |= Week.Limit;
 				date = Week.Type == DateTimeTransformationType.Exact ?
 					(Limit ?
@@ -91,7 +131,7 @@ namespace Edge.Data.Pipeline
 			// Day
 			if (weekSpecified)
 			{
-				throw new NotImplementedException("Week not yet supported.");
+				throw new NotImplementedException("Week transformation not yet implemented.");
 			}
 			else
 			{
@@ -178,11 +218,11 @@ namespace Edge.Data.Pipeline
 		{
 			return String.Format("{0}{1}",
 				this.Type == DateTimeTransformationType.Relative && this.Value != 0 ?
-					(Value > 0 ? "+" : "-") :
+					(Value == 0 ? "" : Value > 0 ? "+" : "-") :
 					string.Empty,
 				this.Type == DateTimeTransformationType.Exact && this.Limit ?
 					"'limit'" :
-					this.Value.ToString()
+					Math.Abs(this.Value).ToString()
 				);
 		}
 

@@ -19,7 +19,17 @@ namespace Edge.Data.Pipeline.Services
 			get
 			{
 				if (_range == null)
-					_range = DateTimeRange.Parse(Instance.Configuration.Options["TargetPeriod"]);
+				{
+					if (Instance.Configuration.Options.ContainsKey("TargetPeriod"))
+					{
+						_range = DateTimeRange.Parse(Instance.Configuration.Options["TargetPeriod"]);
+					}
+					else
+					{
+						_range = DateTimeRange.AllOfYesterday; 
+					}
+				}
+
 				return _range.Value;
 			}
 		}
