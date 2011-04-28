@@ -78,8 +78,8 @@ namespace Edge.Data.Pipeline.Deliveries
 
 			set
 			{
-				if (this.DeliveryID > 0)
-					throw new InvalidOperationException("This property can only be set before the first Save() is called.");
+				//if (this.DeliveryID > 0)
+				//	throw new InvalidOperationException("This property can only be set before the first Save() is called.");
 
 				_targetPeriod = value;
 			}
