@@ -166,28 +166,30 @@ namespace Edge.Data.Pipeline
 		/// Opens a file from the specified location.
 		/// </summary>
 		/// <param name="location">Relative location of file in the FileManager system.</param>
-		public static FileOpenOperation Open(string location)
+		public static Stream Open(string location)
 		{
-			FileOpenOperation fileOpenOperation;
-			FileStream fileStream;
-			Stream stream;
+			return Open(GetInfo(location));
+		}
 
-			FileInfo fileInfo = GetInfo(location);
+		/// <summary>
+		/// Opens the file represented by the FileInfo object.
+		/// </summary>
+		public static Stream Open(FileInfo fileInfo)
+		{
+			Stream stream;
 			if (string.IsNullOrEmpty(fileInfo.ZipLocation)) //not zip
 			{
-				fileStream = File.OpenRead(fileInfo.Location);
-				fileOpenOperation = new FileOpenOperation(fileInfo, fileStream);
+				stream = File.OpenRead(fileInfo.Location);
 			}
 			else //Zip File
 			{
-				fileStream = File.OpenRead(fileInfo.ZipLocation);
-				ZipFile zipFile = new ZipFile(fileStream);
+				FileStream zipStream = File.OpenRead(fileInfo.ZipLocation);
+				ZipFile zipFile = new ZipFile(zipStream);
 				ZipEntry zipEntry = zipFile.GetEntry(fileInfo.Location);
 				stream = zipFile.GetInputStream(zipEntry);
-					fileOpenOperation = new FileOpenOperation(fileInfo, stream);
-			}		
+			}
 
-			return fileOpenOperation;
+			return stream;
 		}
 
 		// Info operations
@@ -487,25 +489,6 @@ namespace Edge.Data.Pipeline
 	{
 		public bool Success;
 		public Exception Exception;
-	}
-
-	public class FileOpenOperation : IDisposable
-	{
-		public virtual FileInfo FileInfo { get; private set; }
-		public virtual Stream Stream { get; private set; }
-
-		internal FileOpenOperation(FileInfo info, Stream stream)
-		{
-			throw new NotImplementedException();
-		}
-
-		public virtual void Dispose()
-		{
-
-			Stream.Dispose();
-
-			// TODO: if zip, clean up temp files
-		}
 	}
 
 }
