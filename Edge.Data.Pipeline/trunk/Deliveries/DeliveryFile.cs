@@ -37,14 +37,6 @@ namespace Edge.Data.Pipeline.Deliveries
 			set;
 		}
 
-		/// <summary>
-		/// Gets the full path of the file after it was saved by FileManager to the internal file storage.
-		/// </summary>
-		public FileInfo FileInfo
-		{
-			get;
-			internal set;
-		}
 
 		/// <summary>
 		/// Gets or sets the URL from which the file is downloaded.
@@ -127,6 +119,14 @@ namespace Edge.Data.Pipeline.Deliveries
 		}
 
 		public void Save()
+		{
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
+		/// Gets the full path of the file after it was saved by FileManager to the internal file storage.
+		/// </summary>
+		public FileInfo GetFileInfo()
 		{
 			throw new NotImplementedException();
 		}
