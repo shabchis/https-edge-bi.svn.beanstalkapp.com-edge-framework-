@@ -6,12 +6,18 @@ using GotDotNet.XPath;
 using System.Xml;
 using System.Dynamic;
 using System.Collections;
+using System.IO;
 
 namespace Edge.Data.Pipeline.Readers
 {
 	public class XmlDynamicReader : XmlObjectReader<dynamic>
 	{
 		public XmlDynamicReader(string url, string xpath, XmlReaderSettings settings = null) : base(url, xpath, settings)
+		{
+			this.OnObjectRequired = ReadNode;
+		}
+
+		public XmlDynamicReader(Stream stream, string xpath, XmlReaderSettings settings = null) : base(stream, xpath, settings)
 		{
 			this.OnObjectRequired = ReadNode;
 		}
