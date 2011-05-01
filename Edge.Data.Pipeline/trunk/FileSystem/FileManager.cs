@@ -103,20 +103,24 @@ namespace Edge.Data.Pipeline
 		internal static void InternalDownload(object o)
 		{
 			var operation = (FileDownloadOperation) o;
-			var streamReader = new StreamReader(operation.Stream);
+			var streamReader = new StreamReader(operation.Stream,Encoding.UTF8);
+			
 			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
 			long bytesRead = 0;
 			const long notifyProgressEvery = 128;
 
-			using (StreamWriter streamWriter = new StreamWriter(operation.TargetPath, false, Encoding.UTF8))
+			using (StreamWriter streamWriter = new StreamWriter(operation.TargetPath, false,Encoding.UTF8))
 			{
 				try
 				{
+					 char[] buffer = null;
 					while (!streamReader.EndOfStream)
 					{
-						streamWriter.Write(streamReader.Read());
+						buffer = new char[4];
+						int read = streamReader.Read(buffer, 0, buffer.Length);
+						streamWriter.Write(buffer);
 						
-						bytesRead += 1;
+						bytesRead += read;
 						if (bytesRead % notifyProgressEvery == 0)
 						{
 							// Report progress
@@ -166,7 +170,7 @@ namespace Edge.Data.Pipeline
 			{
 				FileStream zipStream = File.OpenRead(fileInfo.ZipLocation);
 				ZipFile zipFile = new ZipFile(zipStream);
-				ZipEntry zipEntry = zipFile.GetEntry(fileInfo.Location);
+				ZipEntry zipEntry = zipFile.GetEntry(fileInfo.FileName);
 				stream = zipFile.GetInputStream(zipEntry);
 			}
 
@@ -208,7 +212,7 @@ namespace Edge.Data.Pipeline
 				if (!File.Exists(directory))
 					throw new FileNotFoundException();
 
-				file = fullPath.Replace(directory, string.Empty);
+				file = fullPath.Replace(directory+"\\", string.Empty);
 			}
 
 			if (isZip)
@@ -217,7 +221,7 @@ namespace Edge.Data.Pipeline
 				fileInfo.Location = uri.ToString();
 				using (ZipFile zipFile=new ZipFile(fileInfo.ZipLocation))
 				{
-					ZipEntry zipEntry = zipFile.GetEntry(fileInfo.Location);
+					ZipEntry zipEntry = zipFile.GetEntry(file);
 					fileInfo.TotalBytes = zipEntry.Size;
 					fileInfo.FileCreated = zipEntry.DateTime; //TODO: CHECK THE MEANING OF ZIP DATETIME
 				}
