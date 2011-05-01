@@ -81,57 +81,34 @@ namespace Edge.Data.Pipeline
 				length = sourceStream.Length;
 
 			// Object returned to caller for monitoring progress
-			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation();
-			fileDownLoadOperation.FileInfo = new FileInfo()
+			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation()
 			{
-				Location = uri.ToString(),
-				TotalBytes = length
-			};
-
-			InternalDownloadParams dparams = new InternalDownloadParams()
-			{
-				Operation = fileDownLoadOperation,
-				SourceStream = sourceStream,
+				IsAsync = async,
+				FileInfo = new FileInfo()
+				{
+					Location = uri.ToString(),
+					TotalBytes = length
+				},
+				Stream = sourceStream,
 				TargetPath = fullPath
 			};
 
-			// If not async, wait for the saving thread to finish
-			if (!async)
-			{
-				InternalDownload(dparams);
-			}
-			else
-			{
-				Thread saveFileThread = new Thread(InternalDownload);
-				saveFileThread.Start(dparams);
-			}
-
 			return fileDownLoadOperation;
-		}
-
-		/// <summary>
-		/// Used for passing to InternalDownload()
-		/// </summary>
-		private class InternalDownloadParams
-		{
-			public FileDownloadOperation Operation;
-			public Stream SourceStream;
-			public string TargetPath;
 		}
 
 		/// <summary>
 		/// Does the actual downloading
 		/// </summary>
 		/// <param name="o">InternalDownloadParams containing relevant data.</param>
-		static void InternalDownload(object o)
+		internal static void InternalDownload(object o)
 		{
-			var dparams = (InternalDownloadParams) o;
-			var streamReader = new StreamReader(dparams.SourceStream);
-			var progressEventArgs = new ProgressEventArgs() { TotalBytes = dparams.Operation.FileInfo.TotalBytes };
+			var operation = (FileDownloadOperation) o;
+			var streamReader = new StreamReader(operation.Stream);
+			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
 			long bytesRead = 0;
 			const long notifyProgressEvery = 128;
 
-			using (StreamWriter streamWriter = new StreamWriter(dparams.TargetPath, false, Encoding.UTF8))
+			using (StreamWriter streamWriter = new StreamWriter(operation.TargetPath, false, Encoding.UTF8))
 			{
 				try
 				{
@@ -144,22 +121,22 @@ namespace Edge.Data.Pipeline
 						{
 							// Report progress
 							progressEventArgs.DownloadedBytes = bytesRead;
-							dparams.Operation.RaiseProgress(progressEventArgs);
+							operation.RaiseProgress(progressEventArgs);
 						}
 					}
 				}
 				catch (Exception ex)
 				{
-					dparams.Operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
+					operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
 				}
 
 				// Update the file info with physical file info
-				System.IO.FileInfo f = new System.IO.FileInfo(dparams.TargetPath);
-				dparams.Operation.FileInfo.TotalBytes = f.Length;
-				dparams.Operation.FileInfo.FileCreated = f.CreationTime;
+				System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
+				operation.FileInfo.TotalBytes = f.Length;
+				operation.FileInfo.FileCreated = f.CreationTime;
 
 				// Notify that we have succeeded
-				dparams.Operation.RaiseEnded(new EndedEventArgs() { Success = true });
+				operation.RaiseEnded(new EndedEventArgs() { Success = true });
 			}
 		}
 
@@ -471,6 +448,8 @@ namespace Edge.Data.Pipeline
 		public virtual Stream Stream { get; internal set; }
 		public event EventHandler<ProgressEventArgs> Progressed;
 		public event EventHandler<EndedEventArgs> Ended;
+		public bool IsAsync { get; set; }
+		internal string TargetPath { get; set; }
 
 		internal protected void RaiseProgress(ProgressEventArgs e)
 		{
@@ -481,6 +460,20 @@ namespace Edge.Data.Pipeline
 		{
 			if (this.Ended != null)
 				this.Ended(this, e);
+		}
+
+		public void Start()
+		{
+			if (IsAsync)
+			{
+				Thread saveFileThread = new Thread(FileManager.InternalDownload);
+				saveFileThread.Start(this);
+			}
+			else
+			{
+				FileManager.InternalDownload(this);
+			}
+
 		}
 
 	}
