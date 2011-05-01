@@ -95,12 +95,16 @@ namespace Edge.Data.Pipeline
 				TargetPath = fullPath
 			};
 
-			Thread saveFileThread = new Thread(InternalDownload);
-			saveFileThread.Start(dparams);
-
 			// If not async, wait for the saving thread to finish
 			if (!async)
-				saveFileThread.Join();
+			{
+				InternalDownload(dparams);
+			}
+			else
+			{
+				Thread saveFileThread = new Thread(InternalDownload);
+				saveFileThread.Start(dparams);
+			}
 
 			return fileDownLoadOperation;
 		}
@@ -451,6 +455,7 @@ namespace Edge.Data.Pipeline
 
 	public class FileInfo
 	{
+		public string FileName { get { return Path.GetFileName(this.Location); } }
 		public string Location { get; internal set; }
 		public string ZipLocation { get; internal set; }
 		public string ContentType { get; internal set; }
