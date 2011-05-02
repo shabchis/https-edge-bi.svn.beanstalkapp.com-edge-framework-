@@ -164,7 +164,8 @@ namespace Edge.Data.Pipeline
 			Stream stream;
 			if (string.IsNullOrEmpty(fileInfo.ZipLocation)) //not zip
 			{
-				stream = File.OpenRead(fileInfo.Location);
+				string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), fileInfo.Location);
+				stream = File.OpenRead(fullPath);
 			}
 			else //Zip File
 			{
