@@ -103,31 +103,50 @@ namespace Edge.Data.Pipeline
 		internal static void InternalDownload(object o)
 		{
 			var operation = (FileDownloadOperation) o;
-			var streamReader = new StreamReader(operation.Stream,Encoding.UTF8);
+			var streamReader = new StreamReader(operation.Stream,Encoding.UTF8,true);
 			
 			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
 			long bytesRead = 0;
-			const long notifyProgressEvery = 128;
+			long notifyProgressEvery = 128;
 
-			using (StreamWriter streamWriter = new StreamWriter(operation.TargetPath, false,Encoding.UTF8))
+			using (StreamWriter streamWriter = new StreamWriter(operation.TargetPath,false))
 			{
 				try
 				{
-					 char[] buffer = null;
+					string line;
 					while (!streamReader.EndOfStream)
 					{
-						buffer = new char[4];
-						int read = streamReader.Read(buffer, 0, buffer.Length);
-						streamWriter.Write(buffer);
-						
-						bytesRead += read;
-						if (bytesRead % notifyProgressEvery == 0)
+						line = streamReader.ReadLine();
+						bytesRead += line.Length;
+						streamWriter.WriteLine(line);
+						if (bytesRead >= notifyProgressEvery)
 						{
-							// Report progress
+							notifyProgressEvery += 128;
 							progressEventArgs.DownloadedBytes = bytesRead;
 							operation.RaiseProgress(progressEventArgs);
 						}
+
 					}
+					//char[] buffer = null; not working! file has nulls
+					//while (!streamReader.EndOfStream)
+					//{
+					//    int size = streamReader.Peek();
+					//    if (size>=4)
+					//        size=4;
+						
+					//    buffer = new char[size];
+					//    int read = streamReader.Read(buffer, 0, size);
+						
+					//    streamWriter.Write(buffer);
+
+					//    bytesRead += read;
+					//    if (bytesRead % notifyProgressEvery == 0)
+					//    {
+					//        // Report progress
+					//        progressEventArgs.DownloadedBytes = bytesRead;
+					//        operation.RaiseProgress(progressEventArgs);
+					//    }
+					//}
 				}
 				catch (Exception ex)
 				{
