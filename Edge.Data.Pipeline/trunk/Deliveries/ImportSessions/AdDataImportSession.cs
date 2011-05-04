@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Edge.Data.Objects;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using Edge.Core.Configuration;
 using Edge.Core.Data;
-using System.Reflection;
+using Edge.Data.Objects;
 
 
 namespace Edge.Data.Pipeline.Importing
@@ -15,6 +15,15 @@ namespace Edge.Data.Pipeline.Importing
 
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
 	{
+		public const string ads_Campaign_Status_FieldName = "Campaign_Status";
+		public const string ads_Campaign_OriginalID_FieldName = "Campaign_OriginalID";
+		public const string ads_Campaign_Name_FieldName = "Campaign_Name";
+		public const string ads_Campaign_Channel_FieldName = "Campaign_Channel";
+		public const string ads_Campaign_Account_FieldName = "Campaign_Account";
+		public const string ads_DestinationUrl_FieldName = "DestinationUrl";
+		public const string ads_OriginalID_FieldName = "OriginalID";
+		public const string ads_Name_FieldName = "Name";
+		public const string adUsidFieldName = "AdUsid";
 		public Func<Ad, string> OnAdIdentityRequired = null;
 
 		private SqlBulkCopy _bulkAdMetricsUnit;
@@ -24,13 +33,14 @@ namespace Edge.Data.Pipeline.Importing
 		private SqlBulkCopy _bulkCreatives;
 		private DataTable _creativesDataTable;
 		private SqlBulkCopy _bulkAds;
-		private DataTable _adsDataTable;
-		
+		private DataTable _adsDataTable;		
 		private SqlConnection _sqlConnection;
 		private string _baseTableName;
 		private int _bufferSize;
 		private Dictionary<Type, int> _targetTypes;
 		private Dictionary<Type, int> _creativeType;
+		#region consts fields
+		#endregion
 
 		public AdDataImportSession(Delivery delivery)
 			: base(delivery)
@@ -52,8 +62,7 @@ namespace Edge.Data.Pipeline.Importing
 			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"],1 /*Delivery.DeliveryID*/);
 
 
-			//Create SqlBulkCopy for all tables
-			//AdMetricsUnit
+			
 
 
 
@@ -74,8 +83,7 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				sqlCommand.Connection = _sqlConnection;
 				sqlCommand.Parameters["@tableName"].Value= _baseTableName + "AdMetricsUnit";
-				sqlCommand.ExecuteNonQuery();
-				
+				sqlCommand.ExecuteNonQuery();			
 				
 			}
 		
@@ -83,7 +91,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdMetricsUnit = new SqlBulkCopy(_sqlConnection);
 			_bulkAdMetricsUnit.DestinationTableName = _baseTableName + "AdMetricsUnit";
 			_adMetricsUnitDataTable = new DataTable(_bulkAdMetricsUnit.DestinationTableName);
-			_adMetricsUnitDataTable.Columns.Add("AdUsid");
+			_adMetricsUnitDataTable.Columns.Add(adUsidFieldName);
 			_adMetricsUnitDataTable.Columns.Add("TimeStamp");
 			_adMetricsUnitDataTable.Columns.Add("Currency");
 			_adMetricsUnitDataTable.Columns.Add("Cost");
@@ -131,7 +139,7 @@ namespace Edge.Data.Pipeline.Importing
 			_adMetricsUnitDataTable.Columns.Add("Conversion39");
 			_adMetricsUnitDataTable.Columns.Add("Conversion40");
 
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("AdUsid", "AdUsid"));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("TimeStamp", "TimeStamp"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Currency", "Currency"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Cost", "Cost"));
@@ -190,18 +198,18 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
 			_bulkTargetMatches.DestinationTableName = _baseTableName + "TargetMatches";
 			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
-			_targetMatchesDataTable.Columns.Add("AdUsid");
-			_targetMatchesDataTable.Columns.Add("OriginalID");
-			_targetMatchesDataTable.Columns.Add("DestinationUrl");
+			_targetMatchesDataTable.Columns.Add(adUsidFieldName);
+			_targetMatchesDataTable.Columns.Add(ads_OriginalID_FieldName);
+			_targetMatchesDataTable.Columns.Add(ads_DestinationUrl_FieldName);
 			_targetMatchesDataTable.Columns.Add("TargetType");
 			_targetMatchesDataTable.Columns.Add("Field1");
 			_targetMatchesDataTable.Columns.Add("Field2");
 			_targetMatchesDataTable.Columns.Add("Field3");
 			_targetMatchesDataTable.Columns.Add("Field4");
 
-			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("AdUsid", "AdUsid"));
-			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("OriginalID", "OriginalID"));
-			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("DestinationUrl", "DestinationUrl"));
+			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
+			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
+			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_DestinationUrl_FieldName, ads_DestinationUrl_FieldName));
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
@@ -223,18 +231,18 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkCreatives = new SqlBulkCopy(_sqlConnection);
 			_bulkCreatives.DestinationTableName = _baseTableName + "Creatives";
 			_creativesDataTable = new DataTable(_bulkCreatives.DestinationTableName);
-			_creativesDataTable.Columns.Add("AdUsid");
-			_creativesDataTable.Columns.Add("OriginalID");
-			_creativesDataTable.Columns.Add("Name");
+			_creativesDataTable.Columns.Add(adUsidFieldName);
+			_creativesDataTable.Columns.Add(ads_OriginalID_FieldName);
+			_creativesDataTable.Columns.Add(ads_Name_FieldName);
 			_creativesDataTable.Columns.Add("CreativeType");
 			_creativesDataTable.Columns.Add("Field1");
 			_creativesDataTable.Columns.Add("Field2");
 			_creativesDataTable.Columns.Add("Field3");
 			_creativesDataTable.Columns.Add("Field4");
 
-			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("AdUsid", "AdUsid"));
-			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("OriginalID", "OriginalID"));
-			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Name", "Name"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Name_FieldName, ads_Name_FieldName));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("CreativeType", "CreativeType"));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
@@ -253,25 +261,25 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAds = new SqlBulkCopy(_sqlConnection);
 			_bulkAds.DestinationTableName = _baseTableName + "Ads";
 			_adsDataTable = new DataTable(_bulkAds.DestinationTableName);
-			_adsDataTable.Columns.Add("AdUsid");
-			_adsDataTable.Columns.Add("Name");
-			_adsDataTable.Columns.Add("OriginalID");
-			_adsDataTable.Columns.Add("DestinationUrl");
-			_adsDataTable.Columns.Add("Campaign_Account");
-			_adsDataTable.Columns.Add("Campaign_Channel");
-			_adsDataTable.Columns.Add("Campaign_Name");
-			_adsDataTable.Columns.Add("Campaign_OriginalID");
-			_adsDataTable.Columns.Add("Campaign_Status");
+			_adsDataTable.Columns.Add(adUsidFieldName);
+			_adsDataTable.Columns.Add(ads_Name_FieldName);
+			_adsDataTable.Columns.Add(ads_OriginalID_FieldName);
+			_adsDataTable.Columns.Add(ads_DestinationUrl_FieldName);
+			_adsDataTable.Columns.Add(ads_Campaign_Account_FieldName);
+			_adsDataTable.Columns.Add(ads_Campaign_Channel_FieldName);
+			_adsDataTable.Columns.Add(ads_Campaign_Name_FieldName);
+			_adsDataTable.Columns.Add(ads_Campaign_OriginalID_FieldName);
+			_adsDataTable.Columns.Add(ads_Campaign_Status_FieldName);
 
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("AdUsid", "AdUsid"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Name", "Name"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("OriginalID", "OriginalID"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("DestinationUrl", "DestinationUrl"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Account", "Campaign_Account"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Channel", "Campaign_Channel"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Name", "Campaign_Name"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_OriginalID", "Campaign_OriginalID"));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Campaign_Status", "Campaign_Status"));		
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Name_FieldName, ads_Name_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_DestinationUrl_FieldName, ads_DestinationUrl_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Account_FieldName, ads_Campaign_Account_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Channel_FieldName, ads_Campaign_Channel_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Name_FieldName, ads_Campaign_Name_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_OriginalID_FieldName, ads_Campaign_OriginalID_FieldName));
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Status_FieldName, ads_Campaign_Status_FieldName));		
 			#endregion
 
 			//todo:split targetmacthces from targets/
@@ -302,7 +310,7 @@ namespace Edge.Data.Pipeline.Importing
 			//
 			// !@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#
 
-			row["AdUsid"] = adUsid;
+			row[adUsidFieldName] = adUsid;
 			row["TimeStamp"] = metrics.TimeStamp;
 			row["Currency"] = metrics.Currency.Code;
 			row["Cost"] = metrics.Cost;
@@ -327,9 +335,9 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (Target target in metrics.TargetMatches)
 			{
 				row = _targetMatchesDataTable.NewRow();
-				row["AdUsid"] = adUsid;
-				row["OriginalID"] = target.OriginalID;
-				row["DestinationUrl"] = target.DestinationUrl;
+				row[adUsidFieldName] = adUsid;
+				row[ads_OriginalID_FieldName] = target.OriginalID;
+				row[ads_DestinationUrl_FieldName] = target.DestinationUrl;
 				int targetType=	GetTargetType(target.GetType());
 				row["TargetType"] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())
@@ -377,15 +385,15 @@ namespace Edge.Data.Pipeline.Importing
 		{
 			string adUsid = GetAdIdentity(ad);
 			DataRow row = _adsDataTable.NewRow();
-			row["AdUsid"] = adUsid;
-			row["Name"] = ad.Name;
-			row["OriginalID"] = ad.OriginalID;
-			row["DestinationUrl"] = ad.DestinationUrl;
-			row["Campaign_Account"] = ad.Campaign.Account;
-			row["Campaign_Channel"] = ad.Campaign.Channel;
-			row["Campaign_Name"] = ad.Campaign.Name;
-			row["Campaign_OriginalID"] = ad.Campaign.OriginalID;
-			row["Campaign_Status"] = ad.Campaign.Status;
+			row[adUsidFieldName] = adUsid;
+			row[ads_Name_FieldName] = ad.Name;
+			row[ads_OriginalID_FieldName] = ad.OriginalID;
+			row[ads_DestinationUrl_FieldName] = ad.DestinationUrl;
+			row[ads_Campaign_Account_FieldName] = ad.Campaign.Account;
+			row[ads_Campaign_Channel_FieldName] = ad.Campaign.Channel;
+			row[ads_Campaign_Name_FieldName] = ad.Campaign.Name;
+			row[ads_Campaign_OriginalID_FieldName] = ad.Campaign.OriginalID;
+			row[ads_Campaign_Status_FieldName] = ad.Campaign.Status;
 
 			//TODO: segments
 			//foreach (KeyValuePair<Segment, object> Segment in ad.Segments)
@@ -402,9 +410,9 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (Target target in ad.Targets)
 			{
 				row = _targetMatchesDataTable.NewRow();
-				row["AdUsid"] = adUsid;
-				row["OriginalID"] = target.OriginalID;
-				row["DestinationUrl"] = target.DestinationUrl;
+				row[adUsidFieldName] = adUsid;
+				row[ads_OriginalID_FieldName] = target.OriginalID;
+				row[ads_DestinationUrl_FieldName] = target.DestinationUrl;
 				int targetType = GetTargetType(target.GetType());
 				row["TargetType"] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
@@ -430,9 +438,9 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (Creative creative in ad.Creatives)
 			{
 				row = _creativesDataTable.NewRow();
-				row["AdUsid"] = adUsid;
-				row["OriginalID"]=creative.OriginalID;
-				row["Name"] = creative.Name;
+				row[adUsidFieldName] = adUsid;
+				row[ads_OriginalID_FieldName]=creative.OriginalID;
+				row[ads_Name_FieldName] = creative.Name;
 				int creativeType =GetCreativeType(creative.GetType());
 				row["CreativeType"] = creativeType;
 				foreach (FieldInfo field in creative.GetType().GetFields())
