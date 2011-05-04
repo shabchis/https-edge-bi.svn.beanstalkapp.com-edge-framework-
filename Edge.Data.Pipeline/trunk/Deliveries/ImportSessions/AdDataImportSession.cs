@@ -30,6 +30,7 @@ namespace Edge.Data.Pipeline.Importing
 		private string _baseTableName;
 		private int _bufferSize;
 		private Dictionary<Type, int> _targetTypes;
+		private Dictionary<Type, int> _creativeType;
 
 		public AdDataImportSession(Delivery delivery)
 			: base(delivery)
@@ -47,7 +48,8 @@ namespace Edge.Data.Pipeline.Importing
 			// TODO: setup temp table
 
 			//Get base table name
-			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], Delivery.Guid.ToString("N"));
+			//_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], Delivery.Guid.ToString("N"));
+			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"],1 /*Delivery.DeliveryID*/);
 
 
 			//Create SqlBulkCopy for all tables
@@ -57,15 +59,26 @@ namespace Edge.Data.Pipeline.Importing
 
 
 
-			initalizeDataTablesAndBulks();
+			initalizeDataTablesAndBulks(reset);
 
 
 		}
 
-		private void initalizeDataTablesAndBulks()
+		private void initalizeDataTablesAndBulks(bool reset)
 		{
 			//initalize connection
 			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
+			_sqlConnection.Open();
+
+			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_AdMetrics(@tableName:NvarChar)", CommandType.StoredProcedure))
+			{
+				sqlCommand.Connection = _sqlConnection;
+				sqlCommand.Parameters["@tableName"].Value= _baseTableName + "AdMetricsUnit";
+				sqlCommand.ExecuteNonQuery();
+				
+				
+			}
+		
 			#region adMetrics
 			_bulkAdMetricsUnit = new SqlBulkCopy(_sqlConnection);
 			_bulkAdMetricsUnit.DestinationTableName = _baseTableName + "AdMetricsUnit";
@@ -118,6 +131,7 @@ namespace Edge.Data.Pipeline.Importing
 			_adMetricsUnitDataTable.Columns.Add("Conversion39");
 			_adMetricsUnitDataTable.Columns.Add("Conversion40");
 
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("AdUsid", "AdUsid"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("TimeStamp", "TimeStamp"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Currency", "Currency"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Cost", "Cost"));
@@ -165,6 +179,14 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion40", "Conversion40"));
 			#endregion
 			#region TargetMatches
+			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_TargetMatches(@tableName:NvarChar)", CommandType.StoredProcedure))
+			{
+				sqlCommand.Connection = _sqlConnection;
+				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "TargetMatches";
+				sqlCommand.ExecuteNonQuery();
+
+
+			}
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
 			_bulkTargetMatches.DestinationTableName = _baseTableName + "TargetMatches";
 			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
@@ -190,7 +212,14 @@ namespace Edge.Data.Pipeline.Importing
 
 			#endregion
 			#region Creatives
-			
+			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_Creatives(@tableName:NvarChar)", CommandType.StoredProcedure))
+			{
+				sqlCommand.Connection = _sqlConnection;
+				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "Creatives";
+				sqlCommand.ExecuteNonQuery();
+
+
+			}
 			_bulkCreatives = new SqlBulkCopy(_sqlConnection);
 			_bulkCreatives.DestinationTableName = _baseTableName + "Creatives";
 			_creativesDataTable = new DataTable(_bulkCreatives.DestinationTableName);
@@ -213,6 +242,14 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
 			#endregion
 			#region Ads
+			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_Ads(@tableName:NvarChar)", CommandType.StoredProcedure))
+			{
+				sqlCommand.Connection = _sqlConnection;
+				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "Ads";
+				sqlCommand.ExecuteNonQuery();
+
+
+			}
 			_bulkAds = new SqlBulkCopy(_sqlConnection);
 			_bulkAds.DestinationTableName = _baseTableName + "Ads";
 			_adsDataTable = new DataTable(_bulkAds.DestinationTableName);
@@ -267,7 +304,7 @@ namespace Edge.Data.Pipeline.Importing
 
 			row["AdUsid"] = adUsid;
 			row["TimeStamp"] = metrics.TimeStamp;
-			row["Currency"] = metrics.Currency;
+			row["Currency"] = metrics.Currency.Code;
 			row["Cost"] = metrics.Cost;
 			row["Impressions"] = metrics.Impressions;
 			row["Clicks"] = metrics.Clicks;
@@ -396,7 +433,7 @@ namespace Edge.Data.Pipeline.Importing
 				row["AdUsid"] = adUsid;
 				row["OriginalID"]=creative.OriginalID;
 				row["Name"] = creative.Name;
-				int creativeType = GetTargetType(creative.GetType());
+				int creativeType =GetCreativeType(creative.GetType());
 				row["CreativeType"] = creativeType;
 				foreach (FieldInfo field in creative.GetType().GetFields())
 				{
@@ -415,10 +452,30 @@ namespace Edge.Data.Pipeline.Importing
 			}			
 		}
 
+		private int GetCreativeType(Type type)
+		{
+			int creativeType = -1;
+			if (_creativeType == null)
+				_creativeType = new Dictionary<Type, int>();
+			if (_creativeType.ContainsKey(type))
+				creativeType = _creativeType[type];
+			else
+			{
+				if (Attribute.IsDefined(type, typeof(CreativeTypeIDAttribute)))
+				{
+					creativeType = ((CreativeTypeIDAttribute)Attribute.GetCustomAttribute(type, typeof(CreativeTypeIDAttribute))).CreativeTypeID;
+					_creativeType.Add(type, creativeType);
+				}
+				else
+					throw new Exception("Mapping Probem, targettype attribute is not defined");
+			}
+			return creativeType;
+		}
+
 		public override void Commit()
 		{
 			// TODO: Fwd-only activate stored procedue
-			throw new NotImplementedException();
+		
 		}
 
 		public void Dispose()
@@ -426,7 +483,12 @@ namespace Edge.Data.Pipeline.Importing
 			// TODO: clean up temp shit
 			//TODO: add uninserted rows
 			_bulkAdMetricsUnit.WriteToServer(_adMetricsUnitDataTable);
-			throw new NotImplementedException();
+			_bulkAds.WriteToServer(_adsDataTable);
+			_bulkCreatives.WriteToServer(_creativesDataTable);
+			_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
+			_sqlConnection.Dispose();
+			
+			
 		}
 	}
 }
