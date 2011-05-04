@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public class Creative
+	public abstract class Creative
 	{
 		public string OriginalID;
 		public string Name;

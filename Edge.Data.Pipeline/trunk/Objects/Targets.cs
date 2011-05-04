@@ -29,7 +29,7 @@ namespace Edge.Data.Objects
 		Content = 4,
 		WebSite = 5
 	};
-
+	[TargetTypeID(3)]
 	public class GenderTarget : Target
 	{
 		[TargetFieldIndex(1)]
@@ -42,10 +42,12 @@ namespace Edge.Data.Objects
 		Female = 2,
 		UnSpecified=3
 	}
-
+	[TargetTypeID(4)]
 	public class AgeTarget : Target
 	{
+		[TargetFieldIndex(1)]
 		public int FromAge;
+		[TargetFieldIndex(2)]
 		public int ToAge;
 	}
 
