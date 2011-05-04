@@ -13,10 +13,8 @@ namespace Edge.Data.Pipeline
 
 		public DateTimeRange(DateTimeSpecification singleUnit)
 		{
-			Start = singleUnit;
-			Start.Limit = false;
-			End = singleUnit;
-			End.Limit = true;
+			Start = singleUnit; singleUnit.Boundary = DateTimeSpecificationBounds.Lower;
+			End = singleUnit; singleUnit.Boundary = DateTimeSpecificationBounds.Upper;
 		}
 
 		public static DateTimeRange Parse(string json)
@@ -28,12 +26,13 @@ namespace Edge.Data.Pipeline
 		//----------------------
 
 		/// <summary>
-		/// start: {d:-1, h:0}, end: {d:-1, h:'limit'}
+		/// start: {d:-1, h:0}, end: {d:-1, h:'*'}
 		/// </summary>
 		public readonly static DateTimeRange AllOfYesterday = new DateTimeRange()
 		{
 			Start = new DateTimeSpecification()
 			{
+				Boundary = DateTimeSpecificationBounds.Lower,
 				Day = new DateTimeTransformation()
 				{
 					Type = DateTimeTransformationType.Relative,
@@ -47,6 +46,7 @@ namespace Edge.Data.Pipeline
 			},
 			End = new DateTimeSpecification()
 			{
+				Boundary = DateTimeSpecificationBounds.Upper,
 				Day = new DateTimeTransformation()
 				{
 					Type = DateTimeTransformationType.Relative,
@@ -54,8 +54,7 @@ namespace Edge.Data.Pipeline
 				},
 				Hour = new DateTimeTransformation()
 				{
-					Type = DateTimeTransformationType.Exact,
-					Value = 0
+					Type = DateTimeTransformationType.Max,
 				}
 			}
 		};
@@ -65,9 +64,15 @@ namespace Edge.Data.Pipeline
 		#endregion
 	}
 
+	public enum DateTimeSpecificationBounds
+	{
+		Lower,
+		Upper
+	}
+
 	public struct DateTimeSpecification
 	{
-		public bool Limit;
+		public DateTimeSpecificationBounds Boundary;
 		public DateTime ExactDateTime;
 		public TimeSpan ExactTime;
 		public DayOfWeek FirstDayOfWeek;
@@ -85,97 +90,105 @@ namespace Edge.Data.Pipeline
 			if (ExactDateTime != DateTime.MinValue)
 				return ExactDateTime;
 
-			DateTime date = DateTime.Now;
-
-			if (Year.Limit)
-				throw new FormatException("Cannot set year to 'limit'.");
-
-			bool limit = this.Limit;
+			DateTime result = DateTime.Now;
 
 			//...........................
 			// Year
-			date = Year.Type == DateTimeTransformationType.Exact ?
-				(Limit ?
-					new DateTime(Year.Value, 1, 1).AddYears(1).AddTicks(-1):
-					new DateTime(Year.Value, 1, 1)
-				):
-				date.AddYears(Year.Value);
+
+			result = result.Transform(
+				Year,
+				this.Boundary,
+				(d, v) => d.AddYears(v),
+				(d, v) => new DateTime(v, 1, 1),
+				(d) => { throw new InvalidOperationException("Year cannot be set to max (*).");  }
+			);
 
 			//...........................
 			// Month
-			limit |= Month.Limit;
-			date = Month.Type == DateTimeTransformationType.Exact ?
-				(Limit ?
-					new DateTime(date.Year, Month.Value, 1).AddMonths(1).AddTicks(-1):
-					new DateTime(date.Year, Month.Value, 1)
-				):
-				date.AddMonths(Month.Value);
 
+			result = result.Transform(
+				Month,
+				this.Boundary,
+				(d, v) => d.AddMonths(v),
+				(d, v) => new DateTime(d.Year, v, 1),
+				(d) => new DateTime(d.Year, 1, 1).AddYears(1).AddMonths(-1)
+			);
 
 			//...........................
 			// Week
-			bool weekSpecified = Week.Value != 0 || Week.Limit;
-			if (weekSpecified)
+			if (!Week.IsEmpty)
 			{
 				throw new NotImplementedException("Week transformation not yet implemented.");
-				limit |= Week.Limit;
+				/*
+				//limit |= Week.Limit;
 				date = Week.Type == DateTimeTransformationType.Exact ?
 					(Limit ?
 						new DateTime(date.Year, Month.Value, 1).SetWeekOfMonth(Week.Value).AddWeekOfMonth(1).AddTicks(-1) :
 						new DateTime(date.Year, Month.Value, 1).SetWeekOfMonth(Week.Value)
 					) :
 					date.AddDays(Week.Value * 7);
+				*/
 			}
 
 			//...........................
 			// Day
-			if (weekSpecified)
+
+			if (!Week.IsEmpty)
 			{
+				// TODO: treat days as 1..7 (days of week)
 				throw new NotImplementedException("Week transformation not yet implemented.");
 			}
 			else
 			{
-				limit |= Day.Limit;
-				date = Day.Type == DateTimeTransformationType.Exact ?
-					(Limit ?
-						new DateTime(date.Year, Month.Value, Day.Value).AddDays(1).AddTicks(-1) :
-						new DateTime(date.Year, Month.Value, Day.Value)
-					) :
-					date.AddDays(Day.Value);
+				// treat days as day of month
+				result = result.Transform(
+					Day,
+					this.Boundary,
+					(d, v) => d.AddDays(v),
+					(d, v) => new DateTime(d.Year, d.Month, v),
+					(d) => new DateTime(d.Year, d.Month, 1).AddMonths(1).AddDays(-1)
+				);
 			}
 
+			//...........................
 			// Time
 			if (ExactTime != TimeSpan.Zero)
-				date = new DateTime(date.Year, date.Month, date.Day).Add(ExactTime);
+			{
+				result = new DateTime(result.Year, result.Month, result.Day).Add(ExactTime);
+				return result;
+			}
 
+			//...........................
 			// Hour
-			limit |= Hour.Limit;
-			date = Hour.Type == DateTimeTransformationType.Exact ?
-				(Limit ?
-					new DateTime(date.Year, date.Month, date.Day, Hour.Value, 0, 0).AddHours(1).AddTicks(-1) :
-					new DateTime(date.Year, date.Month, date.Day, Hour.Value, 0, 0)
-				) :
-				date.AddHours(Hour.Value);
+			result = result.Transform(
+					Hour,
+					this.Boundary,
+					(d, v) => d.AddHours(v),
+					(d, v) => new DateTime(d.Year, d.Month, d.Day, v, 0, 0),
+					(d) => new DateTime(d.Year, d.Month, d.Day, 0, 0, 0).AddDays(1).AddHours(-1)
+				);
 
+			//...........................
 			// Minute
-			limit |= Minute.Limit;
-			date = Minute.Type == DateTimeTransformationType.Exact ?
-				(Limit ?
-					new DateTime(date.Year, date.Month, date.Day, date.Hour, Minute.Value, 0).AddMinutes(1).AddTicks(-1) :
-					new DateTime(date.Year, date.Month, date.Day, date.Hour, Minute.Value, 0)
-				) :
-				date.AddMinutes(Minute.Value);
+			result = result.Transform(
+					Minute,
+					this.Boundary,
+					(d, v) => d.AddMinutes(v),
+					(d, v) => new DateTime(d.Year, d.Month, d.Day, d.Hour, v, 0),
+					(d) => new DateTime(d.Year, d.Month, d.Day, d.Hour, 0, 0).AddHours(1).AddMinutes(-1)
+				);
 
+			//...........................
 			// Second
-			limit |= Second.Limit;
-			date = Second.Type == DateTimeTransformationType.Exact ?
-				(Limit ?
-					new DateTime(date.Year, date.Month, date.Day, date.Hour, date.Month, Second.Value).AddSeconds(1).AddTicks(-1) :
-					new DateTime(date.Year, date.Month, date.Day, date.Hour, date.Month, Second.Value)
-				) :
-				date.AddSeconds(Second.Value);
+			result = result.Transform(
+					Second,
+					this.Boundary,
+					(d, v) => d.AddSeconds(v),
+					(d, v) => new DateTime(d.Year, d.Month, d.Day, d.Hour, d.Minute, v),
+					(d) => new DateTime(d.Year, d.Month, d.Day, d.Hour, d.Minute, 0).AddMinutes(1).AddSeconds(-1)
+				);
 
-			return date;
+			return result;
 		}
 
 		public static DateTimeRange Parse(string json)
@@ -194,14 +207,18 @@ namespace Edge.Data.Pipeline
 	{
 		public DateTimeTransformationType Type;
 		public int Value;
-		public bool Limit;
 		public static readonly DateTimeTransformation Empty = new DateTimeTransformation();
+
+		public bool IsEmpty
+		{
+			get { return this.Type == DateTimeTransformationType.None; }
+		}
 
 		public override int GetHashCode()
 		{
 			unchecked
 			{
-				return Type.GetHashCode() ^ Value.GetHashCode() ^ Limit.GetHashCode();
+				return Type.GetHashCode() ^ Value.GetHashCode();
 			}
 		}
 
@@ -211,19 +228,27 @@ namespace Edge.Data.Pipeline
 				return false;
 
 			var tf = (DateTimeTransformation)obj;
-			return tf.Type == this.Type && tf.Value == this.Value && tf.Limit == this.Limit;
+			return tf.Type == this.Type && tf.Value == this.Value;
 		}
 
 		public override string ToString()
 		{
-			return String.Format("{0}{1}",
-				this.Type == DateTimeTransformationType.Relative && this.Value != 0 ?
-					(Value == 0 ? "" : Value > 0 ? "+" : "-") :
-					string.Empty,
-				this.Type == DateTimeTransformationType.Exact && this.Limit ?
-					"'limit'" :
-					Math.Abs(this.Value).ToString()
-				);
+			string val;
+
+			if (this.Type == DateTimeTransformationType.Max)
+			{
+				val = "*";
+			}
+			else if (this.Type == DateTimeTransformationType.Relative && this.Value != 0)
+			{
+				val = (Value > 0 ? "+=" : "-=") + this.Value.ToString();
+			}
+			else
+			{
+				val = Math.Abs(this.Value).ToString();
+			}
+
+			return val;
 		}
 
 		public static DateTimeRange Parse(string json)
@@ -234,12 +259,39 @@ namespace Edge.Data.Pipeline
 
 	public enum DateTimeTransformationType
 	{
+		None,
 		Relative,
-		Exact
+		Exact,
+		Max
 	}
 
 	public static class DateTimeExtensions
 	{
+		internal static DateTime Transform(this DateTime dateTime, DateTimeTransformation transform, DateTimeSpecificationBounds boundary, Func<DateTime, int, DateTime> relative, Func<DateTime, int, DateTime> exact, Func<DateTime, DateTime> max)
+		{
+			if (transform.IsEmpty)
+				return dateTime;
+
+			DateTime result = dateTime;
+			if (transform.Type == DateTimeTransformationType.Relative)
+			{
+				result = relative(result, transform.Value);
+			}
+			else
+			{
+				if (transform.Type == DateTimeTransformationType.Exact)
+					result = exact(result, transform.Value);
+				else if (transform.Type == DateTimeTransformationType.Max)
+					result = max(result);
+
+				if (boundary == DateTimeSpecificationBounds.Upper)
+					result = relative(result,1).AddTicks(-1);
+			}
+
+			return result;
+		}
+
+
 		static GregorianCalendar _gc = new GregorianCalendar();
 		public static int GetWeekOfMonth(this DateTime time, DayOfWeek firstDayOfWeek = DayOfWeek.Monday)
 		{
