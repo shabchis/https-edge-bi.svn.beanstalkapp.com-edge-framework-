@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Edge.Data.Pipeline.Objects;
+using Edge.Data.Objects;
 using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
@@ -10,7 +10,7 @@ using Edge.Core.Data;
 using System.Reflection;
 
 
-namespace Edge.Data.Pipeline.Deliveries
+namespace Edge.Data.Pipeline.Importing
 {
 
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
@@ -47,7 +47,7 @@ namespace Edge.Data.Pipeline.Deliveries
 			// TODO: setup temp table
 
 			//Get base table name
-			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], Delivery.DeliveryID);
+			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], Delivery.Guid.ToString("N"));
 
 
 			//Create SqlBulkCopy for all tables
@@ -297,10 +297,10 @@ namespace Edge.Data.Pipeline.Deliveries
 				row["TargetType"] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())
 				{
-					if (Attribute.IsDefined(field, typeof(TargetColumnAttribute)))
+					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
-						TargetColumnAttribute TargetColumn=(TargetColumnAttribute)Attribute.GetCustomAttribute(field,typeof(TargetColumnAttribute));
-						row[string.Format("Field{0}",TargetColumn.TargetColumnID)] = field.GetValue(target);					
+						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
+						row[string.Format("Field{0}",TargetColumn.TargetColumnIndex)] = field.GetValue(target);					
 					}
 					
 					
@@ -325,9 +325,9 @@ namespace Edge.Data.Pipeline.Deliveries
 				targetType = _targetTypes[type];
 			else
 			{
-				if (Attribute.IsDefined(type, typeof(TargetTypeAttribute)))
+				if (Attribute.IsDefined(type, typeof(TargetTypeIDAttribute)))
 				{
-					targetType = ((TargetTypeAttribute)Attribute.GetCustomAttribute(type, typeof(TargetTypeAttribute))).TargetTypeID;
+					targetType = ((TargetTypeIDAttribute)Attribute.GetCustomAttribute(type, typeof(TargetTypeIDAttribute))).TargetTypeID;
 					_targetTypes.Add(type, targetType);
 				}
 				else
@@ -372,10 +372,10 @@ namespace Edge.Data.Pipeline.Deliveries
 				row["TargetType"] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
 				{
-					if (Attribute.IsDefined(field, typeof(TargetColumnAttribute)))
+					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
-						TargetColumnAttribute TargetColumn = (TargetColumnAttribute)Attribute.GetCustomAttribute(field, typeof(TargetColumnAttribute));
-						row[string.Format("Field{0}", TargetColumn.TargetColumnID)] = field.GetValue(target);
+						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
+						row[string.Format("Field{0}", TargetColumn.TargetColumnIndex)] = field.GetValue(target);
 					}
 
 
@@ -400,10 +400,10 @@ namespace Edge.Data.Pipeline.Deliveries
 				row["CreativeType"] = creativeType;
 				foreach (FieldInfo field in creative.GetType().GetFields())
 				{
-					if (Attribute.IsDefined(field, typeof(CreativeColumnAttribute)))
+					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
 					{
-						CreativeColumnAttribute creativeColumn = (CreativeColumnAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeColumnAttribute));
-						row[string.Format("Field{0}", creativeColumn.CreativeColumnID)] = field.GetValue(creative);
+						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
+						row[string.Format("Field{0}", creativeColumn.CreativeFieldIndex)] = field.GetValue(creative);
 					}
 				}
 				_creativesDataTable.Rows.Add(row);

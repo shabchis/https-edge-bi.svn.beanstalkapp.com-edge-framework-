@@ -8,7 +8,7 @@ using System.Dynamic;
 using System.Collections;
 using System.IO;
 
-namespace Edge.Data.Pipeline.Readers
+namespace Edge.Data.Pipeline
 {
 	public class XmlDynamicReader : XmlObjectReader<dynamic>
 	{

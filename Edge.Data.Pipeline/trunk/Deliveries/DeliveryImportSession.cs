@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Data.Pipeline.Deliveries
+namespace Edge.Data.Pipeline.Importing
 {
 	public abstract class DeliveryImportSession<T>
 	{
@@ -11,6 +11,9 @@ namespace Edge.Data.Pipeline.Deliveries
 
 		public DeliveryImportSession(Delivery delivery)
 		{
+			if (delivery.Guid == Guid.Empty)
+				throw new InvalidOperationException("An import session can only be created for a delivery that has been saved.");
+
 			_delivery = delivery;
 		}
 

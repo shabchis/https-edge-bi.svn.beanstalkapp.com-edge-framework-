@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Edge.Data.Pipeline.Readers;
+using Edge.Data.Pipeline;
 
-namespace Edge.Data.Pipeline.Deliveries
+namespace Edge.Data.Pipeline
 {
 
 	public class DeliveryFileList : ICollection<DeliveryFile>

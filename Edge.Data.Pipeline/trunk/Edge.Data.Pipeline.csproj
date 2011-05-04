@@ -62,11 +62,17 @@
     <Reference Include="DataStreams">
       <HintPath>..\..\(third party)\CsvReader.com\DotNet 4.0\DataStreams.dll</HintPath>
     </Reference>
-    <Reference Include="Db4objects.Db4o">
-      <HintPath>..\..\(third party)\DB40\Db4objects.Db4o.dll</HintPath>
+    <Reference Include="Db4objects.Db4o, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\(third party)\db4o\Db4objects.Db4o.dll</HintPath>
     </Reference>
-    <Reference Include="Db4objects.Db4o.CS">
-      <HintPath>..\..\(third party)\DB40\Db4objects.Db4o.CS.dll</HintPath>
+    <Reference Include="Db4objects.Db4o.CS, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\(third party)\db4o\Db4objects.Db4o.CS.dll</HintPath>
+    </Reference>
+    <Reference Include="Db4objects.Db4o.Linq, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\(third party)\db4o\Db4objects.Db4o.Linq.dll</HintPath>
     </Reference>
     <Reference Include="GotDotNet.XPath, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -108,15 +114,11 @@
     <Compile Include="Objects\Ad.cs" />
     <Compile Include="Objects\AdMetricsUnit.cs" />
     <Compile Include="Objects\Channel.cs" />
-    <Compile Include="Objects\CreativeColumnAttribute.cs" />
-    <Compile Include="Objects\CreativeTypeAttribute.cs" />
     <Compile Include="Objects\Currency.cs" />
-    <Compile Include="Objects\TargetColumnAttribute.cs" />
     <Compile Include="Objects\Targets.cs" />
     <Compile Include="Objects\Campaign.cs" />
     <Compile Include="Objects\Creative.cs" />
     <Compile Include="Objects\Segment.cs" />
-    <Compile Include="Objects\TargetTypeAttribute.cs" />
     <Compile Include="Objects\Tracker.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />

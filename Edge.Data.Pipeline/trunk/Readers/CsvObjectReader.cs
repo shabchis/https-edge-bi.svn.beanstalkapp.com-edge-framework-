@@ -8,7 +8,7 @@ using System.Collections;
 using GotDotNet.XPath;
 using DataStreams.Csv;
 
-namespace Edge.Data.Pipeline.Readers
+namespace Edge.Data.Pipeline
 {
 	public class CsvObjectReader<T> : ReaderBase<T> where T: class
 	{

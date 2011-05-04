@@ -11,7 +11,7 @@ using System.Configuration;
 using Edge.Data.Pipeline.Configuration;
 using Edge.Core;
 using Edge.Core.Utilities;
-using Edge.Data.Pipeline.Deliveries;
+using Edge.Data.Pipeline;
 using System.Threading;
 
 

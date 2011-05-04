@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Data.Pipeline.Objects
+namespace Edge.Data.Objects
 {
 	public abstract class Target
 	{
@@ -11,12 +11,12 @@ namespace Edge.Data.Pipeline.Objects
 		public string DestinationUrl;
 	}
 
-	[TargetType(2)]
+	[TargetTypeID(2)]
 	public class KeywordTarget : Target
 	{
-		[TargetColumn(1)]
+		[TargetFieldIndex(1)]
 		public KeywordMatchType MatchType;
-		[TargetColumn(2)]
+		[TargetFieldIndex(2)]
 		public string Keyword;
 	}
 
@@ -32,7 +32,7 @@ namespace Edge.Data.Pipeline.Objects
 
 	public class GenderTarget : Target
 	{
-		[TargetColumn(1)]
+		[TargetFieldIndex(1)]
 		public Gender Gender;
 	}
 
@@ -49,4 +49,26 @@ namespace Edge.Data.Pipeline.Objects
 		public int ToAge;
 	}
 
+
+	#region Attributes
+
+	class TargetTypeIDAttribute : Attribute
+	{
+		internal int TargetTypeID;
+		public TargetTypeIDAttribute(int targetTypeID)
+		{
+			TargetTypeID = targetTypeID;
+		}
+	}
+
+	class TargetFieldIndexAttribute : Attribute
+	{
+		internal int TargetColumnIndex;
+		public TargetFieldIndexAttribute(int targetColumnIndex)
+		{
+			TargetColumnIndex = targetColumnIndex;
+		}
+	}
+
+	#endregion
 }

@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Edge.Data.Pipeline.Deliveries;
+using Edge.Data.Pipeline;
 
-namespace Edge.Data.Pipeline.Objects
+namespace Edge.Data.Objects
 {
 	public class AdMetricsUnit
 	{

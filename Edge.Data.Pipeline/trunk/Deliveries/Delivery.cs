@@ -6,12 +6,14 @@ using Edge.Core;
 using Edge.Data.Pipeline;
 using Edge.Core.Data;
 using System.Data;
-using Edge.Data.Pipeline.Objects;
+using Edge.Data.Objects;
+using Db4objects.Db4o;
 
-namespace Edge.Data.Pipeline.Deliveries
+namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
+		Guid _guid = Guid.Empty;
 		DeliveryFileList _files;
 		DateTimeRange _targetPeriod;
 		DateTime _dateCreated = DateTime.Now;
@@ -22,19 +24,19 @@ namespace Edge.Data.Pipeline.Deliveries
 		/// <summary>
 		/// Creates a new delivery and sets the specified instance ID as the creator.
 		/// </summary>
+		/// <param name="instanceID">ID of the service that is initializing the delivery. Equivalent to delivery.History.Add(DeliveryOperation.Created, serviceInstance.InstanceID)</param>
 		public Delivery(long instanceID)
 		{
 			this.History.Add(DeliveryOperation.Created, instanceID);
 		}
 
 		/// <summary>
-		/// Gets the unique ID of the delivery (-1 if unsaved).
+		/// Gets the unique ID of the delivery (Guid.Empty if unsaved).
 		/// </summary>
-		public int DeliveryID
+		public Guid Guid
 		{
-			get { throw new NotImplementedException(); }
+			get { return _guid; }
 		}
-
 
 		/// <summary>
 		/// Gets or sets the channel for which this channel is relevant
@@ -112,14 +114,18 @@ namespace Edge.Data.Pipeline.Deliveries
 
 		public void Save()
 		{
-			throw new NotImplementedException();
-			//DeliveryDB.Save(...);
+			_guid = DeliveryDB.Save(this);
 			
 			if (Saved != null)
 				Saved(this);
 		}
 
 		internal event Action<Delivery> Saved;
+
+		public static Delivery Get(Guid deliveryID)
+		{
+			return DeliveryDB.Get(deliveryID);
+		}
 	}
     
 	
