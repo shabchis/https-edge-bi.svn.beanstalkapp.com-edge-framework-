@@ -7,7 +7,7 @@ using System.IO;
 using System.Data.SqlClient;
 using ICSharpCode.SharpZipLib.Zip;
 using System.Collections;
-using Edge.Data.Pipeline.Deliveries;
+using Edge.Data.Pipeline;
 using System.Threading;
 using Edge.Core.Configuration;
 

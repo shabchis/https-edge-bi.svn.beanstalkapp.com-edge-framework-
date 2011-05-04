@@ -7,7 +7,7 @@ using System.IO;
 using System.Collections;
 using GotDotNet.XPath;
 
-namespace Edge.Data.Pipeline.Readers
+namespace Edge.Data.Pipeline
 {
 	public class XmlObjectReader<T> : ReaderBase<T> where T: class
 	{

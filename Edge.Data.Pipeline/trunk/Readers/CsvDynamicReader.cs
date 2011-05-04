@@ -6,7 +6,7 @@ using GotDotNet.XPath;
 using System.Xml;
 using DataStreams.Csv;
 
-namespace Edge.Data.Pipeline.Readers
+namespace Edge.Data.Pipeline
 {
 	public class CsvDynamicReader : CsvObjectReader<dynamic>
 	{

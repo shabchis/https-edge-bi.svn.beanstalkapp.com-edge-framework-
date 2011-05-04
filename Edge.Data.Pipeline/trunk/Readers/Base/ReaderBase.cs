@@ -6,7 +6,7 @@ using System.Xml;
 using System.IO;
 using System.Collections;
 
-namespace Edge.Data.Pipeline.Readers
+namespace Edge.Data.Pipeline
 {
 
 	public abstract class ReaderBase<T> : IReader<T>

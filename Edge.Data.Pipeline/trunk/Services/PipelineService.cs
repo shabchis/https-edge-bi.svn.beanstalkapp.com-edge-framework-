@@ -5,7 +5,7 @@ using System.Text;
 using Edge.Core.Services;
 using Edge.Data.Pipeline.Configuration;
 using Edge.Data.Pipeline;
-using Edge.Data.Pipeline.Deliveries;
+using Edge.Data.Pipeline;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -48,23 +48,23 @@ namespace Edge.Data.Pipeline.Services
 				if (_delivery != null)
 					return _delivery;
 
-				int deliveryID;
+				Guid deliveryID;
 				string did;
-				if (!this.WorkflowContext.TryGetValue("DeliveryID", out did))
-					if (!Instance.Configuration.Options.TryGetValue("DeliveryID", out did))
+				//if (!this.WorkflowContext.TryGetValue("DeliveryGuid", out did))
+					if (!Instance.Configuration.Options.TryGetValue("DeliveryGuid", out did))
 						return null;
 
-				if (!int.TryParse(did, out deliveryID))
-					throw new Exception(String.Format("'{0}' is not a valid delivery ID.", did));
+				if (!Guid.TryParse(did, out deliveryID))
+					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
 
 				//_delivery = DeliveryDB.Get(deliveryID);
-				this.WorkflowContext["DeliveryID"] = did;
+				//this.WorkflowContext["DeliveryGuid"] = did;
 				return _delivery;
 			}
 			set
 			{
 				_delivery = value;
-				_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryID"] = _delivery.DeliveryID.ToString());
+				_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryGuid"] = _delivery.Guid.ToString());
 			}
 		}
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Data.Pipeline.Objects
+namespace Edge.Data.Objects
 {
 	public class Creative
 	{
@@ -11,21 +11,21 @@ namespace Edge.Data.Pipeline.Objects
 		public string Name;
 	}
 
-	[CreativeType(1)]
+	[CreativeTypeID(1)]
 	public class TextCreative : Creative
 	{
-		[CreativeColumn(1)]
+		[CreativeFieldIndex(1)]
 		public string Text;
-		[CreativeColumn(2)]
+		[CreativeFieldIndex(2)]
 		public TextCreativeType TextType;
 	}
 
-	[CreativeType(2)]
+	[CreativeTypeID(2)]
 	public class ImageCreative : Creative
 	{
-		[CreativeColumn(1)]
+		[CreativeFieldIndex(1)]
 		public string ImageUrl;
-		[CreativeColumn(2)]
+		[CreativeFieldIndex(2)]
 		public string ImageSize;
 	}
 
@@ -35,4 +35,26 @@ namespace Edge.Data.Pipeline.Objects
 		Body,
 		DisplayUrl
 	}
+
+	#region Attributes
+
+	class CreativeTypeIDAttribute : Attribute
+	{
+		internal int CreativeTypeID;
+		public CreativeTypeIDAttribute(int creativeTypeID)
+		{
+			CreativeTypeID = creativeTypeID;
+		}
+	}
+
+	class CreativeFieldIndexAttribute : Attribute
+	{
+		internal int CreativeFieldIndex;
+		public CreativeFieldIndexAttribute(int creativeFieldIndex)
+		{
+			CreativeFieldIndex = creativeFieldIndex;
+		}
+	}
+
+	#endregion
 }
