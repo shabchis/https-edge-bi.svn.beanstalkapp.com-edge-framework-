@@ -17,6 +17,7 @@ namespace Edge.Core
 	/// <c>name: value; other-name: value; </c> etc. Whitespace is flexible.
 	/// Comments enclosed in <c>/*</c> and <c>*/</c> are allowed anywhere in the string.
 	/// </remarks>
+	[Obsolete]
 	public class SettingsCollection : Dictionary<string, string>
 	{
 		/// <summary>
