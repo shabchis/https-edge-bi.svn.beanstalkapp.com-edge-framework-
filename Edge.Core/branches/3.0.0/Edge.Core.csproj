@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</ProjectGuid>
+    <ProjectGuid>{6919B522-1150-4F38-8DEB-6AEA7638CADB}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Edge.Core</RootNamespace>
@@ -96,6 +96,13 @@
     <Compile Include="Data\Identity\IdentityManager.cs" />
     <Compile Include="Data\Identity\IdentityManagerService.cs" />
     <Compile Include="Data\Identity\IdentityTable.cs" />
+    <Compile Include="Services2\SchedulingData.cs" />
+    <Compile Include="Services2\Service.cs" />
+    <Compile Include="Services2\ServiceConfiguration.cs" />
+    <Compile Include="Services2\ServiceExecutionContext.cs" />
+    <Compile Include="Services2\ServiceExecutionHost.cs" />
+    <Compile Include="Services2\ServiceInstance.cs" />
+    <Compile Include="Services2\Workflow\WorkflowServiceConfiguration.cs" />
     <Compile Include="Services\ServiceWorkflowContext.cs" />
     <Compile Include="Utilities\Encryptor.cs" />
     <Compile Include="Utilities\Evaluator.cs" />
