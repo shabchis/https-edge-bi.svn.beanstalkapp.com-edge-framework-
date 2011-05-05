@@ -60,28 +60,9 @@ namespace Edge.Data.Pipeline.Importing
 		}
 
 		public override void Begin(bool reset = true)
-		{
-			/*check if table exists if not---> create tables
- 			                        if yes---> if reset true--->clear table
-			 *								   if reset false-->don't touch tables ,and then???
-			*/
-			//TODO: check what to do if table exists and reset = false
-			// TODO: setup temp table
-
-			//Get base table name
-			//_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], Delivery.Guid.ToString("N"));
+		{			
 			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"],1 /*Delivery.DeliveryID*/);
-
-
-			
-
-
-
-
-
 			initalizeDataTablesAndBulks(reset);
-
-
 		}
 
 		private void initalizeDataTablesAndBulks(bool reset)
@@ -90,10 +71,12 @@ namespace Edge.Data.Pipeline.Importing
 			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
 			_sqlConnection.Open();
 
-			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_AdMetrics(@tableName:NvarChar)", CommandType.StoredProcedure))
+			//create/truncate/do nothing  to tables
+			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_BeginAdDataImportSession(@baseTableName:NvarChar,@reset:bit)", CommandType.StoredProcedure))
 			{
 				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value= _baseTableName + "adMetricsUnit";
+				sqlCommand.Parameters["@baseTableName"].Value = _baseTableName;
+				sqlCommand.Parameters["@reset"].Value = reset;
 				sqlCommand.ExecuteNonQuery();			
 				
 			}
@@ -198,14 +181,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion40", "Conversion40"));
 			#endregion
 			#region TargetMatches
-			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_TargetMatches(@tableName:NvarChar)", CommandType.StoredProcedure))
-			{
-				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "targetMatches";
-				sqlCommand.ExecuteNonQuery();
-
-
-			}
+			
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
 			_bulkTargetMatches.DestinationTableName = _baseTableName + "targetMatches";
 			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
@@ -231,14 +207,7 @@ namespace Edge.Data.Pipeline.Importing
 
 			#endregion
 			#region Creatives
-			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_Creatives(@tableName:NvarChar)", CommandType.StoredProcedure))
-			{
-				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "creatives";
-				sqlCommand.ExecuteNonQuery();
-
-
-			}
+			
 			_bulkCreatives = new SqlBulkCopy(_sqlConnection);
 			_bulkCreatives.DestinationTableName = _baseTableName + "creatives";
 			_creativesDataTable = new DataTable(_bulkCreatives.DestinationTableName);
@@ -261,14 +230,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
 			#endregion
 			#region Ads
-			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_Ads(@tableName:NvarChar)", CommandType.StoredProcedure))
-			{
-				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "ads";
-				sqlCommand.ExecuteNonQuery();
-
-
-			}
+		
 			_bulkAds = new SqlBulkCopy(_sqlConnection);
 			_bulkAds.DestinationTableName = _baseTableName + "ads";
 			_adsDataTable = new DataTable(_bulkAds.DestinationTableName);
