@@ -15,16 +15,7 @@ namespace Edge.Data.Pipeline.Importing
 
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
 	{
-		public const string ads_Campaign_Status_FieldName = "Campaign_Status";
-		public const string ads_Campaign_OriginalID_FieldName = "Campaign_OriginalID";
-		public const string ads_Campaign_Name_FieldName = "Campaign_Name";
-		public const string ads_Campaign_Channel_FieldName = "Campaign_Channel";
-		public const string ads_Campaign_Account_FieldName = "Campaign_Account";
-		public const string ads_DestinationUrl_FieldName = "DestinationUrl";
-		public const string ads_OriginalID_FieldName = "OriginalID";
-		public const string ads_Name_FieldName = "Name";
-		public const string adUsidFieldName = "AdUsid";
-		public Func<Ad, string> OnAdIdentityRequired = null;
+		
 
 		private SqlBulkCopy _bulkAdMetricsUnit;
 		private DataTable _adMetricsUnitDataTable;
@@ -40,6 +31,26 @@ namespace Edge.Data.Pipeline.Importing
 		private Dictionary<Type, int> _targetTypes;
 		private Dictionary<Type, int> _creativeType;
 		#region consts fields
+		public const string ads_CreativeType_FieldName = "CreativeType";
+		public const string FieldX_FiledName = "Field{0}";
+		public const string ads_TargetType_FieldName = "TargetType";
+		public const string adMetricsUnit_ConversionX_FieldName = "Conversion{0}";
+		public const string adMetricsUnit_AveragePosition_FieldName = "AveragePosition";
+		public const string adMetricsUnit_Clicks_FieldName = "Clicks";
+		public const string adMetricsUnit_Impressions_FieldName = "Impressions";
+		public const string adMetricsUnit_Cost_FieldName = "Cost";
+		public const string adMetricsUnit_Currency_FieldName = "Currency";
+		public const string adMetricsUnit_TimeStamp_FieldName = "TimeStamp";
+		public const string ads_Campaign_Status_FieldName = "Campaign_Status";
+		public const string ads_Campaign_OriginalID_FieldName = "Campaign_OriginalID";
+		public const string ads_Campaign_Name_FieldName = "Campaign_Name";
+		public const string ads_Campaign_Channel_FieldName = "Campaign_Channel";
+		public const string ads_Campaign_Account_FieldName = "Campaign_Account";
+		public const string ads_DestinationUrl_FieldName = "DestinationUrl";
+		public const string ads_OriginalID_FieldName = "OriginalID";
+		public const string ads_Name_FieldName = "Name";
+		public const string adUsidFieldName = "AdUsid";
+		public Func<Ad, string> OnAdIdentityRequired = null;
 		#endregion
 
 		public AdDataImportSession(Delivery delivery)
@@ -82,22 +93,22 @@ namespace Edge.Data.Pipeline.Importing
 			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_AdMetrics(@tableName:NvarChar)", CommandType.StoredProcedure))
 			{
 				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value= _baseTableName + "AdMetricsUnit";
+				sqlCommand.Parameters["@tableName"].Value= _baseTableName + "adMetricsUnit";
 				sqlCommand.ExecuteNonQuery();			
 				
 			}
 		
 			#region adMetrics
 			_bulkAdMetricsUnit = new SqlBulkCopy(_sqlConnection);
-			_bulkAdMetricsUnit.DestinationTableName = _baseTableName + "AdMetricsUnit";
+			_bulkAdMetricsUnit.DestinationTableName = _baseTableName + "adMetricsUnit";
 			_adMetricsUnitDataTable = new DataTable(_bulkAdMetricsUnit.DestinationTableName);
 			_adMetricsUnitDataTable.Columns.Add(adUsidFieldName);
-			_adMetricsUnitDataTable.Columns.Add("TimeStamp");
-			_adMetricsUnitDataTable.Columns.Add("Currency");
-			_adMetricsUnitDataTable.Columns.Add("Cost");
-			_adMetricsUnitDataTable.Columns.Add("Impressions");
-			_adMetricsUnitDataTable.Columns.Add("Clicks");
-			_adMetricsUnitDataTable.Columns.Add("AveragePosition");
+			_adMetricsUnitDataTable.Columns.Add(adMetricsUnit_TimeStamp_FieldName);
+			_adMetricsUnitDataTable.Columns.Add(adMetricsUnit_Currency_FieldName);
+			_adMetricsUnitDataTable.Columns.Add(adMetricsUnit_Cost_FieldName);
+			_adMetricsUnitDataTable.Columns.Add(adMetricsUnit_Impressions_FieldName);
+			_adMetricsUnitDataTable.Columns.Add(adMetricsUnit_Clicks_FieldName);
+			_adMetricsUnitDataTable.Columns.Add(adMetricsUnit_AveragePosition_FieldName);
 			_adMetricsUnitDataTable.Columns.Add("Conversion1");
 			_adMetricsUnitDataTable.Columns.Add("Conversion2");
 			_adMetricsUnitDataTable.Columns.Add("Conversion3");
@@ -140,12 +151,12 @@ namespace Edge.Data.Pipeline.Importing
 			_adMetricsUnitDataTable.Columns.Add("Conversion40");
 
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("TimeStamp", "TimeStamp"));
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Currency", "Currency"));
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Cost", "Cost"));
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Impressions", "Impressions"));
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Clicks", "Clicks"));
-			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("AveragePosition", "AveragePosition"));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adMetricsUnit_TimeStamp_FieldName, adMetricsUnit_TimeStamp_FieldName));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adMetricsUnit_Currency_FieldName, adMetricsUnit_Currency_FieldName));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adMetricsUnit_Cost_FieldName, adMetricsUnit_Cost_FieldName));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adMetricsUnit_Impressions_FieldName, adMetricsUnit_Impressions_FieldName));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adMetricsUnit_Clicks_FieldName, adMetricsUnit_Clicks_FieldName));
+			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adMetricsUnit_AveragePosition_FieldName, adMetricsUnit_AveragePosition_FieldName));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion1", "Conversion1"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion2", "Conversion2"));
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion3", "Conversion3"));
@@ -190,18 +201,18 @@ namespace Edge.Data.Pipeline.Importing
 			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_TargetMatches(@tableName:NvarChar)", CommandType.StoredProcedure))
 			{
 				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "TargetMatches";
+				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "targetMatches";
 				sqlCommand.ExecuteNonQuery();
 
 
 			}
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
-			_bulkTargetMatches.DestinationTableName = _baseTableName + "TargetMatches";
+			_bulkTargetMatches.DestinationTableName = _baseTableName + "targetMatches";
 			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
 			_targetMatchesDataTable.Columns.Add(adUsidFieldName);
 			_targetMatchesDataTable.Columns.Add(ads_OriginalID_FieldName);
 			_targetMatchesDataTable.Columns.Add(ads_DestinationUrl_FieldName);
-			_targetMatchesDataTable.Columns.Add("TargetType");
+			_targetMatchesDataTable.Columns.Add(ads_TargetType_FieldName);
 			_targetMatchesDataTable.Columns.Add("Field1");
 			_targetMatchesDataTable.Columns.Add("Field2");
 			_targetMatchesDataTable.Columns.Add("Field3");
@@ -214,7 +225,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
 			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
-			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping("TargetType", "TargetType"));
+			_bulkTargetMatches.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_TargetType_FieldName, ads_TargetType_FieldName));
 
 
 
@@ -223,18 +234,18 @@ namespace Edge.Data.Pipeline.Importing
 			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_Creatives(@tableName:NvarChar)", CommandType.StoredProcedure))
 			{
 				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "Creatives";
+				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "creatives";
 				sqlCommand.ExecuteNonQuery();
 
 
 			}
 			_bulkCreatives = new SqlBulkCopy(_sqlConnection);
-			_bulkCreatives.DestinationTableName = _baseTableName + "Creatives";
+			_bulkCreatives.DestinationTableName = _baseTableName + "creatives";
 			_creativesDataTable = new DataTable(_bulkCreatives.DestinationTableName);
 			_creativesDataTable.Columns.Add(adUsidFieldName);
 			_creativesDataTable.Columns.Add(ads_OriginalID_FieldName);
 			_creativesDataTable.Columns.Add(ads_Name_FieldName);
-			_creativesDataTable.Columns.Add("CreativeType");
+			_creativesDataTable.Columns.Add(ads_CreativeType_FieldName);
 			_creativesDataTable.Columns.Add("Field1");
 			_creativesDataTable.Columns.Add("Field2");
 			_creativesDataTable.Columns.Add("Field3");
@@ -243,7 +254,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Name_FieldName, ads_Name_FieldName));
-			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("CreativeType", "CreativeType"));
+			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_CreativeType_FieldName, ads_CreativeType_FieldName));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
@@ -253,13 +264,13 @@ namespace Edge.Data.Pipeline.Importing
 			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_CreateTable_Ads(@tableName:NvarChar)", CommandType.StoredProcedure))
 			{
 				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "Ads";
+				sqlCommand.Parameters["@tableName"].Value = _baseTableName + "ads";
 				sqlCommand.ExecuteNonQuery();
 
 
 			}
 			_bulkAds = new SqlBulkCopy(_sqlConnection);
-			_bulkAds.DestinationTableName = _baseTableName + "Ads";
+			_bulkAds.DestinationTableName = _baseTableName + "ads";
 			_adsDataTable = new DataTable(_bulkAds.DestinationTableName);
 			_adsDataTable.Columns.Add(adUsidFieldName);
 			_adsDataTable.Columns.Add(ads_Name_FieldName);
@@ -304,24 +315,20 @@ namespace Edge.Data.Pipeline.Importing
 			string adUsid = GetAdIdentity(metrics.Ad);
 			DataRow row = _adMetricsUnitDataTable.NewRow();
 
-			// !@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#
-			//
-			// TODO: all field names = const!!!
-			//
-			// !@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#!@$#
+			
 
 			row[adUsidFieldName] = adUsid;
-			row["TimeStamp"] = metrics.TimeStamp;
-			row["Currency"] = metrics.Currency.Code;
-			row["Cost"] = metrics.Cost;
-			row["Impressions"] = metrics.Impressions;
-			row["Clicks"] = metrics.Clicks;
-			row["AveragePosition"] = metrics.AveragePosition;
+			row[adMetricsUnit_TimeStamp_FieldName] = metrics.TimeStamp;
+			row[adMetricsUnit_Currency_FieldName] = metrics.Currency.Code;
+			row[adMetricsUnit_Cost_FieldName] = metrics.Cost;
+			row[adMetricsUnit_Impressions_FieldName] = metrics.Impressions;
+			row[adMetricsUnit_Clicks_FieldName] = metrics.Clicks;
+			row[adMetricsUnit_AveragePosition_FieldName] = metrics.AveragePosition;
 
 			//Conversions
 			foreach (KeyValuePair<int, double> Conversion in metrics.Conversions)
 			{
-				row[string.Format("Conversion{0}", Conversion.Key)] = Conversion.Value;
+				row[string.Format(adMetricsUnit_ConversionX_FieldName, Conversion.Key)] = Conversion.Value;
 			}
 
 			_adMetricsUnitDataTable.Rows.Add(row);
@@ -339,13 +346,13 @@ namespace Edge.Data.Pipeline.Importing
 				row[ads_OriginalID_FieldName] = target.OriginalID;
 				row[ads_DestinationUrl_FieldName] = target.DestinationUrl;
 				int targetType=	GetTargetType(target.GetType());
-				row["TargetType"] = targetType;
+				row[ads_TargetType_FieldName] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format("Field{0}",TargetColumn.TargetColumnIndex)] = field.GetValue(target);					
+						row[string.Format(FieldX_FiledName,TargetColumn.TargetColumnIndex)] = field.GetValue(target);					
 					}
 					
 					
@@ -414,13 +421,13 @@ namespace Edge.Data.Pipeline.Importing
 				row[ads_OriginalID_FieldName] = target.OriginalID;
 				row[ads_DestinationUrl_FieldName] = target.DestinationUrl;
 				int targetType = GetTargetType(target.GetType());
-				row["TargetType"] = targetType;
+				row[ads_TargetType_FieldName] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format("Field{0}", TargetColumn.TargetColumnIndex)] = field.GetValue(target);
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = field.GetValue(target);
 					}
 
 
@@ -442,13 +449,13 @@ namespace Edge.Data.Pipeline.Importing
 				row[ads_OriginalID_FieldName]=creative.OriginalID;
 				row[ads_Name_FieldName] = creative.Name;
 				int creativeType =GetCreativeType(creative.GetType());
-				row["CreativeType"] = creativeType;
+				row[ads_CreativeType_FieldName] = creativeType;
 				foreach (FieldInfo field in creative.GetType().GetFields())
 				{
 					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
 					{
 						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
-						row[string.Format("Field{0}", creativeColumn.CreativeFieldIndex)] = field.GetValue(creative);
+						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = field.GetValue(creative);
 					}
 				}
 				_creativesDataTable.Rows.Add(row);
