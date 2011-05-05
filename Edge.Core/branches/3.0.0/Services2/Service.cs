@@ -65,5 +65,10 @@ namespace Edge.Core.Services2
 		protected void Log(string message, Exception ex)
 		{
 		}
+
+		public override object InitializeLifetimeService()
+		{
+			return base.InitializeLifetimeService();
+		}
 	}
 }
