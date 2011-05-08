@@ -96,13 +96,17 @@
     <Compile Include="Data\Identity\IdentityManager.cs" />
     <Compile Include="Data\Identity\IdentityManagerService.cs" />
     <Compile Include="Data\Identity\IdentityTable.cs" />
+    <Compile Include="Services2\LogMessage.cs" />
     <Compile Include="Services2\SchedulingData.cs" />
     <Compile Include="Services2\Service.cs" />
     <Compile Include="Services2\ServiceConfiguration.cs" />
     <Compile Include="Services2\ServiceExecutionContext.cs" />
     <Compile Include="Services2\ServiceExecutionHost.cs" />
     <Compile Include="Services2\ServiceInstance.cs" />
+    <Compile Include="Services2\ServiceInstanceController.cs" />
+    <Compile Include="Services2\ServiceProxy.cs" />
     <Compile Include="Services2\Workflow\WorkflowServiceConfiguration.cs" />
+    <Compile Include="Services2\ZzzService.cs" />
     <Compile Include="Services\ServiceWorkflowContext.cs" />
     <Compile Include="Utilities\Encryptor.cs" />
     <Compile Include="Utilities\Evaluator.cs" />
