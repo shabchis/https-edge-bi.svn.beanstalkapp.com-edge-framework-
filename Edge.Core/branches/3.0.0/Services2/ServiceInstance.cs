@@ -6,37 +6,20 @@ using System.Collections.ObjectModel;
 
 namespace Edge.Core.Services2
 {
-	public class ServiceInstance
+	public class ServiceInstance: IServiceInfo
 	{
 		internal Service ServiceRef { get; set; }
 
-		public Guid InstanceID { get; internal set; }
-		public ServiceConfiguration Configuration;
-		public ServiceExecutionContext Context;
-		public ServiceInstance ParentInstance;
-		public double Progress;
-		public Edge.Core.Services.ServiceState State;
-		public Edge.Core.Services.ServiceOutcome Outcome;
-		public object Result;
-		public SchedulingData SchedulingData;
-		public ReadOnlyObservableCollection<ServiceInstance> ChildInstances;
-
-		public event EventHandler StateChanged;
-		public event EventHandler OutcomeReported;
-		public event EventHandler ProgressReported;
-		public event EventHandler LogMessageGenerated;
-
-		public void Start()
-		{
-			var action = new Action(this.ServiceRef.Start);
-			action.BeginInvoke(null, null);
-		}
-
-		public void Abort()
-		{
-			var action = new Action(this.ServiceRef.Abort);
-			action.BeginInvoke(null, null);
-		}
+		public Guid InstanceID { get; private set; }
+		public ServiceConfiguration Configuration { get; private set; }
+		public ServiceExecutionContext Context { get; private set; }
+		public ServiceInstance ParentInstance { get; private set; }
+		public double Progress { get; private set; }
+		public Edge.Core.Services.ServiceState State { get; private set; }
+		public Edge.Core.Services.ServiceOutcome Outcome { get; private set; }
+		public object Output { get; private set; }
+		public SchedulingData SchedulingData { get; private set; }
+		public ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; private set; }
 
 		public override string ToString()
 		{
@@ -45,15 +28,6 @@ namespace Edge.Core.Services2
 				Configuration.Profile == null ? "default" : Configuration.Profile.Name,
 				InstanceID
 			);
-		}
-	}
-
-	public class ServiceCreatedEventArgs : EventArgs
-	{
-		public ServiceInstance Instance
-		{
-			get;
-			set;
 		}
 	}
 }

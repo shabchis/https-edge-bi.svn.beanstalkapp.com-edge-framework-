@@ -2,73 +2,170 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 
 namespace Edge.Core.Services2
 {
-	public class Service : MarshalByRefObject
+	public abstract class Service : MarshalByRefObject
 	{
-		object _sync = new object();
+		#region Static
+		//======================
+
+		internal static ServiceEventType[] SupportedEvents;
+
+		static Service()
+		{
+			SupportedEvents = new ServiceEventType[]
+			{
+				ServiceEventType.StateChanged,
+				ServiceEventType.OutcomeReported,
+				ServiceEventType.ProgressReported,
+				ServiceEventType.ChildCreated,
+				ServiceEventType.OutputGenerated
+			};
+		}
+
+		//======================
+		#endregion
+
+		#region Control
+		//======================
 
 		internal void Start()
 		{
 		}
 
-		internal void Abort()
+		internal protected void Abort()
 		{
 		}
 
-		protected virtual void DoWork()
-		{
-		}
+		//======================
+		#endregion
 
-		protected virtual void OnEnded()
-		{
-		}
+		#region Communication
+		//======================
 
-		protected double Progress
-		{
-			get;
-			set;
-		}
+		Dictionary<ServiceEventType, List<ServiceSubscriber>> _subscribers = new Dictionary<ServiceEventType,List<ServiceSubscriber>>();
 
-
-		Services.ServiceState _state;
-		protected Edge.Core.Services.ServiceState State
+		internal void Subscribe(ServiceSubscriber subscriber, ServiceEventType events)
 		{
-			get { return _state; }
-			set
+			foreach (ServiceEventType eventType in Service.SupportedEvents)
 			{
-				// Check the specified value can be set
-				_state = value;
-				
+				if ((int)(events & eventType) == 0)
+					continue;
+
+				List<ServiceSubscriber> eventSubscribers;
+				lock (_subscribers)
+				{
+					// Get subscribers to this list
+					if (!_subscribers.TryGetValue(eventType, out eventSubscribers))
+						_subscribers[eventType] = eventSubscribers = new List<ServiceSubscriber>();
+				}
+
+				lock (eventSubscribers)
+				{
+					if (!eventSubscribers.Contains(subscriber))
+						eventSubscribers.Add(subscriber);
+				}
 			}
 		}
 
-		private void NotifyStateChanged()
+		internal void Unsubscribe(ServiceSubscriber subscriber, ServiceEventType events)
+		{
+			foreach (ServiceEventType eventType in Service.SupportedEvents)
+			{
+				// Check if the event type is supported
+				if ((int)(events & eventType) == 0)
+					continue;
+
+				List<ServiceSubscriber> eventSubscribers;
+				lock (_subscribers)
+				{
+					if (!_subscribers.TryGetValue(eventType, out eventSubscribers))
+						return;
+				}
+
+				lock (eventSubscribers)
+				{
+					int index = eventSubscribers.IndexOf(subscriber);
+					if (index >= 0)
+						eventSubscribers.RemoveAt(index);
+				}
+			}
+		}
+
+		private void NotifySubscribers(ServiceEventType eventType, object value)
+		{
+			List<ServiceSubscriber> eventSubscribers;
+			
+			// Get subscribers to this event type
+			lock (_subscribers)
+			{
+				if (!_subscribers.TryGetValue(eventType, out eventSubscribers))
+					return;
+			}
+
+			lock (eventSubscribers)
+			{
+				foreach (ServiceSubscriber subscriber in eventSubscribers)
+					subscriber.Notify(eventType, value);
+			}
+		}
+		
+		//======================
+		#endregion 
+
+		#region Implementation
+		//======================
+
+		protected abstract Edge.Core.Services.ServiceOutcome DoWork();
+
+		protected virtual void OnEnded(Edge.Core.Services.ServiceState state)
 		{
 		}
 
-		protected Edge.Core.Services.ServiceOutcome Outcome
+		//======================
+		#endregion
+
+		#region Instance
+		//======================
+
+		Services.ServiceState _state;
+
+		protected Edge.Core.Services.ServiceState State
 		{
-			get;
-			set;
+			get { return _state; }
+			private set
+			{
+				_state = value;
+				NotifySubscribers(ServiceEventType.StateChanged, _state);
+			}
 		}
 
-		/// <summary>
-		/// The
-		/// </summary>
-		/// <param name="message">The LogMessage.Source must be null.</param>
+		//======================
+		#endregion
+
+		#region Logging
+		//======================
+
 		protected void Log(LogMessage message)
 		{
+			throw new NotImplementedException();
 		}
 
 		protected void Log(string message, Exception ex)
 		{
+			throw new NotImplementedException();
 		}
 
-		public override object InitializeLifetimeService()
+		protected void Log(string message, LogMessageType messageType)
 		{
-			return base.InitializeLifetimeService();
+			throw new NotImplementedException();
 		}
+
+		//======================
+		#endregion
 	}
+
+
 }
