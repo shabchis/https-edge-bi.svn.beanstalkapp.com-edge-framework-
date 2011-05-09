@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.Runtime.Remoting.Messaging;
 
 namespace Edge.Core.Services2
 {
-	public abstract class Service : MarshalByRefObject
+	public abstract class Service : MarshalByRefObject, IServiceView
 	{
 		#region Static
 		//======================
@@ -28,24 +29,10 @@ namespace Edge.Core.Services2
 		//======================
 		#endregion
 
-		#region Control
-		//======================
-
-		internal void Start()
-		{
-		}
-
-		internal protected void Abort()
-		{
-		}
-
-		//======================
-		#endregion
-
 		#region Communication
 		//======================
 
-		Dictionary<ServiceEventType, List<ServiceSubscriber>> _subscribers = new Dictionary<ServiceEventType,List<ServiceSubscriber>>();
+		Dictionary<ServiceEventType, List<ServiceSubscriber>> _subscribers = new Dictionary<ServiceEventType, List<ServiceSubscriber>>();
 
 		internal void Subscribe(ServiceSubscriber subscriber, ServiceEventType events)
 		{
@@ -97,7 +84,7 @@ namespace Edge.Core.Services2
 		private void NotifySubscribers(ServiceEventType eventType, object value)
 		{
 			List<ServiceSubscriber> eventSubscribers;
-			
+
 			// Get subscribers to this event type
 			lock (_subscribers)
 			{
@@ -111,9 +98,25 @@ namespace Edge.Core.Services2
 					subscriber.Notify(eventType, value);
 			}
 		}
-		
+
 		//======================
-		#endregion 
+		#endregion
+
+		#region Control
+		//======================
+
+		[OneWay]
+		internal void Start()
+		{
+		}
+
+		[OneWay]
+		internal protected void Abort()
+		{
+		}
+
+		//======================
+		#endregion
 
 		#region Implementation
 		//======================
@@ -130,16 +133,68 @@ namespace Edge.Core.Services2
 		#region Instance
 		//======================
 
+		double _progress = 0;
 		Services.ServiceState _state;
+		Services.ServiceOutcome _outcome;
+		object _output = null;
 
-		protected Edge.Core.Services.ServiceState State
+		public Guid InstanceID
+		{
+			get;
+			internal set;
+		}
+
+		public ServiceConfiguration Configuration
+		{
+			get;
+			internal set;
+		}
+
+		public ServiceExecutionContext Context
+		{
+			get;
+			internal set;
+		}
+
+		public ServiceInstance ParentInstance
+		{
+			get;
+			private set;
+		}
+
+		public double Progress
+		{
+			get { return _progress; }
+			protected set { NotifySubscribers(ServiceEventType.ProgressReported, _progress = value); }
+		}
+
+		public Services.ServiceState State
 		{
 			get { return _state; }
-			private set
-			{
-				_state = value;
-				NotifySubscribers(ServiceEventType.StateChanged, _state);
-			}
+			private set { NotifySubscribers(ServiceEventType.StateChanged, _state = value); }
+		}
+
+		public Services.ServiceOutcome Outcome
+		{
+			get { return _outcome; }
+			private set { NotifySubscribers(ServiceEventType.OutcomeReported, _outcome = value); }
+		}
+
+		public object Output
+		{
+			get { return _output; }
+			private set { NotifySubscribers(ServiceEventType.OutputGenerated, _output = value); }
+		}
+
+		public SchedulingData SchedulingData
+		{
+			get;
+			internal set;
+		}
+
+		public System.Collections.ObjectModel.ReadOnlyObservableCollection<ServiceInstance> ChildInstances
+		{
+			get { throw new NotImplementedException(); }
 		}
 
 		//======================
@@ -167,5 +222,10 @@ namespace Edge.Core.Services2
 		#endregion
 	}
 
+	internal class ServiceSubscription : MarshalByRefObject
+	{
+
+		
+	}
 
 }
