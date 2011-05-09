@@ -358,18 +358,18 @@ namespace Edge.Data.Pipeline.Importing
 			row[ads_Name_FieldName] = ad.Name;
 			row[ads_OriginalID_FieldName] = ad.OriginalID;
 			row[ads_DestinationUrl_FieldName] = ad.DestinationUrl;
-			row[ads_Campaign_Account_FieldName] = ad.Campaign.Account;
-			row[ads_Campaign_Channel_FieldName] = ad.Campaign.Channel;
+			row[ads_Campaign_Account_FieldName] = ad.Campaign.Account.ID;
+			row[ads_Campaign_Channel_FieldName] = ad.Campaign.Channel.ID;
 			row[ads_Campaign_Name_FieldName] = ad.Campaign.Name;
 			row[ads_Campaign_OriginalID_FieldName] = ad.Campaign.OriginalID;
-			row[ads_Campaign_Status_FieldName] = ad.Campaign.Status;
+			row[ads_Campaign_Status_FieldName] =( (int)ad.Campaign.Status).ToString();
 
 			//TODO: segments
 			//foreach (KeyValuePair<Segment, object> Segment in ad.Segments)
 			//{
 			//    row[string.Format("Segment{0}", ad.Segments)] = Conversion.Value;
 			//}
-
+			_adsDataTable.Rows.Add(row);
 			if (_adsDataTable.Rows.Count == _bufferSize)
 			{
 				_bulkAds.WriteToServer(_adsDataTable);
@@ -463,6 +463,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAds.WriteToServer(_adsDataTable);
 			_bulkCreatives.WriteToServer(_creativesDataTable);
 			_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
+			_bulkAds.WriteToServer(_adsDataTable);
 			_sqlConnection.Dispose();
 			
 			
