@@ -11,21 +11,26 @@ namespace Edge.Core.Services2
 		{
 		}
 
-		internal ServiceInstance NewServiceInstance(ServiceConfiguration config, ServiceInstance parentInstance)
+		public ServiceInstance NewServiceInstance(ServiceConfiguration config, ServiceInstance parentInstance)
 		{
 			ServiceInstance instance = new ServiceInstance()
 			{
 				InstanceID = Guid.NewGuid(),
 				Configuration = config,
-				Context = parentInstance != null ? parentInstance.Context : new ServiceExecutionContext(),
-				State = Services.ServiceState.Initializing
+				Context = parentInstance != null ? parentInstance.Context : new ServiceExecutionContext()
 			};
 
-			AppDomain domain = AppDomain.CreateDomain(instance.ToString());
-			instance.ServiceRef = (Service) domain.CreateInstanceAndUnwrap(typeof(Service).Assembly.FullName, typeof(Service).FullName);
-			
-
 			return instance;
+		}
+
+		internal void InitializeService(ServiceInstance instance)
+		{
+			instance.State = Services.ServiceState.Initializing;
+
+			AppDomain domain = AppDomain.CreateDomain(instance.ToString());
+			instance.AttachTo((Service)domain.CreateInstanceAndUnwrap(typeof(Service).Assembly.FullName, typeof(Service).FullName));
+
+			instance.State = Services.ServiceState.Ready;
 		}
 
 		public ServiceInstance GetServiceInstance(Guid instanceID)

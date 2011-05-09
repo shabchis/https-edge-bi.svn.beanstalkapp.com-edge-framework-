@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
 
 namespace Edge.Core.Services2
 {
-	public class ServiceConfiguration
+	[Serializable]
+	public class ServiceConfiguration: ISerializable
 	{
 		public Guid ConfigurationID;
 		public ServiceInstance RelatedInstance;
@@ -19,6 +21,20 @@ namespace Edge.Core.Services2
 		public Dictionary<string, object> Parameters;
 		public List<SchedulingRule> SchedulingRules;
 		public ServiceExecutionStatistics Statistics;
+
+		#region ISerializable Members
+
+		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+		{
+			throw new NotImplementedException();
+		}
+
+		private ServiceConfiguration(SerializationInfo info, StreamingContext context)
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
 	}
 
 	public class ServiceProfile

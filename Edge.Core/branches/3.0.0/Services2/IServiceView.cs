@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 
 namespace Edge.Core.Services2
 {
-	public interface IServiceInfo
+	public interface IServiceView
 	{
 		Guid InstanceID { get; }
 		ServiceConfiguration Configuration { get; }
