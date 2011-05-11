@@ -25,8 +25,9 @@ namespace Edge.Core.Services2
 		Starting = 3,
 		InProgress = 4,
 		Waiting = 5,
-		Ended = 6,
-		Aborting = 7
+		Ending = 6,
+		Ended = 7,
+		
 	}
 
 	/// <summary>

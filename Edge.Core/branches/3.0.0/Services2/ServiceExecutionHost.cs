@@ -28,6 +28,9 @@ namespace Edge.Core.Services2
 			// Load the app domain
 			AppDomain domain = AppDomain.CreateDomain(instance.ToString());
 
+			domain.UnhandledException += new UnhandledExceptionEventHandler(DomainUnhandledException);
+			domain.DomainUnload += new EventHandler(DomainUnload);
+
 			// Instantiate the service type in the new domain
 			Service serviceRef;
 			if (instance.Configuration.AssemblyPath == null)
@@ -56,6 +59,16 @@ namespace Edge.Core.Services2
 	
 			// Give the service ref its properties
 			serviceRef.Init(this, instance);
+		}
+
+		void DomainUnload(object sender, EventArgs e)
+		{
+			throw new NotImplementedException();
+		}
+
+		void DomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			throw new NotImplementedException();
 		}
 
 		[OneWay]

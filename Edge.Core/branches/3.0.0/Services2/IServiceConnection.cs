@@ -43,11 +43,16 @@ namespace Edge.Core.Services2
 		{
 			if (EventCallback != null)
 				EventCallback(eventType, value);
+
+			// Dispose of ourselves, no more message to come
+			if (eventType == ServiceEventType.OutcomeReported)
+				this.Dispose();
 		}
 
 		public void Dispose()
 		{
 			// TODO: cause lease to expire
+			throw new NotImplementedException("The ILease must be released at this point to allow garbage collection!");
 		}
 	}
 

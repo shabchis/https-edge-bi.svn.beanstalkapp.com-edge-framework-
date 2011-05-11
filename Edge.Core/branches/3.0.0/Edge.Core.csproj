@@ -91,7 +91,7 @@
     <Compile Include="Services2\ServiceExecutionHost.cs" />
     <Compile Include="Services2\ServiceHostingPermission.cs" />
     <Compile Include="Services2\ServiceInstance.cs" />
-    <Compile Include="Services2\IServiceView.cs" />
+    <Compile Include="Services2\IServiceInfo.cs" />
     <Compile Include="Services2\ServiceEnvironment.cs" />
     <Compile Include="Services2\Workflow\WorkflowServiceConfiguration.cs" />
     <Compile Include="Utilities\Encryptor.cs" />

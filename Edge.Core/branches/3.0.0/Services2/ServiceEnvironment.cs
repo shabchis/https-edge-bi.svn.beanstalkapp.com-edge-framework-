@@ -25,9 +25,8 @@ namespace Edge.Core.Services2
 			return new ServiceInstance(this, configuration, parentInstance);
 		}
 
-		internal IServiceConnection AcquireHost(ServiceInstance instance)
+		internal IServiceConnection AcquireHostConnection(ServiceInstance instance)
 		{
-			
 			// TODO: determine which host to connect to
 			return new LocalServiceConnection(_host);
 		}
