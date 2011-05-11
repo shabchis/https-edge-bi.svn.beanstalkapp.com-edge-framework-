@@ -61,16 +61,6 @@ namespace Edge.Core.Services2
 			serviceRef.Init(this, instance);
 		}
 
-		void DomainUnload(object sender, EventArgs e)
-		{
-			throw new NotImplementedException();
-		}
-
-		void DomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
-		{
-			throw new NotImplementedException();
-		}
-
 		[OneWay]
 		void IServiceHost.Start(Guid instanceID)
 		{
@@ -81,6 +71,21 @@ namespace Edge.Core.Services2
 		void IServiceHost.Abort(Guid instanceID)
 		{
 			Get(instanceID).Abort();
+		}
+
+		[OneWay]
+		internal void Unload(Guid instanceID)
+		{
+		}
+
+		void DomainUnload(object sender, EventArgs e)
+		{
+			throw new NotImplementedException();
+		}
+
+		void DomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			throw new NotImplementedException();
 		}
 
 		Service Get(Guid instanceID)

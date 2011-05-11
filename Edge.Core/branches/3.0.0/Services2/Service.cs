@@ -173,7 +173,7 @@ namespace Edge.Core.Services2
 
 				State = ServiceState.Ended;
 				
-				_host.UnloadService(this);
+				_host.Unload(this.InstanceID);
 			}
 		}
 
