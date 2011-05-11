@@ -11,7 +11,7 @@ using System.Diagnostics;
 namespace Edge.Core.Services2
 {
 	[Serializable]
-	public class ServiceInstance: IServiceView, ISerializable
+	public class ServiceInstance: IServiceInfo, ISerializable
 	{
 		#region Instance
 		//=================
@@ -53,11 +53,32 @@ namespace Edge.Core.Services2
 		ServiceOutcome _outcome = ServiceOutcome.Unspecified;
 		double _progress = 0;
 		object _output = null;
+		DateTime _timeInitialized = DateTime.MinValue;
+		DateTime _timeStarted = DateTime.MinValue;
+		DateTime _timeEnded = DateTime.MinValue;
 
 		public event EventHandler StateChanged;
 		public event EventHandler OutcomeReported;
 		public event EventHandler ProgressReported;
 		public event EventHandler OutputGenerated;
+
+		public DateTime TimeInitialized
+		{
+			get { return _timeInitialized; }
+			private set { _timeInitialized = value; }
+		}
+
+		public DateTime TimeStarted
+		{
+			get { return _timeStarted; }
+			private set { _timeStarted = value; }
+		}
+		
+		public DateTime TimeEnded
+		{
+			get { return _timeEnded; }
+			private set { _timeEnded = value; }
+		}
 
 		public ServiceState State
 		{
@@ -111,17 +132,38 @@ namespace Edge.Core.Services2
 			switch (eventType)
 			{
 				case ServiceEventType.StateChanged:
-					State = (ServiceState)value;
-					break;
+					{
+						var ev = (EventValue<ServiceState>)value;
+
+						if (ev.Value == ServiceState.Ready)
+							TimeInitialized = ev.Time;
+						else if (ev.Value == ServiceState.InProgress)
+							TimeStarted = ev.Time;
+						else if (ev.Value == ServiceState.Ended)
+						{
+							TimeEnded = ev.Time;
+
+							// Autocomplete progress only if success
+							if (_outcome == ServiceOutcome.Success)
+								Progress = 1.0;
+						}
+
+						State = ev.Value;
+						break;
+					}
+
 				case ServiceEventType.ProgressReported:
 					Progress = (double)value;
 					break;
+
 				case ServiceEventType.OutputGenerated:
 					Output = value;
 					break;
+
 				case ServiceEventType.OutcomeReported:
 					Outcome = (ServiceOutcome)value;
 					break;
+
 				default:
 					return;
 			}
@@ -146,7 +188,7 @@ namespace Edge.Core.Services2
 			State = ServiceState.Initializing;
 
 			// Get a connection
-			try { this.Connection = Environment.AcquireHost(this); }
+			try { this.Connection = Environment.AcquireHostConnection(this); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Environment could not acquire a host for this instance.", ex, true);
