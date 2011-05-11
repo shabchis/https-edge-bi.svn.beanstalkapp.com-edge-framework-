@@ -29,12 +29,12 @@ namespace Edge.Core.Services2
 		//======================
 		#endregion
 
-		#region Communication
+		#region Event subscription
 		//======================
 
 		Dictionary<ServiceEventType, List<ServiceSubscriber>> _subscribers = new Dictionary<ServiceEventType, List<ServiceSubscriber>>();
 
-		internal void Subscribe(ServiceSubscriber subscriber, ServiceEventType events)
+		internal void Subscribe(ServiceEventType events, ServiceSubscriber subscriber)
 		{
 			foreach (ServiceEventType eventType in Service.SupportedEvents)
 			{
@@ -57,7 +57,7 @@ namespace Edge.Core.Services2
 			}
 		}
 
-		internal void Unsubscribe(ServiceSubscriber subscriber, ServiceEventType events)
+		internal void Unsubscribe(ServiceEventType events, ServiceSubscriber subscriber)
 		{
 			foreach (ServiceEventType eventType in Service.SupportedEvents)
 			{
@@ -81,7 +81,7 @@ namespace Edge.Core.Services2
 			}
 		}
 
-		private void NotifySubscribers(ServiceEventType eventType, object value)
+		private void RaiseEvent(ServiceEventType eventType, object value)
 		{
 			List<ServiceSubscriber> eventSubscribers;
 
@@ -95,7 +95,7 @@ namespace Edge.Core.Services2
 			lock (eventSubscribers)
 			{
 				foreach (ServiceSubscriber subscriber in eventSubscribers)
-					subscriber.Notify(eventType, value);
+					subscriber.ReceiveEvent(eventType, value);
 			}
 		}
 
