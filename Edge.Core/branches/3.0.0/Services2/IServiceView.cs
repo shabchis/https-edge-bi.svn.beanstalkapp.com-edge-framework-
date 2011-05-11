@@ -10,13 +10,14 @@ namespace Edge.Core.Services2
 	{
 		Guid InstanceID { get; }
 		ServiceConfiguration Configuration { get; }
+		ServiceEnvironment Environment { get; }
 		ServiceExecutionContext Context { get; }
 		ServiceInstance ParentInstance { get; }
 		double Progress { get; }
-		Edge.Core.Services.ServiceState State { get; }
-		Edge.Core.Services.ServiceOutcome Outcome { get; }
+		ServiceState State { get; }
+		ServiceOutcome Outcome { get; }
 		object Output { get; }
-		SchedulingData SchedulingData { get; }
-		ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; private set; }
+		SchedulingInfo SchedulingInfo { get; }
+		//ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; }
 	}
 }

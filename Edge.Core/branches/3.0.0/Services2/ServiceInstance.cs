@@ -6,257 +6,251 @@ using System.Collections.ObjectModel;
 using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
+using System.Diagnostics;
 
 namespace Edge.Core.Services2
 {
-	public class ServiceInstance: IServiceView
+	[Serializable]
+	public class ServiceInstance: IServiceView, ISerializable
 	{
-		double _progress = 0;
-		Services.ServiceState _state;
-		Services.ServiceOutcome _outcome;
-		object _output = null;
+		#region Instance
+		//=================
 
-		public Guid InstanceID { get; internal set; }
-		public ServiceConfiguration Configuration { get; internal set; }
-		public ServiceExecutionContext Context { get; internal set; }
-		public ServiceInstance ParentInstance { get; internal set; }
-		public SchedulingData SchedulingData { get; internal set; }
+		internal IServiceConnection Connection;
+
+		bool _owner = false;
+		bool _autostart = false;
+		Guid _parentInstanceID = Guid.Empty;
+
+		public bool ThrowExceptionOnError { get; set; }
+
+		public Guid InstanceID { get; private set; }
+		public ServiceConfiguration Configuration { get; private set; }
+		public ServiceEnvironment Environment { get; private set; }
+		public ServiceExecutionContext Context { get; private set; }
+		public ServiceInstance ParentInstance { get; private set; }
+		public SchedulingInfo SchedulingInfo { get; private set; }
 		public ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; private set; }
 
-		public double Progress { get; private set; }
-		public Edge.Core.Services.ServiceState State { get; private set; }
-		public Edge.Core.Services.ServiceOutcome Outcome { get; private set; }
-		public object Output { get; private set; }
-
-		internal ServiceInstance()
+		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, ServiceInstance parentInstance)
 		{
-			this.Progress = 0;
-			this.State = Services.ServiceState.Uninitialized;
-			this.Outcome = Services.ServiceOutcome.Unspecified;
-			this.Output = null;
+			ThrowExceptionOnError = false;
+
+			Environment = environment;
+			InstanceID = Guid.NewGuid();
+			Configuration = configuration;
+			ParentInstance = parentInstance;
+			_owner = true;
 		}
+		
+		//=================
+		#endregion
 
-		#region Communication
-		//======================
+		#region State
+		//=================
 
-		Dictionary<ServiceEventType, EventHandler> _eventHandlers = new Dictionary<ServiceEventType, EventHandler>();
+		ServiceState _state = ServiceState.Uninitialized;
+		ServiceOutcome _outcome = ServiceOutcome.Unspecified;
+		double _progress = 0;
+		object _output = null;
 
-		public event EventHandler StateChanged
+		public event EventHandler StateChanged;
+		public event EventHandler OutcomeReported;
+		public event EventHandler ProgressReported;
+		public event EventHandler OutputGenerated;
+
+		public ServiceState State
 		{
-			add { Subscribe(ServiceEventType.StateChanged, value); }
-			remove { Unsubscribe(ServiceEventType.StateChanged, value); }
-		}
-
-		public event EventHandler OutcomeReported
-		{
-			add { Subscribe(ServiceEventType.OutcomeReported, value); }
-			remove { Unsubscribe(ServiceEventType.OutcomeReported, value); }
-		}
-
-		public event EventHandler ProgressReported
-		{
-			add { Subscribe(ServiceEventType.ProgressReported, value); }
-			remove { Unsubscribe(ServiceEventType.ProgressReported, value); }
-		}
-
-		public event EventHandler OutputGenerated
-		{
-			add { Subscribe(ServiceEventType.OutputGenerated, value); }
-			remove { Unsubscribe(ServiceEventType.OutputGenerated, value); }
-		}
-
-
-		private void Subscribe(ServiceEventType serviceEventType, EventHandler value)
-		{
-			EventHandler handler;
-			if (!_eventHandlers.TryGetValue(serviceEventType, out handler))
-				this._serviceRef.Subscribe(serviceEventType, _subscriber);
-
-			_eventHandlers[serviceEventType] = handler += value;
-		}
-
-		private void Unsubscribe(ServiceEventType serviceEventType, EventHandler value)
-		{
-			EventHandler handler;
-			if (_eventHandlers.TryGetValue(serviceEventType, out handler))
+			get { return _state; }
+			private set
 			{
-				handler -= value;
-				if (handler == null)
-				{
-					this._serviceRef.Unsubscribe(serviceEventType, _subscriber);
-					_eventHandlers.Remove(serviceEventType);
-				}
-				else
-					_eventHandlers[serviceEventType] = handler;
+				_state = value;
+				if (StateChanged != null)
+					StateChanged(this, EventArgs.Empty);
+
+				if (_state == ServiceState.Ready && _autostart)
+					this.Start();
 			}
 		}
 
-		private void RaiseEvent(ServiceEventType eventType, EventArgs e)
+		public ServiceOutcome Outcome
 		{
-			EventHandler handler;
-			if (_eventHandlers.TryGetValue(eventType, out handler))
-				handler(this, e);
+			get { return _outcome; }
+			private set
+			{
+				_outcome = value;
+				if (OutcomeReported != null)
+					OutcomeReported(this, EventArgs.Empty);
+			}
 		}
 
-		//======================
-		#endregion
-
-		public void Initialize()
+		public object Output
 		{
-			this.Context.Host.InitializeService(this);
+			get { return _output; }
+			private set
+			{
+				_output = value;
+				if (OutputGenerated != null)
+					OutputGenerated(this, EventArgs.Empty);
+			}
 		}
 
-		internal void AttachTo(Service service)
+		public double Progress
 		{
-			_serviceRef = service;
-			_subscriber = new ServiceSubscriber() { EventReceived = ServiceEventReceived };
-
-			foreach(KeyValuePair<ServiceEventType, EventHandler
+			get { return _progress; }
+			private set
+			{
+				_progress = value;
+				if (ProgressReported != null)
+					ProgressReported(this, EventArgs.Empty);
+			}
 		}
 
 		private void ServiceEventReceived(ServiceEventType eventType, object value)
 		{
-			EventArgs e;
 			switch (eventType)
 			{
 				case ServiceEventType.StateChanged:
-					_state = (Services.ServiceState)value;
-					e = EventArgs.Empty;
+					State = (ServiceState)value;
 					break;
 				case ServiceEventType.ProgressReported:
-					_progress = (double)value;
-					e = EventArgs.Empty;
+					Progress = (double)value;
 					break;
 				case ServiceEventType.OutputGenerated:
-					_output = value;
-					e = EventArgs.Empty;
+					Output = value;
 					break;
 				case ServiceEventType.OutcomeReported:
-					_outcome = (Services.ServiceOutcome)value;
-					e = EventArgs.Empty;
+					Outcome = (ServiceOutcome)value;
 					break;
 				default:
 					return;
 			}
-
-			RaiseEvent(eventType, e);
 		}
 
+		//=================
+		#endregion
+
+		#region Control
+		//=================
+		
+		/// <summary>
+		/// Finds an appropriate host and asks it to initialize the service.
+		/// </summary>
+		public void Initialize()
+		{
+			// TODO: demand ServiceExecutionPermission
+
+			if (Connection != null || State != ServiceState.Uninitialized)
+				throw new InvalidOperationException("Service is already initialized.");
+
+			State = ServiceState.Initializing;
+
+			// Get a connection
+			try { this.Connection = Environment.AcquireHost(this); }
+			catch (Exception ex)
+			{
+				SetOutcomeException("Environment could not acquire a host for this instance.", ex, true);
+				return;
+			}
+
+			// Callback
+			this.Connection.EventCallback = ServiceEventReceived;
+
+			// Initialize
+			// TODO: async
+			try { this.Connection.Host.Initialize(this); }
+			catch (Exception ex)
+			{
+				SetOutcomeException("Host could not initialize this instance.", ex);
+				return;
+			}
+		}
+
+		public void Connect()
+		{
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
+		/// Once the service is initialized, asks the host to start it. If the service is not initialized it will first
+		/// be initialized.
+		/// </summary>
 		public void Start()
 		{
-			var action = new Action(_serviceRef.Start);
-			action.BeginInvoke(null, null);
+			// If not initialized, initialize and then progress to Start
+			if (Connection == null && State == ServiceState.Uninitialized)
+			{
+				_autostart = true;
+				Initialize();
+			}
+			else if (State != ServiceState.Ready)
+				throw new InvalidOperationException("Service can only be started when it is in the Ready state.");
+
+			// Start the service
+			// TODO: async
+			try { this.Connection.Host.Start(this.InstanceID); }
+			catch (Exception ex)
+			{
+				SetOutcomeException("Could not start this instance.", ex);
+				return;
+			}
 		}
 
 		public void Abort()
 		{
-			var action = new Action(_serviceRef.Abort);
-			action.BeginInvoke(null, null);
+			if (State != ServiceState.InProgress && State != ServiceState.Waiting)
+				throw new InvalidOperationException("Service can only be aborted when it is in the InProgress or Waiting state.");
+
+			// TODO: async
+			this.Connection.Host.Abort(this.InstanceID);
+		}
+
+		//=================
+		#endregion
+
+		[DebuggerNonUserCode]
+		private void SetOutcomeException(string message, Exception ex, bool throwEx = false)
+		{
+			State = ServiceState.Ended;
+			Outcome = ServiceOutcome.Error;
+			Output = ex is ServiceException ? ex : new ServiceException(message, ex);
+			
+			if (throwEx || ThrowExceptionOnError)
+				throw Output as Exception;
+
+			throw ex;
 		}
 
 		public override string ToString()
 		{
 			return String.Format("{0} (profile: {1}, guid: {2})",
 				Configuration.ServiceName,
-				Configuration.Profile == null ? "default" : Configuration.Profile.Name,
+				Configuration.Profile == null ? "default" : Configuration.Profile.ID.ToString(),
 				InstanceID
 			);
 		}
-	}
 
-
-	public class ServiceCreatedEventArgs : EventArgs
-	{
-		public ServiceInstance Instance
-		{
-			get;
-			set;
-		}
-	}
-
-	[Flags]
-	public enum ServiceEventType
-	{
-		StateChanged = 0x001,
-		OutcomeReported = 0x002,
-		ProgressReported = 0x004,
-		ChildCreated = 0x008,
-		OutputGenerated = 0x010,
-		All = 0xfff
-	}
-
-	/// <summary>
-	/// Objects that listens for service events and pushes them to the instance object.
-	/// </summary>
-	internal interface IServiceListener
-	{
-		Action<ServiceEventType, object> EventReceived {get; set;}
-		void ReceiveEvent(ServiceEventType eventType, object value);
-	}
-
-	/// <summary>
-	/// Marshaled by ref, allows a local host to push events.
-	/// </summary>
-	internal class LocalServiceListener : MarshalByRefObject, IServiceListener
-	{
-		internal ILease Lease { get; private set; }
-
-		public override object InitializeLifetimeService()
-		{
-			this.Lease = (ILease)base.InitializeLifetimeService();
-			return this.Lease;
-		}
-
-		[OneWay]
-		public void ReceiveEvent(ServiceEventType eventType, object value)
-		{
-			if (EventReceived != null)
-				EventReceived(eventType, value);
-		}
-
-
-		public Action<ServiceEventType, object> EventReceived
-		{
-			get; 
-			set;
-		}
-	}
-
-
-	/// <summary>
-	/// Serializes endpoint data for a remote host to know how to push back events back.
-	/// </summary>
-	[Serializable]
-	internal class RemoteServiceListener : ISerializable, IServiceListener
-	{
-		#region ISerializable Members
+		#region Serialization
+		//=================
 
 		public void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
-			throw new NotImplementedException();
+			info.AddValue("InstanceID", InstanceID);
+			info.AddValue("Configuration", Configuration);
+			info.AddValue("Context", Context);
+			info.AddValue("ParentInstanceID", ParentInstance == null ? _parentInstanceID : ParentInstance.InstanceID);
+			info.AddValue("SchedulingInfo", SchedulingInfo);
 		}
 
-		#endregion
-
-		#region IServiceListener Members
-
-		public Action<ServiceEventType, object> EventReceived
+		private ServiceInstance(SerializationInfo info, StreamingContext context)
 		{
-			get
-			{
-				throw new NotImplementedException();
-			}
-			set
-			{
-				throw new NotImplementedException();
-			}
+			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
+			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(Guid));
+			this.Context = (ServiceExecutionContext)info.GetValue("Context", typeof(ServiceExecutionContext));
+			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 		}
 
-		public void ReceiveEvent(ServiceEventType eventType, object value)
-		{
-			throw new NotImplementedException();
-		}
-
+		//=================
 		#endregion
 	}
 }

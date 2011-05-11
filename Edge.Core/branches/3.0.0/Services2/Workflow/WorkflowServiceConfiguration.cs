@@ -5,10 +5,12 @@ using System.Text;
 
 namespace Edge.Core.Services2
 {
+	/*
 	public class WorkflowServiceConfiguration: ServiceConfiguration
 	{
 		public List<WorkflowNode> Nodes;
 	}
+	*/
 
 	public abstract class WorkflowNode
 	{

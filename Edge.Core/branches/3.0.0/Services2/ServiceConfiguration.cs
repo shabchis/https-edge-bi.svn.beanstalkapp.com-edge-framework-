@@ -13,7 +13,8 @@ namespace Edge.Core.Services2
 		public ServiceInstance RelatedInstance;
 		public ServiceProfile Profile;
 		public ServiceConfiguration BaseConfiguration;
-		public Type ServiceType;
+		public string AssemblyPath;
+		public string ServiceType;
 		public string ServiceName;
 		public bool IsEnabled;
 		public bool IsPublic;
@@ -39,6 +40,7 @@ namespace Edge.Core.Services2
 
 	public class ServiceProfile
 	{
+		public Guid ID;
 		public Dictionary<string, object> Parameters;
 	}
 
