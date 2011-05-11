@@ -5,14 +5,12 @@ using System.Text;
 using System.Collections.ObjectModel;
 using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting.Messaging;
+using System.Runtime.Serialization;
 
 namespace Edge.Core.Services2
 {
 	public class ServiceInstance: IServiceView
 	{
-		Service _serviceRef;
-		ServiceSubscriber _subscriber;
-
 		double _progress = 0;
 		Services.ServiceState _state;
 		Services.ServiceOutcome _outcome;
@@ -38,28 +36,110 @@ namespace Edge.Core.Services2
 			this.Output = null;
 		}
 
+		#region Communication
+		//======================
+
+		Dictionary<ServiceEventType, EventHandler> _eventHandlers = new Dictionary<ServiceEventType, EventHandler>();
+
 		public event EventHandler StateChanged
 		{
-			add { this._serviceRef.Subscribe(_subscriber, ServiceEventType.StateChanged); }
-			remove { 
+			add { Subscribe(ServiceEventType.StateChanged, value); }
+			remove { Unsubscribe(ServiceEventType.StateChanged, value); }
 		}
-		public event EventHandler OutcomeReported;
-		public event EventHandler ProgressReported;
-		public event EventHandler OutputGenerated;
+
+		public event EventHandler OutcomeReported
+		{
+			add { Subscribe(ServiceEventType.OutcomeReported, value); }
+			remove { Unsubscribe(ServiceEventType.OutcomeReported, value); }
+		}
+
+		public event EventHandler ProgressReported
+		{
+			add { Subscribe(ServiceEventType.ProgressReported, value); }
+			remove { Unsubscribe(ServiceEventType.ProgressReported, value); }
+		}
+
+		public event EventHandler OutputGenerated
+		{
+			add { Subscribe(ServiceEventType.OutputGenerated, value); }
+			remove { Unsubscribe(ServiceEventType.OutputGenerated, value); }
+		}
+
+
+		private void Subscribe(ServiceEventType serviceEventType, EventHandler value)
+		{
+			EventHandler handler;
+			if (!_eventHandlers.TryGetValue(serviceEventType, out handler))
+				this._serviceRef.Subscribe(serviceEventType, _subscriber);
+
+			_eventHandlers[serviceEventType] = handler += value;
+		}
+
+		private void Unsubscribe(ServiceEventType serviceEventType, EventHandler value)
+		{
+			EventHandler handler;
+			if (_eventHandlers.TryGetValue(serviceEventType, out handler))
+			{
+				handler -= value;
+				if (handler == null)
+				{
+					this._serviceRef.Unsubscribe(serviceEventType, _subscriber);
+					_eventHandlers.Remove(serviceEventType);
+				}
+				else
+					_eventHandlers[serviceEventType] = handler;
+			}
+		}
+
+		private void RaiseEvent(ServiceEventType eventType, EventArgs e)
+		{
+			EventHandler handler;
+			if (_eventHandlers.TryGetValue(eventType, out handler))
+				handler(this, e);
+		}
+
+		//======================
+		#endregion
 
 		public void Initialize()
 		{
-			Context.Host.InitializeService(this);
+			this.Context.Host.InitializeService(this);
 		}
 
 		internal void AttachTo(Service service)
 		{
 			_serviceRef = service;
-			ServiceSubscriber subscriber = new ServiceSubscriber();
+			_subscriber = new ServiceSubscriber() { EventReceived = ServiceEventReceived };
+
+			foreach(KeyValuePair<ServiceEventType, EventHandler
 		}
 
-		private void UpdateState(ServiceEventType eventType, object value)
+		private void ServiceEventReceived(ServiceEventType eventType, object value)
 		{
+			EventArgs e;
+			switch (eventType)
+			{
+				case ServiceEventType.StateChanged:
+					_state = (Services.ServiceState)value;
+					e = EventArgs.Empty;
+					break;
+				case ServiceEventType.ProgressReported:
+					_progress = (double)value;
+					e = EventArgs.Empty;
+					break;
+				case ServiceEventType.OutputGenerated:
+					_output = value;
+					e = EventArgs.Empty;
+					break;
+				case ServiceEventType.OutcomeReported:
+					_outcome = (Services.ServiceOutcome)value;
+					e = EventArgs.Empty;
+					break;
+				default:
+					return;
+			}
+
+			RaiseEvent(eventType, e);
 		}
 
 		public void Start()
@@ -106,9 +186,18 @@ namespace Edge.Core.Services2
 	}
 
 	/// <summary>
-	/// Objects that subcribes to service events and pushes them to the instance object.
+	/// Objects that listens for service events and pushes them to the instance object.
 	/// </summary>
-	internal class ServiceSubscriber : MarshalByRefObject
+	internal interface IServiceListener
+	{
+		Action<ServiceEventType, object> EventReceived {get; set;}
+		void ReceiveEvent(ServiceEventType eventType, object value);
+	}
+
+	/// <summary>
+	/// Marshaled by ref, allows a local host to push events.
+	/// </summary>
+	internal class LocalServiceListener : MarshalByRefObject, IServiceListener
 	{
 		internal ILease Lease { get; private set; }
 
@@ -118,13 +207,56 @@ namespace Edge.Core.Services2
 			return this.Lease;
 		}
 
-		public Action<ServiceEventType, object> EventReceived = null;
-
 		[OneWay]
-		internal void OnEvent(ServiceEventType eventType, object value)
+		public void ReceiveEvent(ServiceEventType eventType, object value)
 		{
 			if (EventReceived != null)
 				EventReceived(eventType, value);
 		}
+
+
+		public Action<ServiceEventType, object> EventReceived
+		{
+			get; 
+			set;
+		}
+	}
+
+
+	/// <summary>
+	/// Serializes endpoint data for a remote host to know how to push back events back.
+	/// </summary>
+	[Serializable]
+	internal class RemoteServiceListener : ISerializable, IServiceListener
+	{
+		#region ISerializable Members
+
+		public void GetObjectData(SerializationInfo info, StreamingContext context)
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
+
+		#region IServiceListener Members
+
+		public Action<ServiceEventType, object> EventReceived
+		{
+			get
+			{
+				throw new NotImplementedException();
+			}
+			set
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		public void ReceiveEvent(ServiceEventType eventType, object value)
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
 	}
 }
