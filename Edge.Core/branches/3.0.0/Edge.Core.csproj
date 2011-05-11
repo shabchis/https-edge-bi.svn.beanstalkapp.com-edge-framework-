@@ -80,62 +80,23 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\AppSettings.cs" />
-    <Compile Include="Configuration\ConfigurationElementCollections.cs" />
-    <Compile Include="Configuration\ConfigurationElements.cs" />
-    <Compile Include="Configuration\EdgeServicesConfiguration.cs" />
-    <Compile Include="Configuration\Converters.cs" />
-    <Compile Include="Configuration\General.cs" />
-    <Compile Include="Configuration\SettingsCollection.cs" />
-    <Compile Include="Data\DataItem.cs" />
-    <Compile Include="Data\DataItemCollection.cs" />
-    <Compile Include="Data\DataManager.cs" />
-    <Compile Include="Data\Email.cs" />
-    <Compile Include="Data\Exceptions.cs" />
-    <Compile Include="Data\IDataBoundObject.cs" />
-    <Compile Include="Data\Identity\IdentityManager.cs" />
-    <Compile Include="Data\Identity\IdentityManagerService.cs" />
-    <Compile Include="Data\Identity\IdentityTable.cs" />
+    <Compile Include="Services2\Enums.cs" />
+    <Compile Include="Services2\Exceptions.cs" />
+    <Compile Include="Services2\IServiceConnection.cs" />
     <Compile Include="Services2\LogMessage.cs" />
-    <Compile Include="Services2\SchedulingData.cs" />
+    <Compile Include="Services2\SchedulingInfo.cs" />
     <Compile Include="Services2\Service.cs" />
     <Compile Include="Services2\ServiceConfiguration.cs" />
     <Compile Include="Services2\ServiceExecutionContext.cs" />
     <Compile Include="Services2\ServiceExecutionHost.cs" />
+    <Compile Include="Services2\ServiceHostingPermission.cs" />
     <Compile Include="Services2\ServiceInstance.cs" />
     <Compile Include="Services2\IServiceView.cs" />
+    <Compile Include="Services2\ServiceEnvironment.cs" />
     <Compile Include="Services2\Workflow\WorkflowServiceConfiguration.cs" />
-    <Compile Include="Services2\ZzzService.cs" />
-    <Compile Include="Services\ServiceWorkflowContext.cs" />
     <Compile Include="Utilities\Encryptor.cs" />
     <Compile Include="Utilities\Evaluator.cs" />
-    <Compile Include="Services\NetDataContract.cs" />
-    <Compile Include="Data\Proxy\Proxy classes.cs" />
-    <Compile Include="Data\Proxy\ProxyClient.cs" />
-    <Compile Include="Data\Proxy\ProxyServer.cs" />
-    <Compile Include="Persistence\Dependency.cs" />
-    <Compile Include="Persistence\Entity.cs" />
-    <Compile Include="Persistence\EntityList.cs" />
-    <Compile Include="Persistence\EntityProperty.cs" />
-    <Compile Include="Persistence\Events.cs" />
-    <Compile Include="Persistence\Exceptions.cs" />
-    <Compile Include="Persistence\PersistenceProviders\PersistenceCommand.cs" />
-    <Compile Include="Persistence\PersistenceProviders\PersistenceProvider-Instance.cs" />
-    <Compile Include="Persistence\PersistenceProviders\PersistenceProvider-Static.cs" />
-    <Compile Include="Persistence\Query.cs" />
-    <Compile Include="Persistence\Validators.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\Enums.cs" />
-    <Compile Include="Services\EventArgs.cs" />
-    <Compile Include="Services\Interfaces.cs" />
-    <Compile Include="Services\ServiceClient.cs" />
-    <Compile Include="Services\Service.cs" />
-    <Compile Include="Services\ServiceInstance.cs" />
-    <Compile Include="Utilities\DayCode.cs" />
-    <Compile Include="Utilities\Log.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Persistence\regions.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Edge.Core.snk" />

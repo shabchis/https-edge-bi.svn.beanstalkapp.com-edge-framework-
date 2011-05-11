@@ -11,7 +11,7 @@ namespace Edge.Core.Services2
 	}
 
 	[Serializable]
-	public class SchedulingData: ISerializable
+	public class SchedulingInfo: ISerializable
 	{
 		#region ISerializable Members
 
@@ -20,7 +20,7 @@ namespace Edge.Core.Services2
 			throw new NotImplementedException();
 		}
 
-		private SchedulingData(SerializationInfo info, StreamingContext context)
+		private SchedulingInfo(SerializationInfo info, StreamingContext context)
 		{
 			throw new NotImplementedException();
 		}

@@ -2,51 +2,87 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Remoting.Messaging;
 
 namespace Edge.Core.Services2
 {
-	public class ServiceExecutionHost
+	public class ServiceExecutionHost : MarshalByRefObject, IServiceHost
 	{
+		Dictionary<Guid, Service> _services = new Dictionary<Guid, Service>();
+		
 		public ServiceExecutionHost()
 		{
+			// TODO: demand ServiceHostingPermission
 		}
 
-		public ServiceInstance NewServiceInstance(ServiceConfiguration config, ServiceInstance parentInstance)
+		[OneWay]
+		void IServiceHost.Initialize(ServiceInstance instance)
 		{
-			ServiceInstance instance = new ServiceInstance()
+			// Check if instance ID exists
+			lock (_services)
 			{
-				InstanceID = Guid.NewGuid(),
-				Configuration = config,
-				Context = parentInstance != null ? parentInstance.Context : new ServiceExecutionContext()
-			};
+				if (_services.ContainsKey(instance.InstanceID))
+					throw new ServiceException(String.Format("Service instance '{0}' is already initialized.", instance.InstanceID));
+			}
 
-			return instance;
-		}
-
-		internal void InitializeService(ServiceInstance instance)
-		{
-			instance.State = Services.ServiceState.Initializing;
-
+			// Load the app domain
 			AppDomain domain = AppDomain.CreateDomain(instance.ToString());
-			instance.AttachTo((Service)domain.CreateInstanceAndUnwrap(typeof(Service).Assembly.FullName, typeof(Service).FullName));
 
-			instance.State = Services.ServiceState.Ready;
+			// Instantiate the service type in the new domain
+			Service serviceRef;
+			if (instance.Configuration.AssemblyPath == null)
+			{
+				// No assembly path specified, most likely a core service
+				Type serviceType = Type.GetType(instance.Configuration.ServiceType, false);
+				if (serviceType == null)
+					throw new ServiceException(String.Format("Service type '{0}' could not be found. Please specify AssemblyPath if the service is not in the host directory.", instance.Configuration.ServiceType));
+
+				serviceRef = (Service)domain.CreateInstanceAndUnwrap(serviceType.Assembly.FullName, serviceType.FullName);
+			}
+			else
+			{
+				// A 3rd party service
+				serviceRef = (Service)domain.CreateInstanceFromAndUnwrap(
+					instance.Configuration.AssemblyPath,
+					instance.Configuration.ServiceType
+				);
+			}
+
+			// Host it
+			lock (_services)
+			{
+				_services.Add(instance.InstanceID, serviceRef);
+			}
+	
+			// Give the service ref its properties
+			serviceRef.Init(this, instance);
 		}
 
-		public ServiceInstance GetServiceInstance(Guid instanceID)
+		[OneWay]
+		void IServiceHost.Start(Guid instanceID)
 		{
-			throw new NotImplementedException();
+			Get(instanceID).Start();
+		}
+
+		[OneWay]
+		void IServiceHost.Abort(Guid instanceID)
+		{
+			Get(instanceID).Abort();
+		}
+
+		Service Get(Guid instanceID)
+		{
+			Service service;
+			if (!_services.TryGetValue(instanceID, out service))
+				throw new ServiceException(String.Format("Service instance with ID {0} could not be found in this host.", instanceID));
+			return service;
 		}
 	}
 
-	class program
+	internal interface IServiceHost
 	{
-		static void Main()
-		{
-			ServiceExecutionHost host = new ServiceExecutionHost();
-
-			ServiceInstance instance = host.NewServiceInstance(config,null);
-			instance.Start();
-		}
+		void Initialize(ServiceInstance instance);
+		void Start(Guid instanceID);
+		void Abort(Guid instanceID);
 	}
 }

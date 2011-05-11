@@ -9,93 +9,84 @@ namespace Edge.Core.Services2
 {
 	public abstract class Service : MarshalByRefObject, IServiceView
 	{
-		#region Static
+		#region Instance
 		//======================
 
-		internal static ServiceEventType[] SupportedEvents;
-
-		static Service()
+		public Guid InstanceID { get; private set; }
+		public ServiceConfiguration Configuration { get; private set; }
+		public ServiceEnvironment Environment { get; private set; }
+		public ServiceExecutionContext Context { get; private set; }
+		public ServiceInstance ParentInstance { get; private set; }
+		public SchedulingInfo SchedulingInfo { get; private set; }
+		public System.Collections.ObjectModel.ReadOnlyObservableCollection<ServiceInstance> ChildInstances
 		{
-			SupportedEvents = new ServiceEventType[]
-			{
-				ServiceEventType.StateChanged,
-				ServiceEventType.OutcomeReported,
-				ServiceEventType.ProgressReported,
-				ServiceEventType.ChildCreated,
-				ServiceEventType.OutputGenerated
-			};
+			get { throw new NotImplementedException(); }
+		}
+
+		internal void Init(ServiceExecutionHost host, ServiceInstance instance)
+		{
+			_host = host;
+
+			this.InstanceID = instance.InstanceID;
+			this.Configuration = instance.Configuration;
+			this.Context = instance.Context;
+			this.ParentInstance = instance.ParentInstance;
+			this.SchedulingInfo = instance.SchedulingInfo;
+
+			Notify(ServiceEventType.StateChanged, ServiceState.Ready);
 		}
 
 		//======================
 		#endregion
 
-		#region Event subscription
+		#region State
 		//======================
 
-		Dictionary<ServiceEventType, List<ServiceSubscriber>> _subscribers = new Dictionary<ServiceEventType, List<ServiceSubscriber>>();
+		double _progress = 0;
+		ServiceState _state = ServiceState.Initializing;
+		ServiceOutcome _outcome = ServiceOutcome.Unspecified;
+		object _output = null;
 
-		internal void Subscribe(ServiceEventType events, ServiceSubscriber subscriber)
+		public double Progress
 		{
-			foreach (ServiceEventType eventType in Service.SupportedEvents)
-			{
-				if ((int)(events & eventType) == 0)
-					continue;
-
-				List<ServiceSubscriber> eventSubscribers;
-				lock (_subscribers)
-				{
-					// Get subscribers to this list
-					if (!_subscribers.TryGetValue(eventType, out eventSubscribers))
-						_subscribers[eventType] = eventSubscribers = new List<ServiceSubscriber>();
-				}
-
-				lock (eventSubscribers)
-				{
-					if (!eventSubscribers.Contains(subscriber))
-						eventSubscribers.Add(subscriber);
-				}
-			}
+			get { return _progress; }
+			protected set { Notify(ServiceEventType.ProgressReported, _progress = value); }
 		}
 
-		internal void Unsubscribe(ServiceEventType events, ServiceSubscriber subscriber)
+		public ServiceState State
 		{
-			foreach (ServiceEventType eventType in Service.SupportedEvents)
-			{
-				// Check if the event type is supported
-				if ((int)(events & eventType) == 0)
-					continue;
-
-				List<ServiceSubscriber> eventSubscribers;
-				lock (_subscribers)
-				{
-					if (!_subscribers.TryGetValue(eventType, out eventSubscribers))
-						return;
-				}
-
-				lock (eventSubscribers)
-				{
-					int index = eventSubscribers.IndexOf(subscriber);
-					if (index >= 0)
-						eventSubscribers.RemoveAt(index);
-				}
-			}
+			get { return _state; }
+			private set { Notify(ServiceEventType.StateChanged, _state = value); }
 		}
 
-		private void RaiseEvent(ServiceEventType eventType, object value)
+		public ServiceOutcome Outcome
 		{
-			List<ServiceSubscriber> eventSubscribers;
+			get { return _outcome; }
+			private set { Notify(ServiceEventType.OutcomeReported, _outcome = value); }
+		}
 
-			// Get subscribers to this event type
-			lock (_subscribers)
-			{
-				if (!_subscribers.TryGetValue(eventType, out eventSubscribers))
-					return;
-			}
+		public object Output
+		{
+			get { return _output; }
+			private set { Notify(ServiceEventType.OutputGenerated, _output = value); }
+		}
 
-			lock (eventSubscribers)
+
+		//======================
+		#endregion
+
+		#region Communication
+		//======================
+
+		ServiceExecutionHost _host;
+		internal readonly List<IServiceConnection> Connections = new List<IServiceConnection>();
+
+		void Notify(ServiceEventType eventType, object value)
+		{
+			lock (Connections)
 			{
-				foreach (ServiceSubscriber subscriber in eventSubscribers)
-					subscriber.ReceiveEvent(eventType, value);
+				foreach (IServiceConnection connection in this.Connections)
+					connection.Notify(eventType, value);
 			}
 		}
 
@@ -118,84 +109,11 @@ namespace Edge.Core.Services2
 		//======================
 		#endregion
 
-		#region Implementation
+		#region For override
 		//======================
 
-		protected abstract Edge.Core.Services.ServiceOutcome DoWork();
-
-		protected virtual void OnEnded(Edge.Core.Services.ServiceState state)
-		{
-		}
-
-		//======================
-		#endregion
-
-		#region Instance
-		//======================
-
-		double _progress = 0;
-		Services.ServiceState _state;
-		Services.ServiceOutcome _outcome;
-		object _output = null;
-
-		public Guid InstanceID
-		{
-			get;
-			internal set;
-		}
-
-		public ServiceConfiguration Configuration
-		{
-			get;
-			internal set;
-		}
-
-		public ServiceExecutionContext Context
-		{
-			get;
-			internal set;
-		}
-
-		public ServiceInstance ParentInstance
-		{
-			get;
-			private set;
-		}
-
-		public double Progress
-		{
-			get { return _progress; }
-			protected set { NotifySubscribers(ServiceEventType.ProgressReported, _progress = value); }
-		}
-
-		public Services.ServiceState State
-		{
-			get { return _state; }
-			private set { NotifySubscribers(ServiceEventType.StateChanged, _state = value); }
-		}
-
-		public Services.ServiceOutcome Outcome
-		{
-			get { return _outcome; }
-			private set { NotifySubscribers(ServiceEventType.OutcomeReported, _outcome = value); }
-		}
-
-		public object Output
-		{
-			get { return _output; }
-			private set { NotifySubscribers(ServiceEventType.OutputGenerated, _output = value); }
-		}
-
-		public SchedulingData SchedulingData
-		{
-			get;
-			internal set;
-		}
-
-		public System.Collections.ObjectModel.ReadOnlyObservableCollection<ServiceInstance> ChildInstances
-		{
-			get { throw new NotImplementedException(); }
-		}
+		protected abstract ServiceOutcome DoWork();
+		protected virtual void OnEnded(ServiceState state) { }
 
 		//======================
 		#endregion
@@ -221,11 +139,4 @@ namespace Edge.Core.Services2
 		//======================
 		#endregion
 	}
-
-	internal class ServiceSubscription : MarshalByRefObject
-	{
-
-		
-	}
-
 }
