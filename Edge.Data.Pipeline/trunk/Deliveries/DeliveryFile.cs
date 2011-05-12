@@ -128,7 +128,7 @@ namespace Edge.Data.Pipeline
 		/// </summary>
 		public FileInfo GetFileInfo()
 		{
-			throw new NotImplementedException();
+			return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
 		}
 
 		public DeliveryFileDownloadOperation Download(bool async = true)

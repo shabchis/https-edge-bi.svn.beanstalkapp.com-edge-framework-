@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline.Importing
 
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
 	{
-		
+
 
 		private SqlBulkCopy _bulkAdMetricsUnit;
 		private DataTable _adMetricsUnitDataTable;
@@ -24,7 +24,7 @@ namespace Edge.Data.Pipeline.Importing
 		private SqlBulkCopy _bulkCreatives;
 		private DataTable _creativesDataTable;
 		private SqlBulkCopy _bulkAds;
-		private DataTable _adsDataTable;		
+		private DataTable _adsDataTable;
 		private SqlConnection _sqlConnection;
 		private string _baseTableName;
 		private int _bufferSize;
@@ -60,8 +60,8 @@ namespace Edge.Data.Pipeline.Importing
 		}
 
 		public override void Begin(bool reset = true)
-		{			
-			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"],1 /*Delivery.DeliveryID*/);
+		{
+			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], 1 /*Delivery.DeliveryID*/);
 			initalizeDataTablesAndBulks(reset);
 		}
 
@@ -77,10 +77,10 @@ namespace Edge.Data.Pipeline.Importing
 				sqlCommand.Connection = _sqlConnection;
 				sqlCommand.Parameters["@baseTableName"].Value = _baseTableName;
 				sqlCommand.Parameters["@reset"].Value = reset;
-				sqlCommand.ExecuteNonQuery();			
-				
+				sqlCommand.ExecuteNonQuery();
+
 			}
-		
+
 			#region adMetrics
 			_bulkAdMetricsUnit = new SqlBulkCopy(_sqlConnection);
 			_bulkAdMetricsUnit.DestinationTableName = _baseTableName + "adMetricsUnit";
@@ -181,7 +181,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdMetricsUnit.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion40", "Conversion40"));
 			#endregion
 			#region TargetMatches
-			
+
 			_bulkTargetMatches = new SqlBulkCopy(_sqlConnection);
 			_bulkTargetMatches.DestinationTableName = _baseTableName + "targetMatches";
 			_targetMatchesDataTable = new DataTable(_bulkTargetMatches.DestinationTableName);
@@ -207,7 +207,7 @@ namespace Edge.Data.Pipeline.Importing
 
 			#endregion
 			#region Creatives
-			
+
 			_bulkCreatives = new SqlBulkCopy(_sqlConnection);
 			_bulkCreatives.DestinationTableName = _baseTableName + "creatives";
 			_creativesDataTable = new DataTable(_bulkCreatives.DestinationTableName);
@@ -230,7 +230,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
 			#endregion
 			#region Ads
-		
+
 			_bulkAds = new SqlBulkCopy(_sqlConnection);
 			_bulkAds.DestinationTableName = _baseTableName + "ads";
 			_adsDataTable = new DataTable(_bulkAds.DestinationTableName);
@@ -252,7 +252,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Channel_FieldName, ads_Campaign_Channel_FieldName));
 			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Name_FieldName, ads_Campaign_Name_FieldName));
 			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_OriginalID_FieldName, ads_Campaign_OriginalID_FieldName));
-			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Status_FieldName, ads_Campaign_Status_FieldName));		
+			_bulkAds.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Status_FieldName, ads_Campaign_Status_FieldName));
 			#endregion
 
 			//todo:split targetmacthces from targets/
@@ -268,16 +268,19 @@ namespace Edge.Data.Pipeline.Importing
 				throw new Exception("Ad.OriginalID is required. If it is not available, provide a function for AdDataImportSession.OnAdIdentityRequired that returns a unique value for this ad.");
 			else
 				val = ad.OriginalID;
-			
+
 			return val;
 		}
 
 		public void ImportMetrics(AdMetricsUnit metrics)
 		{
-			string adUsid = GetAdIdentity(metrics.Ad);
+
+			string adUsid = string.Empty;
+			if (metrics.Ad != null)
+				adUsid = GetAdIdentity(metrics.Ad);
 			DataRow row = _adMetricsUnitDataTable.NewRow();
 
-			
+
 
 			row[adUsidFieldName] = adUsid;
 			row[adMetricsUnit_TimeStamp_FieldName] = metrics.TimeStamp;
@@ -307,34 +310,34 @@ namespace Edge.Data.Pipeline.Importing
 				row[adUsidFieldName] = adUsid;
 				row[ads_OriginalID_FieldName] = target.OriginalID;
 				row[ads_DestinationUrl_FieldName] = target.DestinationUrl;
-				int targetType=	GetTargetType(target.GetType());
+				int targetType = GetTargetType(target.GetType());
 				row[ads_TargetType_FieldName] = targetType;
 				foreach (FieldInfo field in target.GetType().GetFields())
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName,TargetColumn.TargetColumnIndex)] = field.GetValue(target);					
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = field.GetValue(target);
 					}
-					
-					
+
+
 				}
 				_targetMatchesDataTable.Rows.Add(row);
-				if (_targetMatchesDataTable.Rows.Count==_bufferSize)
+				if (_targetMatchesDataTable.Rows.Count == _bufferSize)
 				{
 					_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
 					_targetMatchesDataTable.Clear();
-					
+
 				}
 			}
-			
+
 		}
 
 		private int GetTargetType(Type type)
 		{
 			int targetType = -1;
-			if (_targetTypes==null)
-				_targetTypes=new Dictionary<Type,int>();
+			if (_targetTypes == null)
+				_targetTypes = new Dictionary<Type, int>();
 			if (_targetTypes.ContainsKey(type))
 				targetType = _targetTypes[type];
 			else
@@ -362,7 +365,7 @@ namespace Edge.Data.Pipeline.Importing
 			row[ads_Campaign_Channel_FieldName] = ad.Campaign.Channel.ID;
 			row[ads_Campaign_Name_FieldName] = ad.Campaign.Name;
 			row[ads_Campaign_OriginalID_FieldName] = ad.Campaign.OriginalID;
-			row[ads_Campaign_Status_FieldName] =( (int)ad.Campaign.Status).ToString();
+			row[ads_Campaign_Status_FieldName] = ((int)ad.Campaign.Status).ToString();
 
 			//TODO: segments
 			//foreach (KeyValuePair<Segment, object> Segment in ad.Segments)
@@ -408,9 +411,9 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				row = _creativesDataTable.NewRow();
 				row[adUsidFieldName] = adUsid;
-				row[ads_OriginalID_FieldName]=creative.OriginalID;
+				row[ads_OriginalID_FieldName] = creative.OriginalID;
 				row[ads_Name_FieldName] = creative.Name;
-				int creativeType =GetCreativeType(creative.GetType());
+				int creativeType = GetCreativeType(creative.GetType());
 				row[ads_CreativeType_FieldName] = creativeType;
 				foreach (FieldInfo field in creative.GetType().GetFields())
 				{
@@ -425,8 +428,8 @@ namespace Edge.Data.Pipeline.Importing
 				{
 					_bulkCreatives.WriteToServer(_creativesDataTable);
 					_creativesDataTable.Clear();
-				}				
-			}			
+				}
+			}
 		}
 
 		private int GetCreativeType(Type type)
@@ -452,7 +455,7 @@ namespace Edge.Data.Pipeline.Importing
 		public override void Commit()
 		{
 			// TODO: Fwd-only activate stored procedue
-		
+
 		}
 
 		public void Dispose()
@@ -465,8 +468,8 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkTargetMatches.WriteToServer(_targetMatchesDataTable);
 			_bulkAds.WriteToServer(_adsDataTable);
 			_sqlConnection.Dispose();
-			
-			
+
+
 		}
 	}
 }
