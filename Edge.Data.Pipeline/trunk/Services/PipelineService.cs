@@ -57,14 +57,14 @@ namespace Edge.Data.Pipeline.Services
 				if (!Guid.TryParse(did, out deliveryID))
 					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
 
-				//_delivery = DeliveryDB.Get(deliveryID);
+				_delivery = DeliveryDB.Get(deliveryID);
 				//this.WorkflowContext["DeliveryGuid"] = did;
 				return _delivery;
 			}
 			set
 			{
 				_delivery = value;
-				_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryGuid"] = _delivery.Guid.ToString());
+				//_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryGuid"] = _delivery.Guid.ToString());
 			}
 		}
 
