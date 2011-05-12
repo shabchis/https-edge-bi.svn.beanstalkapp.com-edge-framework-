@@ -9,15 +9,19 @@ namespace Edge.Data.Objects
 	{
 		public string OriginalID;
 		public string DestinationUrl;
+
+		// This is for use by channels which have extra data per target
+		public Dictionary<int, object> CustomFields;
 	}
 
 	[TargetTypeID(2)]
 	public class KeywordTarget : Target
 	{
 		[TargetFieldIndex(1)]
-		public KeywordMatchType MatchType;
-		[TargetFieldIndex(2)]
 		public string Keyword;
+
+		[TargetFieldIndex(2)]
+		public KeywordMatchType MatchType;
 	}
 
 	public enum KeywordMatchType
@@ -29,6 +33,7 @@ namespace Edge.Data.Objects
 		Content = 4,
 		WebSite = 5
 	};
+
 	[TargetTypeID(3)]
 	public class GenderTarget : Target
 	{

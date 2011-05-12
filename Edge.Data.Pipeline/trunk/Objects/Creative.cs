@@ -8,6 +8,8 @@ namespace Edge.Data.Objects
 	public abstract class Creative
 	{
 		public string OriginalID;
+
+		// Leave this null for now
 		public string Name { get; private set; }
 	}
 
@@ -15,25 +17,27 @@ namespace Edge.Data.Objects
 	public class TextCreative : Creative
 	{
 		[CreativeFieldIndex(1)]
+		public TextCreativeType TextType;
+
+		[CreativeFieldIndex(2)]
 		public string Text;
-		//[CreativeFieldIndex(2)]
-		//public TextCreativeType TextType;
 	}
 
 	[CreativeTypeID(2)]
 	public class ImageCreative : Creative
 	{
 		[CreativeFieldIndex(1)]
-		public string ImageUrl;
-		[CreativeFieldIndex(2)]
 		public string ImageSize;
+
+		[CreativeFieldIndex(2)]
+		public string ImageUrl;
 	}
 
 	public enum TextCreativeType
 	{
-		Title,
-		Body,
-		DisplayUrl
+		Title = 1,
+		Body = 2,
+		DisplayUrl = 3
 	}
 
 	#region Attributes
