@@ -8,7 +8,9 @@ namespace Edge.Data.Objects
 {
 	public class AdMetricsUnit
 	{
-		public DateTime TimeStamp;
+		public DateTime PeriodStart;
+		public DateTime PeriodEnd;
+		
 		public Ad Ad; //table
 		public List<Target> TargetMatches; //table
 		public Tracker Tracker;

@@ -8,7 +8,7 @@ namespace Edge.Data.Objects
 	public abstract class Creative
 	{
 		public string OriginalID;
-		public string Name;
+		public string Name { get; private set; }
 	}
 
 	[CreativeTypeID(1)]
@@ -16,8 +16,8 @@ namespace Edge.Data.Objects
 	{
 		[CreativeFieldIndex(1)]
 		public string Text;
-		[CreativeFieldIndex(2)]
-		public TextCreativeType TextType;
+		//[CreativeFieldIndex(2)]
+		//public TextCreativeType TextType;
 	}
 
 	[CreativeTypeID(2)]
