@@ -61,7 +61,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public override void Begin(bool reset = true)
 		{
-			_baseTableName = string.Format("D_{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], 1 /*Delivery.DeliveryID*/);
+			_baseTableName = string.Format("{0}_{1}_{2}_", DateTime.Today.ToString("yyyMMdd"), Delivery.Parameters["AccountID"], Delivery._guid);
 			initalizeDataTablesAndBulks(reset);
 		}
 
@@ -392,7 +392,7 @@ namespace Edge.Data.Pipeline.Importing
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = field.GetValue(target);
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = field.GetValue(target) == null ? DBNull.Value : field.GetValue(target);
 					}
 
 
@@ -420,7 +420,7 @@ namespace Edge.Data.Pipeline.Importing
 					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
 					{
 						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = field.GetValue(creative);
+						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = field.GetValue(creative) == null ? DBNull.Value : field.GetValue(creative);
 					}
 				}
 				_creativesDataTable.Rows.Add(row);
