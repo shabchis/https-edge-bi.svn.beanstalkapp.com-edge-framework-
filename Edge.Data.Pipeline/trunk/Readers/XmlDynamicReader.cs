@@ -49,7 +49,7 @@ namespace Edge.Data.Pipeline
 				}
 				else if (reader.NodeType == XmlNodeType.Element)
 				{
-					xml[currentNodeName] = ReadNode(reader);
+					xml[currentNodeName] = reader.IsEmptyElement ? null : ReadNode(reader);
 				}
 				else if (reader.NodeType == XmlNodeType.Text)
 				{
