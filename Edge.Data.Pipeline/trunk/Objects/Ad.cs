@@ -14,8 +14,8 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OriginalID;
 		public string DestinationUrl;
-		public List<Creative> Creatives;
-		public List<Target> Targets;
-		public Dictionary<Segment, object> Segments;
+		public List<Creative> Creatives=new List<Creative>();
+		public List<Target> Targets=new List<Target>();
+		public Dictionary<Segment, object> Segments=new Dictionary<Segment,object>();
 	}
 }

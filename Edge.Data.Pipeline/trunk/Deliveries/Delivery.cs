@@ -13,7 +13,7 @@ namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
-		Guid _guid = Guid.Empty;
+		public Guid _guid = Guid.Empty;
 		DeliveryFileList _files;
 		DateTimeRange _targetPeriod;
 		DateTime _dateCreated = DateTime.Now;

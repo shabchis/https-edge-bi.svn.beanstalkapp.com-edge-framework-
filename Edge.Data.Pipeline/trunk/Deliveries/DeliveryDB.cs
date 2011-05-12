@@ -20,17 +20,39 @@ namespace Edge.Data.Pipeline
 {
 	internal class DeliveryDB
 	{
-		internal static Delivery Get(Guid deliveryID, bool activate = true)
+		internal static Delivery Get(Guid deliveryID, bool activate = true, IObjectContainer client = null)
 		{
 			Delivery delivery;
-			using (var client = DeliveryDBClient.Connect())
+			bool innerClient = client == null;
+			int previousActivationDepth = -1;
+
+			if (innerClient)
+				client = DeliveryDBClient.Connect();
+			else
+				previousActivationDepth = client.Ext().Configure().ActivationDepth();
+
+			try
 			{
 				// set activation depth to 0 so that only an object reference is retrieved, this can then be used to swap the object
 				if (!activate)
 					client.Ext().Configure().ActivationDepth(0);
 
-				delivery = (from Delivery d in client where d.Guid == deliveryID select d).FirstOrDefault();
+				var results = (from Delivery d in client where d.Guid == deliveryID select d);
+				delivery = results.Count() > 0 ? results.First() : null;
 			}
+			finally
+			{
+				if (innerClient)
+				{
+					client.Dispose();
+				}
+				else
+				{
+					// reset activation depth
+					client.Ext().Configure().ActivationDepth(previousActivationDepth);
+				}
+			}
+			
 
 			return delivery;
 		}
@@ -47,9 +69,12 @@ namespace Edge.Data.Pipeline
 					// http://stackoverflow.com/questions/5848990/retrieve-an-object-in-one-db4o-session-store-in-another-disconnected-scenario
 
 					// Get an inactive reference, get its temp ID and bind the supplied object to it instead
-					Delivery inactiveReference = DeliveryDB.Get(delivery.Guid, false);
-					long tempDb4oID = client.Ext().GetID(inactiveReference);
-					client.Ext().Bind(delivery, tempDb4oID);
+					Delivery inactiveReference = DeliveryDB.Get(delivery.Guid, false, client);
+					if (inactiveReference != null)
+					{
+						long tempDb4oID = client.Ext().GetID(inactiveReference);
+						client.Ext().Bind(delivery, tempDb4oID);
+					}
 				}
 				else
 				{
