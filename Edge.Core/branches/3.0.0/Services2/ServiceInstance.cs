@@ -136,9 +136,13 @@ namespace Edge.Core.Services2
 						var ev = (EventValue<ServiceState>)value;
 
 						if (ev.Value == ServiceState.Ready)
+						{
 							TimeInitialized = ev.Time;
+						}
 						else if (ev.Value == ServiceState.InProgress)
+						{
 							TimeStarted = ev.Time;
+						}
 						else if (ev.Value == ServiceState.Ended)
 						{
 							TimeEnded = ev.Time;
