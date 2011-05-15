@@ -8,7 +8,22 @@ namespace Edge.Core.Services2
 {
 	public class ServiceExecutionHost : MarshalByRefObject, IServiceHost
 	{
-		Dictionary<Guid, Service> _services = new Dictionary<Guid, Service>();
+		class ServiceRuntimeInfo
+		{
+			public readonly Guid InstanceID;
+			public readonly Service ServiceRef;
+			public readonly AppDomain AppDomain;
+
+			public ServiceRuntimeInfo(Guid instanceID, Service serviceRef, AppDomain appDomain)
+			{
+				InstanceID = instanceID;
+				ServiceRef = serviceRef;
+				AppDomain = appDomain;
+			}
+		}
+
+		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
+		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
 		
 		public ServiceExecutionHost()
 		{
@@ -25,10 +40,8 @@ namespace Edge.Core.Services2
 					throw new ServiceException(String.Format("Service instance '{0}' is already initialized.", instance.InstanceID));
 			}
 
-			// Load the app domain
+			// Load the app domain, and attach to its events
 			AppDomain domain = AppDomain.CreateDomain(instance.ToString());
-
-			domain.UnhandledException += new UnhandledExceptionEventHandler(DomainUnhandledException);
 			domain.DomainUnload += new EventHandler(DomainUnload);
 
 			// Instantiate the service type in the new domain
@@ -54,7 +67,9 @@ namespace Edge.Core.Services2
 			// Host it
 			lock (_services)
 			{
-				_services.Add(instance.InstanceID, serviceRef);
+				var info = new ServiceRuntimeInfo(instance.InstanceID, serviceRef, domain);
+				_services.Add(instance.InstanceID, info);
+				_serviceByAppDomain.Add(domain.Id, info.InstanceID);
 			}
 	
 			// Give the service ref its properties
@@ -64,35 +79,44 @@ namespace Edge.Core.Services2
 		[OneWay]
 		void IServiceHost.Start(Guid instanceID)
 		{
-			Get(instanceID).Start();
+			Get(instanceID).ServiceRef.Start();
 		}
 
 		[OneWay]
 		void IServiceHost.Abort(Guid instanceID)
 		{
-			Get(instanceID).Abort();
-		}
-
-		[OneWay]
-		internal void Unload(Guid instanceID)
-		{
+			Get(instanceID).ServiceRef.Abort();
 		}
 
 		void DomainUnload(object sender, EventArgs e)
 		{
-			throw new NotImplementedException();
+			// Get the service instance ID of the appdomain
+			AppDomain appDomain = (AppDomain) sender;
+			Guid instanceID;
+			if (!_serviceByAppDomain.TryGetValue(appDomain.Id, out instanceID))
+				return;
+
+			// Get the runtime in the appdomain
+			ServiceRuntimeInfo info = Get(instanceID, throwex: false);
+			if (info == null)
+				return;
+
+			// Remove the service
+			lock (_services)
+			{
+				_services.Remove(instanceID);
+				_serviceByAppDomain.Remove(appDomain.Id);
+			}
 		}
 
-		void DomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+		ServiceRuntimeInfo Get(Guid instanceID, bool throwex = true)
 		{
-			throw new NotImplementedException();
-		}
-
-		Service Get(Guid instanceID)
-		{
-			Service service;
+			ServiceRuntimeInfo service;
 			if (!_services.TryGetValue(instanceID, out service))
-				throw new ServiceException(String.Format("Service instance with ID {0} could not be found in this host.", instanceID));
+				if (throwex)
+					throw new ServiceException(String.Format("Service instance with ID {0} could not be found in this host.", instanceID));
+				else
+					return null;
 			return service;
 		}
 	}
