@@ -32,8 +32,8 @@ namespace Edge.Data.Objects
 			foreach (var pair in ad.Segments)
 			{
 				pair.Key.ID; // maps to SegmentID
-				pair.Value.OriginalID // maps to SegmentValueOriginalID
-				pair.Value.Value // maps to SegmentValue
+				pair.Value.OriginalID // maps to ValueOriginalID
+				pair.Value.Value // maps to Value
 
 			}
 		}

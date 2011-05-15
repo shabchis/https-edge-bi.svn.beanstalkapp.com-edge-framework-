@@ -115,6 +115,8 @@
     <Compile Include="Objects\AdMetricsUnit.cs" />
     <Compile Include="Objects\Channel.cs" />
     <Compile Include="Objects\Currency.cs" />
+    <Compile Include="Objects\Measure.cs" />
+    <Compile Include="Objects\TargetCustomField.cs" />
     <Compile Include="Objects\Targets.cs" />
     <Compile Include="Objects\Campaign.cs" />
     <Compile Include="Objects\Creative.cs" />

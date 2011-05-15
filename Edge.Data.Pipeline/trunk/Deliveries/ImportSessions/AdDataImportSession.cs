@@ -65,7 +65,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public override void Begin(bool reset = true)
 		{
-			_baseTableName = string.Format("{0}_{1}_{2}_", Delivery.Parameters["AccountID"], DateTime.Today.ToString("yyyMMdd"), Delivery._guid.ToString().ToLower());
+			_baseTableName = string.Format("D{0}_{1}_{2}_", Delivery.Parameters["AccountID"], DateTime.Today.ToString("yyyMMdd"), Delivery._guid.ToString("N").ToLower());
 			initalizeDataTablesAndBulks(reset);
 		}
 
@@ -295,7 +295,14 @@ namespace Edge.Data.Pipeline.Importing
 
 			#endregion
 
-
+			/*CREATE TABLE dbo.Table_1
+	(
+	AdUsid int NOT NULL,
+	SegmentID int NOT NULL,
+	Value nvarchar(300) NOT NULL,
+	ValueOriginalID nvarchar(50) NULL
+	)  ON [PRIMARY]
+*/
 
 		}
 		private object CheckNull(object myObject)
