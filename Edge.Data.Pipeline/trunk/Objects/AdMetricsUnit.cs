@@ -8,6 +8,8 @@ namespace Edge.Data.Objects
 {
 	public class AdMetricsUnit
 	{
+		public Guid Guid;
+
 		public DateTime PeriodStart;
 		public DateTime PeriodEnd;
 		
@@ -17,11 +19,53 @@ namespace Edge.Data.Objects
 
 		public Currency Currency;
 
+		public Dictionary<Measure, double> Measures;
+
 		// Values
-		public double Cost;
-		public long Impressions;
-		public long Clicks;
-		public double AveragePosition;
-		public Dictionary<int, double> Conversions; //40 columns conversion1,conversion2...etc where dicitionay key is column number
+		public double Cost
+		{
+			get { return GetMeasure(Measure.Cost); }
+			set { SetMeasure(Measure.Cost, value); }
+		}
+
+		public long Impressions
+		{
+			get { return (long) GetMeasure(Measure.Impressions); }
+			set { SetMeasure(Measure.Impressions, value); }
+		}
+
+		public long UniqueImpressions
+		{
+			get { return (long)GetMeasure(Measure.UniqueImpressions); }
+			set { SetMeasure(Measure.UniqueImpressions, value); }
+		}
+
+		public long Clicks
+		{
+			get { return (long)GetMeasure(Measure.Clicks); }
+			set { SetMeasure(Measure.Clicks, value); }
+		}
+
+		public long UniqueClicks
+		{
+			get { return (long)GetMeasure(Measure.UniqueClicks); }
+			set { SetMeasure(Measure.UniqueClicks, value); }
+		}
+
+		public double AveragePosition
+		{
+			get { return GetMeasure(Measure.AveragePosition); }
+			set { SetMeasure(Measure.AveragePosition, value); }
+		}
+
+		double GetMeasure(Measure m)
+		{
+			return Measures[m];
+		}
+
+		void SetMeasure(Measure m, double value)
+		{
+			Measures[m] = value;
+		}
 	}
 }

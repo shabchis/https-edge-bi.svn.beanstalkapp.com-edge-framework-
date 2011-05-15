@@ -12,6 +12,7 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OriginalID;
 		public CampaignStatus Status;
+		public double Budget;
 	}
 
 	public enum CampaignStatus
