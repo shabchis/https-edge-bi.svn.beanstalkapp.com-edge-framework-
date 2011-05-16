@@ -22,17 +22,48 @@ namespace Edge.Core.Services2
 			}
 		}
 
+		public readonly Guid HostID;
+		ServiceExecutionHost _innerHost = null;
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
-		
-		public ServiceExecutionHost()
+
+		bool IsWrapped { get { return _innerHost != null; } }
+
+		public ServiceExecutionHost(): this(true, Guid.NewGuid())
 		{
 			// TODO: demand ServiceHostingPermission
+		}
+
+		private ServiceExecutionHost(bool wrapped, Guid hostID)
+		{
+			this.HostID = hostID;
+
+			if (!wrapped)
+				return;
+
+			AppDomain domain = AppDomain.CreateDomain(String.Format("Edge host ({0})", HostID));
+			_innerHost = (ServiceExecutionHost) domain.CreateInstanceAndUnwrap
+			(
+				typeof(ServiceExecutionHost).Assembly.FullName,
+				typeof(ServiceExecutionHost).FullName,
+				false,
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.CreateInstance | System.Reflection.BindingFlags.Instance,
+				null,
+				new object[] { false, hostID }, // these are ctor arguments
+				System.Globalization.CultureInfo.CurrentCulture,
+				null
+			);
 		}
 
 		[OneWay]
 		void IServiceHost.Initialize(ServiceInstance instance)
 		{
+			if (this.IsWrapped)
+			{
+				((IServiceHost)_innerHost).Initialize(instance);
+				return;
+			}
+
 			// Check if instance ID exists
 			lock (_services)
 			{
@@ -41,7 +72,7 @@ namespace Edge.Core.Services2
 			}
 
 			// Load the app domain, and attach to its events
-			AppDomain domain = AppDomain.CreateDomain(instance.ToString());
+			AppDomain domain = AppDomain.CreateDomain("Edge service - " + instance.ToString());
 			domain.DomainUnload += new EventHandler(DomainUnload);
 
 			// Instantiate the service type in the new domain
@@ -64,6 +95,9 @@ namespace Edge.Core.Services2
 				);
 			}
 
+			// Connect the service to the instance
+			serviceRef.Connect(instance.Connection);
+
 			// Host it
 			lock (_services)
 			{
@@ -79,13 +113,53 @@ namespace Edge.Core.Services2
 		[OneWay]
 		void IServiceHost.Start(Guid instanceID)
 		{
+			if (this.IsWrapped)
+			{
+				((IServiceHost)_innerHost).Start(instanceID);
+				return;
+			}
+
 			Get(instanceID).ServiceRef.Start();
 		}
 
+		/// <summary>
+		/// Aborts execution of a running service.
+		/// </summary>
+		/// <param name="instanceID"></param>
 		[OneWay]
 		void IServiceHost.Abort(Guid instanceID)
 		{
+			if (this.IsWrapped)
+			{
+				((IServiceHost)_innerHost).Abort(instanceID);
+				return;
+			}
+
 			Get(instanceID).ServiceRef.Abort();
+		}
+
+		/// <summary>
+		/// Disconnects a connection from a running service instance.
+		/// </summary>
+		[OneWay]
+		void IServiceHost.Disconnect(Guid instanceID, Guid connectionGuid)
+		{
+			if (this.IsWrapped)
+			{
+				((IServiceHost)_innerHost).Disconnect(instanceID, connectionGuid);
+				return;
+			}
+
+			var info = Get(instanceID, false);
+			
+			if (info != null)
+				info.ServiceRef.Disconnect(connectionGuid);
+		}
+
+		[OneWay]
+		internal void Log(Guid instanceID, LogMessage message)
+		{
+			// TODO: do something with the log messages
 		}
 
 		void DomainUnload(object sender, EventArgs e)
@@ -126,5 +200,6 @@ namespace Edge.Core.Services2
 		void Initialize(ServiceInstance instance);
 		void Start(Guid instanceID);
 		void Abort(Guid instanceID);
+		void Disconnect(Guid instanceID, Guid connectionID);
 	}
 }
