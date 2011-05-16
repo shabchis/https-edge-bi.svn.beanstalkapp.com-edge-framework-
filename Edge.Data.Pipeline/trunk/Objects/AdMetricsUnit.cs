@@ -19,7 +19,7 @@ namespace Edge.Data.Objects
 
 		public Currency Currency;
 
-		public Dictionary<Measure, double> Measures;
+		public Dictionary<Measure, double> Measures=new Dictionary<Measure,double>();
 
 		// Values
 		public double Cost
@@ -60,7 +60,10 @@ namespace Edge.Data.Objects
 
 		double GetMeasure(Measure m)
 		{
-			return Measures[m];
+			double val;
+			if (!Measures.TryGetValue(m, out val))
+				return 0;
+			return val;
 		}
 
 		void SetMeasure(Measure m, double value)
