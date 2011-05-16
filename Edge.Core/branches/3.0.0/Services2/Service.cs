@@ -14,7 +14,7 @@ namespace Edge.Core.Services2
 		//======================
 
 		public static readonly TimeSpan DefaultMaxExecutionTime = TimeSpan.FromMinutes(15);
-		public static readonly TimeSpan MaxOnEndedTime = TimeSpan.FromMinutes(1);
+		public static readonly TimeSpan MaxCleanupTime = TimeSpan.FromMinutes(1);
 		
 		//======================
 		#endregion
@@ -91,7 +91,13 @@ namespace Edge.Core.Services2
 		public ServiceOutcome Outcome
 		{
 			get { return _outcome; }
-			private set { Notify(ServiceEventType.OutcomeReported, _outcome = value); }
+			private set
+			{
+				if (_outcome != ServiceOutcome.Unspecified || value == ServiceOutcome.Unspecified)
+					return;
+
+				Notify(ServiceEventType.OutcomeReported, _outcome = value);
+			}
 		}
 
 		public object Output
@@ -132,8 +138,6 @@ namespace Edge.Core.Services2
 		[OneWay]
 		internal void Start()
 		{
-			ServiceOutcome outcome = ServiceOutcome.Unspecified;
-
 			lock (_sync)
 			{
 				if (this.State != ServiceState.Ready)
@@ -143,22 +147,24 @@ namespace Edge.Core.Services2
 				State = ServiceState.InProgress;
 
 				// Run the service code, and time its execution
-				// TODO: make the thread start catch ThreadAbortedException
-				Thread doWorkThread = new Thread(() => outcome = this.DoWork());
+				Thread doWorkThread = new Thread(() =>
+				{
+					// Suppress thread abort because these are expected
+					try { Outcome = this.DoWork(); }
+					catch (ThreadAbortException) { }
+				});
 				doWorkThread.Start();
+
 				if (!doWorkThread.Join(DefaultMaxExecutionTime))
 				{
-					// Timeout
-					Stop(ServiceOutcome.Timeout);
-					return;
+					// Timeout, abort the thread and exit
+					doWorkThread.Abort();
+					Outcome = ServiceOutcome.Timeout;
 				}
-
-				if (outcome != ServiceOutcome.Success && outcome != ServiceOutcome.Failure)
-					throw new ServiceException("DoWork must return either Success or Failure.");
 			}
 
-			// Stop and report outcome
-			Stop(outcome);
+			// Exit
+			Stop();
 		}
 
 		[OneWay]
@@ -168,10 +174,11 @@ namespace Edge.Core.Services2
 				return;
 
 			// Stop the service
-			Stop(ServiceOutcome.Aborted);
+			Outcome = ServiceOutcome.Aborted;
+			Stop();
 		}
 
-		void Stop(ServiceOutcome outcome)
+		void Stop()
 		{
 			lock (_sync)
 			{
@@ -180,33 +187,43 @@ namespace Edge.Core.Services2
 					return;
 
 				IsStopped = true;
+
+				// Report an outcome, bitch
+				if (this.Outcome == ServiceOutcome.Unspecified)
+				{
+					this.Output = new ServiceException("Service did not report any outcome.");
+					this.Outcome = ServiceOutcome.Error;
+				}
+
+				// Start wrapping things up
 				State = ServiceState.Ending;
 
 				// 
-
-				// Call finalizers (async with short timeout)
-				var endedHandler = new Action<ServiceOutcome>(OnEnded);
-				IAsyncResult ar = endedHandler.BeginInvoke(outcome, null, null);
-				if (!ar.AsyncWaitHandle.WaitOne(MaxOnEndedTime))
+				// Run the service code, and time its execution
+				Thread onEndedThread = new Thread(() =>
 				{
-					Thread t = new Thread(
-					Log(String.Format("OnEnded timed out. Limit is {0}.", MaxOnEndedTime.ToString()), LogMessageType.Warning);
+					// Suppress thread abort because these are expected
+					try { this.Cleanup(); }
+					catch (ThreadAbortException) { }
+					catch (Exception ex)
+					{
+						Log("Error occured during cleanup.", ex);
+					}
+				});
+				onEndedThread.Start();
+
+				if (!onEndedThread.Join(MaxCleanupTime))
+				{
+					// Timeout, abort the thread and exit
+					onEndedThread.Abort();
+					Log(String.Format("Cleanup timed out. Limit is {0}.", MaxCleanupTime.ToString()), LogMessageType.Error);
 				}
-				try { endedHandler.EndInvoke(ar); }
-				catch (Exception ex) { Log("Error occured in OnEnded.", ex); }
-
-				// Unspecified outcome means error
-				if (outcome == ServiceOutcome.Unspecified)
-					outcome = ServiceOutcome.Error;
-
-				// Report the outcome
-				Outcome = outcome;
 
 				// Change state to ended
 				State = ServiceState.Ended;
 			}
 
-			// Unload app domain if Stop was not called
+			// Unload app domain if Stop was called directly
 			AppDomain.Unload(AppDomain.CurrentDomain);
 		}
 
@@ -218,7 +235,7 @@ namespace Edge.Core.Services2
 				if (!_exceptionThrown)
 					Log("Service's AppDomain is being unloaded.", LogMessageType.Warning);
 
-				Stop(ServiceOutcome.Aborted);
+				Stop();
 			}
 		}
 
@@ -228,10 +245,11 @@ namespace Edge.Core.Services2
 			_exceptionThrown = true;
 
 			// Log the exception
-			Log("Unhandled exception occured in a service.", e.ExceptionObject as Exception);
+			Log("Unhandled exception occured.", e.ExceptionObject as Exception);
 
 			// Output the exception
 			Output = e.ExceptionObject;
+			Outcome = ServiceOutcome.Error;
 		}
 
 		//======================
@@ -241,7 +259,12 @@ namespace Edge.Core.Services2
 		//======================
 
 		protected abstract ServiceOutcome DoWork();
-		protected virtual void OnEnded(ServiceOutcome outcome) { }
+
+		/// <summary>
+		/// When overridden in a derived class, can perform last minute finalization before a service ends (even if it fails). When cleanup is called,
+		/// this.Outcome has already been set and can be used to rollback failed operations if necessary.
+		/// </summary>
+		protected virtual void Cleanup() { }
 
 		//======================
 		#endregion
