@@ -11,7 +11,7 @@ using System.Diagnostics;
 namespace Edge.Core.Services2
 {
 	[Serializable]
-	public class ServiceInstance: IServiceInfo, ISerializable
+	public class ServiceInstance: IServiceInfo, ISerializable, IDisposable
 	{
 		#region Instance
 		//=================
@@ -139,13 +139,14 @@ namespace Edge.Core.Services2
 						{
 							TimeInitialized = ev.Time;
 						}
-						else if (ev.Value == ServiceState.InProgress)
+						else if (ev.Value == ServiceState.Running)
 						{
 							TimeStarted = ev.Time;
 						}
 						else if (ev.Value == ServiceState.Ended)
 						{
 							TimeEnded = ev.Time;
+							this.Connection.Dispose();
 
 							// Autocomplete progress only if success
 							if (_outcome == ServiceOutcome.Success)
@@ -171,6 +172,17 @@ namespace Edge.Core.Services2
 				default:
 					return;
 			}
+		}
+
+		//=================
+		#endregion
+
+		#region Communication
+		//=================
+
+		void IDisposable.Dispose()
+		{
+			this.Connection.Dispose();
 		}
 
 		//=================
@@ -212,9 +224,12 @@ namespace Edge.Core.Services2
 			}
 		}
 
+		/// <summary>
+		/// Not implemented. Resumes a connection to a running service instance.
+		/// </summary>
 		public void Connect()
 		{
-			throw new NotImplementedException();
+			throw new NotImplementedException("When implemented, this method will simply resume a connection to a running service.");
 		}
 
 		/// <summary>
@@ -242,9 +257,12 @@ namespace Edge.Core.Services2
 			}
 		}
 
+		/// <summary>
+		/// Aborts the execution of the service.
+		/// </summary>
 		public void Abort()
 		{
-			if (State != ServiceState.InProgress && State != ServiceState.Waiting)
+			if (State != ServiceState.Running && State != ServiceState.Waiting)
 				throw new InvalidOperationException("Service can only be aborted when it is in the InProgress or Waiting state.");
 
 			// TODO: async
@@ -286,17 +304,20 @@ namespace Edge.Core.Services2
 			info.AddValue("Context", Context);
 			info.AddValue("ParentInstanceID", ParentInstance == null ? _parentInstanceID : ParentInstance.InstanceID);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
+			info.AddValue("Connection", Connection); // this is strictly for internal use only
 		}
 
 		private ServiceInstance(SerializationInfo info, StreamingContext context)
 		{
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
-			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(Guid));
+			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
 			this.Context = (ServiceExecutionContext)info.GetValue("Context", typeof(ServiceExecutionContext));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
+			this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
 		}
 
 		//=================
 		#endregion
+
 	}
 }

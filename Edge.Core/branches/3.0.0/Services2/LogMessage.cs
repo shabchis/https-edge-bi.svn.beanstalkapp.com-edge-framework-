@@ -6,24 +6,27 @@ using System.Diagnostics;
 
 namespace Edge.Core.Services2
 {
+	[Serializable]
 	public class LogMessage
 	{
-		public string MachineName = Environment.MachineName;
-		public int ProcessID = Process.GetCurrentProcess().Id;
+		public readonly string MachineName = Environment.MachineName;
+		public readonly int ProcessID = Process.GetCurrentProcess().Id;
 		public string Source = null;
 		public LogMessageType MessageType = LogMessageType.Information;
 		public Guid ServiceHostID = Guid.Empty;
 		public Guid ServiceInstanceID = Guid.Empty;
 		public int ProfileID = -1;
 		public string Message = null;
-		public bool IsException = false;
-		public string ExceptionDetails = null;
+		public Exception Exception = null;
+
+		public bool IsException { get { return Exception != null; } }
 	}
 
 	public enum LogMessageType
 	{
-		Error = 1,
-		Warning = 2,
-		Information = 3
+		Verbose = 0,
+		Information = 1,
+		Warning = 5,
+		Error = 7
 	};
 }

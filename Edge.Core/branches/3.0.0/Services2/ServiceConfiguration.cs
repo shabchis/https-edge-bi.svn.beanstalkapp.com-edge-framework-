@@ -7,10 +7,10 @@ using System.Runtime.Serialization;
 namespace Edge.Core.Services2
 {
 	[Serializable]
-	public class ServiceConfiguration: ISerializable
+	public class ServiceConfiguration
 	{
 		public Guid ConfigurationID;
-		public ServiceInstance RelatedInstance;
+		//public ServiceInstance RelatedInstance { get; private set; }
 		public ServiceProfile Profile;
 		public ServiceConfiguration BaseConfiguration;
 		public string AssemblyPath;
@@ -22,28 +22,16 @@ namespace Edge.Core.Services2
 		public Dictionary<string, object> Parameters;
 		public List<SchedulingRule> SchedulingRules;
 		public ServiceExecutionStatistics Statistics;
-
-		#region ISerializable Members
-
-		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			throw new NotImplementedException();
-		}
-
-		private ServiceConfiguration(SerializationInfo info, StreamingContext context)
-		{
-			throw new NotImplementedException();
-		}
-
-		#endregion
 	}
 
+	[Serializable]
 	public class ServiceProfile
 	{
 		public Guid ID;
 		public Dictionary<string, object> Parameters;
 	}
 
+	[Serializable]
 	public class ServiceExecutionSettings
 	{
 		public int MaxConcurrentGlobal = 0;
@@ -54,6 +42,7 @@ namespace Edge.Core.Services2
 		public int MaxEnqueuedPerHost = 0;
 	}
 
+	[Serializable]
 	public class ServiceExecutionStatistics
 	{
 		public TimeSpan MaxExecutionTime; // Get this automatically?

@@ -14,7 +14,11 @@ namespace Edge.Core.Services2
 	internal interface IServiceConnection: IDisposable
 	{
 		IServiceHost Host { get; }
+		Guid Guid { get; }
+		Guid ServiceInstanceID { get; }
 		Action<ServiceEventType, object> EventCallback { get; set; }
+
+		[OneWay]
 		void Notify(ServiceEventType eventType, object value);
 	}
 
@@ -25,11 +29,15 @@ namespace Edge.Core.Services2
 	{
 		public Action<ServiceEventType, object> EventCallback { get; set; }
 		public IServiceHost Host { get; private set; }
+		public Guid Guid { get; private set; }
+		public Guid ServiceInstanceID { get; private set; }
 		internal ILease Lease { get; private set; }
 
-		public LocalServiceConnection(IServiceHost host)
+		public LocalServiceConnection(IServiceHost host, Guid serviceInstanceID)
 		{
 			this.Host = host;
+			this.Guid = Guid.NewGuid();
+			this.ServiceInstanceID = serviceInstanceID;
 		}
 
 		public override object InitializeLifetimeService()
@@ -43,16 +51,14 @@ namespace Edge.Core.Services2
 		{
 			if (EventCallback != null)
 				EventCallback(eventType, value);
-
-			// Dispose of ourselves, no more message to come
-			if (eventType == ServiceEventType.OutcomeReported)
-				this.Dispose();
 		}
 
 		public void Dispose()
 		{
+			this.Host.Disconnect(this.ServiceInstanceID, this.Guid);
+
 			// TODO: cause lease to expire
-			throw new NotImplementedException("The ILease must be released at this point to allow garbage collection!");
+			//throw new NotImplementedException("The ILease must be released at this point to allow garbage collection!");
 		}
 	}
 
@@ -63,32 +69,24 @@ namespace Edge.Core.Services2
 	[Serializable]
 	internal class RemoteServiceConnection : ISerializable, IServiceConnection
 	{
-		#region ISerializable Members
+		#region IServiceListener Members
 
-		public void GetObjectData(SerializationInfo info, StreamingContext context)
+		public IServiceHost Host { get; private set; }
+		public Guid Guid { get; private set; }
+		public Guid ServiceInstanceID { get; private set; }
+
+		public Action<ServiceEventType, object> EventCallback { get; set; }
+
+		public void Notify(ServiceEventType eventType, object value)
 		{
 			throw new NotImplementedException();
 		}
 
 		#endregion
 
-		#region IServiceListener Members
+		#region ISerializable Members
 
-		public IServiceHost Host { get; private set; }
-
-		public Action<ServiceEventType, object> EventCallback
-		{
-			get
-			{
-				throw new NotImplementedException();
-			}
-			set
-			{
-				throw new NotImplementedException();
-			}
-		}
-
-		public void Notify(ServiceEventType eventType, object value)
+		public void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			throw new NotImplementedException();
 		}

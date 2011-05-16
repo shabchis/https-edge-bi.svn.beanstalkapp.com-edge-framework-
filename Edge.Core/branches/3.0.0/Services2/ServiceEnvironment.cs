@@ -19,7 +19,12 @@ namespace Edge.Core.Services2
 			_host = proxy;
 		}
 
-		public ServiceInstance CreateServiceInstance(ServiceConfiguration configuration, ServiceInstance parentInstance)
+		public ServiceInstance CreateServiceInstance(ServiceConfiguration configuration)
+		{
+			return CreateServiceInstance(configuration, null);
+		}
+
+		internal ServiceInstance CreateServiceInstance(ServiceConfiguration configuration, ServiceInstance parentInstance)
 		{
 			// TODO: demand ServiceExecutionPermission
 			return new ServiceInstance(this, configuration, parentInstance);
@@ -28,7 +33,7 @@ namespace Edge.Core.Services2
 		internal IServiceConnection AcquireHostConnection(ServiceInstance instance)
 		{
 			// TODO: determine which host to connect to
-			return new LocalServiceConnection(_host);
+			return new LocalServiceConnection(_host, instance.InstanceID);
 		}
 
 		public ServiceInstance GetServiceInstance(Guid instanceID)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
@@ -43,8 +44,15 @@ namespace Edge.Core.Services2
 			this.ParentInstance = instance.ParentInstance;
 			this.SchedulingInfo = instance.SchedulingInfo;
 
+			// Monitor app domain-level events
+			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);
+			AppDomain.CurrentDomain.DomainUnload += new EventHandler(this.DomainUnload);
+
+			// TODO: Reroute console output to verbose Log
+			//Console.SetOut(
+
 			TimeInitialized = DateTime.Now;
-			Notify(ServiceEventType.StateChanged, ServiceState.Ready);
+			State = ServiceState.Ready;
 		}
 
 		//======================
@@ -85,7 +93,7 @@ namespace Edge.Core.Services2
 		public ServiceState State
 		{
 			get { return _state; }
-			private set { Notify(ServiceEventType.StateChanged, _state = value); }
+			private set { Notify(ServiceEventType.StateChanged, new EventValue<ServiceState>() {Time = DateTime.Now, Value = _state = value }); }
 		}
 
 		public ServiceOutcome Outcome
@@ -114,14 +122,32 @@ namespace Edge.Core.Services2
 		//======================
 
 		ServiceExecutionHost _host;
-		internal readonly List<IServiceConnection> Connections = new List<IServiceConnection>();
+		readonly Dictionary<Guid, IServiceConnection> _connections = new Dictionary<Guid, IServiceConnection>();
 
 		void Notify(ServiceEventType eventType, object value)
 		{
-			lock (Connections)
+			lock (_connections)
 			{
-				foreach (IServiceConnection connection in this.Connections)
+				foreach (IServiceConnection connection in this._connections.Values)
 					connection.Notify(eventType, value);
+			}
+		}
+		
+		[OneWay]
+		internal void Connect(IServiceConnection connection)
+		{
+			lock (_connections)
+			{
+				_connections.Add(connection.Guid, connection);
+			}
+		}
+
+		[OneWay]
+		internal void Disconnect(Guid connectionGuid)
+		{
+			lock (_connections)
+			{
+				_connections.Remove(connectionGuid);
 			}
 		}
 
@@ -133,7 +159,7 @@ namespace Edge.Core.Services2
 
 		object _sync = new object();
 		internal bool IsStopped = false;
-		bool _exceptionThrown = false;
+		Thread _doWork = null;
 
 		[OneWay]
 		internal void Start()
@@ -141,26 +167,35 @@ namespace Edge.Core.Services2
 			lock (_sync)
 			{
 				if (this.State != ServiceState.Ready)
-					throw new InvalidOperationException("Service can only be started when it is in the Ready state.");
+					return;
 
 				TimeStarted = DateTime.Now;
-				State = ServiceState.InProgress;
+				State = ServiceState.Running;
 
 				// Run the service code, and time its execution
-				Thread doWorkThread = new Thread(() =>
+				_doWork = new Thread(() =>
 				{
 					// Suppress thread abort because these are expected
 					try { Outcome = this.DoWork(); }
 					catch (ThreadAbortException) { }
+					catch (Exception ex)
+					{
+						ReportError("Error occured during execution.", ex);
+					}
 				});
-				doWorkThread.Start();
+				_doWork.Start();
 
-				if (!doWorkThread.Join(DefaultMaxExecutionTime))
+				if (!_doWork.Join(DefaultMaxExecutionTime))
 				{
-					// Timeout, abort the thread and exit
-					doWorkThread.Abort();
-					Outcome = ServiceOutcome.Timeout;
+					if (Outcome == ServiceOutcome.Unspecified)
+					{
+						// Timeout, abort the thread and exit
+						_doWork.Abort();
+						Outcome = ServiceOutcome.Timeout;
+					}
 				}
+
+				_doWork = null;
 			}
 
 			// Exit
@@ -170,11 +205,19 @@ namespace Edge.Core.Services2
 		[OneWay]
 		protected internal void Abort()
 		{
-			if (State == ServiceState.Ending || State == ServiceState.Ended)
-				return;
+			lock (_sync)
+			{
+				if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Waiting)
+					return;
 
-			// Stop the service
-			Outcome = ServiceOutcome.Aborted;
+				// Abort the worker thread
+				if (_doWork != null)
+					_doWork.Abort();
+
+				// notify
+				Outcome = ServiceOutcome.Aborted;
+			}
+
 			Stop();
 		}
 
@@ -190,10 +233,7 @@ namespace Edge.Core.Services2
 
 				// Report an outcome, bitch
 				if (this.Outcome == ServiceOutcome.Unspecified)
-				{
-					this.Output = new ServiceException("Service did not report any outcome.");
-					this.Outcome = ServiceOutcome.Error;
-				}
+					ReportError("Service did not report any outcome.");
 
 				// Start wrapping things up
 				State = ServiceState.Ending;
@@ -232,24 +272,15 @@ namespace Edge.Core.Services2
 			// If we need to stop from here it means an external appdomain called an unload
 			if (!IsStopped)
 			{
-				if (!_exceptionThrown)
-					Log("Service's AppDomain is being unloaded.", LogMessageType.Warning);
-
+				Log("Service's AppDomain is being unloaded by external code.", LogMessageType.Warning);
 				Stop();
 			}
 		}
 
 		void DomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
 		{
-			// Mark the outcome as Error
-			_exceptionThrown = true;
-
 			// Log the exception
-			Log("Unhandled exception occured.", e.ExceptionObject as Exception);
-
-			// Output the exception
-			Output = e.ExceptionObject;
-			Outcome = ServiceOutcome.Error;
+			ReportError("Unhandled exception occured outside of DoWork.", e.ExceptionObject as Exception);
 		}
 
 		//======================
@@ -269,28 +300,59 @@ namespace Edge.Core.Services2
 		//======================
 		#endregion
 
-		#region Logging
+		#region Logging and error handling
 		//======================
 
 		protected void Log(LogMessage message)
 		{
-			//throw new NotImplementedException();
+			if (message.Source != null)
+				throw new InvalidOperationException("The LogMessage.Source property must be null.");
+
+			message.Source = this.Configuration.ServiceName;
+
+			_host.Log(this.InstanceID, message);
 		}
 
-		protected void Log(string message, Exception ex)
+		protected void Log(string message, Exception ex, LogMessageType messageType = LogMessageType.Error)
 		{
-			//throw new NotImplementedException();
+			this.Log(new LogMessage()
+			{
+				Message = message,
+				MessageType = messageType,
+				Exception = ex
+			});
 		}
 
 		protected void Log(string message, LogMessageType messageType)
 		{
-			//throw new NotImplementedException();
+			this.Log(new LogMessage()
+			{
+				Message = message,
+				MessageType = messageType
+			});
+		}
+
+		protected void ReportError(string message, Exception ex = null)
+		{
+			LogMessage lm = new LogMessage()
+			{
+				Message = message,
+				MessageType = LogMessageType.Error,
+				Exception = ex
+			};
+
+			Log(lm);
+
+			// Output the exception
+			Output = lm;
+			Outcome = ServiceOutcome.Error;
 		}
 
 		//======================
 		#endregion
 	}
 
+	[Serializable]
 	internal struct EventValue<T>
 	{
 		public DateTime Time;

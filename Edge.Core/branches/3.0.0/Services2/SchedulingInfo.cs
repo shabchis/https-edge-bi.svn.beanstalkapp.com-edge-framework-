@@ -6,25 +6,13 @@ using System.Runtime.Serialization;
 
 namespace Edge.Core.Services2
 {
+	[Serializable]
 	public class SchedulingRule
 	{
 	}
 
 	[Serializable]
-	public class SchedulingInfo: ISerializable
+	public class SchedulingInfo
 	{
-		#region ISerializable Members
-
-		public void GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			throw new NotImplementedException();
-		}
-
-		private SchedulingInfo(SerializationInfo info, StreamingContext context)
-		{
-			throw new NotImplementedException();
-		}
-
-		#endregion
 	}
 }

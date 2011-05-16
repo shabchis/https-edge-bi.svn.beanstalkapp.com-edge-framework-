@@ -23,7 +23,7 @@ namespace Edge.Core.Services2
 		Initializing = 1,
 		Ready = 2,
 		Starting = 3,
-		InProgress = 4,
+		Running = 4,
 		Waiting = 5,
 		Ending = 6,
 		Ended = 7,
