@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 		public string DestinationUrl;
 
 		// This is for use by channels which have extra data per target
-		public Dictionary<TargetCustomField, object> CustomFields;
+		public Dictionary<TargetCustomField, object> CustomFields=new Dictionary<TargetCustomField,object>();
 	}
 
 	[TargetTypeID(2)]

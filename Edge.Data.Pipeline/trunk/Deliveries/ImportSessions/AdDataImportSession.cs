@@ -15,6 +15,10 @@ namespace Edge.Data.Pipeline.Importing
 
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
 	{
+		public const string Target_CustomField_Name = "CustomField{0}";
+		public const string Metrics_MeasureValue_FieldName = "MeasureValue";
+		public const string Metrics_MeasureID_FieldName = "MeasureID";
+		public const string MetricsUnit_Guid_FieldName = "MetricsUnitGuid";
 
 
 		private SqlBulkCopy _bulkMetrics;
@@ -44,7 +48,7 @@ namespace Edge.Data.Pipeline.Importing
 		public const string Metrics_Currency_FieldName = "Currency";
 		private const string Metrics_TargetPeriodStart_FieldName = "TargetPeriodStart";
 		private const string Metrics_TargetPeriodEnd_FieldName = "TargetPeriodEnd";
-		
+
 		public const string ads_Campaign_Status_FieldName = "Campaign_Status";
 		public const string ads_Campaign_OriginalID_FieldName = "Campaign_OriginalID";
 		public const string ads_Campaign_Name_FieldName = "Campaign_Name";
@@ -54,7 +58,7 @@ namespace Edge.Data.Pipeline.Importing
 		public const string ads_OriginalID_FieldName = "OriginalID";
 		public const string ads_Name_FieldName = "Name";
 		public const string adUsidFieldName = "AdUsid";
-		public Func<Ad, string> OnAdIdentityRequired = null;
+		public Func<Ad, long> OnAdIdentityRequired = null;
 		#endregion
 
 		public AdDataImportSession(Delivery delivery)
@@ -89,102 +93,22 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetrics = new SqlBulkCopy(_sqlConnection);
 			_bulkMetrics.DestinationTableName = _baseTableName + "Metrics";
 			_metricsDataTable = new DataTable(_bulkMetrics.DestinationTableName);
+			_metricsDataTable.Columns.Add(MetricsUnit_Guid_FieldName);
 			_metricsDataTable.Columns.Add(adUsidFieldName);
 			_metricsDataTable.Columns.Add(Metrics_TargetPeriodStart_FieldName);
 			_metricsDataTable.Columns.Add(Metrics_TargetPeriodEnd_FieldName);
 			_metricsDataTable.Columns.Add(Metrics_Currency_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_Cost_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_Impressions_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_Clicks_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_AveragePosition_FieldName);
-			_metricsDataTable.Columns.Add("Conversion1");
-			_metricsDataTable.Columns.Add("Conversion2");
-			_metricsDataTable.Columns.Add("Conversion3");
-			_metricsDataTable.Columns.Add("Conversion4");
-			_metricsDataTable.Columns.Add("Conversion5");
-			_metricsDataTable.Columns.Add("Conversion6");
-			_metricsDataTable.Columns.Add("Conversion7");
-			_metricsDataTable.Columns.Add("Conversion8");
-			_metricsDataTable.Columns.Add("Conversion9");
-			_metricsDataTable.Columns.Add("Conversion10");
-			_metricsDataTable.Columns.Add("Conversion11");
-			_metricsDataTable.Columns.Add("Conversion12");
-			_metricsDataTable.Columns.Add("Conversion13");
-			_metricsDataTable.Columns.Add("Conversion14");
-			_metricsDataTable.Columns.Add("Conversion15");
-			_metricsDataTable.Columns.Add("Conversion16");
-			_metricsDataTable.Columns.Add("Conversion17");
-			_metricsDataTable.Columns.Add("Conversion18");
-			_metricsDataTable.Columns.Add("Conversion19");
-			_metricsDataTable.Columns.Add("Conversion20");
-			_metricsDataTable.Columns.Add("Conversion21");
-			_metricsDataTable.Columns.Add("Conversion22");
-			_metricsDataTable.Columns.Add("Conversion23");
-			_metricsDataTable.Columns.Add("Conversion24");
-			_metricsDataTable.Columns.Add("Conversion25");
-			_metricsDataTable.Columns.Add("Conversion26");
-			_metricsDataTable.Columns.Add("Conversion27");
-			_metricsDataTable.Columns.Add("Conversion28");
-			_metricsDataTable.Columns.Add("Conversion29");
-			_metricsDataTable.Columns.Add("Conversion30");
-			_metricsDataTable.Columns.Add("Conversion31");
-			_metricsDataTable.Columns.Add("Conversion32");
-			_metricsDataTable.Columns.Add("Conversion33");
-			_metricsDataTable.Columns.Add("Conversion34");
-			_metricsDataTable.Columns.Add("Conversion35");
-			_metricsDataTable.Columns.Add("Conversion36");
-			_metricsDataTable.Columns.Add("Conversion37");
-			_metricsDataTable.Columns.Add("Conversion38");
-			_metricsDataTable.Columns.Add("Conversion39");
-			_metricsDataTable.Columns.Add("Conversion40");
-			
+			_metricsDataTable.Columns.Add(Metrics_MeasureID_FieldName);
+			_metricsDataTable.Columns.Add(Metrics_MeasureValue_FieldName);
+
+
+			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(MetricsUnit_Guid_FieldName, MetricsUnit_Guid_FieldName));
 			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
 			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_TargetPeriodStart_FieldName, Metrics_TargetPeriodStart_FieldName));
 			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_TargetPeriodEnd_FieldName, Metrics_TargetPeriodEnd_FieldName));
 			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_Currency_FieldName, Metrics_Currency_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_Cost_FieldName, Metrics_Cost_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_Impressions_FieldName, Metrics_Impressions_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_Clicks_FieldName, Metrics_Clicks_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_AveragePosition_FieldName, Metrics_AveragePosition_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion1", "Conversion1"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion2", "Conversion2"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion3", "Conversion3"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion4", "Conversion4"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion5", "Conversion5"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion6", "Conversion6"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion7", "Conversion7"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion8", "Conversion8"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion9", "Conversion9"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion10", "Conversion10"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion11", "Conversion11"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion12", "Conversion12"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion13", "Conversion13"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion14", "Conversion14"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion15", "Conversion15"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion16", "Conversion16"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion17", "Conversion18"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion19", "Conversion19"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion20", "Conversion20"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion21", "Conversion21"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion22", "Conversion22"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion23", "Conversion23"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion24", "Conversion24"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion25", "Conversion25"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion26", "Conversion26"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion27", "Conversion27"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion28", "Conversion28"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion29", "Conversion29"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion30", "Conversion30"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion31", "Conversion31"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion32", "Conversion32"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion33", "Conversion33"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion34", "Conversion34"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion35", "Conversion35"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion36", "Conversion36"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion37", "Conversion37"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion38", "Conversion38"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion39", "Conversion39"));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Conversion40", "Conversion40"));
+			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_MeasureID_FieldName, Metrics_MeasureID_FieldName));
+			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_MeasureValue_FieldName, Metrics_MeasureValue_FieldName));
 			#endregion
 			#region MetricsTargetMatch
 
@@ -199,6 +123,12 @@ namespace Edge.Data.Pipeline.Importing
 			_metricsTargetMatchDataTable.Columns.Add("Field2");
 			_metricsTargetMatchDataTable.Columns.Add("Field3");
 			_metricsTargetMatchDataTable.Columns.Add("Field4");
+			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 1));
+			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 2));
+			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 3));
+			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 4));
+			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 5));
+			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 6));
 
 			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
 			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
@@ -208,6 +138,12 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
 			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
 			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_TargetType_FieldName, ads_TargetType_FieldName));
+			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 1), string.Format(Target_CustomField_Name, 1)));
+			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 2), string.Format(Target_CustomField_Name, 2)));
+			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 3), string.Format(Target_CustomField_Name, 3)));
+			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 4), string.Format(Target_CustomField_Name, 4)));
+			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 5), string.Format(Target_CustomField_Name, 5)));
+			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 6), string.Format(Target_CustomField_Name, 6)));
 
 
 
@@ -283,6 +219,12 @@ namespace Edge.Data.Pipeline.Importing
 			_adTargetDataTable.Columns.Add("Field2");
 			_adTargetDataTable.Columns.Add("Field3");
 			_adTargetDataTable.Columns.Add("Field4");
+			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 1));
+			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 2));
+			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 3));
+			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 4));
+			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 5));
+			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 6));
 
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
@@ -292,7 +234,12 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_TargetType_FieldName, ads_TargetType_FieldName));
-
+			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 1), string.Format(Target_CustomField_Name, 1)));
+			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 2), string.Format(Target_CustomField_Name, 2)));
+			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 3), string.Format(Target_CustomField_Name, 3)));
+			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 4), string.Format(Target_CustomField_Name, 4)));
+			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 5), string.Format(Target_CustomField_Name, 5)));
+			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 6), string.Format(Target_CustomField_Name, 6)));
 			#endregion
 
 			/*CREATE TABLE dbo.Table_1
@@ -315,69 +262,78 @@ namespace Edge.Data.Pipeline.Importing
 			return returnObject;
 		}
 
-		private string GetAdIdentity(Ad ad)
+		private long GetAdIdentity(Ad ad)
 		{
-			string val;
+			long val;
 			if (this.OnAdIdentityRequired != null)
 				val = this.OnAdIdentityRequired(ad);
 			else if (String.IsNullOrEmpty(ad.OriginalID))
 				throw new Exception("Ad.OriginalID is required. If it is not available, provide a function for AdDataImportSession.OnAdIdentityRequired that returns a unique value for this ad.");
 			else
-				val = ad.OriginalID;
+				val = long.Parse(ad.OriginalID);
 
 			return val;
 		}
 
 		public void ImportMetrics(AdMetricsUnit metrics)
 		{
-
-			string adUsid = string.Empty;
-			if (metrics.Ad != null)
-				adUsid = GetAdIdentity(metrics.Ad);
-			DataRow row = _metricsDataTable.NewRow();
-
-
-
-			row[adUsidFieldName] =CheckNull( adUsid);
-			row[Metrics_TargetPeriodStart_FieldName] = CheckNull(this.Delivery.TargetPeriod.Start.ExactDateTime);
-			row[Metrics_TargetPeriodEnd_FieldName] = CheckNull(this.Delivery.TargetPeriod.End.ExactDateTime);
-			row[Metrics_Currency_FieldName] = CheckNull(metrics.Currency.Code);
-			row[Metrics_Cost_FieldName] = CheckNull(metrics.Cost);
-			row[Metrics_Impressions_FieldName] = CheckNull( metrics.Impressions);
-			row[Metrics_Clicks_FieldName] =  CheckNull(metrics.Clicks);
-			row[Metrics_AveragePosition_FieldName] = CheckNull( metrics.AveragePosition);
-
-			//Conversions
-			foreach (KeyValuePair<int, double> Conversion in metrics.Conversions)
+			long adUsid = -1;
+			metrics.Guid = Guid.NewGuid();
+			DataRow row;
+			foreach (KeyValuePair<Measure, double> measure in metrics.Measures)
 			{
-				row[string.Format(Metrics_ConversionX_FieldName, Conversion.Key)] = CheckNull( Conversion.Value);
-			}
 
-			_metricsDataTable.Rows.Add(row);
-			if (_metricsDataTable.Rows.Count == _bufferSize)
-			{
-				_bulkMetrics.WriteToServer(_metricsDataTable);
-				_metricsDataTable.Rows.Clear();
+
+				row = _metricsDataTable.NewRow();
+
+				row[MetricsUnit_Guid_FieldName] = metrics.Guid.ToString("N");
+				if (metrics.Ad != null)
+					adUsid = GetAdIdentity(metrics.Ad);
+				row[adUsidFieldName] = CheckNull(adUsid);
+				row[Metrics_TargetPeriodStart_FieldName] = metrics.PeriodStart;
+				row[Metrics_TargetPeriodEnd_FieldName] = metrics.PeriodEnd;
+				row[Metrics_Currency_FieldName] = CheckNull(metrics.Currency.Code);
+
+
+				//Measures
+				row[Metrics_MeasureID_FieldName] = measure.Key.ID;
+				row[Metrics_MeasureValue_FieldName] = measure.Value;
+
+
+
+
+
+
+				_metricsDataTable.Rows.Add(row);
+				if (_metricsDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkMetrics.WriteToServer(_metricsDataTable);
+					_metricsDataTable.Rows.Clear();
+				}
 			}
 
 			//tagetmatches
 			foreach (Target target in metrics.TargetMatches)
 			{
 				row = _metricsTargetMatchDataTable.NewRow();
-				row[adUsidFieldName] =  CheckNull(adUsid);
-				row[ads_OriginalID_FieldName] = CheckNull( target.OriginalID);
-				row[ads_DestinationUrl_FieldName] =  CheckNull(target.DestinationUrl);
+				row[adUsidFieldName] = CheckNull(adUsid);
+				row[ads_OriginalID_FieldName] = CheckNull(target.OriginalID);
+				row[ads_DestinationUrl_FieldName] = CheckNull(target.DestinationUrl);
 				int targetType = GetTargetType(target.GetType());
-				row[ads_TargetType_FieldName] =  CheckNull(targetType);
+				row[ads_TargetType_FieldName] = CheckNull(targetType);
 				foreach (FieldInfo field in target.GetType().GetFields())
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] =  CheckNull(field.GetValue(target));
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = CheckNull(field.GetValue(target));
 					}
 
 
+				}
+				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
+				{
+					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = CheckNull(customField.Value);
 				}
 				_metricsTargetMatchDataTable.Rows.Add(row);
 				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
@@ -412,17 +368,19 @@ namespace Edge.Data.Pipeline.Importing
 
 		public void ImportAd(Ad ad)
 		{
-			string adUsid = GetAdIdentity(ad);
+			long adUsid = GetAdIdentity(ad);
+
 			DataRow row = _adDataTable.NewRow();
-			row[adUsidFieldName] = CheckNull( adUsid);
-			row[ads_Name_FieldName] = CheckNull( ad.Name);
-			row[ads_OriginalID_FieldName] =  CheckNull(ad.OriginalID);
-			row[ads_DestinationUrl_FieldName] =  CheckNull(ad.DestinationUrl);
-			row[ads_Campaign_Account_FieldName] =  CheckNull(ad.Campaign.Account.ID);
-			row[ads_Campaign_Channel_FieldName] =  CheckNull(ad.Campaign.Channel.ID);
-			row[ads_Campaign_Name_FieldName] =  CheckNull(ad.Campaign.Name);
-			row[ads_Campaign_OriginalID_FieldName] = CheckNull( ad.Campaign.OriginalID);
-			row[ads_Campaign_Status_FieldName] = CheckNull( ((int)ad.Campaign.Status).ToString());
+
+			row[adUsidFieldName] = CheckNull(adUsid);
+			row[ads_Name_FieldName] = CheckNull(ad.Name);
+			row[ads_OriginalID_FieldName] = CheckNull(ad.OriginalID);
+			row[ads_DestinationUrl_FieldName] = CheckNull(ad.DestinationUrl);
+			row[ads_Campaign_Account_FieldName] = CheckNull(ad.Campaign.Account.ID);
+			row[ads_Campaign_Channel_FieldName] = CheckNull(ad.Campaign.Channel.ID);
+			row[ads_Campaign_Name_FieldName] = CheckNull(ad.Campaign.Name);
+			row[ads_Campaign_OriginalID_FieldName] = CheckNull(ad.Campaign.OriginalID);
+			row[ads_Campaign_Status_FieldName] = CheckNull(((int)ad.Campaign.Status).ToString());
 
 			//TODO: segments
 			//foreach (KeyValuePair<Segment, object> Segment in ad.Segments)
@@ -440,19 +398,24 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				row = _adTargetDataTable.NewRow();
 				row[adUsidFieldName] = adUsid;
-				row[ads_OriginalID_FieldName] =CheckNull( target.OriginalID);
+				row[ads_OriginalID_FieldName] = CheckNull(target.OriginalID);
 				row[ads_DestinationUrl_FieldName] = CheckNull(target.DestinationUrl);
 				int targetType = GetTargetType(target.GetType());
-				row[ads_TargetType_FieldName] =CheckNull( targetType);
+				row[ads_TargetType_FieldName] = CheckNull(targetType);
 				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] =CheckNull( field.GetValue(target));
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = CheckNull(field.GetValue(target));
 					}
 
 
+
+				}
+				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
+				{
+					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = CheckNull(customField.Value);
 				}
 				_adTargetDataTable.Rows.Add(row);
 				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
@@ -467,9 +430,9 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (Creative creative in ad.Creatives)
 			{
 				row = _adCreativesDataTable.NewRow();
-				row[adUsidFieldName] =CheckNull( adUsid);
-				row[ads_OriginalID_FieldName] =CheckNull( creative.OriginalID);
-				row[ads_Name_FieldName] =CheckNull( creative.Name);
+				row[adUsidFieldName] = CheckNull(adUsid);
+				row[ads_OriginalID_FieldName] = CheckNull(creative.OriginalID);
+				row[ads_Name_FieldName] = CheckNull(creative.Name);
 				int creativeType = GetCreativeType(creative.GetType());
 				row[ads_CreativeType_FieldName] = CheckNull(creativeType);
 				foreach (FieldInfo field in creative.GetType().GetFields())
@@ -477,7 +440,7 @@ namespace Edge.Data.Pipeline.Importing
 					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
 					{
 						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = CheckNull(field.GetValue(creative)); 
+						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = CheckNull(field.GetValue(creative));
 					}
 				}
 				_adCreativesDataTable.Rows.Add(row);
