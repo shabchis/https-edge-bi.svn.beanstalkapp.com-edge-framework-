@@ -15,6 +15,9 @@ namespace Edge.Data.Pipeline.Importing
 
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
 	{
+		public const string Segments_ValueOriginalID_FieldName = "ValueOriginalID";
+		public const string Segments_Value_FieldName = "Value";
+		public const string Segments_SegmentID_FieldName = "SegmentID";
 		public const string Target_CustomField_Name = "CustomField{0}";
 		public const string Metrics_MeasureValue_FieldName = "MeasureValue";
 		public const string Metrics_MeasureID_FieldName = "MeasureID";
@@ -31,6 +34,9 @@ namespace Edge.Data.Pipeline.Importing
 		private DataTable _adCreativesDataTable;
 		private SqlBulkCopy _bulkAd;
 		private DataTable _adDataTable;
+		private SqlBulkCopy _bulkSegments;
+		private DataTable _segmetsDataTable;
+
 		private SqlConnection _sqlConnection;
 		private string _baseTableName;
 		private int _bufferSize;
@@ -241,15 +247,23 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 5), string.Format(Target_CustomField_Name, 5)));
 			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 6), string.Format(Target_CustomField_Name, 6)));
 			#endregion
+			#region AdSegment
+			_bulkSegments = new SqlBulkCopy(_sqlConnection);
+			_bulkSegments.DestinationTableName = _baseTableName + "AdSegment";
+			_segmetsDataTable=new DataTable(_bulkSegments.DestinationTableName);
+				_segmetsDataTable.Columns.Add(adUsidFieldName);
+			_segmetsDataTable.Columns.Add(Segments_SegmentID_FieldName);
+			_segmetsDataTable.Columns.Add(Segments_Value_FieldName);
+			_segmetsDataTable.Columns.Add(Segments_ValueOriginalID_FieldName);
 
-			/*CREATE TABLE dbo.Table_1
-	(
-	AdUsid int NOT NULL,
-	SegmentID int NOT NULL,
-	Value nvarchar(300) NOT NULL,
-	ValueOriginalID nvarchar(50) NULL
-	)  ON [PRIMARY]
-*/
+			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
+			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Segments_SegmentID_FieldName, Segments_SegmentID_FieldName));
+			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Segments_Value_FieldName, Segments_Value_FieldName));
+			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Segments_ValueOriginalID_FieldName, Segments_ValueOriginalID_FieldName));
+
+			#endregion
+
+	
 
 		}
 		private object CheckNull(object myObject)
@@ -382,11 +396,8 @@ namespace Edge.Data.Pipeline.Importing
 			row[ads_Campaign_OriginalID_FieldName] = CheckNull(ad.Campaign.OriginalID);
 			row[ads_Campaign_Status_FieldName] = CheckNull(((int)ad.Campaign.Status).ToString());
 
-			//TODO: segments
-			//foreach (KeyValuePair<Segment, object> Segment in ad.Segments)
-			//{
-			//    row[string.Format("Segment{0}", ad.Segments)] = Conversion.Value;
-			//}
+
+
 			_adDataTable.Rows.Add(row);
 			if (_adDataTable.Rows.Count == _bufferSize)
 			{
@@ -450,6 +461,23 @@ namespace Edge.Data.Pipeline.Importing
 					_adCreativesDataTable.Clear();
 				}
 			}
+			//segments
+
+
+			foreach (KeyValuePair<Segment, SegmentValue> Segment in ad.Segments)
+			{
+				row = _segmetsDataTable.NewRow();
+				row[adUsidFieldName] = adUsid;
+				row[Segments_SegmentID_FieldName] = Segment.Key.ID;
+				row[Segments_Value_FieldName] = Segment.Value.Value;
+				row[Segments_ValueOriginalID_FieldName] = Segment.Value.OriginalID;
+				_segmetsDataTable.Rows.Add(row);
+				if (_segmetsDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkSegments.WriteToServer(_segmetsDataTable);
+					_segmetsDataTable.Clear();
+				}
+			}
 		}
 
 		private int GetCreativeType(Type type)
@@ -488,6 +516,7 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch.WriteToServer(_metricsTargetMatchDataTable);
 			_bulkAd.WriteToServer(_adDataTable);
 			_bulkAdTarget.WriteToServer(_adTargetDataTable);
+			_bulkSegments.WriteToServer(_segmetsDataTable);
 			_sqlConnection.Dispose();
 
 
