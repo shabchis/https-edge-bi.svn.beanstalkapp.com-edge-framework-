@@ -27,6 +27,7 @@ namespace Edge.Data.Objects
 
 			// setting
 			ad.Segments[Segment.AdGroupSegment] = new SegmentValue() { Value = "40+ Male" };
+	 * ad.Name = "asdasdas";
 
 			// saving to db
 			foreach (var pair in ad.Segments)
