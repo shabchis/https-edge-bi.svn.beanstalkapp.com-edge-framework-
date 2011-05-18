@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
+using Edge.Core.Services2.Scheduling;
 
 namespace Edge.Core.Services2
 {
@@ -18,10 +19,11 @@ namespace Edge.Core.Services2
 		public string ServiceName;
 		public bool IsEnabled;
 		public bool IsPublic;
-		public ServiceExecutionSettings Settings;
+		public ServiceExecutionLimits Limits;
 		public Dictionary<string, object> Parameters;
 		public List<SchedulingRule> SchedulingRules;
 		public ServiceExecutionStatistics Statistics;
+		public ServicePriority Priority;
 	}
 
 	[Serializable]
@@ -32,7 +34,7 @@ namespace Edge.Core.Services2
 	}
 
 	[Serializable]
-	public class ServiceExecutionSettings
+	public class ServiceExecutionLimits
 	{
 		public int MaxConcurrentGlobal = 0;
 		public int MaxConcurrentPerProfile = 0;
