@@ -11,11 +11,17 @@ using System.Reflection;
 using System.IO;
 using System.Xml;
 using System.Xml.Schema;
+using Eggplant.Model;
 
 namespace Eggplant.Persistence.Providers.Xml
 {
 	public class XmlProvider : PersistenceProvider
 	{
+		class Namespaces
+		{
+			public const string XmlProviderMappings = @"http://schemas.eggplant-framework.org/1.0/providers/xml/mappings";
+		}
+
 		/*public readonly Stream Stream = null;*/
 		public readonly string Url = null;
 		public readonly string SchemaUrl = null;
@@ -55,21 +61,60 @@ namespace Eggplant.Persistence.Providers.Xml
 		{
 			XmlReader reader = XmlReader.Create(schemalUrl, _xmlReaderSettings);
 
-			while (!reader.EOF)
-			{
-				reader.Read();
+			
+		}
 
-				if (reader.NodeType == XmlNodeType.Element)
+		private ObjectMapping ReadObjectMapping(XmlReader reader)
+		{
+			
+			if (reader.NodeType != XmlNodeType.Element && reader.Name != "xs:complexType")
+				throw new InvalidOperationException("Object mapping can only be read from a xs:complexType element.");
+
+			int depth = reader.Depth;
+			ObjectMapping mapping = new ObjectMapping();
+			string mapsTo = null;
+
+			// Find mapping info
+			while (reader.MoveToNextAttribute())
+			{
+				if (reader.NamespaceURI != Namespaces.XmlProviderMappings)
+					continue;
+
+				if (reader.Name == "mapsTo" )
 				{
-					if (attribute == reader.NameTable.Get("complexType"))
-					while (reader.MoveToNextAttribute())
-					{
-						string attribute = reader.Name;
-						
-					}
+					mapsTo = reader.Value;
+				}
+				else if (reader.Name == "queryMapping")
+				{
+					// TODO: parse query mapping
 				}
 			}
+			if (mapsTo == null)
+				return null;
+			else
+				mapping.TargetObject = this.Model.Definitions[mapsTo];
+
+			while (reader.Read())
+			{
+				// Reached the end of this object mapping
+				if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
+					break;
+
+				if (reader.NodeType == XmlNodeType.Element && reader.Name == "attribute")
+				{
+					var propMapping = new PropertyMapping();
+					propMapping.NodeName = reader.GetAttribute("name");
+					string propertyName = reader.GetAttribute("mapsTo", Namespaces.XmlProviderMappings) ?? propMapping.NodeName;
+					PropertyDefinition prop = mapping.TargetObject.Properties[propertyName];
+					propMapping.Property = prop;
+				}
+
+				// TODO: understand lists (ep-xml:list?)
+			}
+
+			return mapping;
 		}
+
 
 		protected override PersistenceConnection CreateNewConnection()
 		{

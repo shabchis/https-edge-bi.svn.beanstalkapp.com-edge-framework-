@@ -16,20 +16,27 @@ namespace Eggplant.Persistence.Providers.Xml
 	{
 		public ObjectDefinition TargetObject { get; set; }
 		public List<QueryMapping> QueryMappings { get; set; }
+		public List<PropertyMapping> PropertyMappings { get; set}
 	}
 
 	public class QueryMapping
 	{
 		public QueryDefinition TargetQuery { get; set; }
 		public string XPath { get; set; }
-		public List<ParameterMapping> Mappings { get; set; }
+		public List<QueryParameterMapping> Mappings { get; set; }
 	}
 
-	public class ParameterMapping
+	public class QueryParameterMapping
 	{
 		public PropertyDefinition Property { get; set; }
 		public QueryParameter QueryParameter { get; set; }
 		public string XPathParameter { get; set; }
+	}
+
+	public class PropertyMapping
+	{
+		public string NodeName { get; set;}
+		public PropertyDefinition Property { get; set; }
 	}
 
 }
