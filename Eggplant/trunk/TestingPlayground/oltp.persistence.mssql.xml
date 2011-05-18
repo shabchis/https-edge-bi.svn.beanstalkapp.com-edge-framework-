@@ -1,0 +1,189 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ObjectMappings
+	xmlns="http://schemas.eggplant-framework.org/1.0/providers/sqlserver/mappings"
+	>
+
+	<ObjectMapping For="Account">
+
+		<QueryMapping For="GetAll">
+			<Command Type="Text">
+				<!--ScriptFile="SQL/Account_GetAll.sql"-->
+				<Text>select Account_ID, Account_Name from User_GUI_Account order by Account_Name</Text>
+				<Mappings>
+					<Map Direction="Out" Property="ID" ResultField="Account_ID"/>
+					<Map Direction="Out" Property="Name" ResultField="Account_Name"/>
+				</Mappings>
+			</Command>
+		</QueryMapping>
+
+		<QueryMapping For="GetRegistrationDates">
+			<Command Type="Text">
+				<Text>select DateAdded from User_GUI_Account</Text>
+				<Mappings>
+					<Map Direction="Out" ResultField="DateAdded"/>
+				</Mappings>
+			</Command>
+		</QueryMapping>
+
+		<QueryMapping For="GetByUserPermissions">
+			<Command Type="Text">
+				<Text>
+					/*
+					{@userID:Int}
+					*/
+					select
+					Account_ID,
+					Account_Name
+					from User_GUI_Account AS ac
+					where
+					exists (select UserID from User_GUI_User where (UserID = @userID) and (AccountAdmin = 1))
+					or
+					exists (select ug.UserID from User_GUI_UserGroupUser AS ug inner join V_User_GUI_ActiveUserGroup AS g ON g.GroupID = ug.GroupID AND g.AccountAdmin = 1 WHERE (ug.UserID = @userID))
+					or
+					exists (select TargetID from User_GUI_AccountPermission AS ap where (AccountID = ac.Account_ID) AND (TargetID = @userID) AND (TargetIsGroup = 0) AND (Value != 0))
+					or
+					(
+					not exists (select TargetID from User_GUI_AccountPermission AS ap where (AccountID = ac.Account_ID) AND (TargetID = @userID) AND (TargetIsGroup = 0) AND (Value = 0))
+					and
+					exists (select ap.TargetID from User_GUI_AccountPermission AS ap inner join V_User_GUI_ActiveUserGroupUser AS ug ON ug.GroupID = ap.TargetID AND ug.UserID = @userID WHERE (ap.AccountID = ac.Account_ID) AND (ap.TargetIsGroup = 1) AND (ap.Value != 0))
+					)
+					order by
+					Account_Name
+				</Text>
+				<CommandParameters>
+					<CommandParameter Name="@userID" Type="Int"/>
+				</CommandParameters>
+				<Mappings>
+					<Map Direction="In" QueryParameter="user.ID" CommandParameter="@userID"/>
+					<Map Direction="Out" Property="ID" ResultField="Account_ID"/>
+					<Map Direction="Out" Property="Name" ResultField="Account_Name"/>
+				</Mappings>
+			</Command>
+		</QueryMapping>
+
+		<QueryMapping For="Save">
+			<Command ForDataState="Detached" Type="Text">
+				<Text>insert into User_GUI_Account (Account_Name) values ({@name:type=NVarChar,length=50}); select SCOPE_IDENTITY() as NewID;</Text>
+				<Mappings>
+					<Map Direction="In" Property="Name" CommandParameter="@name"/>
+					<Map Direction="Out" Property="ID" ResultField="NewID"/>
+				</Mappings>
+			</Command>
+
+			<Command ForDataState="Unchanged,Modified" Type="Text">
+				<Text>update User_GUI_Account set Account_Name = {@name:type=NVarChar,length=50} where Account_ID = {@id:Int}</Text>
+				<Mappings>
+					<Map Direction="In" Property="Name" CommandParameter="@name"/>
+					<Map Direction="In" Property="ID" CommandParameter="@id"/>
+				</Mappings>
+			</Command>
+
+			<Command ForDataState="Deleted" Type="Text">
+				<Text>delete from User_GUI_Account where Account_ID = {@id:Int}</Text>
+				<Mappings>
+					<Map Direction="In" Property="ID" CommandParameter="@id"/>
+				</Mappings>
+			</Command>
+		</QueryMapping>
+
+	</ObjectMapping>
+
+
+	<!--campaign-->
+	<ObjectMapping For="Campaign">
+
+		<ListSettings For="Adgroups">
+			<QueryMapping For="Load">
+				<Command Type="Text">
+					<Text>select Adgroup_GK, adgroup, adgroupID from UserProcess_GUI_PaidAdGroup where Campaign_GK = {@campaign:BigInt}</Text>
+				</Command>
+				<Mappings>
+					<Map Direction="In" ParentProperty="ID" CommandParameter="@campaign"/>
+					<Map Direction="Out" Property="ID" ResultField="Adgroup_GK"/>
+					<Map Direction="Out" Property="Name" ResultField="adgroup"/>
+					<Map Direction="Out" Property="SourceObjectID" ResultField="adgroupID"/>
+				</Mappings>
+			</QueryMapping>
+
+			<QueryMapping For="Save" UseObjectQuerySettings="true" Transaction="true"/>
+		</ListSettings>
+
+	</ObjectMapping>
+
+	<ObjectMapping For="Adgroup">
+		<QueryMapping For="GetByCampaign">
+			<Command Type="Text">
+
+			</Command>
+		</QueryMapping>
+
+		<QueryMapping For="GetOrCreate">
+			<Command Type="StoredProcedure">
+				<Text>
+					Adgroup_GetOrCreate
+					(
+					0,
+					{@updateSource:NVarChar},
+					{@campaignID:BigInt},
+					{@name:NVarChar}
+					)
+				</Text>
+				<Mappings>
+					<Map Direction="In" CommandParameter="@updateSource" PersistenceSetting="CurrentUpdateSource"/>
+					<Map Direction="In" CommandParameter="@campaignID" Property="Campaign" ReferenceProperty="ID"/>
+					<Map Direction="In" CommandParameter="@name" Property="Name"/>
+					<Map Direction="Out" ResultField="ID" Property="ID"/>
+					<Map Direction="Out" ResultField="LastUpdated" Property="LastUpdated"/>
+					<Map Direction="Out" ResultField="LastUpdatedSource" Property="LastUpdatedSource"/>
+				</Mappings>
+			</Command>
+		</QueryMapping>
+
+		<QueryMapping For="Save">
+			<Command ForDataState="Detached" Type="StoredProcedure">
+				<Text>
+					Adgroup_GetOrCreate
+					(
+					1,
+					{@updateSource:NVarChar},
+					{@campaignID:BigInt},
+					{@name:NVarChar}
+					)
+				</Text>
+				<Mappings>
+					<Map Direction="In" Property="Name" CommandParameter="@name"/>
+					<Map Direction="In" Property="SourceObjectID" CommandParameter="@sourceObjectID"/>
+					<Map Direction="Out" Property="ID" ResultField="ID"/>
+					<Map Direction="Out" Property="ModifyDate" ResultField="LastUpdated"/>
+					<Map Direction="Out" Property="ModifySource" ResultField="LastUpdatedSource"/>
+				</Mappings>
+				<Exceptions>
+					<Exception Throw="AlreadyExists">
+						<If ResultField="ErrorName" Equals="AlreadyExists"/>
+						<If SqlErrorMessage="AlreadyExists"/>
+					</Exception>
+				</Exceptions>
+			</Command>
+
+			<Command ForDataState="Unchanged,Modified" Type="Text">
+				<Text>
+					update UserProcess_GUI_Adgroup
+					set Account_Name = {@name:type=NVarChar,length=50} where Account_ID = {@id:Int}
+				</Text>
+				<Mappings>
+					<Map Direction="In" Property="Name" CommandParameter="@name"/>
+					<Map Direction="In" Property="ID" CommandParameter="@id"/>
+				</Mappings>
+			</Command>
+
+			<Command ForDataState="Deleted" Type="Text">
+				<Text>delete from UserProcess_GUI_Adgroup where Adgroup_GK = {@id:Int}</Text>
+				<Mappings>
+					<Map Direction="In" Property="ID" CommandParameter="@id"/>
+				</Mappings>
+			</Command>
+		</QueryMapping>
+	</ObjectMapping>
+
+
+</ObjectMappings>

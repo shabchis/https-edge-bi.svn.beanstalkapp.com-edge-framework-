@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="XsdExtensions"
+    targetNamespace="http://schemas.eggplant-framework.org/1.0/providers/xml/mappings"
+    elementFormDefault="qualified"
+	attributeFormDefault="unqualified"
+    xmlns="http://schemas.eggplant-framework.org/1.0/providers/xml/mappings"
+	xmlns:ep-m="http://schemas.eggplant-framework.org/1.0/model"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+	<xs:attribute name="mapsTo" type="xs:string"/>
+
+	<xs:element name="ObjectMappings">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="ObjectMapping" type="ObjectMapping" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:complexType name="ObjectMapping">
+		<xs:sequence>
+			<xs:element name="QueryMapping" type="QueryMapping" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="For" type="xs:string" use="required"/>
+	</xs:complexType>
+
+	<xs:complexType name="QueryMapping">
+		<xs:all>
+			<xs:element name="Mappings" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Map" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:attribute name="Property" type="xs:string" use="optional"/>
+								<xs:attribute name="QueryParameter" type="xs:string" use="optional"/>
+								<xs:attribute name="XPathParameter" type="xs:string" use="required"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:all>
+		<xs:attribute name="For" type="xs:string" use="required"/>
+		<xs:attribute name="XPath" type="xs:string" use="required"/>
+	</xs:complexType>
+	
+	
+</xs:schema>

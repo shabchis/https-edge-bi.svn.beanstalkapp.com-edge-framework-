@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://schemas.eggplant-framework.org/1.0/model"
+	xmlns:ep-xml="http://schemas.eggplant-framework.org/1.0/providers/xml/mappings"
+	targetNamespace="http://schemas.eggplant-framework.org/1.0/model"
+	attributeFormDefault="unqualified"
+	elementFormDefault="qualified"
+	>
+
+	<!--===================================-->
+	<!-- Types -->
+
+	<!-- General -->
+	<xs:element name="ObjectModel">
+		<xs:complexType ep-xml:mapsTo="ObjectModel">
+			<xs:sequence>
+				<xs:element name="Object" type="Object" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="Namespace" type="xs:string" use="required" />
+		</xs:complexType>
+		<xs:key name="_Object_Name">
+			<xs:selector xpath="Object"/>
+			<xs:field xpath="@Name"/>
+		</xs:key>
+		<xs:keyref name="_Object_BasedOn" refer="_Object_Name">
+			<xs:selector xpath="Object"/>
+			<xs:field xpath="@BasedOn"/>
+		</xs:keyref>
+	</xs:element>
+
+	<!-- Object -->
+	<xs:complexType name="Object" ep-xml:mapsTo="ObjectDefinition">
+		<xs:all>
+			<xs:element name="Generics" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Type" maxOccurs="unbounded">
+							<xs:complexType ep-xml:mapsTo="GenericTypeParameter">
+								<xs:attribute name="Param" type="xs:string"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+				<xs:key name="_GenericType_Param">
+					<xs:selector xpath="Type"/>
+					<xs:field xpath="@Param"/>
+				</xs:key>
+			</xs:element>
+
+			<xs:element name="Properties" minOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Property" type="Property" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+				<xs:key name="_Property_Name">
+					<xs:selector xpath="Property"/>
+					<xs:field xpath="@Name"/>
+				</xs:key>
+			</xs:element>
+			
+			<xs:element name="Queries" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Query" type="Query" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+				<xs:key name="_Query_Name">
+					<xs:selector xpath="Query"/>
+					<xs:field xpath="@Name"/>
+				</xs:key>
+			</xs:element>
+		</xs:all>
+		
+		<xs:attribute name="Name" type="xs:string" use="required" />
+		<xs:attribute name="Abstract" type="xs:boolean" use="optional" default="false" ep-xml:mapsTo="IsAbstract"/>
+		<xs:attribute name="BasedOn" type="xs:string" use="optional" ep-xml:mapsTo="BaseDefinition"/>
+	</xs:complexType>
+
+	<!-- Properties -->
+	<xs:complexType name="Property" ep-xml:mapsTo="PropertyDefinition">
+		<xs:all minOccurs="0">
+			<xs:element name="Constraints">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Constraint" type="PropertyConstraint" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:all>
+		
+		<xs:attribute name="Name" type="xs:string" use="required" />
+		<xs:attribute name="Type" type="xs:string" use="required" ep-xml:mapsTo="TypeObjectDefinition"/>
+		<xs:attribute name="Access" type="PropertyAccess" use="optional" default="ReadWrite"/>
+		<xs:attribute name="EmptyValue" type="xs:string" use="optional"/>
+		<xs:attribute name="DefaultValue" type="xs:string" use="optional"/>
+		<xs:attribute name="AllowEmpty" type="xs:boolean" use="optional" default="false" />
+	</xs:complexType>
+
+	<xs:complexType name="PropertyConstraint">
+		<xs:attribute name="Property" type="xs:string" use="required" />
+		<xs:attribute name="Value" type="xs:string" use="required" />
+		<xs:attribute name="EmptyValueOnRemove" type="xs:boolean" use="optional" default="true" />
+	</xs:complexType>
+
+	<xs:simpleType name="PropertyAccess">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="ReadWrite"/>
+			<xs:enumeration value="ReadOnly"/>
+			<xs:enumeration value="ReadWriteDetached"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Queries -->
+	<xs:complexType name="Query" ep-xml:mapsTo="QueryDefinition">
+		<xs:sequence minOccurs="0">
+			<xs:element name="Parameters">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Parameter" maxOccurs="unbounded">
+							<xs:complexType ep-xml:mapsTo="QueryParameter">
+								<xs:attribute name="Name" type="xs:string" use="required" />
+								<xs:attribute name="MapsTo" type="xs:string" use="optional" /><!--either-->
+								<xs:attribute name="Type" type="xs:string" use="optional" /><!--or-->
+								<xs:attribute name="AllowEmpty" type="xs:boolean" use="optional" default="false" />
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+
+				<xs:key name="_Parameter_Name">
+					<xs:selector xpath="Parameter"/>
+					<xs:field xpath="@Name"/>
+				</xs:key>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="Name" type="xs:string" use="required" />
+		<xs:attribute name="Scope" type="QueryScope" use="required" />
+		<xs:attribute name="ReturnType" type="xs:string" use="optional" />
+	</xs:complexType>
+
+	<xs:simpleType name="QueryScope">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Global"/>
+			<xs:enumeration value="Local"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="QueryReturn">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Nothing"/>
+			<xs:enumeration value="Value"/>
+			<xs:enumeration value="Array"/>
+			<xs:enumeration value="Reader"/>
+			<xs:enumeration value="ResultSet"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Eggplant XML Provider mapping info -->
+	<xs:annotation>
+		<xs:appinfo source="ep-xml">
+			<ObjectMappings xmlns="http://schemas.eggplant-framework.org/1.0/providers/xml/mappings">
+				<ObjectMapping For="ObjectModel">
+					<QueryMapping For="Load" XPath="./ObjectModel" />
+				</ObjectMapping>
+			</ObjectMappings>
+		</xs:appinfo>
+	</xs:annotation>
+
+</xs:schema>

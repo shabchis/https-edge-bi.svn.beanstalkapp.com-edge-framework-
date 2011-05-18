@@ -1,0 +1,292 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ObjectModel xmlns="http://schemas.eggplant-framework.org/1.0/model" Namespace="Edge.Models.UserModel">
+
+		<Object Name="Account">
+			<Properties>
+				<Property Name="ID" Type="int" Access="ReadOnly" EmptyValue="-1"/>
+				<Property Name="Name" Type="string" AllowEmpty="false"/>
+				<Property Name="AssignedPermissions" Type="Dictionary[string, PermissionAssignment]">
+					<Constraints>
+						<Constraint Property="[value].Target" Value="[this]"/>
+					</Constraints>
+				</Property>
+			</Properties>
+
+			<Queries>
+				<Query Scope="Global" Name="GetByID">
+					<Parameters>
+						<Parameter Name="id" MapsTo="ID"/>
+					</Parameters>
+				</Query>
+				<Query Scope="Global" Name="GetByName">
+					<Parameters>
+						<Parameter Name="name" MapsTo="Name"/>
+					</Parameters>
+				</Query>
+				<Query Scope="Global" Name="GetAll"/>
+				<Query Scope="Global" Name="GetByUserPermissions">
+					<Parameters>
+						<Parameter Name="user" Type="User" AllowEmpty="false"/>
+					</Parameters>
+				</Query>
+			</Queries>
+		</Object>
+
+		<Enum Name="PermissionAssignmentType">
+			<Value Name="Allow" Value="-1"/>
+			<Value Name="Deny" Value="0"/>
+		</Enum>
+
+		<Object Name="PermissionAssignment">
+			<Properties>
+				<Property Name="Target" Type="PermissionTarget"/>
+				<Property Name="Account" Type="Account"/>
+				<Property Name="Assignments" Type="Dictionary[string,PermissionAssignmentType]"/>
+			</Properties>
+		</Object>
+
+		<Object Name="AccountPermission">
+			<Properties>
+				<Property Name="Account" Type="Account"/>
+				<Property Name="Assignments" Type="List[PermissionAssignment]">
+					<Constraint Property="Account" Value="[this].Account"/>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Name="PermissionTarget" Abstract="true">
+			<Properties>
+				<Property Name="ID" Type="int" Access="ReadOnly" EmptyValue="-1"/>
+				<Property Name="Permissions" Access="ReadOnly" Type="Dictionary[Account,AccountPermission]">
+					<Constraint Property="Target" Value="[this]"/>
+
+					<!-- this is implied by the fact that the type is a ObjectDictionary
+					<Identities>
+						<Identity>
+							<Segment Property="Account"/>
+						</Identity>
+					</Identities>
+					-->
+				</Property>
+			</Properties>
+		</Object>
+		<!--
+		<![CDATA[
+			Account a = Account.GetByName("Woodstock");
+			
+			Group g = new Group("Guitarists");
+			g.Permissions.Add(a, new List<PermissionAssignment>
+			{
+				{ "/vip/lounges/country", PermissionAssignment.Allow },
+				{ "/vip/pool", PermissionAssignment.Allow }
+			});
+			
+			User u = new User("johnny@demo.com", "Johnny Cash");
+			u.Groups.Add(g);
+			u.Permissions[a]["/equipment/guitar"] = PermissionAssignment.Allow;
+		]]>
+		-->
+
+		<!-- User -->
+		<Object Name="User" BasedOn="PermissionTarget">
+			<Properties>
+				<Property Name="Name" Type="string" AllowEmpty="false"/>
+				<Property Name="Email" Type="Email" AllowEmpty="false"/>
+				<Property Name="Groups" Type="List[Group]" IsListOwner="true"/>
+				<!--<Property Name="CalculatedPermissions" Type="Array[string]" Access="ReadOnly"/>-->
+			</Properties>
+		</Object>
+
+
+		<!-- Channel -->
+		<Object Name="Channel">
+			<Properties>
+				<Property Name="ID" Type="int" Access="ReadOnly" EmptyValue="-1"/>
+				<Property Name="Name" Type="string" AllowEmpty="false"/>
+			</Properties>
+
+			<Queries>
+				<Query Scope="Global" Name="GetAll" ShortcutReturns="Array"/>
+			</Queries>
+		</Object>
+
+
+		<!-- ObjectWithSegments -->
+		<Object Name="ObjectWithSegments" Abstract="true">
+			<Properties>
+				<Property Name="ID" Type="long" Access="ReadOnly" EmptyValue="-1"/>
+				<Property Name="Account" Type="Account" AllowEmpty="false"/>
+				<Property Name="LastUpdated" Type="DateTime" Access="ReadOnly" EmptyValue="DateTime.MinValue"/>
+				<Property Name="Segments" Type="SegmentTable">
+				</Property>
+			</Properties>
+
+		</Object>
+
+		<!-- Keyword -->
+		<Object Name="Keyword" BasedOn="ObjectWithSegments">
+			<Properties>
+				<Property Name="Text" Type="string" Access="ReadWriteDetached" AllowEmpty="false"/>
+			</Properties>
+
+			<Queries>
+				<Query Scope="Global" Name="GetByAccount">
+					<Parameters>
+						<Parameter Name="account" Type="Account"/>
+					</Parameters>
+					<Shortcuts>
+						<Shortcut Name="GetByAccount_ResultSet" Returns="ResultSet"/>
+						<Shortcut Name="GetByAccount_Array" Returns="Array"/>
+						<Shortcut Name="GetByAccount_Reader" Returns="Reader"/>
+					</Shortcuts>
+				</Query>
+			</Queries>
+
+			<Constructors HasDefault="false">
+				<Constructor>
+					<Parameter Name="text" MapsTo="Text"/>
+				</Constructor>
+			</Constructors>
+		</Object>
+
+
+		<!-- Placement -->
+		<Object Name="Placement" BasedOn="ObjectWithSegments">
+			<Properties>
+				<Property Name="Location" Type="string" Access="ReadWriteDetached"  AllowEmpty="false"/>
+			</Properties>
+
+			<Queries>
+				<Query Scope="Global" Name="GetByAccount">
+					<Parameters>
+						<Parameter Name="account" Type="Account"/>
+					</Parameters>
+				</Query>
+			</Queries>
+
+			<Constructors HasDefault="false">
+				<Constructor>
+					<Parameter Name="location" MapsTo="Location"/>
+				</Constructor>
+			</Constructors>
+		</Object>
+
+		<!-- Creative -->
+	<Object Name="Creative" BasedOn="ObjectWithSegments" Abstract="true">
+		<Properties>
+			<Property Name="Title" Type="string" Access="ReadWriteDetached"  AllowEmpty="false"/>
+			<Property Name="Description1" Type="string" Access="ReadWriteDetached" />
+			<Property Name="Description2" Type="string" Access="ReadWriteDetached" />
+		</Properties>
+
+		<Queries>
+			<Query Scope="Global" Name="GetByAccount">
+				<Parameters>
+					<Parameter Name="account" Type="Account"/>
+				</Parameters>
+			</Query>
+		</Queries>
+
+		<Constructors HasDefault="false">
+			<Constructor>
+				<Parameter Name="title" MapsTo="Title"/>
+			</Constructor>
+		</Constructors>
+	</Object>
+
+	<ObjectModel Namespace="Easynet.BusinessObjects.Paid">
+
+		<!-- Campaign -->
+		<Object Name="Campaign" BasedOn="ObjectWithSegments">
+			<Properties>
+				<Property Name="Channel" Type="Channel" AllowEmpty="false"/>
+				<Property Name="Name" Type="string" Access="ReadWriteDetached" AllowEmpty="false" />
+				<Property Name="SourceObjectID" Type="string"/>
+				<Property Name="Adgroups" Type="BoundList" ListItemType="Adgroup">
+					<Constraint Property="Campaign" Value="[this]"/>
+				</Property>
+			</Properties>
+
+			<Queries>
+				<Query Scope="Global" Name="GetByAccount">
+					<Parameters>
+						<Parameter Name="account" Type="Account"/>
+					</Parameters>
+				</Query>
+			</Queries>
+		</Object>
+
+		<!-- Adgroup -->
+		<Object Name="Adgroup" BasedOn="ObjectWithSegments">
+			<Properties>
+				<Property Name="Campaign" Type="Campaign" Access="ReadOnly" AllowEmpty="false"/>
+				<Property Name="Name" Type="string" Access="ReadWriteDetached" AllowEmpty="false"/>
+				<Property Name="SourceObjectID" Type="string"/>
+				<Property Name="Keywords" Type="List[AdgroupKeyword]">
+					<Constraint Property="Adgroup" Value="[this]"/>
+				</Property>
+				<Property Name="Placements" Type="List[AdgroupPlacement">
+					<Constraint Property="Adgroup" Value="[this]"/>
+				</Property>
+				<Property Name="Creatives" Type="List[AdgroupCreative">
+					<Constraint Property="Adgroup" Value="[this]"/>
+				</Property>
+			</Properties>
+
+			<Queries>
+				<Query Name="GetOrCreate" Scope="Global" ShortcutReturns="Value" ReturnType="Adgroup">
+					<Parameters>
+						<Parameter Name="campaign" Type="Campaign"/>
+						<Parameter Name="name" Type="string"/>
+						<Parameter Name="sourceObjectID" Type="string"/>
+					</Parameters>
+				</Query>
+				<Query Name="Save" Scope="Local">
+					<Exceptions>
+						<Exception Name="AlreadyExists"
+								   ExceptionType="PersistenceException"
+								   Message="An adgroup already exists with the name {0} in campaign {1}."
+								   MessageExpression="Settings&lt;Adgroup>(&quot;AlreadyExists&quot;)"
+								   MessageParameters="name, campaign.Name"
+						/>
+					</Exceptions>
+				</Query>
+			</Queries>
+		</Object>
+
+		<!-- AdgroupItem -->
+		<Object Name="AdgroupItem" BasedOn="ObjectWithSegments" Abstract="true">
+			<Properties>
+				<Property Name="Adgroup" Type="Adgroup" Access="ReadWriteDetached"  AllowEmpty="false"/>
+				<Property Name="SourceObjectID" Type="string"/>
+				<Property Name="DestinationUrl" Type="string"/>
+			</Properties>
+		</Object>
+
+		<!-- AdgroupKeyword -->
+		<Object Name="AdgroupKeyword" BasedOn="AdgroupItem">
+			<Properties>
+				<Property Name="BaseKeyword" Type="Keyword" Access="ReadWriteDetached"  AllowEmpty="false"/>
+				<Property Name="MatchType" Type="KeywordMatchType"/>
+			</Properties>
+		</Object>
+
+		<!-- AdgroupPlacement -->
+		<Object Name="AdgroupPlacement" BasedOn="AdgroupItem">
+			<Properties>
+				<Property Name="BasePlacement" Type="Placement" Access="ReadWriteDetached"  AllowEmpty="false"/>
+				<Property Name="PlacementType" Type="PlacementType"/>
+			</Properties>
+		</Object>
+
+		<!-- AdgroupCreative -->
+		<Object Name="AdgroupCreative" BasedOn="AdgroupItem">
+			<Properties>
+				<Property Name="BaseCreative" Type="Creative" Access="ReadWriteDetached"  AllowEmpty="false"/>
+				<Property Name="DisplayUrl" Type="string"/>
+			</Properties>
+		</Object>
+		
+	</ObjectModel>
+
+</ObjectModel>

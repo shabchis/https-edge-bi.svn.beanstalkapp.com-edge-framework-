@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://schemas.eggplant-framework.org/1.0/providers/sqlserver/mappings"
+	xmlns:ep-xml="http://schemas.eggplant-framework.org/1.0/providers/xml/mappings"
+	targetNamespace="http://schemas.eggplant-framework.org/1.0/providers/sqlserver/mappings"
+	attributeFormDefault="unqualified"
+	elementFormDefault="qualified"
+	>
+
+	<xs:element name="ObjectMappings" ep-xml:mapsTo="SqlServerObjectMappings">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="ObjectMapping" type="ObjectMapping" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:complexType name="ObjectMapping">
+		<xs:sequence>
+			<xs:element name="QueryMapping" type="QueryMapping" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="For" type="xs:string" use="required"/>
+	</xs:complexType>
+
+	<xs:complexType name="QueryMapping">
+		<xs:sequence>
+			<xs:element name="Command" type="Command" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="For" type="xs:string" use="required"/>
+	</xs:complexType>
+
+	<xs:complexType name="Command">
+		<xs:all>
+			<xs:element name="Text" type="xs:string"/>
+			<xs:element name="CommandParameters" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="CommandParameter" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:attribute name="Name" type="xs:string" use="required"/>
+								<xs:attribute name="Type" type="xs:string" use="optional"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="Mappings" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Map" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:attribute name="Direction" type="MappingDirection" use="required"/>
+								<xs:attribute name="Property" type="xs:string" use="optional"/>
+								<xs:attribute name="QueryParameter" type="xs:string" use="optional"/>
+								<xs:attribute name="CommandParameter" type="xs:string" use="optional"/>
+								<xs:attribute name="ResultField" type="xs:string" use="optional"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:all>
+		<xs:attribute name="Type" type="CommandType" use="required"/>
+		<xs:attribute name="ForDataState" type="xs:string" use="optional"/>
+	</xs:complexType>
+	
+	<xs:simpleType name="CommandType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Text"/>
+			<xs:enumeration value="StoredProcedure"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="MappingDirection">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="In"/>
+			<xs:enumeration value="Out"/>
+			<xs:enumeration value="InAndOut"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>
