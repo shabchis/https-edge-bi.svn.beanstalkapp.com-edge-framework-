@@ -13,7 +13,10 @@
 
 	<!-- General -->
 	<xs:element name="ObjectModel">
-		<xs:complexType ep-xml:mapsTo="ObjectModel">
+		<xs:complexType
+				ep-xml:mapsTo="ObjectModel"
+				ep-xml:queryMapping="Load -> ./ObjectModel"
+		>
 			<xs:sequence>
 				<xs:element name="Object" type="Object" maxOccurs="unbounded"/>
 			</xs:sequence>
@@ -30,10 +33,13 @@
 	</xs:element>
 
 	<!-- Object -->
-	<xs:complexType name="Object" ep-xml:mapsTo="ObjectDefinition">
+	<xs:complexType name="Object"
+					ep-xml:mapsTo="ObjectDefinition"
+					ep-xml:queryMapping="GetByName -> ./ObjectModel/Object[@Name='{name:System.String}'] "
+	>
 		<xs:all>
 			<xs:element name="Generics" minOccurs="0">
-				<xs:complexType>
+				<xs:complexType ep-xml:list="true">
 					<xs:sequence>
 						<xs:element name="Type" maxOccurs="unbounded">
 							<xs:complexType ep-xml:mapsTo="GenericTypeParameter">
@@ -156,16 +162,5 @@
 			<xs:enumeration value="ResultSet"/>
 		</xs:restriction>
 	</xs:simpleType>
-
-	<!-- Eggplant XML Provider mapping info -->
-	<xs:annotation>
-		<xs:appinfo source="ep-xml">
-			<ObjectMappings xmlns="http://schemas.eggplant-framework.org/1.0/providers/xml/mappings">
-				<ObjectMapping For="ObjectModel">
-					<QueryMapping For="Load" XPath="./ObjectModel" />
-				</ObjectMapping>
-			</ObjectMappings>
-		</xs:appinfo>
-	</xs:annotation>
-
+	
 </xs:schema>

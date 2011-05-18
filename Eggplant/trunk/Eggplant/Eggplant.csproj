@@ -46,7 +46,7 @@
       <DependentUpon>ObjectMappings.schema.xsd</DependentUpon>
     </Compile>
     <Compile Include="Readers\IReader.cs" />
-    <Compile Include="Data\ObjectReader.cs" />
+    <Compile Include="Readers\ObjectReader.cs" />
     <Compile Include="Model\Queries\Enums.cs" />
     <Compile Include="Model\Queries\Query.cs" />
     <Compile Include="Model\Queries\QueryResultReader.cs" />
@@ -67,32 +67,6 @@
       <DependentUpon>ObjectModel.schema.xsd</DependentUpon>
     </Compile>
     <Compile Include="Model\DataState.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\arraymanager.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\astnode.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\axis.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\AxisQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\BaseQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\ExprQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\filter.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\FilterQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\function.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\FunctionQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\group.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\IQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\operand.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\OperandQuery.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\operator.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\queryBuilder.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\root.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\variable.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\xmlchartype.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\XPathCollection.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\xpathexpr.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\xpathnodetype.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\xpathparser.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\xpathreader.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\XPathReaderException.cs" />
-    <Compile Include="Readers\ThirdParty\XPathReader\xpathscanner.cs" />
     <Compile Include="Security\Encryption.cs" />
   </ItemGroup>
   <ItemGroup>
