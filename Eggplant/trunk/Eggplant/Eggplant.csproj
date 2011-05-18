@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{F26C4E12-6598-4A18-AA39-88E040A09EC8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Eggplant</RootNamespace>
+    <AssemblyName>Eggplant</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Configuration\AppSettings.cs" />
+    <Compile Include="Configuration\SettingsCollection.cs" />
+    <Compile Include="Persistence\Providers\Xml\ObjectMappings.schema.cs">
+      <DependentUpon>ObjectMappings.schema.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="Readers\IReader.cs" />
+    <Compile Include="Data\ObjectReader.cs" />
+    <Compile Include="Model\Queries\Enums.cs" />
+    <Compile Include="Model\Queries\Query.cs" />
+    <Compile Include="Model\Queries\QueryResultReader.cs" />
+    <Compile Include="Persistence\Base\PersistenceConnectionManager.cs" />
+    <Compile Include="Persistence\Base\PersistenceCommand.cs" />
+    <Compile Include="Persistence\Base\PersistenceConnection.cs" />
+    <Compile Include="Persistence\Base\PersistenceProvider.cs" />
+    <Compile Include="Persistence\Base\Persistence.cs" />
+    <Compile Include="Persistence\Providers\SqlServer\ObjectMappings.schema.cs">
+      <DependentUpon>ObjectMappings.schema.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="Persistence\Providers\SqlServer\SqlServerConnection.cs" />
+    <Compile Include="Persistence\Providers\SqlServer\SqlServerProvider.cs" />
+    <Compile Include="Persistence\Providers\Xml\XmlConnection.cs" />
+    <Compile Include="Persistence\Providers\Xml\XmlProvider.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Model\ObjectModel.schema.cs">
+      <DependentUpon>ObjectModel.schema.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="Model\DataState.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\arraymanager.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\astnode.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\axis.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\AxisQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\BaseQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\ExprQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\filter.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\FilterQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\function.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\FunctionQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\group.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\IQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\operand.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\OperandQuery.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\operator.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\queryBuilder.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\root.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\variable.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\xmlchartype.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\XPathCollection.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\xpathexpr.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\xpathnodetype.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\xpathparser.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\xpathreader.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\XPathReaderException.cs" />
+    <Compile Include="Readers\ThirdParty\XPathReader\xpathscanner.cs" />
+    <Compile Include="Security\Encryption.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Persistence\Providers\SqlServer\ObjectMappings.schema.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Persistence\Providers\Xml\ObjectMappings.schema.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Model\ObjectModel.schema.xsd">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Model\ObjectModel.model.xml">
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

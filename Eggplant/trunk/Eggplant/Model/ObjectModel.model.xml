@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ObjectModel xmlns="http://schemas.eggplant-framework.org/1.0/model" Namespace="Eggplant.Model">
+
+	<Object Name="ObjectModel">
+		<Properties>
+			<Property Name="Definitions" Type="Dictionary[string,ObjectSet]"/>
+		</Properties>
+		<Queries>
+			<Query Name="Load" ReturnType="ObjectModel" Scope="Global"/>
+		</Queries>
+	</Object>
+
+	<Object Name="ObjectDefinition">
+		<Properties>
+			<Property Name="Name" Type="string" AllowEmpty="false"/>
+			<Property Name="Namespace" Type="string" AllowEmpty="true"/>
+			<Property Name="IsAbstract" Type="bool" DefaultValue="false"/>
+			<Property Name="BaseDefinition" Type="ObjectDefinition" AllowEmpty="true"/>
+			<Property Name="Properties" Type="Dictionary[string,PropertyDefinition]"/>
+			<Property Name="Queries" Type="Dictionary[string,QueryDefinition]"/>
+		</Properties>
+	</Object>
+
+	<Object Name="PropertyDefinition">
+		<Generics>
+			<Type Param="T"/>
+		</Generics>
+		<Properties>
+			<Property Name="Name" Type="string"/>
+			<Property Name="TypeName" Type="string"/>
+			<Property Name="Access" Type="PropertyAccess" AllowEmpty="true"/>
+			<Property Name="EmptyValue" Type="T" AllowEmpty="true"/>
+			<Property Name="DefaultValue" Type="T" AllowEmpty="true"/>
+			<Property Name="AllowEmpty" Type="bool" DefaultValue="false"/>
+			<Property Name="Constraints" Type="List[PropertyContraint]"/>
+		</Properties>
+	</Object>
+
+	<Object Name="PropertyConstraint">
+		<Generics>
+			<Type Param="T"/>
+		</Generics>
+		<Properties>
+			<Property Name="Property" Type="PropertyDefinition"/>
+			<Property Name="Value" Type="T"/>
+			<Property Name="EmptyValueOnDetach" Type="bool"/>
+		</Properties>
+	</Object>
+
+</ObjectModel>
