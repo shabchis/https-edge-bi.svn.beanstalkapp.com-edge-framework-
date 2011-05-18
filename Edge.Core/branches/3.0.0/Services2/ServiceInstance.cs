@@ -262,6 +262,13 @@ namespace Edge.Core.Services2
 		/// </summary>
 		public void Abort()
 		{
+			// Simple aborting of service without connection
+			if (State == ServiceState.Uninitialized)
+			{
+				Outcome = ServiceOutcome.Aborted;
+				State = ServiceState.Ended;
+			}
+
 			if (State != ServiceState.Running && State != ServiceState.Waiting)
 				throw new InvalidOperationException("Service can only be aborted when it is in the InProgress or Waiting state.");
 

@@ -80,11 +80,14 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Scheduling\Enums.cs" />
+    <Compile Include="Scheduling\SchedulingRule.cs" />
+    <Compile Include="Scheduling\ServiceScheduler.cs" />
     <Compile Include="Services2\Enums.cs" />
     <Compile Include="Services2\Exceptions.cs" />
     <Compile Include="Services2\IServiceConnection.cs" />
     <Compile Include="Services2\LogMessage.cs" />
-    <Compile Include="Services2\SchedulingInfo.cs" />
+    <Compile Include="Scheduling\SchedulingInfo.cs" />
     <Compile Include="Services2\Service.cs" />
     <Compile Include="Services2\ServiceConfiguration.cs" />
     <Compile Include="Services2\ServiceExecutionContext.cs" />
