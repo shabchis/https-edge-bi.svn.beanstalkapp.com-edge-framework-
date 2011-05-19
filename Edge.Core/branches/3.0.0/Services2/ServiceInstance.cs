@@ -7,6 +7,7 @@ using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 using System.Diagnostics;
+using Edge.Core.Services2.Scheduling;
 
 namespace Edge.Core.Services2
 {
@@ -29,7 +30,7 @@ namespace Edge.Core.Services2
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceExecutionContext Context { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingInfo SchedulingInfo { get; private set; }
+		public SchedulingInfo SchedulingInfo { get; internal set; }
 		public ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; private set; }
 
 		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, ServiceInstance parentInstance)
@@ -262,10 +263,15 @@ namespace Edge.Core.Services2
 		/// </summary>
 		public void Abort()
 		{
+			Abort(ServiceOutcome.Aborted);
+		}
+
+		internal void Abort(ServiceOutcome outcome)
+		{
 			// Simple aborting of service without connection
 			if (State == ServiceState.Uninitialized)
 			{
-				Outcome = ServiceOutcome.Aborted;
+				Outcome = outcome;
 				State = ServiceState.Ended;
 			}
 
