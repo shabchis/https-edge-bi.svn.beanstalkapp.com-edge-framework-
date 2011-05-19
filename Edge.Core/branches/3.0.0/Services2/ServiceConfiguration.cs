@@ -11,9 +11,8 @@ namespace Edge.Core.Services2
 	public class ServiceConfiguration
 	{
 		public Guid ConfigurationID;
-		//public ServiceInstance RelatedInstance { get; private set; }
-		public ServiceProfile Profile;
-		public ServiceConfiguration BaseConfiguration;
+		public ServiceConfigurationLevel ConfigurationLevel { get; private set; }
+		public ServiceConfiguration BaseConfiguration { get; private set; }
 		public string AssemblyPath;
 		public string ServiceType;
 		public string ServiceName;
@@ -22,8 +21,52 @@ namespace Edge.Core.Services2
 		public ServiceExecutionLimits Limits;
 		public Dictionary<string, object> Parameters;
 		public List<SchedulingRule> SchedulingRules;
-		public ServiceExecutionStatistics Statistics;
 		public ServicePriority Priority;
+
+		internal ServiceConfiguration(ServiceConfigurationLevel level, ServiceConfiguration baseConfig)
+		{
+			// TODO: inherit values etc.
+		}
+
+		internal ServiceConfiguration ByLevel(ServiceConfigurationLevel level)
+		{
+			ServiceConfiguration target = null;
+
+			switch(level)
+			{
+				case ServiceConfigurationLevel.Instance:
+					target = this.ConfigurationLevel == ServiceConfigurationLevel.Instance ? this : null;
+					break;
+
+				case ServiceConfigurationLevel.Profile:
+					if (this.ConfigurationLevel == ServiceConfigurationLevel.Profile)
+						target = this;
+					else if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+						target = this.BaseConfiguration;
+					else
+						target = null;
+					break;
+
+				case ServiceConfigurationLevel.Global:
+					target = this;
+					while (target.ConfigurationLevel != ServiceConfigurationLevel.Global && target.BaseConfiguration != null)
+						target = target.BaseConfiguration;
+					break;
+			}
+			return target;
+		}
+
+		public ServiceExecutionStatistics GetStatistics(int _percentile)
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public enum ServiceConfigurationLevel
+	{
+		Global,
+		Profile,
+		Instance
 	}
 
 	[Serializable]
