@@ -100,16 +100,22 @@ namespace Eggplant.Persistence.Providers.Xml
 				if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
 					break;
 
-				if (reader.NodeType == XmlNodeType.Element && reader.Name == "attribute")
+				if (reader.NodeType == XmlNodeType.Element)
 				{
 					var propMapping = new PropertyMapping();
 					propMapping.NodeName = reader.GetAttribute("name");
 					string propertyName = reader.GetAttribute("mapsTo", Namespaces.XmlProviderMappings) ?? propMapping.NodeName;
-					PropertyDefinition prop = mapping.TargetObject.Properties[propertyName];
-					propMapping.Property = prop;
-				}
+					PropertyDefinition propDef = mapping.TargetObject.Properties[propertyName];
+					propMapping.Property = propDef;
 
-				// TODO: understand lists (ep-xml:list?)
+					if (reader.LocalName == "attribute")
+					{
+					}
+					else if (reader.LocalName == "element")
+					{
+						//TODO: if (propDef.IsList // check if list
+					}
+				}
 			}
 
 			return mapping;
