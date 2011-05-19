@@ -9,14 +9,24 @@ namespace Edge.Core.Services2.Scheduling
 	[Serializable]
 	public class SchedulingInfo
 	{
-		internal readonly Guid Guid = Guid.NewGuid();
-        public ServiceConfiguration Configuration;
-        public SchedulingRule Rule;
-        public int SelectedDay;
-        public TimeSpan SelectedHour;
-        public DateTime TimeToRun;
-		public TimeSpan ActualDeviation;
-        
+		public ServiceInstance Instance { get; private set;}
+		public SchedulingRule Rule { get; internal set; }
+		public int SelectedDay { get; internal set; }
+		public TimeSpan SelectedHour { get; internal set; }
+		public DateTime RequestedTimeStart { get; internal set; }
+		public DateTime PlannedTimeStart { get; internal set; }
+		public DateTime PlannedTimeEnd { get; internal set; }
+		public TimeSpan ActualDeviation { get; internal set; }
+
+		internal SchedulingInfo(ServiceInstance targetInstance)
+		{
+			Instance = targetInstance;
+		}
+
+		public SchedulingInfo()
+		{
+		}
+
         public override string ToString()
         {
             string uniqueKey = string.Empty;
@@ -29,7 +39,7 @@ namespace Edge.Core.Services2.Scheduling
             s1.GetHashCode() == s2.GetHashCode(); // this is true!!
             */
             if (Rule.Scope != SchedulingScope.Unplanned)
-                uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Configuration.BaseConfiguration.ServiceName, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, Configuration.Profile.ID);
+                uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Instance.Configuration.BaseConfiguration.ServiceName, SelectedDay, SelectedHour, Rule.Scope, RequestedTimeStart, Instance.Configuration.Profile.ID);
             else
             {
 				//uniqueKey = String.Format("Service:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Guid);
