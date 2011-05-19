@@ -6,6 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
+using Edge.Core.Services2.Scheduling;
 
 namespace Edge.Core.Services2
 {

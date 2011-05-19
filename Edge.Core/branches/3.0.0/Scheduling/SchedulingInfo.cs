@@ -43,7 +43,7 @@ namespace Edge.Core.Services2.Scheduling
             else
             {
 				//uniqueKey = String.Format("Service:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Guid);
-				uniqueKey = String.Format("Unplanned: {0}", Guid.ToString());
+				uniqueKey = String.Format("Unplanned: {0}", Guid.ToString()); //TODO: TALK WITH DORON , WE HAD GUID PER SCHEDULINGINFO WHAT NOW?
             }
             return uniqueKey;
         }
