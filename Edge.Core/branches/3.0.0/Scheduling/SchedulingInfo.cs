@@ -39,11 +39,11 @@ namespace Edge.Core.Services2.Scheduling
             s1.GetHashCode() == s2.GetHashCode(); // this is true!!
             */
             if (Rule.Scope != SchedulingScope.Unplanned)
-                uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Instance.Configuration.BaseConfiguration.ServiceName, SelectedDay, SelectedHour, Rule.Scope, RequestedTimeStart, Instance.Configuration.Profile.ID);
+                uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Instance.Configuration.BaseConfiguration.ServiceName, SelectedDay, SelectedHour, Rule.Scope, RequestedTimeStart, Instance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).Profile.ID);
             else
             {
 				//uniqueKey = String.Format("Service:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Guid);
-				uniqueKey = String.Format("Unplanned: {0}", this.Instance.InstanceID.ToString()); //TODO: TALK WITH DORON , WE HAD GUID PER SCHEDULINGINFO WHAT NOW?
+				uniqueKey = String.Format("Unplanned: {0}", this.Instance.InstanceID.ToString()); 
             }
             return uniqueKey;
         }
