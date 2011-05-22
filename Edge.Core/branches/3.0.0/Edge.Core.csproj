@@ -83,6 +83,7 @@
     <Compile Include="Scheduling\Enums.cs" />
     <Compile Include="Scheduling\SchedulingRule.cs" />
     <Compile Include="Scheduling\ServiceScheduler.cs" />
+    <Compile Include="Services2\Configuration\AppSettings.cs" />
     <Compile Include="Services2\Enums.cs" />
     <Compile Include="Services2\Exceptions.cs" />
     <Compile Include="Services2\IServiceConnection.cs" />

@@ -13,6 +13,7 @@ namespace Edge.Core.Services2
 		public Guid ConfigurationID;
 		public ServiceConfigurationLevel ConfigurationLevel { get; private set; }
 		public ServiceConfiguration BaseConfiguration { get; private set; }
+		public ServiceProfile Profile;
 		public string AssemblyPath;
 		public string ServiceType;
 		public string ServiceName;
