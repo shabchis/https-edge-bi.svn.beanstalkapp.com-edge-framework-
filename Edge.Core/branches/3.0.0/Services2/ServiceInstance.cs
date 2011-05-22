@@ -338,6 +338,6 @@ namespace Edge.Core.Services2
 		#endregion
 
 
-		public int Odds { get; set; }
+		
 	}
 }

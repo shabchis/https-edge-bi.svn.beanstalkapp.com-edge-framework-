@@ -13,7 +13,7 @@ namespace Edge.Core.Services2
 		public Guid ConfigurationID;
 		public ServiceConfigurationLevel ConfigurationLevel { get; private set; }
 		public ServiceConfiguration BaseConfiguration { get; private set; }
-		public ServiceProfile Profile;
+		public ServiceProfile Profile { get { throw new NotImplementedException(); } }
 		public string AssemblyPath;
 		public string ServiceType;
 		public string ServiceName;
@@ -23,6 +23,10 @@ namespace Edge.Core.Services2
 		public Dictionary<string, object> Parameters;
 		public List<SchedulingRule> SchedulingRules;
 		public ServicePriority Priority;
+
+		public ServiceConfiguration()
+		{
+		}
 
 		internal ServiceConfiguration(ServiceConfigurationLevel level, ServiceConfiguration baseConfig)
 		{
