@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Data.SqlClient;
+using Edge.Core.Configuration;
+using Edge.Core.Services2.Scheduling;
 
 namespace Edge.Core.Services2.Scheduling
 {
@@ -18,9 +20,10 @@ namespace Edge.Core.Services2.Scheduling
 		private Dictionary<int, ServiceConfiguration> _servicesPerProfileID = new Dictionary<int, ServiceConfiguration>();
 		private Dictionary<SchedulingInfo, ServiceInstance> _unscheduleServices = new Dictionary<SchedulingInfo, ServiceInstance>();
 		//contains average execution time per services per account
-		private Dictionary<string, ServicePerProfileAvgExecutionTimeCache> _servicePerProfileAvgExecutionTimeCash = new Dictionary<string, ServicePerProfileAvgExecutionTimeCache>();
-		DateTime _timeLineFrom;
-		DateTime _timeLineTo;
+		//private Dictionary<string, ServicePerProfileAvgExecutionTimeCache> _servicePerProfileAvgExecutionTimeCash = new Dictionary<string, ServicePerProfileAvgExecutionTimeCache>();
+		private Dictionary<ServiceConfiguration, TimeSpan> _executionTimeCach = new Dictionary<ServiceConfiguration, TimeSpan>();
+		private DateTime _timeLineFrom;
+		private DateTime _timeLineTo;
 		private TimeSpan _neededScheduleTimeLine; //scheduling for the next xxx min....
 		private int _percentile = 80; //execution time of specifc service on sprcific Percentile
 		private TimeSpan _intervalBetweenNewSchedule;
@@ -32,8 +35,13 @@ namespace Edge.Core.Services2.Scheduling
 		private Thread _newSchedulethread;
 		//public event EventHandler ServiceNotScheduledEvent;
 		private volatile bool _needReschedule = false;
+		//TODO :check it with doron- mapping the functions...
+		private object _sync;
 
 		public ServiceEnvironment Environment { get; private set; }
+		public IList<ServiceInstance> TemporarilyCouldNotBeScheduled;
+		public IList<ServiceInstance> ScheduleServicesInfo;
+		private DateTime _lastClearCache = DateTime.Now;
 
 		//======================
 		#endregion
@@ -71,7 +79,7 @@ namespace Edge.Core.Services2.Scheduling
 			_intervalBetweenNewSchedule = TimeSpan.FromMinutes(10); //TimeSpan.Parse(AppSettings.Get(this, "IntervalBetweenNewSchedule"));
 			_findServicesToRunInterval = TimeSpan.FromMinutes(1); //TimeSpan.Parse(AppSettings.Get(this, "FindServicesToRunInterval"));
 			_timeToDeleteServiceFromTimeLine = TimeSpan.FromDays(1); //TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
-			_executionTimeCacheTimeOutAfter = TimeSpan.FromMinutes(15); //TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
+			_executionTimeCacheTimeOutAfter = TimeSpan.FromHours(2); //TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
 		}
 
 
@@ -84,6 +92,7 @@ namespace Edge.Core.Services2.Scheduling
 		/// </summary>
 		public void Schedule(bool reschedule)
 		{
+			List<ServiceInstance> temporarilyCouldNotBeScheduled = new List<ServiceInstance>();
 			lock (_sync)
 			{
 				//set need reschedule to false in order to avoid more schedule from other threads
@@ -134,10 +143,14 @@ namespace Edge.Core.Services2.Scheduling
 				}
 				lock (_servicesWarehouse)
 				{
+					//TODO:TALK TO DORON CAN'T REMOVE FROM IORDERDENURMABLE
+					List<ServiceInstance> listOfservicesForNextTimeLine = servicesForNextTimeLine.ToList(); 
 					foreach (ServiceInstance toClear in endedAndTimeToClear)
 					{
 						_scheduledServices.Remove(toClear.SchedulingInfo); //clear from already schedule table
-						servicesForNextTimeLine.Remove(toClear); //clear from to be scheduled on the curent new schedule
+						//servicesForNextTimeLine.Remove(toClear); //clear from to be scheduled on the curent new schedule
+						//TODO:CHECK IT'S REALY CLEAR ???
+						listOfservicesForNextTimeLine.Remove(toClear);
 						if (toClear.SchedulingInfo.Rule.Scope == SchedulingScope.Unplanned)
 							_servicesWarehouse.Remove(toClear.Configuration); //clear from services in services wherhouse(all services from configuration and unplaned)
 
@@ -151,7 +164,7 @@ namespace Edge.Core.Services2.Scheduling
 				#endregion
 
 				// Will include services that could not be fitted into the current schedule, but might be used later
-				List<ServiceInstance> temporarilyCouldNotBeScheduled = new List<ServiceInstance>();
+				
 
 				#region Find Match services
 				foreach (ServiceInstance toBeScheduledInstance in servicesForNextTimeLine)
@@ -185,8 +198,13 @@ namespace Edge.Core.Services2.Scheduling
 
 
 					#region FindFirstFreeTimeForTheService
-					//ServiceInstance serviceInstance = FindFirstFreeTime(servicesWithSameConfiguration, servicesWithSameProfile, instance);
-					TimeSpan executionTimeInSeconds = toBeScheduledInstance.Configuration.GetStatistics(_percentile).AverageExecutionTime;
+					
+					TimeSpan executionTimeInSeconds;
+					if (!_executionTimeCach.ContainsKey(toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile)))
+						executionTimeInSeconds = toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).GetStatistics(_percentile).AverageExecutionTime;
+					else
+						executionTimeInSeconds = _executionTimeCach[toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile)];
+
 					//TimeSpan executionTimeInSeconds = GetAverageExecutionTime(schedulingInfo.Configuration.ServiceName, schedulingInfo.Configuration.Profile.ID, _percentile);
 
 					DateTime baseStartTime = (toBeScheduledInstance.SchedulingInfo.RequestedTimeStart < DateTime.Now) ? DateTime.Now : toBeScheduledInstance.SchedulingInfo.RequestedTimeStart;
@@ -250,8 +268,13 @@ namespace Edge.Core.Services2.Scheduling
 
 				}
 			}
+			OnNewScheduleCreated();
+			
+		}
 
-			OnNewScheduleCreated(new ScheduledInformationEventArgs() { NotScheduledInformation = temporarilyCouldNotBeScheduled, ScheduleInformation = _scheduledServices });
+		private void OnNewScheduleCreated()
+		{
+			NewScheduleCreated(this,new EventArgs());
 		}
 
 		void toBeScheduledInstance_StateChanged(object sender, EventArgs e)
@@ -565,78 +588,6 @@ namespace Edge.Core.Services2.Scheduling
 			}
 			*/
 		}
-
-
-
-
-
-
-
-
-		/// <summary>
-		/// The algoritm of finding the the right time for service
-		/// </summary>
-		/// <param name="servicesWithSameConfiguration"></param>
-		/// <param name="servicesWithSameProfile"></param>
-		/// <param name="schedulingInfo"></param>
-		/// <returns></returns>
-		private void FindFirstFreeTime(IOrderedEnumerable<KeyValuePair<SchedulingInfo, ServiceInstance>> servicesWithSameConfiguration, IOrderedEnumerable<KeyValuePair<SchedulingInfo, ServiceInstance>> servicesWithSameProfile, ServiceInstance instance)
-		{
-
-
-
-
-
-		}
-
-
-
-		/// <summary>
-		/// Get the average time of service run by configuration id and wanted percentile
-		/// </summary>
-		/// <param name="configurationID"></param>
-		/// <returns></returns>
-		private TimeSpan GetAverageExecutionTime(string configurationName, int accountID, int percentile)
-		{
-			long averageExacutionTime;
-			string key = string.Format("ConfigurationName:{0},Account:{1},Percentile:{2}", configurationName, accountID, percentile);
-			try
-			{
-				if (_servicePerProfileAvgExecutionTimeCash.ContainsKey(key) && _servicePerProfileAvgExecutionTimeCash[key].TimeSaved.Add(_executionTimeCacheTimeOutAfter) < DateTime.Now)
-				{
-					averageExacutionTime = _servicePerProfileAvgExecutionTimeCash[key].AverageExecutionTime;
-				}
-				else
-				{
-					string connectionString = AppSetting.GetConnectionString("some connection string");
-					using (SqlConnection sqlConnection = new SqlConnection(connectionString))
-					{
-						using (SqlCommand sqlCommand = new SqlCommand("ServiceConfiguration_GetExecutionTime", sqlConnection))
-						{
-							sqlCommand.CommandType = System.Data.CommandType.StoredProcedure;
-
-							sqlCommand.Parameters.AddWithValue("@ConfigName", configurationName);
-							sqlCommand.Parameters.AddWithValue("@Percentile", percentile);
-							sqlCommand.Parameters.AddWithValue("@ProfileID", accountID);
-
-							averageExacutionTime = System.Convert.ToInt32(sqlCommand.ExecuteScalar());
-							_servicePerProfileAvgExecutionTimeCash[key] = new ServicePerProfileAvgExecutionTimeCache() { AverageExecutionTime = averageExacutionTime, TimeSaved = DateTime.Now };
-
-
-
-						}
-					}
-				}
-			}
-			catch
-			{
-
-				averageExacutionTime = 180;
-			}
-			return TimeSpan.FromMinutes(Math.Ceiling(TimeSpan.FromSeconds(averageExacutionTime).TotalMinutes));
-		}	
-
-
 		/// <summary>
 		/// start the timers of new scheduling and services required to run
 		/// </summary>
@@ -652,6 +603,8 @@ namespace Edge.Core.Services2.Scheduling
 				{
 					Thread.Sleep(_intervalBetweenNewSchedule);
 					Schedule(false);
+					if (_lastClearCache.Add(_executionTimeCacheTimeOutAfter)<DateTime.Now)
+						_executionTimeCach.Clear();
 				}
 			}
 			));
@@ -737,14 +690,7 @@ namespace Edge.Core.Services2.Scheduling
 
 		}
 
-		/// <summary>
-		/// set event new schedule created
-		/// </summary>
-		/// <param name="e"></param>
-		public void OnNewScheduleCreated(ScheduledInformationEventArgs e)
-		{
-			NewScheduleCreated(this, e);
-		}
+		
 
 		/// <summary>
 		/// abort runing service
