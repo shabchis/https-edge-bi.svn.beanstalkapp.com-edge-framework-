@@ -7,9 +7,9 @@ namespace Edge.Core.Services2.Scheduling
 {
 	public enum SchedulingScope
 	{
-		Day,
-		Week,
-		Month,
-		Unplanned
+		SingleRun = -1,
+		Day = 1,
+		Week = 2,
+		Month = 3,
 	}
 }

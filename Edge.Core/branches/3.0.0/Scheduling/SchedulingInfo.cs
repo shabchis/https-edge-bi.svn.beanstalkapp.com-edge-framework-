@@ -14,9 +14,10 @@ namespace Edge.Core.Services2.Scheduling
 		public int SelectedDay { get; internal set; }
 		public TimeSpan SelectedHour { get; internal set; }
 		public DateTime RequestedTimeStart { get; internal set; }
-		public DateTime PlannedTimeStart { get; internal set; }
-		public DateTime PlannedTimeEnd { get; internal set; }
+		public DateTime EstimateTimeStart { get; internal set; }
+		public DateTime EstimateTimeEnd { get; internal set; }
 		public TimeSpan ActualDeviation { get; internal set; }
+		public int EstimatePercentile { get; set; }
 
 		internal SchedulingInfo(ServiceInstance targetInstance)
 		{
@@ -38,7 +39,7 @@ namespace Edge.Core.Services2.Scheduling
 
             s1.GetHashCode() == s2.GetHashCode(); // this is true!!
             */
-            if (Rule.Scope != SchedulingScope.Unplanned)
+            if (Rule.Scope != SchedulingScope.SingleRun)
                 uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Instance.Configuration.BaseConfiguration.ServiceName, SelectedDay, SelectedHour, Rule.Scope, RequestedTimeStart, Instance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).Profile.ID);
             else
             {
@@ -71,5 +72,9 @@ namespace Edge.Core.Services2.Scheduling
         {
             return !sd1.Equals(sd2);
         }
+
+		
+
+		
 	}
 }
