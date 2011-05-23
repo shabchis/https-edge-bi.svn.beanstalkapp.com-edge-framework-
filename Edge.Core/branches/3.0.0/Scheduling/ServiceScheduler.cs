@@ -14,7 +14,7 @@ namespace Edge.Core.Services2.Scheduling
 		#region Fields
 		//======================
 
-		private List<ServiceConfiguration> _servicesWarehouse = new List<ServiceConfiguration>(); //all services from configuration file load to this var
+		private Dictionary<Guid, ServiceConfiguration> _servicesWarehouse = new Dictionary<Guid,ServiceConfiguration>(); //all services from configuration file load to this var
 		private Dictionary<SchedulingInfo, ServiceInstance> _scheduledServices = new Dictionary<SchedulingInfo, ServiceInstance>();
 		private Dictionary<int, ServiceConfiguration> _servicesPerConfigurationID = new Dictionary<int, ServiceConfiguration>();
 		private Dictionary<int, ServiceConfiguration> _servicesPerProfileID = new Dictionary<int, ServiceConfiguration>();
@@ -149,7 +149,7 @@ namespace Edge.Core.Services2.Scheduling
 						//TODO:CHECK IT'S REALY CLEAR ???
 						listOfservicesForNextTimeLine.Remove(toClear);
 						if (toClear.SchedulingInfo.Rule.Scope == SchedulingScope.SingleRun)
-							_servicesWarehouse.Remove(toClear.Configuration); //clear from services in services wherhouse(all services from configuration and unplaned)
+							_servicesWarehouse.Remove(toClear.Configuration.ConfigurationID); //clear from services in services wherhouse(all services from configuration and unplaned)
 
 						// Just in case the connection is still up (should never happen)
 						((IDisposable)toClear).Dispose();
@@ -285,14 +285,26 @@ namespace Edge.Core.Services2.Scheduling
 		/// add unplanned service to schedule
 		/// </summary>
 		/// <param name="serviceConfiguration"></param>
-		public void AddNewServiceToSchedule(ServiceConfiguration serviceConfiguration)
+		public void AddServiceToSchedule(ServiceConfiguration serviceConfiguration)
 		{
 			lock (_servicesWarehouse)
 			{
 
-				_servicesWarehouse.Add(serviceConfiguration);
+				_servicesWarehouse.Add(serviceConfiguration.ConfigurationID, serviceConfiguration);
 			}
 			_needReschedule = true;
+		}
+		public void RemoveFromSchedule(Guid serviceConfigurationID)
+		{
+			lock (_servicesWarehouse)
+			{
+				if (!_servicesWarehouse.ContainsKey(serviceConfigurationID))
+					throw new Exception(String.Format("Service wharehouse does not contains service configuration: {0}", serviceConfigurationID));
+
+				_servicesWarehouse.Remove(serviceConfigurationID);
+				
+			}
+
 		}
 
 		/// <summary>
@@ -312,11 +324,11 @@ namespace Edge.Core.Services2.Scheduling
 
 			lock (_servicesWarehouse)
 			{
-				for (int i = 0; i < _servicesWarehouse.Count; i++)
+				foreach (ServiceConfiguration serviceConfig in _servicesWarehouse.Values)
 				{
-					foreach (SchedulingRule schedulingRule in _servicesWarehouse[i].SchedulingRules)
+					foreach (SchedulingRule schedulingRule in serviceConfig.SchedulingRules)
 					{
-						ServiceConfiguration serviceConfig = _servicesWarehouse[i];
+						
 						if (schedulingRule != null)
 						{
 							foreach (TimeSpan hour in schedulingRule.Hours)
