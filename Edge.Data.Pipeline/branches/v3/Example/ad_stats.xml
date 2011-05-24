@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<stats>
+	<ad_stats account="MyAccount" campaign="example1" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example1" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example1" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example2" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example2" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example2" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example2" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+	<ad_stats account="MyAccount" campaign="example2" adgroup="" kw="" ad_id="" clicks="" imps="" total=""/>
+</stats>
