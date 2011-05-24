@@ -10,7 +10,7 @@ namespace Edge.Core.Services2
 	[Serializable]
 	public class ServiceConfiguration
 	{
-		public Guid ConfigurationID;
+		public readonly Guid ConfigurationID;
 		public ServiceConfigurationLevel ConfigurationLevel { get; private set; }
 		public ServiceConfiguration BaseConfiguration { get; private set; }
 		public ServiceProfile Profile { get { throw new NotImplementedException(); } }
@@ -79,6 +79,7 @@ namespace Edge.Core.Services2
 	{
 		public Guid ID;
 		public Dictionary<string, object> Parameters;
+		public List<ServiceConfiguration> Services;
 	}
 
 	[Serializable]
