@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 using System.ServiceModel;
 using System.Net;
 using System.IO;
-using Edge.Core.Services;
+using Edge.Core.Services2;
 using System.Configuration;
 using Edge.Data.Pipeline.Configuration;
 using Edge.Core;

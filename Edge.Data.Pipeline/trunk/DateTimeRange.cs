@@ -22,11 +22,16 @@ namespace Edge.Data.Pipeline
 			throw new NotImplementedException();
 		}
 
+		public override string ToString()
+		{
+			throw new NotImplementedException();
+		}
+
 		#region Default values
 		//----------------------
 
 		/// <summary>
-		/// start: {d:-1, h:0}, end: {d:-1, h:'*'}
+		/// {start: {d:-1, h:0}, end: {d:-1, h:'*'}}
 		/// </summary>
 		public readonly static DateTimeRange AllOfYesterday = new DateTimeRange()
 		{
