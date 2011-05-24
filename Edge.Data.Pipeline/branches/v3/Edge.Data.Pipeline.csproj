@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{53391A99-E8CA-4262-A8E0-5F05A1CC6608}</ProjectGuid>
+    <ProjectGuid>{861FBAFD-A810-43F7-8FF0-DE3FCDCE08E3}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Edge.Data.Pipeline</RootNamespace>
@@ -101,7 +101,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\ReportFields.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
@@ -151,13 +150,16 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
-      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
-      <Name>Edge.Core</Name>
+    <None Include="Edge.Data.Pipeline.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Edge.Core.v3\Edge.Core.csproj">
+      <Project>{6919B522-1150-4F38-8DEB-6AEA7638CADB}</Project>
+      <Name>Edge.Core %28v3\Edge.Core%29</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Edge.Data.Pipeline.snk" />
+    <Folder Include="Configuration\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
