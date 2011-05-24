@@ -151,13 +151,13 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
-      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
-      <Name>Edge.Core</Name>
-    </ProjectReference>
+    <None Include="Edge.Data.Pipeline.snk" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Edge.Data.Pipeline.snk" />
+    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
+      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
+      <Name>Edge.Core %28v2\Edge.Core%29</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
