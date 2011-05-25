@@ -174,7 +174,7 @@ namespace Edge.Core.Services2.Scheduling
 					// Get all services with same configuration
 					var servicesWithSameConfiguration = from scheduled in _scheduledServices
 														where
-															scheduled.Value.Configuration.ByLevel(ServiceConfigurationLevel.Global) == toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Global) && //should be id but no id yet
+															scheduled.Value.Configuration.ByLevel(ServiceConfigurationLevel.Template) == toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Template) && //should be id but no id yet
 															scheduled.Value.State != ServiceState.Ended
 														orderby
 															scheduled.Value.SchedulingInfo.EstimateTimeStart ascending

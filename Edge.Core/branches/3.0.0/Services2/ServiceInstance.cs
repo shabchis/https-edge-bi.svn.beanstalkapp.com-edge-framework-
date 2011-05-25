@@ -44,7 +44,7 @@ namespace Edge.Core.Services2
 
 			Environment = environment;
 			InstanceID = Guid.NewGuid();
-			Configuration = new ServiceConfiguration(ServiceConfigurationLevel.Instance, configuration);
+			//Configuration = new ServiceConfiguration(ServiceConfigurationLevel.Instance, configuration);
 			ParentInstance = parentInstance;
 			_owner = true;
 		}
