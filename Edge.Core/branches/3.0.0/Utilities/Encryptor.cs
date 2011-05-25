@@ -8,10 +8,10 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
-using Edge.Core.Encryption;
 
-namespace Edge.Core.Utilities
+namespace Edge.Core.Security
 {
+	using Edge.Core.Security.Encryption;
 
 	public class Encryptor
 	{
@@ -23,7 +23,7 @@ namespace Edge.Core.Utilities
 		static Encryptor()
 		{
 			_globalEncryptor = new Symmetric(Symmetric.Provider.Rijndael, true);
-			_globalEncryptor.Key = new Edge.Core.Encryption.Data(_key);
+			_globalEncryptor.Key = new Edge.Core.Security.Encryption.Data(_key);
 		}
 
 		/// <summary>
@@ -34,8 +34,8 @@ namespace Edge.Core.Utilities
 		/// <returns></returns>
 		public static string Enc(string str)
 		{
-			Edge.Core.Encryption.Data raw = new Edge.Core.Encryption.Data(str);
-			Edge.Core.Encryption.Data encrypted = _globalEncryptor.Encrypt(raw);
+			Edge.Core.Security.Encryption.Data raw = new Edge.Core.Security.Encryption.Data(str);
+			Edge.Core.Security.Encryption.Data encrypted = _globalEncryptor.Encrypt(raw);
 
 			return encrypted.ToHex();
 		}
@@ -47,10 +47,10 @@ namespace Edge.Core.Utilities
 		/// <returns></returns>
 		public static string Dec(string encodedStr)
 		{
-			Edge.Core.Encryption.Data encrypted = new Edge.Core.Encryption.Data();
+			Edge.Core.Security.Encryption.Data encrypted = new Edge.Core.Security.Encryption.Data();
 			encrypted.Hex = encodedStr;
 
-			Edge.Core.Encryption.Data decrypted = _globalEncryptor.Decrypt(encrypted);
+			Edge.Core.Security.Encryption.Data decrypted = _globalEncryptor.Decrypt(encrypted);
 			return decrypted.ToString();
 		}
 
@@ -65,23 +65,23 @@ namespace Edge.Core.Utilities
 		public Encryptor(string key)
 		{
 			_instanceEncryptor = new Symmetric(Symmetric.Provider.Rijndael, true);
-			_instanceEncryptor.Key = new Edge.Core.Encryption.Data(key);
+			_instanceEncryptor.Key = new Edge.Core.Security.Encryption.Data(key);
 		}
 
 		public string Encrypt(string str)
 		{
-			Edge.Core.Encryption.Data raw = new Edge.Core.Encryption.Data(str);
-			Edge.Core.Encryption.Data encrypted = _instanceEncryptor.Encrypt(raw);
+			Edge.Core.Security.Encryption.Data raw = new Edge.Core.Security.Encryption.Data(str);
+			Edge.Core.Security.Encryption.Data encrypted = _instanceEncryptor.Encrypt(raw);
 
 			return encrypted.ToHex();
 		}
 
 		public string Decrypt(string encodedStr)
 		{
-			Edge.Core.Encryption.Data encrypted = new Edge.Core.Encryption.Data();
+			Edge.Core.Security.Encryption.Data encrypted = new Edge.Core.Security.Encryption.Data();
 			encrypted.Hex = encodedStr;
 
-			Edge.Core.Encryption.Data decrypted = _instanceEncryptor.Decrypt(encrypted);
+			Edge.Core.Security.Encryption.Data decrypted = _instanceEncryptor.Decrypt(encrypted);
 			return decrypted.ToString();
 		}
 
@@ -92,12 +92,6 @@ namespace Edge.Core.Utilities
 
 
 
-
-
-
-
-
-
 // A simple, string-oriented wrapper class for encryption functions, including 
 // Hashing, Symmetric Encryption, and Asymmetric Encryption.
 //
@@ -105,7 +99,7 @@ namespace Edge.Core.Utilities
 //   http://www.codinghorror.com/
 //
 // [Ported from VB by Doron Assayas]
-namespace Edge.Core.Encryption
+namespace Edge.Core.Security.Encryption
 {
 	#region Hash
 

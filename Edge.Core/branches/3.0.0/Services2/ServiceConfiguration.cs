@@ -10,31 +10,69 @@ namespace Edge.Core.Services2
 	[Serializable]
 	public class ServiceConfiguration
 	{
-		public readonly Guid ConfigurationID;
+		string _assemblyPath;
+		string _serviceType;
+		string _serviceName;
+		bool _isEnabled;
+		bool _isPublic;
+
+		public Guid ConfigurationID { get; private set; }
 		public ServiceConfigurationLevel ConfigurationLevel { get; private set; }
-		public ServiceConfiguration BaseConfiguration { get; private set; }
-		public ServiceProfile Profile { get { throw new NotImplementedException(); } }
+		public ServiceConfiguration ParentConfiguration { get; private set; }
+		public ServiceProfile Profile { get; private set; }
 		public string AssemblyPath;
 		public string ServiceType;
 		public string ServiceName;
 		public bool IsEnabled;
 		public bool IsPublic;
-		public ServiceExecutionLimits Limits;
-		public Dictionary<string, object> Parameters;
-		public List<SchedulingRule> SchedulingRules;
 		public ServicePriority Priority;
+		public ServiceExecutionLimits Limits {get; private set;}
+		public IDictionary<string, object> Parameters;
+		public IList<SchedulingRule> SchedulingRules { get; private set; }
 
-		public ServiceConfiguration()
+		public ServiceConfiguration TemplateConfiguration
+		{
+			get { return ByLevel(ServiceConfigurationLevel.Template); }
+		}
+
+		public ServiceConfiguration ProfileConfiguration
+		{
+			get { return ByLevel(ServiceConfigurationLevel.Profile); }
+		}
+
+		internal const string LockedExceptionMessage = "The configuration object cannot be modified at this point.";
+
+		public ServiceConfiguration(ServiceConfiguration baseConfiguration = null)
 		{
 		}
 
-		internal ServiceConfiguration(ServiceConfigurationLevel level, ServiceConfiguration baseConfig)
+		internal ServiceConfiguration(ServiceConfiguration baseConfiguration, ServiceConfigurationLevel level)
 		{
-			// TODO: inherit values etc.
+			this.ConfigurationID = Guid.NewGuid();
+			this.ConfigurationLevel = level;
+			this.Limits = new ServiceExecutionLimits();
+
+			if (baseConfiguration == null)
+				return;
+
+			this.Profile = baseConfiguration.Profile;
+			this.AssemblyPath = baseConfiguration.AssemblyPath;
+			this.ServiceType = baseConfiguration.ServiceType;
+			this.ServiceName = baseConfiguration.ServiceName;
 		}
 
-		internal ServiceConfiguration ByLevel(ServiceConfigurationLevel level)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="level">Indicates the configuration level (template, profile, or instance) to find.</param>
+		/// <param name="search">Indicates whether the lowest ancestor or the highest ancestor should be found of the given type. (Highest not yet implemented).</param>
+		/// <returns></returns>
+		internal ServiceConfiguration ByLevel(ServiceConfigurationLevel level, ServiceConfigurationLevelSearch search = ServiceConfigurationLevelSearch.Lowest)
 		{
+			// TODO: implement ByLevel with search = Highest
+			if (search == ServiceConfigurationLevelSearch.Highest)
+				throw new NotImplementedException("Only the lowest level can be found at the moment.");
+
 			ServiceConfiguration target = null;
 
 			switch(level)
@@ -47,15 +85,15 @@ namespace Edge.Core.Services2
 					if (this.ConfigurationLevel == ServiceConfigurationLevel.Profile)
 						target = this;
 					else if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
-						target = this.BaseConfiguration;
+						target = this.ParentConfiguration;
 					else
 						target = null;
 					break;
 
-				case ServiceConfigurationLevel.Global:
+				case ServiceConfigurationLevel.Template:
 					target = this;
-					while (target.ConfigurationLevel != ServiceConfigurationLevel.Global && target.BaseConfiguration != null)
-						target = target.BaseConfiguration;
+					while (target.ConfigurationLevel != ServiceConfigurationLevel.Template && target.ParentConfiguration != null)
+						target = target.ParentConfiguration;
 					break;
 			}
 			return target;
@@ -69,18 +107,17 @@ namespace Edge.Core.Services2
 
 	public enum ServiceConfigurationLevel
 	{
-		Global,
+		Template,
 		Profile,
 		Instance
 	}
 
-	[Serializable]
-	public class ServiceProfile
+	internal enum ServiceConfigurationLevelSearch
 	{
-		public Guid ID;
-		public Dictionary<string, object> Parameters;
-		public List<ServiceConfiguration> Services;
+		Highest,
+		Lowest
 	}
+
 
 	[Serializable]
 	public class ServiceExecutionLimits

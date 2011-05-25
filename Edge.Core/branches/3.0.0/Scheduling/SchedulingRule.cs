@@ -17,4 +17,5 @@ namespace Edge.Core.Services2.Scheduling
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime SpecificDateTime { get; set; }
 	}
+
 }

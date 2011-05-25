@@ -29,8 +29,8 @@ namespace Edge.Core.Services2.Workflow
 
 	public class Group : WorkflowWorkNode
 	{
-		public GroupMode Mode = GroupMode.Linear;
-		public List<WorkflowNode> Nodes;
+		public GroupMode Mode {get; set; }
+		public List<WorkflowNode> Nodes { get; set; }
 	}
 
 	public class Step : WorkflowWorkNode

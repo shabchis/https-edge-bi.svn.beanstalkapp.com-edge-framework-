@@ -97,10 +97,11 @@
     <Compile Include="Services2\ServiceInstance.cs" />
     <Compile Include="Services2\IServiceInfo.cs" />
     <Compile Include="Services2\ServiceEnvironment.cs" />
+    <Compile Include="Services2\ServiceProfile.cs" />
     <Compile Include="Services2\Workflow\WorkflowServiceConfiguration.cs" />
     <Compile Include="Utilities\Encryptor.cs" />
-    <Compile Include="Utilities\Evaluator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\Locks.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Edge.Core.snk" />
