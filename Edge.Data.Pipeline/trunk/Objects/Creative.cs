@@ -18,6 +18,7 @@ namespace Edge.Data.Objects
 	{
 		[CreativeFieldIndex(1)]
 		public TextCreativeType TextType;
+		
 
 		[CreativeFieldIndex(2)]
 		public string Text;
@@ -33,7 +34,7 @@ namespace Edge.Data.Objects
 		public string ImageUrl;
 	}
 
-	public enum TextCreativeType
+	public enum TextCreativeType : int
 	{
 		Title = 1,
 		Body = 2,

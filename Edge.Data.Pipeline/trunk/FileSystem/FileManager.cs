@@ -75,6 +75,8 @@ namespace Edge.Data.Pipeline
 			
 			// Get full path
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
+			if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
+				Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
 
 			// Get length from stream only if length was not specified
 			if (length <= 0 && sourceStream.CanSeek)

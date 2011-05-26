@@ -167,26 +167,19 @@ namespace Edge.Data.Pipeline.Importing
 			_adCreativesDataTable.Columns.Add("Field2");
 			_adCreativesDataTable.Columns.Add("Field3");
 			_adCreativesDataTable.Columns.Add("Field4");
-			_adCreativesDataTable.Columns.Add("Segment1");
-			_adCreativesDataTable.Columns.Add("Segment2");
-			_adCreativesDataTable.Columns.Add("Segment3");
-			_adCreativesDataTable.Columns.Add("Segment4");
-			_adCreativesDataTable.Columns.Add("Segment5");
+			
 
 
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Name_FieldName, ads_Name_FieldName));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_CreativeType_FieldName, ads_CreativeType_FieldName));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Segment1", "Segment1"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Segment2", "Segment2"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Segment3", "Segment3"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Segment4", "Segment4"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Segment5", "Segment5"));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
 			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
+			
+			
 			#endregion
 			#region Ads
 
@@ -266,13 +259,18 @@ namespace Edge.Data.Pipeline.Importing
 	
 
 		}
-		private object CheckNull(object myObject)
+		private object Normalize(object myObject)
 		{
 			object returnObject;
 			if (myObject == null)
 				returnObject = DBNull.Value;
 			else
-				returnObject = myObject;
+			{
+				if (myObject is Enum)
+					returnObject = (int)myObject;
+				else
+					returnObject = myObject;
+			}
 			return returnObject;
 		}
 
@@ -303,10 +301,10 @@ namespace Edge.Data.Pipeline.Importing
 				row[MetricsUnit_Guid_FieldName] = metrics.Guid.ToString("N");
 				if (metrics.Ad != null)
 					adUsid = GetAdIdentity(metrics.Ad);
-				row[adUsidFieldName] = CheckNull(adUsid);
+				row[adUsidFieldName] = Normalize(adUsid);
 				row[Metrics_TargetPeriodStart_FieldName] = metrics.PeriodStart;
 				row[Metrics_TargetPeriodEnd_FieldName] = metrics.PeriodEnd;
-				row[Metrics_Currency_FieldName] = CheckNull(metrics.Currency.Code);
+				row[Metrics_Currency_FieldName] = Normalize(metrics.Currency.Code);
 
 
 				//Measures
@@ -330,24 +328,24 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (Target target in metrics.TargetMatches)
 			{
 				row = _metricsTargetMatchDataTable.NewRow();
-				row[adUsidFieldName] = CheckNull(adUsid);
-				row[ads_OriginalID_FieldName] = CheckNull(target.OriginalID);
-				row[ads_DestinationUrl_FieldName] = CheckNull(target.DestinationUrl);
+				row[adUsidFieldName] = Normalize(adUsid);
+				row[ads_OriginalID_FieldName] = Normalize(target.OriginalID);
+				row[ads_DestinationUrl_FieldName] = Normalize(target.DestinationUrl);
 				int targetType = GetTargetType(target.GetType());
-				row[ads_TargetType_FieldName] = CheckNull(targetType);
+				row[ads_TargetType_FieldName] = Normalize(targetType);
 				foreach (FieldInfo field in target.GetType().GetFields())
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = CheckNull(field.GetValue(target));
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = Normalize(field.GetValue(target));
 					}
 
 
 				}
 				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
 				{
-					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = CheckNull(customField.Value);
+					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = Normalize(customField.Value);
 				}
 				_metricsTargetMatchDataTable.Rows.Add(row);
 				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
@@ -386,15 +384,15 @@ namespace Edge.Data.Pipeline.Importing
 
 			DataRow row = _adDataTable.NewRow();
 
-			row[adUsidFieldName] = CheckNull(adUsid);
-			row[ads_Name_FieldName] = CheckNull(ad.Name);
-			row[ads_OriginalID_FieldName] = CheckNull(ad.OriginalID);
-			row[ads_DestinationUrl_FieldName] = CheckNull(ad.DestinationUrl);
-			row[ads_Campaign_Account_FieldName] = CheckNull(ad.Campaign.Account.ID);
-			row[ads_Campaign_Channel_FieldName] = CheckNull(ad.Campaign.Channel.ID);
-			row[ads_Campaign_Name_FieldName] = CheckNull(ad.Campaign.Name);
-			row[ads_Campaign_OriginalID_FieldName] = CheckNull(ad.Campaign.OriginalID);
-			row[ads_Campaign_Status_FieldName] = CheckNull(((int)ad.Campaign.Status).ToString());
+			row[adUsidFieldName] = Normalize(adUsid);
+			row[ads_Name_FieldName] = Normalize(ad.Name);
+			row[ads_OriginalID_FieldName] = Normalize(ad.OriginalID);
+			row[ads_DestinationUrl_FieldName] = Normalize(ad.DestinationUrl);
+			row[ads_Campaign_Account_FieldName] = Normalize(ad.Campaign.Account.ID);
+			row[ads_Campaign_Channel_FieldName] = Normalize(ad.Campaign.Channel.ID);
+			row[ads_Campaign_Name_FieldName] = Normalize(ad.Campaign.Name);
+			row[ads_Campaign_OriginalID_FieldName] = Normalize(ad.Campaign.OriginalID);
+			row[ads_Campaign_Status_FieldName] = Normalize(((int)ad.Campaign.Status).ToString());
 
 
 
@@ -409,16 +407,16 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				row = _adTargetDataTable.NewRow();
 				row[adUsidFieldName] = adUsid;
-				row[ads_OriginalID_FieldName] = CheckNull(target.OriginalID);
-				row[ads_DestinationUrl_FieldName] = CheckNull(target.DestinationUrl);
+				row[ads_OriginalID_FieldName] = Normalize(target.OriginalID);
+				row[ads_DestinationUrl_FieldName] = Normalize(target.DestinationUrl);
 				int targetType = GetTargetType(target.GetType());
-				row[ads_TargetType_FieldName] = CheckNull(targetType);
+				row[ads_TargetType_FieldName] = Normalize(targetType);
 				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
 				{
 					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
 					{
 						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = CheckNull(field.GetValue(target));
+						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = Normalize(field.GetValue(target));
 					}
 
 
@@ -426,7 +424,7 @@ namespace Edge.Data.Pipeline.Importing
 				}
 				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
 				{
-					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = CheckNull(customField.Value);
+					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = Normalize(customField.Value);
 				}
 				_adTargetDataTable.Rows.Add(row);
 				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
@@ -441,17 +439,17 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (Creative creative in ad.Creatives)
 			{
 				row = _adCreativesDataTable.NewRow();
-				row[adUsidFieldName] = CheckNull(adUsid);
-				row[ads_OriginalID_FieldName] = CheckNull(creative.OriginalID);
-				row[ads_Name_FieldName] = CheckNull(creative.Name);
+				row[adUsidFieldName] = Normalize(adUsid);
+				row[ads_OriginalID_FieldName] = Normalize(creative.OriginalID);
+				row[ads_Name_FieldName] = Normalize(creative.Name);
 				int creativeType = GetCreativeType(creative.GetType());
-				row[ads_CreativeType_FieldName] = CheckNull(creativeType);
+				row[ads_CreativeType_FieldName] = Normalize(creativeType);
 				foreach (FieldInfo field in creative.GetType().GetFields())
 				{
 					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
 					{
 						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = CheckNull(field.GetValue(creative));
+						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = Normalize(field.GetValue(creative));
 					}
 				}
 				_adCreativesDataTable.Rows.Add(row);
@@ -470,7 +468,7 @@ namespace Edge.Data.Pipeline.Importing
 				row[adUsidFieldName] = adUsid;
 				row[Segments_SegmentID_FieldName] = Segment.Key.ID;
 				row[Segments_Value_FieldName] = Segment.Value.Value;
-				row[Segments_ValueOriginalID_FieldName] = Segment.Value.OriginalID;
+				row[Segments_ValueOriginalID_FieldName] =Normalize( Segment.Value.OriginalID);
 				_segmetsDataTable.Rows.Add(row);
 				if (_segmetsDataTable.Rows.Count == _bufferSize)
 				{
