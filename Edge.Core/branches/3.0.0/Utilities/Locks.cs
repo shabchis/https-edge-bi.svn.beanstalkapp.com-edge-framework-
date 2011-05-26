@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
+using System.Diagnostics;
 
 namespace Edge.Core
 {
@@ -25,6 +26,7 @@ namespace Edge.Core
 			: base(info, context) { }
 	}
 
+	[DebuggerNonUserCode]
 	public class Padlock:ILockable
 	{
 		object _key;
@@ -66,10 +68,12 @@ namespace Edge.Core
 		}
 	}
 
+	[DebuggerNonUserCode]
 	[Serializable]
 	public class LockableList<T> : IList<T>, ILockable, ISerializable
 	{
 		List<T> _inner;
+		public Func<int, T, bool> OnValidate;
 
 		#region Ctors
 		//=================
@@ -149,7 +153,8 @@ namespace Edge.Core
 			set
 			{
 				_lock.Ensure();
-				_inner[index] = value;
+				if (this.Validate(index, value))
+					_inner[index] = value;
 			}
 		}
 
@@ -177,7 +182,8 @@ namespace Edge.Core
 		public void Insert(int index, T item)
 		{
 			_lock.Ensure();
-			_inner.Insert(index, item);
+			if (this.Validate(index, item))
+				_inner.Insert(index, item);
 		}
 		public void RemoveAt(int index)
 		{
@@ -185,11 +191,11 @@ namespace Edge.Core
 			_inner.RemoveAt(index);
 		}
 
-
 		public void Add(T item)
 		{
 			_lock.Ensure();
-			_inner.Add(item);
+			if (this.Validate(-1, item))
+				_inner.Add(item);
 		}
 
 		public void Clear()
@@ -206,7 +212,21 @@ namespace Edge.Core
 
 		//=================
 		#endregion
-	
+
+		#region For inheritors
+		//=================
+
+		protected virtual bool Validate(int index, T item)
+		{
+			if (OnValidate != null)
+				return OnValidate(index, item);
+			else
+				return true;
+		}
+
+		//=================
+		#endregion
+
 		#region Serialization
 		//=================
 		
@@ -231,10 +251,48 @@ namespace Edge.Core
 		#endregion
 	}
 
+	[DebuggerNonUserCode]
 	[Serializable]
 	public class LockableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, ISerializable, ILockable
 	{
 		Dictionary<TKey, TValue> _inner;
+		public Func<TKey, TValue, bool> OnValidate;
+
+		#region Ctors
+		//=================
+
+		public LockableDictionary()
+		{
+			_inner = new Dictionary<TKey, TValue>();
+		}
+
+		public LockableDictionary(IDictionary<TKey, TValue> dictionary)
+		{
+			_inner = new Dictionary<TKey, TValue>(dictionary);
+		}
+
+		public LockableDictionary(IEqualityComparer<TKey> comparer)
+		{
+			_inner = new Dictionary<TKey, TValue>(comparer);
+		}
+
+		public LockableDictionary(int capacity)
+		{
+			_inner = new Dictionary<TKey, TValue>(capacity);
+		}
+
+		public LockableDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer)
+		{
+			_inner = new Dictionary<TKey, TValue>(dictionary, comparer);
+		}
+
+		public LockableDictionary(int capacity, IEqualityComparer<TKey> comparer)
+		{
+			_inner = new Dictionary<TKey, TValue>(capacity, comparer);
+		}
+
+		//=================
+		#endregion
 
 		#region Locking
 		//=================
@@ -288,7 +346,8 @@ namespace Edge.Core
 			set
 			{
 				_lock.Ensure();
-				_inner[key] = value;
+				if (Validate(key, value))
+					_inner[key] = value;
 			}
 		}
 
@@ -341,7 +400,8 @@ namespace Edge.Core
 		public void Add(TKey key, TValue value)
 		{
 			_lock.Ensure();
-			_inner.Add(key, value);
+			if (Validate(key, value))
+				_inner.Add(key, value);
 		}
 
 		public bool Remove(TKey key)
@@ -359,13 +419,28 @@ namespace Edge.Core
 		void ICollection<KeyValuePair<TKey,TValue>>.Add(KeyValuePair<TKey, TValue> item)
 		{
 			_lock.Ensure();
-			((ICollection<KeyValuePair<TKey,TValue>>)_inner).Add(item);
+			if (Validate(item.Key, item.Value))
+				((ICollection<KeyValuePair<TKey,TValue>>)_inner).Add(item);
 		}
 
 		bool ICollection<KeyValuePair<TKey,TValue>>.Remove(KeyValuePair<TKey, TValue> item)
 		{
 			_lock.Ensure();
 			return ((ICollection<KeyValuePair<TKey,TValue>>)_inner).Remove(item);
+		}
+
+		//=================
+		#endregion
+
+		#region For inheritors
+		//=================
+
+		protected virtual bool Validate(TKey key, TValue value)
+		{
+			if (OnValidate != null)
+				return OnValidate(key, value);
+			else
+				return true;
 		}
 
 		//=================

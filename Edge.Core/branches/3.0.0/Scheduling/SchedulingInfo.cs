@@ -40,7 +40,7 @@ namespace Edge.Core.Services2.Scheduling
             s1.GetHashCode() == s2.GetHashCode(); // this is true!!
             */
             if (Rule.Scope != SchedulingScope.SingleRun)
-                uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Instance.Configuration.TemplateConfiguration.ServiceName, SelectedDay, SelectedHour, Rule.Scope, RequestedTimeStart, Instance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).Profile.ID);
+				uniqueKey = String.Format("Service:{0}, SelectedDay:{1}, SelectedHour:{2}, RuleScope:{3}, TimeToRun:{4}, ProfileID:{5}", Instance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Template).ServiceName, SelectedDay, SelectedHour, Rule.Scope, RequestedTimeStart, Instance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile).Profile.ID);
             else
             {
 				//uniqueKey = String.Format("Service:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Guid);
