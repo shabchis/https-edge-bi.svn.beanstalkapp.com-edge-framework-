@@ -84,6 +84,11 @@ namespace Edge.Core.Services2.Workflow
 		public WorkflowNode Node;
 		public ServiceInstance Instance;
 
+		public WorkflowNodeInstance()
+		{
+			_children = new Dictionary<string, WorkflowNodeInstance>();
+		}
+
 		public ICollection<WorkflowNodeInstance> Children
 		{
 			get { return _children.Values; }

@@ -174,7 +174,7 @@ namespace Edge.Core.Services2.Scheduling
 					// Get all services with same configuration
 					var servicesWithSameConfiguration = from scheduled in _scheduledServices
 														where
-															scheduled.Value.Configuration.ByLevel(ServiceConfigurationLevel.Template) == toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Template) && //should be id but no id yet
+															scheduled.Value.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Template) == toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Template) && //should be id but no id yet
 															scheduled.Value.State != ServiceState.Ended
 														orderby
 															scheduled.Value.SchedulingInfo.EstimateTimeStart ascending
@@ -184,7 +184,7 @@ namespace Edge.Core.Services2.Scheduling
 					//Get all services with same profile
 					var servicesWithSameProfile = from scheduled in _scheduledServices
 												  where
-												  scheduled.Value.Configuration.ByLevel(ServiceConfigurationLevel.Profile) == toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile) &&
+												  scheduled.Value.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile) == toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile) &&
 												  scheduled.Value.State != ServiceState.Ended
 												  orderby
 												  scheduled.Value.SchedulingInfo.EstimateTimeStart ascending
@@ -197,10 +197,10 @@ namespace Edge.Core.Services2.Scheduling
 					#region FindFirstFreeTimeForTheService
 
 					TimeSpan executionTimeInSeconds;
-					if (!_executionTimeCach.ContainsKey(toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile)))
-						executionTimeInSeconds = toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).GetStatistics(_percentile).AverageExecutionTime;
+					if (!_executionTimeCach.ContainsKey(toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile)))
+						executionTimeInSeconds = toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile).GetStatistics(_percentile).AverageExecutionTime;
 					else
-						executionTimeInSeconds = _executionTimeCach[toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile)];
+						executionTimeInSeconds = _executionTimeCach[toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile)];
 
 					//TimeSpan executionTimeInSeconds = GetAverageExecutionTime(schedulingInfo.Configuration.ServiceName, schedulingInfo.Configuration.Profile.ID, _percentile);
 
@@ -214,10 +214,10 @@ namespace Edge.Core.Services2.Scheduling
 					while (!found)
 					{
 						int countedPerConfiguration = servicesWithSameConfiguration.Count(scheduled => (calculatedStartTime >= scheduled.Value.SchedulingInfo.EstimateTimeStart && calculatedStartTime <= scheduled.Value.SchedulingInfo.EstimateTimeEnd) || (calculatedEndTime >= scheduled.Value.SchedulingInfo.EstimateTimeStart && calculatedEndTime <= scheduled.Value.SchedulingInfo.EstimateTimeEnd));
-						if (countedPerConfiguration < toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).Limits.MaxConcurrentGlobal)
+						if (countedPerConfiguration < toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile).Limits.MaxConcurrentGlobal)
 						{
 							int countedPerProfile = servicesWithSameProfile.Count(scheduled => (calculatedStartTime >= scheduled.Value.SchedulingInfo.EstimateTimeStart && calculatedStartTime <= scheduled.Value.SchedulingInfo.EstimateTimeEnd) || (calculatedEndTime >= scheduled.Value.SchedulingInfo.EstimateTimeStart && calculatedEndTime <= scheduled.Value.SchedulingInfo.EstimateTimeEnd));
-							if (countedPerProfile < toBeScheduledInstance.Configuration.ByLevel(ServiceConfigurationLevel.Profile).Limits.MaxConcurrentPerProfile)
+							if (countedPerProfile < toBeScheduledInstance.Configuration.FindBaseConfiguration(ServiceConfigurationLevel.Profile).Limits.MaxConcurrentPerProfile)
 							{
 
 								toBeScheduledInstance.SchedulingInfo.EstimateTimeStart = calculatedStartTime;
