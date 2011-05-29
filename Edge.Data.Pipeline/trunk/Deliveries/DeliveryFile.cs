@@ -151,7 +151,8 @@ namespace Edge.Data.Pipeline
 				if (this.ParentDelivery == null || this.FileID == Guid.Empty)
 					return null;
 
-				// delivery.TargetLocationDirectory / {AccountID - if present} / yyyyMM / dd / DeliveryID / yyyyMMdd@hhmm-{df.FileID}{-df.Name}
+				//																	{delivery.DateCreated}			{DateTime.Now}
+				// delivery.TargetLocationDirectory / {AccountID - if present} / yyyyMM / dd / hhmm-{DeliveryID} / yyyyMMdd@hhmm-{df.FileID}{-df.Name}
 				throw new NotImplementedException();
 			}
 		}
