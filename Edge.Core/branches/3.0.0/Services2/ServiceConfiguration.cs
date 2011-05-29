@@ -42,7 +42,7 @@ namespace Edge.Core.Services2
 			return this.Derive(null);
 		}
 
-		internal ServiceConfiguration Derive(ServiceProfile profile)
+		internal ServiceConfiguration Derive(object parent)
 		{
 			if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
 				throw new ServiceConfigurationException("Cannot derive from an instance configuration.");
@@ -66,6 +66,7 @@ namespace Edge.Core.Services2
 				config.Parameters[param.Key] = param.Value;
 
 			// Associate with profile
+			ServiceProfile profile = parent as ServiceProfile;
 			if (this.Profile != null)
 			{
 				if (profile == null)
@@ -93,6 +94,16 @@ namespace Edge.Core.Services2
 			}
 
 			// TODO: handle scheduling rules
+
+			// Parameter inheritance from parent service configuration
+			ServiceConfiguration parentInstanceConfig = parent as ServiceConfiguration;
+			if (parentInstanceConfig != null && parentInstanceConfig.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+			{
+				// Ignore parameters that are already in the config
+				foreach (var param in parentInstanceConfig.Parameters)
+					if (!config.Parameters.ContainsKey(param.Key))
+						config.Parameters[param.Key] = param.Value;
+			}
 
 			return config;
 		}
@@ -209,7 +220,7 @@ namespace Edge.Core.Services2
 		/// <param name="level">Indicates the configuration level (template, profile, or instance) to find.</param>
 		/// <param name="search">Indicates whether the lowest ancestor or the highest ancestor should be found of the given type. (Highest not yet implemented).</param>
 		/// <returns></returns>
-		public ServiceConfiguration FindBaseConfiguration(ServiceConfigurationLevel level, ServiceConfigurationLevelSearch search = ServiceConfigurationLevelSearch.Lowest)
+		public ServiceConfiguration GetBaseConfiguration(ServiceConfigurationLevel level, ServiceConfigurationLevelSearch search = ServiceConfigurationLevelSearch.Lowest)
 		{
 			// TODO: implement ByLevel with search = Highest
 			if (search == ServiceConfigurationLevelSearch.Highest)
@@ -239,6 +250,16 @@ namespace Edge.Core.Services2
 					break;
 			}
 			return target;
+		}
+
+		public ServiceConfiguration GetTemplateConfiguration()
+		{
+			return GetBaseConfiguration(ServiceConfigurationLevel.Template);
+		}
+
+		public ServiceConfiguration GetProfileConfiguration()
+		{
+			return GetBaseConfiguration(ServiceConfigurationLevel.Profile);
 		}
 
 		public ServiceExecutionStatistics GetStatistics(int _percentile)
