@@ -14,15 +14,14 @@ namespace Edge.Data.Pipeline
 		public CsvDynamicReader(string url, char delimeter = ',', Encoding encoding = null)
 			: base(url, delimeter, encoding)
 		{
-			throw new NotImplementedException();
-			//this.OnObjectRequired = ReadRow;
+			this.OnObjectRequired = ReadRow;
 		}
 
-		dynamic ReadRow(CsvReader reader)
+		dynamic ReadRow(object reader, string[] headers, string[] values)
 		{
 			throw new NotImplementedException();
 			//dynamic obj = new object();
-			//foreach(string header in reader.Headers)
+			//foreach(string header in headers)
 			//	obj[header] = reader.
 		}
 	}
