@@ -104,8 +104,8 @@ namespace Edge.Data.Pipeline
 		/// <param name="o">InternalDownloadParams containing relevant data.</param>
 		internal static void InternalDownload(object o)
 		{
-			int notifyProgressEvery=128;
-			
+			int notifyProgressEvery = 128;
+
 			var operation = (FileDownloadOperation)o;
 			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
 			FileStream outputStream = File.Create(operation.TargetPath);
@@ -113,7 +113,7 @@ namespace Edge.Data.Pipeline
 
 			using (Stream responseStream = operation.Stream)
 			{
-				int bufferSize = 2 << int.Parse(AppSettings.Get(typeof(FileManager),"BufferSize"));
+				int bufferSize = 2 << int.Parse(AppSettings.Get(typeof(FileManager), "BufferSize"));
 				//notifyProgressEvery = bufferSize;
 				byte[] buffer = new byte[bufferSize];
 
@@ -177,8 +177,7 @@ namespace Edge.Data.Pipeline
 
 		// Info operations
 		// =========================================
-
-		public static FileInfo GetInfo(string location)
+		public static Uri GetRelativeUri(string location)
 		{
 			Uri uri;
 			try
@@ -190,6 +189,16 @@ namespace Edge.Data.Pipeline
 			{
 				throw new ArgumentException("Invalid file location - path must be relative. See inner exception for details.", "targetLocation", ex);
 			}
+			return uri;
+
+		}
+		public static FileInfo GetInfo(string location)
+		{
+			Uri uri;
+
+			
+			uri = GetRelativeUri(location);
+
 
 			// Get full path
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
@@ -208,7 +217,7 @@ namespace Edge.Data.Pipeline
 					directory = Path.GetDirectoryName(directory);
 				}
 				//if (!File.Exists(directory))
-					//throw new FileNotFoundException();
+				//throw new FileNotFoundException();
 
 				file = fullPath.Replace(directory + "\\", string.Empty);
 			}
