@@ -207,8 +207,8 @@ namespace Edge.Data.Pipeline
 				{
 					directory = Path.GetDirectoryName(directory);
 				}
-				if (!File.Exists(directory))
-					throw new FileNotFoundException();
+				//if (!File.Exists(directory))
+					//throw new FileNotFoundException();
 
 				file = fullPath.Replace(directory + "\\", string.Empty);
 			}
