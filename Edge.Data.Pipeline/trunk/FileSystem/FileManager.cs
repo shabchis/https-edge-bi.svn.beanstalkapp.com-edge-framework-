@@ -31,7 +31,7 @@ namespace Edge.Data.Pipeline
 		{
 			Uri uri;
 			try { uri = new Uri(sourceUrl); }
-			catch (Exception ex) {  throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
+			catch (Exception ex) { throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
 
 			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
 			request.Method = "GET";
@@ -48,7 +48,7 @@ namespace Edge.Data.Pipeline
 			if (request is HttpWebRequest)
 			{
 				// force user agent string, for good internet behavior :-)
-				var httpRequest = (HttpWebRequest) request;
+				var httpRequest = (HttpWebRequest)request;
 				if (String.IsNullOrEmpty(httpRequest.UserAgent))
 					httpRequest.UserAgent = FileManager.UserAgentString;
 			}
@@ -72,7 +72,7 @@ namespace Edge.Data.Pipeline
 			{
 				throw new ArgumentException("Invalid target location - path must be relative. See inner exception for details.", "targetLocation", ex);
 			}
-			
+
 			// Get full path
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
 			if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
@@ -104,57 +104,31 @@ namespace Edge.Data.Pipeline
 		/// <param name="o">InternalDownloadParams containing relevant data.</param>
 		internal static void InternalDownload(object o)
 		{
-			var operation = (FileDownloadOperation) o;
-			var streamReader = new StreamReader(operation.Stream,Encoding.UTF8,true);
+			int notifyProgressEvery=128;
 			
+			var operation = (FileDownloadOperation)o;
 			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
-			long bytesRead = 0;
-			long notifyProgressEvery = 128;
+			FileStream outputStream = File.Create(operation.TargetPath);
+			//var streamReader = new StreamReader(operation.Stream,Encoding.UTF8,true);
 
-			using (StreamWriter streamWriter = new StreamWriter(operation.TargetPath,false))
+			using (Stream responseStream = operation.Stream)
 			{
-				try
+				int bufferSize = 2 << int.Parse(AppSettings.Get(typeof(FileManager),"BufferSize"));
+				//notifyProgressEvery = bufferSize;
+				byte[] buffer = new byte[bufferSize];
+
+				int bytesRead = 0;
+				while ((bytesRead = responseStream.Read(buffer, 0, bufferSize)) != 0)
 				{
-					string line;
-					while (!streamReader.EndOfStream)
+					outputStream.Write(buffer, 0, bytesRead);
+					if (bytesRead >= notifyProgressEvery)
 					{
-						line = streamReader.ReadLine();
-						bytesRead += line.Length;
-						streamWriter.WriteLine(line);
-						if (bytesRead >= notifyProgressEvery)
-						{
-							notifyProgressEvery += 128;
-							progressEventArgs.DownloadedBytes = bytesRead;
-							operation.RaiseProgress(progressEventArgs);
-						}
-
+						notifyProgressEvery += 128;
+						progressEventArgs.DownloadedBytes = bytesRead;
+						operation.RaiseProgress(progressEventArgs);
 					}
-					//char[] buffer = null; not working! file has nulls
-					//while (!streamReader.EndOfStream)
-					//{
-					//    int size = streamReader.Peek();
-					//    if (size>=4)
-					//        size=4;
-						
-					//    buffer = new char[size];
-					//    int read = streamReader.Read(buffer, 0, size);
-						
-					//    streamWriter.Write(buffer);
-
-					//    bytesRead += read;
-					//    if (bytesRead % notifyProgressEvery == 0)
-					//    {
-					//        // Report progress
-					//        progressEventArgs.DownloadedBytes = bytesRead;
-					//        operation.RaiseProgress(progressEventArgs);
-					//    }
-					//}
 				}
-				catch (Exception ex)
-				{
-					operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
-				}
-
+				outputStream.Close();
 				// Update the file info with physical file info
 				System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
 				operation.FileInfo.TotalBytes = f.Length;
@@ -162,6 +136,8 @@ namespace Edge.Data.Pipeline
 
 				// Notify that we have succeeded
 				operation.RaiseEnded(new EndedEventArgs() { Success = true });
+
+
 			}
 		}
 
@@ -219,8 +195,8 @@ namespace Edge.Data.Pipeline
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
 
 			bool isZip = false;
-			string directory=string.Empty;
-			string file=string.Empty;
+			string directory = string.Empty;
+			string file = string.Empty;
 			FileInfo fileInfo = new FileInfo() { Location = uri.ToString() };
 
 			if (!File.Exists(fullPath))
@@ -234,14 +210,14 @@ namespace Edge.Data.Pipeline
 				if (!File.Exists(directory))
 					throw new FileNotFoundException();
 
-				file = fullPath.Replace(directory+"\\", string.Empty);
+				file = fullPath.Replace(directory + "\\", string.Empty);
 			}
 
 			if (isZip)
 			{
 				fileInfo.ZipLocation = directory;
 				fileInfo.Location = uri.ToString();
-				using (ZipFile zipFile=new ZipFile(fileInfo.ZipLocation))
+				using (ZipFile zipFile = new ZipFile(fileInfo.ZipLocation))
 				{
 					ZipEntry zipEntry = zipFile.GetEntry(file);
 					fileInfo.TotalBytes = zipEntry.Size;
@@ -255,7 +231,7 @@ namespace Edge.Data.Pipeline
 				fileInfo.FileModified = ioFileInfo.LastWriteTime;
 				fileInfo.TotalBytes = ioFileInfo.Length;
 			}
-			
+
 			return fileInfo;
 		}
 
@@ -465,12 +441,12 @@ namespace Edge.Data.Pipeline
 		public long TotalBytes { get; internal set; }
 		public DateTime FileCreated { get; internal set; }
 		public DateTime FileModified { get; internal set; }
-		
+
 	}
 
 	public class FileDownloadOperation
 	{
-		public virtual FileInfo FileInfo { get;internal set; } 
+		public virtual FileInfo FileInfo { get; internal set; }
 		public virtual Stream Stream { get; internal set; }
 		public event EventHandler<ProgressEventArgs> Progressed;
 		public event EventHandler<EndedEventArgs> Ended;
