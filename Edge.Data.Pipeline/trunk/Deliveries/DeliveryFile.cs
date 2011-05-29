@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Edge.Data.Pipeline;
 using Edge.Data.Objects;
+using System.IO;
+using System.Net;
 
 namespace Edge.Data.Pipeline
 {
@@ -156,8 +158,17 @@ namespace Edge.Data.Pipeline
 
 		public DeliveryFileDownloadOperation Download(bool async = true)
 		{
-			// TODO: create 'targetLocation' using: DeliveryID, FileName, AccountID, TargetPeriod etc.
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, this.Location, async));
+		}
+
+		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true)
+		{
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, this.Location, async));
+		}
+
+		public DeliveryFileDownloadOperation Download(WebRequest request, bool async = true)
+		{
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(request, this.Location, async));
 		}
 	}
 
