@@ -8,7 +8,17 @@ namespace Edge.Data.Pipeline
 
 	public class DeliveryFileList : ICollection<DeliveryFile>
 	{
+		Delivery _parentDelivery;
 		Dictionary<string, DeliveryFile> _dict;
+
+		//internal DeliveryFileList()
+		//{
+		//}
+
+		internal DeliveryFileList(Delivery parentDelivery)
+		{
+			_parentDelivery = parentDelivery;
+		}
 
 		Dictionary<string, DeliveryFile> Internal
 		{
@@ -20,6 +30,10 @@ namespace Edge.Data.Pipeline
 			if (String.IsNullOrWhiteSpace(file.Name))
 				throw new ArgumentException("DeliveryFile.Name must be specified.");
 
+			if (file.ParentDelivery != null)
+				throw new InvalidOperationException("Delivery file already belongs to another delivery.");
+
+			file.ParentDelivery = _parentDelivery;
 			Internal.Add(file.Name, file);
 		}
 

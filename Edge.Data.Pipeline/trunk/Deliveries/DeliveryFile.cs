@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using Edge.Data.Pipeline;
+using Edge.Data.Objects;
 
 namespace Edge.Data.Pipeline
 {
 	public class DeliveryFile
 	{
+		Delivery _parentDelivery;
+		Guid _fileID;
 		DateTime _dateCreated = DateTime.Now;
 		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
@@ -15,17 +18,19 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// The delivery this file belongs to.
 		/// </summary>
-		public Delivery Delivery
+		public Delivery ParentDelivery
 		{
-			get { throw new NotImplementedException(); }
+			get { return _parentDelivery; }
+			internal set { _parentDelivery = value; }
 		}
 
 		/// <summary>
 		/// Gets the unique ID of the file (-1 if unsaved).
 		/// </summary>
-		public int FileID
+		public Guid FileID
 		{
-			get { throw new NotImplementedException(); }
+			get { return _fileID; }
+			internal set { _fileID = value; }
 		}
 
 		/// <summary>
@@ -83,6 +88,12 @@ namespace Edge.Data.Pipeline
 			get { return _history ?? (_history = new DeliveryHistory<DeliveryOperation>()); }
 		}
 
+		public Account Account
+		{
+			get;
+			set;
+		}
+
 		/// <summary>
 		/// Gets the date the delivery file was created.
 		/// </summary>
@@ -126,15 +137,27 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Gets the full path of the file after it was saved by FileManager to the internal file storage.
 		/// </summary>
-		public FileInfo GetFileInfo()
+		//public FileInfo GetFileInfo()
+		//{
+		//	return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
+		//}
+
+		public string Location
 		{
-			return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
+			get
+			{
+				if (this.ParentDelivery == null || this.FileID == Guid.Empty)
+					return null;
+
+				// delivery.TargetLocationDirectory / {AccountID - if present} / yyyyMM / dd / DeliveryID / yyyyMMdd@hhmm-{df.FileID}{-df.Name}
+				throw new NotImplementedException();
+			}
 		}
 
 		public DeliveryFileDownloadOperation Download(bool async = true)
 		{
 			// TODO: create 'targetLocation' using: DeliveryID, FileName, AccountID, TargetPeriod etc.
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, "blah.xml", async));
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, this.Location, async));
 		}
 	}
 

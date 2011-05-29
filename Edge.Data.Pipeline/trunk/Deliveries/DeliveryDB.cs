@@ -79,8 +79,15 @@ namespace Edge.Data.Pipeline
 				else
 				{
 					guid = Guid.NewGuid();
+
+
 				}
 
+				// Give GUIDs to delivery files
+				foreach (DeliveryFile file in delivery.Files)
+					if (file.FileID == Guid.Empty)
+						file.FileID = Guid.NewGuid();
+	
 				// Try to store, and return new guid on success
 				client.Store(delivery);
 				return guid;

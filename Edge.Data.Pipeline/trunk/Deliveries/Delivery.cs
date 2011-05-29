@@ -38,6 +38,21 @@ namespace Edge.Data.Pipeline
 			get { return _guid; }
 		}
 
+		public Account Account
+		{
+			get;
+			set;
+		}
+
+		/// <summary>
+		/// Location to save files of deliveries of this type. Example "Google/AdWords"
+		/// </summary>
+		public string TargetLocationDirectory
+		{
+			get;
+			set;
+		}
+
 		/// <summary>
 		/// Gets or sets the channel for which this channel is relevant
 		/// </summary>
@@ -92,7 +107,7 @@ namespace Edge.Data.Pipeline
 		/// </summary>
 		public DeliveryFileList Files
 		{
-			get { return _files ?? (_files = new DeliveryFileList()); }
+			get { return _files ?? (_files = new DeliveryFileList(this)); }
 		}
 
 		/// <summary>
