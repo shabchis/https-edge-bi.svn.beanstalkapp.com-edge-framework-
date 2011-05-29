@@ -162,7 +162,7 @@ namespace Edge.Data.Pipeline
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, this.Location, async));
 		}
 
-		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true)
+		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true, long length = -1)
 		{
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, this.Location, async));
 		}
