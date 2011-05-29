@@ -37,6 +37,11 @@ namespace Edge.Data.Pipeline
 			_encoding = encoding ?? Encoding.UTF8;
 		}
 
+		public string[] Columns
+		{
+			get { return _csvReader.Headers; }
+		}
+
 		protected CsvReader InnerReader
 		{
 			get { return _csvReader; }
