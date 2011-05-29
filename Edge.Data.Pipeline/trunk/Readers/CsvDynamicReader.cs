@@ -5,6 +5,7 @@ using System.Text;
 using GotDotNet.XPath;
 using System.Xml;
 using DataStreams.Csv;
+using System.Dynamic;
 
 namespace Edge.Data.Pipeline
 {
@@ -20,7 +21,11 @@ namespace Edge.Data.Pipeline
 		dynamic ReadRow(CsvReader reader)
 		{
 			throw new NotImplementedException();
+			//dynamic obj = new object();
+			//foreach(string header in reader.Headers)
+			//	obj[header] = reader.
 		}
 	}
+
 
 }
