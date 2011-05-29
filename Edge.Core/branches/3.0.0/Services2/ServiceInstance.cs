@@ -37,15 +37,16 @@ namespace Edge.Core.Services2
 		{
 			if (configuration == null)
 				throw new ArgumentNullException("configuration");
-			if (configuration.ConfigurationLevel != ServiceConfigurationLevel.Profile)
-				throw new ArgumentException("The configuration used to create a new instance must be a profile-level configuration.", "configuration");
+
+			if (configuration.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+				throw new ArgumentException("Cannot use an existing instance-level configuration to create a new instance. Use instance.Configuration.GetBaseConfiguration(..) instead.", "configuration");
 
 			ThrowExceptionOnError = false;
 
-			Environment = environment;
-			InstanceID = Guid.NewGuid();
-			//Configuration = new ServiceConfiguration(ServiceConfigurationLevel.Instance, configuration);
-			ParentInstance = parentInstance;
+			this.Environment = environment;
+			this.InstanceID = Guid.NewGuid();
+			this.Configuration = configuration.Derive(parentInstance);
+			this.ParentInstance = parentInstance;
 			_owner = true;
 		}
 		
