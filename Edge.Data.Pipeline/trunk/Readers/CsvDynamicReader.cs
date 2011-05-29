@@ -20,9 +20,11 @@ namespace Edge.Data.Pipeline
 		dynamic ReadRow(object reader, string[] headers, string[] values)
 		{
 			throw new NotImplementedException();
-			//dynamic obj = new object();
-			//foreach(string header in headers)
-			//	obj[header] = reader.
+			//dynamic obj = new ExpandoObject();
+			//foreach (string header in headers)
+			//{
+				
+			//}
 		}
 	}
 

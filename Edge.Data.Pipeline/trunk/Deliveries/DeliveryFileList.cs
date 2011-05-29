@@ -30,10 +30,10 @@ namespace Edge.Data.Pipeline
 			if (String.IsNullOrWhiteSpace(file.Name))
 				throw new ArgumentException("DeliveryFile.Name must be specified.");
 
-			if (file.ParentDelivery != null)
+			if (file.Delivery != null)
 				throw new InvalidOperationException("Delivery file already belongs to another delivery.");
 
-			file.ParentDelivery = _parentDelivery;
+			file.Delivery = _parentDelivery;
 			Internal.Add(file.Name, file);
 		}
 

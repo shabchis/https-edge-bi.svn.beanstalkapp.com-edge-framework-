@@ -33,7 +33,7 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Gets the unique ID of the delivery (Guid.Empty if unsaved).
 		/// </summary>
-		public Guid Guid
+		public Guid DeliveryID
 		{
 			get { return _guid; }
 		}

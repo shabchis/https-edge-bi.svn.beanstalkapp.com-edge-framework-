@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public DeliveryImportSession(Delivery delivery)
 		{
-			if (delivery.Guid == Guid.Empty)
+			if (delivery.DeliveryID == Guid.Empty)
 			{
 				//throw new InvalidOperationException("An import session can only be created for a delivery that has been saved.");
 			}

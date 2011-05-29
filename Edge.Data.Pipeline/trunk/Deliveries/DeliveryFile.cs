@@ -5,6 +5,8 @@ using Edge.Data.Pipeline;
 using Edge.Data.Objects;
 using System.IO;
 using System.Net;
+using System.Text;
+using Db4objects.Db4o.TA;
 
 namespace Edge.Data.Pipeline
 {
@@ -16,11 +18,12 @@ namespace Edge.Data.Pipeline
 		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
 		DeliveryHistory<DeliveryOperation> _history;
+		private string _location;
 
 		/// <summary>
 		/// The delivery this file belongs to.
 		/// </summary>
-		public Delivery ParentDelivery
+		public Delivery Delivery
 		{
 			get { return _parentDelivery; }
 			internal set { _parentDelivery = value; }
@@ -55,24 +58,6 @@ namespace Edge.Data.Pipeline
 		}
 
 		/// <summary>
-		/// Gets or sets the type of reader that can read the contents of the file.
-		/// </summary>
-		public Type ReaderType
-		{
-			get;
-			set;
-		}
-
-		/// <summary>
-		/// Optional arguments that are passed to the reader when CreateReader is called.
-		/// </summary>
-		public object[] ReaderArguments
-		{
-			get;
-			set;
-		}
-
-		/// <summary>
 		/// Gets general parameters for use by services processing this delivery file.
 		/// </summary>
 		public Dictionary<string, object> Parameters
@@ -92,8 +77,8 @@ namespace Edge.Data.Pipeline
 
 		public Account Account
 		{
-			get;
-			set;
+		    get;
+		    set;
 		}
 
 		/// <summary>
@@ -110,25 +95,6 @@ namespace Edge.Data.Pipeline
 		public DateTime DateModified
 		{
 			get { return _dateModified; }
-		}
-
-		/// <summary>
-		/// Creates a new instance of this.ReaderType.
-		/// </summary>
-		/// <param name="args">Optional parameters for the reader constructor. If empty, this.ReaderArguments is used.</param>
-		public IReader CreateReader(params object[] args)
-		{
-			return (IReader)Activator.CreateInstance(ReaderType, args);
-		}
-
-		/// <summary>
-		/// Creates a new instance of this.ReaderType.
-		/// </summary>
-		/// <param name="args">Optional parameters for the reader constructor. If empty, this.ReaderArguments is used.</param>
-		/// <typeparam name="T">The type of object read by this reader.</typeparam>
-		public IReader<T> CreateReader<T>(params object[] args)
-		{
-			return (IReader<T>)CreateReader(args);
 		}
 
 		public void Save()
@@ -148,29 +114,50 @@ namespace Edge.Data.Pipeline
 		{
 			get
 			{
-				if (this.ParentDelivery == null || this.FileID == Guid.Empty)
-					return null;
+				return _location;	// delivery.TargetLocationDirectory / {AccountID - if present} / yyyyMM / dd / DeliveryID / yyyyMMdd@hhmm-{df.FileID}{-df.Name}
+			}
+			internal set
+			{
+				_location = value;
 
-				//																	{delivery.DateCreated}			{deliveryFile.DateCreated}
-				// delivery.TargetLocationDirectory / {AccountID - if present} / yyyyMM / dd / hhmm-{DeliveryID} / yyyyMMdd@hhmm-{df.FileID}{-df.Name}
-				throw new NotImplementedException();
 			}
 		}
 
 		public DeliveryFileDownloadOperation Download(bool async = true)
 		{
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, this.Location, async));
+			string location = CreateLocation();
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, location, async));
 		}
 
-		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true, long length = -1)
+		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true,long length=-1)
 		{
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, this.Location, async));
+			string location = CreateLocation();
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, location, async, length));
 		}
 
 		public DeliveryFileDownloadOperation Download(WebRequest request, bool async = true)
 		{
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(request, this.Location, async));
+			string location = CreateLocation();
+			return new DeliveryFileDownloadOperation(this, FileManager.Download(request, location, async));
 		}
+		private string CreateLocation()
+		{
+			StringBuilder location = new StringBuilder();
+			location.AppendFormat(@"{0}\", this.Delivery.TargetLocationDirectory);
+			if (this.Delivery.Account != null)
+				location.AppendFormat(@"{0}\", this.Delivery.Account.ID);
+
+			location.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}\{6}", DateCreated.ToString("yyyyMM")/*0*/,
+				DateCreated.ToString("dd")/*1*/,
+				DateCreated.ToString("HHmm")/*2*/,
+				this.Delivery.DeliveryID/*3*/,
+				DateTime.Now.ToString("yyyyMMdd@HHmm")/*4*/,
+				this.FileID/*5*/,
+				this.Name == null ? string.Empty : this.Name);
+			return location.ToString();
+		}
+
+		
 	}
 
 	public class DeliveryFileDownloadOperation : FileDownloadOperation
@@ -194,6 +181,7 @@ namespace Edge.Data.Pipeline
 		}
 		void _innerOperation_Ended(object sender, EndedEventArgs e)
 		{
+			this.DeliveryFile.Location = this.FileInfo.Location;
 			RaiseEnded(e);
 		}
 
