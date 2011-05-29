@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline
 		#region Members
 		/*=========================*/
 
-		public Func<CsvReader, T> OnObjectRequired = null;
+		public Func<object, string[], string[], T> OnObjectRequired = null;
 		private string _url;
 		private char _delimeter;
 		private Encoding _encoding;
@@ -57,7 +57,7 @@ namespace Edge.Data.Pipeline
 			if (OnObjectRequired == null)
 				throw new InvalidOperationException("A delegate must be specified for OnObjectRequired.");
 
-			next = OnObjectRequired(_csvReader);
+			next = OnObjectRequired(_csvReader, _csvReader.Headers, _csvReader.Values);
 			return next != null;
 
 		}
