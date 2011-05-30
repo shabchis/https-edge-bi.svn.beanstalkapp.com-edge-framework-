@@ -77,8 +77,8 @@ namespace Edge.Data.Pipeline
 
 		public Account Account
 		{
-		    get;
-		    set;
+			get;
+			set;
 		}
 
 		/// <summary>
@@ -122,6 +122,13 @@ namespace Edge.Data.Pipeline
 
 			}
 		}
+		public Stream Open()
+		{
+			if(string.IsNullOrEmpty(_location))
+				throw new Exception("DeliveryFile Open error: File was not downloaded yet or location was not updated");
+
+			return FileManager.Open(_location);
+		}
 
 		public DeliveryFileDownloadOperation Download(bool async = true)
 		{
@@ -129,7 +136,7 @@ namespace Edge.Data.Pipeline
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, location, async));
 		}
 
-		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true,long length=-1)
+		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true, long length = -1)
 		{
 			string location = CreateLocation();
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, location, async, length));
@@ -147,17 +154,17 @@ namespace Edge.Data.Pipeline
 			if (this.Delivery.Account != null)
 				location.AppendFormat(@"{0}\", this.Delivery.Account.ID);
 
-			location.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}\{6}", DateCreated.ToString("yyyyMM")/*0*/,
-				DateCreated.ToString("dd")/*1*/,
-				DateCreated.ToString("HHmm")/*2*/,
-				this.Delivery.DeliveryID/*3*/,
+			location.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", _parentDelivery.DateCreated.ToString("yyyyMM")/*0*/,
+			_parentDelivery.DateCreated.ToString("dd")/*1*/,
+				_parentDelivery.DateCreated.ToString("HHmm")/*2*/,
+				this.Delivery.DeliveryID.ToString("N")/*3*/,
 				DateTime.Now.ToString("yyyyMMdd@HHmm")/*4*/,
-				this.FileID/*5*/,
+				this.FileID.ToString("N")/*5*/,
 				this.Name == null ? string.Empty : this.Name);
 			return location.ToString();
 		}
 
-		
+
 	}
 
 	public class DeliveryFileDownloadOperation : FileDownloadOperation
@@ -172,7 +179,22 @@ namespace Edge.Data.Pipeline
 			_innerOperation.Progressed += new EventHandler<ProgressEventArgs>(_innerOperation_Progressed);
 			_innerOperation.Ended += new EventHandler<EndedEventArgs>(_innerOperation_Ended);
 		}
+		internal override string TargetPath
+		{
+			get
+			{
+				return _innerOperation.TargetPath;
+			}
+			set
+			{
+				_innerOperation.TargetPath = value;
+			}
+		}
 
+		public FileDownloadOperation InnerOperation
+		{
+			get { return _innerOperation; }
+		}
 		public DeliveryFile DeliveryFile { get; private set; }
 
 		void _innerOperation_Progressed(object sender, ProgressEventArgs e)
@@ -192,7 +214,7 @@ namespace Edge.Data.Pipeline
 
 		public override System.IO.Stream Stream
 		{
-			get { return base.Stream; }
+			get { return _innerOperation.Stream; }
 		}
 	}
 
