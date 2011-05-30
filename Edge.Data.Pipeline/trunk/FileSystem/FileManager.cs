@@ -63,15 +63,7 @@ namespace Edge.Data.Pipeline
 		public static FileDownloadOperation Download(Stream sourceStream, string targetLocation, bool async = true, long length = -1)
 		{
 			Uri uri;
-			try
-			{
-				//check how to ensure that targetLocation is relative
-				uri = new Uri(targetLocation, UriKind.Relative);
-			}
-			catch (Exception ex)
-			{
-				throw new ArgumentException("Invalid target location - path must be relative. See inner exception for details.", "targetLocation", ex);
-			}
+			uri = GetRelativeUri(targetLocation);
 
 			// Get full path
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
@@ -91,9 +83,10 @@ namespace Edge.Data.Pipeline
 					Location = uri.ToString(),
 					TotalBytes = length
 				},
-				Stream = sourceStream,
-				TargetPath = fullPath
+				Stream = sourceStream
+
 			};
+			fileDownLoadOperation.TargetPath = fullPath;
 
 			return fileDownLoadOperation;
 		}
@@ -107,6 +100,7 @@ namespace Edge.Data.Pipeline
 			int notifyProgressEvery = 128;
 
 			var operation = (FileDownloadOperation)o;
+
 			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
 			FileStream outputStream = File.Create(operation.TargetPath);
 			//var streamReader = new StreamReader(operation.Stream,Encoding.UTF8,true);
@@ -135,7 +129,13 @@ namespace Edge.Data.Pipeline
 				operation.FileInfo.FileCreated = f.CreationTime;
 
 				// Notify that we have succeeded
-				operation.RaiseEnded(new EndedEventArgs() { Success = true });
+				if (o is DeliveryFileDownloadOperation)
+				{
+					((DeliveryFileDownloadOperation)o).InnerOperation.RaiseEnded(new EndedEventArgs() { Success = true });//TODO: TALK WITH DORON NOT SURE THIS IS THE RIGHT WAY
+				}
+				else
+					operation.RaiseEnded(new EndedEventArgs() { Success = true });
+
 
 
 			}
@@ -196,7 +196,7 @@ namespace Edge.Data.Pipeline
 		{
 			Uri uri;
 
-			
+
 			uri = GetRelativeUri(location);
 
 
@@ -460,7 +460,7 @@ namespace Edge.Data.Pipeline
 		public event EventHandler<ProgressEventArgs> Progressed;
 		public event EventHandler<EndedEventArgs> Ended;
 		public bool IsAsync { get; set; }
-		internal string TargetPath { get; set; }
+		internal virtual string TargetPath { get; set; }
 
 		internal protected void RaiseProgress(ProgressEventArgs e)
 		{
