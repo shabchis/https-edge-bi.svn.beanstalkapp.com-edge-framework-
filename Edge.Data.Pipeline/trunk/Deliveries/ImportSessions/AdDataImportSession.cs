@@ -75,7 +75,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public override void Begin(bool reset = true)
 		{
-			_baseTableName = string.Format("D{0}_{1}_{2}_", Delivery.Parameters["AccountID"], DateTime.Today.ToString("yyyMMdd"), Delivery._guid.ToString("N").ToLower());
+			_baseTableName = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Today.ToString("yyyMMdd"), Delivery._guid.ToString("N").ToLower());
 			initalizeDataTablesAndBulks(reset);
 		}
 
@@ -84,20 +84,23 @@ namespace Edge.Data.Pipeline.Importing
 			//initalize connection
 			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
 			_sqlConnection.Open();
-
+			int tableCount = 0;
 			//create/truncate/do nothing  to tables
 			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_BeginAdDataImportSession(@baseTableName:NvarChar,@reset:bit)", CommandType.StoredProcedure))
 			{
 				sqlCommand.Connection = _sqlConnection;
 				sqlCommand.Parameters["@baseTableName"].Value = _baseTableName;
 				sqlCommand.Parameters["@reset"].Value = reset;
-				sqlCommand.ExecuteNonQuery();
+				tableCount=Convert.ToInt32( sqlCommand.ExecuteScalar());
 
 			}
 
 			#region Metrics
 			_bulkMetrics = new SqlBulkCopy(_sqlConnection);
-			_bulkMetrics.DestinationTableName = _baseTableName + "Metrics";
+			if (tableCount == 0)
+				_bulkMetrics.DestinationTableName = _baseTableName + "Metrics";
+			else
+				_bulkMetrics.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "Metrics", tableCount);
 			_metricsDataTable = new DataTable(_bulkMetrics.DestinationTableName);
 			_metricsDataTable.Columns.Add(MetricsUnit_Guid_FieldName);
 			_metricsDataTable.Columns.Add(adUsidFieldName);
@@ -119,7 +122,11 @@ namespace Edge.Data.Pipeline.Importing
 			#region MetricsTargetMatch
 
 			_bulkMetricsTargetMatch = new SqlBulkCopy(_sqlConnection);
-			_bulkMetricsTargetMatch.DestinationTableName = _baseTableName + "MetricsTargetMatch";
+			if (tableCount == 0)
+				_bulkMetricsTargetMatch.DestinationTableName = _baseTableName + "MetricsTargetMatch";
+			else
+				_bulkMetricsTargetMatch.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "MetricsTargetMatch", tableCount);
+		
 			_metricsTargetMatchDataTable = new DataTable(_bulkMetricsTargetMatch.DestinationTableName);
 			_metricsTargetMatchDataTable.Columns.Add(adUsidFieldName);
 			_metricsTargetMatchDataTable.Columns.Add(ads_OriginalID_FieldName);
@@ -157,7 +164,13 @@ namespace Edge.Data.Pipeline.Importing
 			#region AdCreatives
 
 			_bulkAdCreatives = new SqlBulkCopy(_sqlConnection);
-			_bulkAdCreatives.DestinationTableName = _baseTableName + "AdCreative";
+
+			if (tableCount == 0)
+				_bulkAdCreatives.DestinationTableName = _baseTableName + "AdCreative";
+			else
+				_bulkAdCreatives.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "AdCreative", tableCount);
+
+			
 			_adCreativesDataTable = new DataTable(_bulkAdCreatives.DestinationTableName);
 			_adCreativesDataTable.Columns.Add(adUsidFieldName);
 			_adCreativesDataTable.Columns.Add(ads_OriginalID_FieldName);
@@ -184,7 +197,12 @@ namespace Edge.Data.Pipeline.Importing
 			#region Ads
 
 			_bulkAd = new SqlBulkCopy(_sqlConnection);
-			_bulkAd.DestinationTableName = _baseTableName + "Ad";
+
+			if (tableCount == 0)
+				_bulkAd.DestinationTableName = _baseTableName + "Ad";
+			else
+				_bulkAd.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "Ad", tableCount);
+			
 			_adDataTable = new DataTable(_bulkAd.DestinationTableName);
 			_adDataTable.Columns.Add(adUsidFieldName);
 			_adDataTable.Columns.Add(ads_Name_FieldName);
@@ -208,7 +226,12 @@ namespace Edge.Data.Pipeline.Importing
 			#endregion
 			#region AdTarget
 			_bulkAdTarget = new SqlBulkCopy(_sqlConnection);
-			_bulkAdTarget.DestinationTableName = _baseTableName + "AdTarget";
+
+			if (tableCount == 0)
+				_bulkAdTarget.DestinationTableName = _baseTableName + "AdTarget";
+			else
+				_bulkAdTarget.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "AdTarget", tableCount);
+			
 			_adTargetDataTable = new DataTable(_bulkAdTarget.DestinationTableName);
 			_adTargetDataTable.Columns.Add(adUsidFieldName);
 			_adTargetDataTable.Columns.Add(ads_OriginalID_FieldName);
@@ -242,7 +265,12 @@ namespace Edge.Data.Pipeline.Importing
 			#endregion
 			#region AdSegment
 			_bulkSegments = new SqlBulkCopy(_sqlConnection);
-			_bulkSegments.DestinationTableName = _baseTableName + "AdSegment";
+
+			if (tableCount == 0)
+				_bulkSegments.DestinationTableName = _baseTableName + "AdSegment";
+			else
+				_bulkSegments.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "AdSegment", tableCount);
+			
 			_segmetsDataTable=new DataTable(_bulkSegments.DestinationTableName);
 				_segmetsDataTable.Columns.Add(adUsidFieldName);
 			_segmetsDataTable.Columns.Add(Segments_SegmentID_FieldName);
