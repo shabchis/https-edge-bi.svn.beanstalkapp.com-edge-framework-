@@ -10,7 +10,7 @@ using DataStreams.Csv;
 
 namespace Edge.Data.Pipeline
 {
-	public class CsvObjectReader<T> : ReaderBase<T> where T: class
+	public class CsvObjectReader<T> : ReaderBase<T> where T : class
 	{
 		#region Members
 		/*=========================*/
@@ -20,6 +20,7 @@ namespace Edge.Data.Pipeline
 		private char _delimeter;
 		private Encoding _encoding;
 		private CsvReader _csvReader = null;
+		private Stream _csvStream;
 
 		/*=========================*/
 		#endregion
@@ -36,6 +37,16 @@ namespace Edge.Data.Pipeline
 			_delimeter = delimeter;
 			_encoding = encoding ?? Encoding.UTF8;
 		}
+		public CsvObjectReader(Stream csvStream, char delimeter = ',', Encoding encoding = null)
+		{
+			if (csvStream == null)
+				throw new ArgumentNullException("csvStream");
+			_delimeter = delimeter;
+			_encoding = encoding ?? Encoding.UTF8;
+			_csvStream = csvStream;
+
+		}
+
 
 		public string[] Columns
 		{
@@ -49,7 +60,11 @@ namespace Edge.Data.Pipeline
 
 		protected override void Open()
 		{
-			_csvReader = new CsvReader(_url, _delimeter, _encoding);
+			if (string.IsNullOrEmpty(_url))
+				_csvReader = new CsvReader(_csvStream, _delimeter,_encoding);
+			else
+				_csvReader = new CsvReader(_url, _delimeter, _encoding);
+
 		}
 
 		protected override bool Next(ref T next)

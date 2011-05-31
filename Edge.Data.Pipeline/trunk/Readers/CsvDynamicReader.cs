@@ -6,6 +6,7 @@ using GotDotNet.XPath;
 using System.Xml;
 using DataStreams.Csv;
 using System.Dynamic;
+using System.IO;
 
 namespace Edge.Data.Pipeline
 {
@@ -16,16 +17,31 @@ namespace Edge.Data.Pipeline
 		{
 			this.OnObjectRequired = ReadRow;
 		}
+		public CsvDynamicReader(Stream csvStream, char delimeter = ',', Encoding encoding = null)
+			: base(csvStream, delimeter, encoding)
+		{
+			this.OnObjectRequired = ReadRow;	
+		}
 
 		dynamic ReadRow(object reader, string[] headers, string[] values)
 		{
-			throw new NotImplementedException();
-			//dynamic obj = new ExpandoObject();
-			//foreach (string header in headers)
-			//{
+			
+			dynamic obj = new ExpandoObject();
+
+			for (int i = 0; i < headers.Length; i++)
+			{			 
+			
+				string name;
+				if (headers[i].Contains(" "))
+					name = headers[i].Replace(" ", "_");
+				else
+					name = headers[i];
+				((IDictionary<string, object>)obj).Add(name, values[i]);				
 				
-			//}
+			}
+			return obj;
 		}
+		 
 	}
 
 
