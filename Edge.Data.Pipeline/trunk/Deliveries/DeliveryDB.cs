@@ -28,8 +28,8 @@ namespace Edge.Data.Pipeline
 
 			if (innerClient)
 				client = DeliveryDBClient.Connect();
-			else
-				previousActivationDepth = client.Ext().Configure().ActivationDepth();
+
+			previousActivationDepth = client.Ext().Configure().ActivationDepth();
 
 			try
 			{
@@ -39,6 +39,7 @@ namespace Edge.Data.Pipeline
 
 				var results = (from Delivery d in client where d.DeliveryID == deliveryID select d);
 				delivery = results.Count() > 0 ? results.First() : null;
+				client.Ext().OpenSession().Ext().Refresh(delivery, 30);
 			}
 			finally
 			{
@@ -52,7 +53,7 @@ namespace Edge.Data.Pipeline
 					client.Ext().Configure().ActivationDepth(previousActivationDepth);
 				}
 			}
-			
+
 
 			return delivery;
 		}
@@ -88,9 +89,9 @@ namespace Edge.Data.Pipeline
 				foreach (DeliveryFile file in delivery.Files)
 					if (file.FileID == Guid.Empty)
 						file.FileID = Guid.NewGuid();
-	
+
 				// Try to store, and return new guid on success
-				
+
 				client.Store(delivery);
 				return guid;
 			}
@@ -110,11 +111,11 @@ namespace Edge.Data.Pipeline
 			{
 				var details = new DbConnectionStringBuilder();
 				details.ConnectionString = AppSettings.GetConnectionString(typeof(Delivery), "DB");
-				
-				Host = (string) details["Host"];
-				User = (string) details["User"];
-				Password = (string) details["Password"];
-				Port = Int32.Parse((string) details["Port"]);
+
+				Host = (string)details["Host"];
+				User = (string)details["User"];
+				Password = (string)details["Password"];
+				Port = Int32.Parse((string)details["Port"]);
 			}
 			catch (Exception ex)
 			{
@@ -128,7 +129,7 @@ namespace Edge.Data.Pipeline
 		}
 	}
 
-	public class DeliveryDBServer:IDisposable
+	public class DeliveryDBServer : IDisposable
 	{
 		IObjectServer _server;
 		static readonly string File = AppSettings.Get(typeof(Delivery), "Db4o.FileName");
@@ -140,6 +141,8 @@ namespace Edge.Data.Pipeline
 		{
 			_server = Db4oClientServer.OpenServer(File, Port);
 			_server.GrantAccess(User, Password);
+			_server.Ext().Configure().ActivationDepth(30);
+			
 		}
 
 		public void Stop()
