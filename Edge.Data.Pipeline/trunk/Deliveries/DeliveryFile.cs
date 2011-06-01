@@ -222,6 +222,11 @@ namespace Edge.Data.Pipeline
 			set { _innerOperation.TargetPath = value; }
 		}
 
+		public override void Start()
+		{
+			_innerOperation.Start();
+		}
+
 		void _innerOperation_Progressed(object sender, ProgressEventArgs e)
 		{
 			RaiseProgress(e);
