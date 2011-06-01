@@ -934,6 +934,9 @@ namespace Edge.Core.Services
 
 		public ServiceStart(ServiceInstanceInfo instance)
 		{
+			if (instance.ConfigurationFile != null)
+				EdgeServicesConfiguration.Load(instance.ConfigurationFile);
+
 			Service s = null;
 			string typeName = instance.Configuration.Class;
 

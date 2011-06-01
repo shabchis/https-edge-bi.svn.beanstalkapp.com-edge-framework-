@@ -34,6 +34,12 @@ namespace Edge.Core.Configuration
 			private set { _current = value; }
 		}
 
+		public static string CurrentFileName
+		{
+			get;
+			private set;
+		}
+
 		/// <summary>
 		/// Loads the services configuration 'edge.services' from the current application's app.config file.
 		/// </summary>
@@ -55,6 +61,7 @@ namespace Edge.Core.Configuration
 			if (configFileName == null)
 			{
 				Current = (EdgeServicesConfiguration)ConfigurationManager.GetSection(sectionName);
+				CurrentFileName = null;
 			}
 			else
 			{
@@ -63,6 +70,7 @@ namespace Edge.Core.Configuration
 
 				Current = (EdgeServicesConfiguration)configFile.GetSection(sectionName);
 				Current.ConfigurationFile = configFile;
+				CurrentFileName = configFileName;
 
 				if (readOnly)
 					Current.SetReadOnly();
