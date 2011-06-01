@@ -218,6 +218,7 @@ namespace Edge.Data.Pipeline
 			{
 				fileInfo.ZipLocation = directory;
 				fileInfo.Location = uri.ToString();
+				
 				using (ZipFile zipFile = new ZipFile(fileInfo.ZipLocation))
 				{
 					ZipEntry zipEntry = zipFile.GetEntry(file);
