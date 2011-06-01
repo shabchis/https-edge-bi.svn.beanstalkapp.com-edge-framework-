@@ -130,9 +130,6 @@ namespace Edge.Data.Pipeline
 
 				// Notify that we have succeeded
 				operation.RaiseEnded(new EndedEventArgs() { Success = true });
-
-
-
 			}
 		}
 
@@ -471,7 +468,7 @@ namespace Edge.Data.Pipeline
 				this.Ended(this, e);
 		}
 
-		public void Start()
+		public virtual void Start()
 		{
 			if (IsAsync)
 			{
