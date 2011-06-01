@@ -122,12 +122,12 @@ namespace Edge.Data.Pipeline
 		//	return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
 		//}
 
-		public Stream Open()
+		public Stream OpenContents(string subLocation = null)
 		{
 			if(string.IsNullOrEmpty(this.Location))
 				throw new InvalidOperationException("The delivery file does not have a valid file location. Make sure it has been downloaded properly.");
 
-			return FileManager.Open(this.Location);
+			return FileManager.Open(subLocation == null ?  this.Location : Path.Combine(this.Location, subLocation));
 		}
 
 		void EnsureSaved()
