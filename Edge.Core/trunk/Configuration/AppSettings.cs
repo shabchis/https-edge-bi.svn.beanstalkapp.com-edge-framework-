@@ -86,13 +86,17 @@ namespace Edge.Core.Configuration
 			string settingKey = null;
 			string val = null;
 
+			// Apply default configuration if necessary
+			configFile = configFile ?? EdgeServicesConfiguration.Current.ConfigurationFile;
+
 			// Go up the class hierarchy searching for requested config var
 			while (val == null && prefix != null)
 			{
 				settingKey = prefix + "." + setting;
 
 				// Try getting app setting/conn string from custom config file
-				bool useExeConfig = true;
+				bool useExeConfig = true; 
+					 
 				if (configFile != null)
 				{
 					if (isConnectionString)

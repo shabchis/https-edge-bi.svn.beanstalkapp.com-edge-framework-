@@ -716,6 +716,7 @@ namespace Edge.Core.Services
 		int _accountID;
 		long _instanceID;
 		string _serviceUrl;
+		string _configFileName;
 		ServicePriority _priority;
 		ActiveServiceElement _config = null;
 		SchedulingRuleElement _rule = null;
@@ -739,6 +740,7 @@ namespace Edge.Core.Services
 			_instanceID = instance.InstanceID;
 			_priority = instance.Priority;
 			_config = instance.Configuration;
+			_configFileName = EdgeServicesConfiguration.CurrentFileName;
 			_rule = instance.ActiveSchedulingRule;
 			_timeStarted = instance.TimeStarted;
 			_timeScheduled = instance.TimeScheduled;
@@ -767,6 +769,11 @@ namespace Edge.Core.Services
 		public string ServiceUrl
 		{
 			get { return _serviceUrl; }
+		}
+
+		public string ConfigurationFile
+		{
+			get { return _configFileName; }
 		}
 
 		public ServicePriority Priority
