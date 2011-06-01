@@ -129,12 +129,7 @@ namespace Edge.Data.Pipeline
 				operation.FileInfo.FileCreated = f.CreationTime;
 
 				// Notify that we have succeeded
-				if (o is DeliveryFileDownloadOperation)
-				{
-					((DeliveryFileDownloadOperation)o).InnerOperation.RaiseEnded(new EndedEventArgs() { Success = true });//TODO: TALK WITH DORON NOT SURE THIS IS THE RIGHT WAY
-				}
-				else
-					operation.RaiseEnded(new EndedEventArgs() { Success = true });
+				operation.RaiseEnded(new EndedEventArgs() { Success = true });
 
 
 
@@ -453,13 +448,16 @@ namespace Edge.Data.Pipeline
 
 	}
 
+	/// <summary>
+	/// Contains information on an ongoing download operation.
+	/// </summary>
 	public class FileDownloadOperation
 	{
 		public virtual FileInfo FileInfo { get; internal set; }
 		public virtual Stream Stream { get; internal set; }
 		public event EventHandler<ProgressEventArgs> Progressed;
 		public event EventHandler<EndedEventArgs> Ended;
-		public bool IsAsync { get; set; }
+		public virtual bool IsAsync { get; internal set; }
 		internal virtual string TargetPath { get; set; }
 
 		internal protected void RaiseProgress(ProgressEventArgs e)

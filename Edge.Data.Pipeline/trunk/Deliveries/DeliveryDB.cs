@@ -13,7 +13,6 @@ using Edge.Core;
 using System.Diagnostics;
 using System.IO;
 using System.Data.Common;
-using Db4objects.Db4o.CS.Config;
 
 
 
@@ -31,7 +30,7 @@ namespace Edge.Data.Pipeline
 				client = DeliveryDBClient.Connect();
 
 			previousActivationDepth = client.Ext().Configure().ActivationDepth();
-			client.Ext().Configure().CallConstructors(true);
+
 			try
 			{
 				// set activation depth to 0 so that only an object reference is retrieved, this can then be used to swap the object
@@ -40,7 +39,6 @@ namespace Edge.Data.Pipeline
 
 				var results = (from Delivery d in client where d.DeliveryID == deliveryID select d);
 				delivery = results.Count() > 0 ? results.First() : null;
-				
 			}
 			finally
 			{
@@ -67,23 +65,18 @@ namespace Edge.Data.Pipeline
 
 				if (guid != Guid.Empty)
 				{
-					// refer here for an explanation on what's going on:
-					// http://stackoverflow.com/questions/5848990/retrieve-an-object-in-one-db4o-session-store-in-another-disconnected-scenario
-
-					// Get an inactive reference, get its temp ID and bind the supplied object to it instead
 					Delivery inactiveReference = DeliveryDB.Get(delivery.DeliveryID, false, client);
 					if (inactiveReference != null)
 					{
-						//long tempDb4oID = client.Ext().GetID(inactiveReference);
-						client.Delete(inactiveReference);
-						//client.Ext().Bind(delivery, tempDb4oID);
+						// refer here for an explanation on what's going on:
+						// http://stackoverflow.com/questions/5848990/retrieve-an-object-in-one-db4o-session-store-in-another-disconnected-scenario
+						long tempDb4oID = client.Ext().GetID(inactiveReference);
+						client.Ext().Bind(delivery, tempDb4oID);
 					}
 				}
 				else
 				{
 					guid = Guid.NewGuid();
-
-
 				}
 
 				// Give GUIDs to delivery files
@@ -92,14 +85,33 @@ namespace Edge.Data.Pipeline
 						file.FileID = Guid.NewGuid();
 
 				// Try to store, and return new guid on success
-				client.Ext().Configure().ActivationDepth(30);
-				client.Ext().Configure().DetectSchemaChanges(true);
-				client.Ext().Configure().UpdateDepth(30);
-				client.Ext().Configure().CallConstructors(true);
-				
+
 				client.Store(delivery);
-				
 				return guid;
+			}
+		}
+
+		internal static void Delete(Delivery delivery, IObjectContainer client = null)
+		{
+			bool close = true;
+			if (client == null)
+				client = DeliveryDBClient.Connect();
+			else
+				close = false;
+
+			try
+			{
+				
+				// Get an inactive reference, get its temp ID and bind the supplied object to it instead
+				Delivery inactiveReference = DeliveryDB.Get(delivery.DeliveryID, false, client);
+				if (inactiveReference != null) {
+					client.Delete(inactiveReference);
+				}
+			}
+			finally
+			{
+				if (close)
+					client.Dispose();
 			}
 		}
 	}
@@ -131,7 +143,6 @@ namespace Edge.Data.Pipeline
 
 		public static IObjectContainer Connect()
 		{
-
 			return Db4oClientServer.OpenClient(Host, Port, User, Password);
 		}
 	}
@@ -144,28 +155,19 @@ namespace Edge.Data.Pipeline
 		static readonly string Password = AppSettings.Get(typeof(Delivery), "Db4o.Password");
 		static readonly int Port = Int32.Parse(AppSettings.Get(typeof(Delivery), "Db4o.Port"));
 
-		public void Start()
+		public void Start(TextWriter writer)
 		{
-			IServerConfiguration serverConfig = Db4oClientServer.NewServerConfiguration();
-			serverConfig.Common.ActivationDepth = 30;
-			serverConfig.Common.CallConstructors = true;
-			serverConfig.Common.DetectSchemaChanges = true;
-			serverConfig.Common.UpdateDepth = 30;
-
-
-			_server = Db4oClientServer.OpenServer(serverConfig,File, Port);
+			_server = Db4oClientServer.OpenServer(File, Port);
 			_server.GrantAccess(User, Password);
-			_server.Ext().Configure().ActivationDepth(30);
-			_server.Ext().Configure().CallConstructors(true);
-			_server.Ext().Configure().DetectSchemaChanges(true);
-			_server.Ext().Configure().UpdateDepth(30);
-			
-			
+			_server.Ext().Configure().ExceptionsOnNotStorable(true);
+			_server.Ext().Configure().MessageLevel(3);
+			_server.Ext().Configure().SetOut(writer);
 		}
 
 		public void Stop()
 		{
-			_server.Close();
+			if (_server != null)
+				_server.Close();
 		}
 
 		#region IDisposable Members
