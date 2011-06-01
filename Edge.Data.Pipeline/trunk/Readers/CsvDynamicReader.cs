@@ -12,13 +12,13 @@ namespace Edge.Data.Pipeline
 {
 	public class CsvDynamicReader : CsvObjectReader<dynamic>
 	{
-		public CsvDynamicReader(string url, char delimeter = ',', Encoding encoding = null)
-			: base(url, delimeter, encoding)
+		public CsvDynamicReader(string url,string[] requiredColumns, char delimeter = ',', Encoding encoding = null)
+			: base(url,requiredColumns, delimeter, encoding)
 		{
 			this.OnObjectRequired = ReadRow;
 		}
-		public CsvDynamicReader(Stream csvStream, char delimeter = ',', Encoding encoding = null)
-			: base(csvStream, delimeter, encoding)
+		public CsvDynamicReader(Stream csvStream, string[] requiredColumns,char delimeter = ',', Encoding encoding = null)
+			: base(csvStream,requiredColumns, delimeter, encoding)
 		{
 			this.OnObjectRequired = ReadRow;	
 		}
@@ -28,6 +28,8 @@ namespace Edge.Data.Pipeline
 			
 			dynamic obj = new ExpandoObject();
 
+			if (headers.Length==0)
+				throw new Exception("No Headers"); //TODO: TALK WITH DORON
 			for (int i = 0; i < headers.Length; i++)
 			{			 
 			
@@ -36,7 +38,8 @@ namespace Edge.Data.Pipeline
 					name = headers[i].Replace(" ", "_");
 				else
 					name = headers[i];
-				((IDictionary<string, object>)obj).Add(name, values[i]);				
+
+				((IDictionary<string, object>)obj).Add(name, values.Length <= i ? string.Empty : values[i]);				
 				
 			}
 			return obj;

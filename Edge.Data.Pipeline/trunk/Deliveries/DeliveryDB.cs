@@ -13,6 +13,7 @@ using Edge.Core;
 using System.Diagnostics;
 using System.IO;
 using System.Data.Common;
+using Db4objects.Db4o.CS.Config;
 
 
 
@@ -30,7 +31,7 @@ namespace Edge.Data.Pipeline
 				client = DeliveryDBClient.Connect();
 
 			previousActivationDepth = client.Ext().Configure().ActivationDepth();
-
+			client.Ext().Configure().CallConstructors(true);
 			try
 			{
 				// set activation depth to 0 so that only an object reference is retrieved, this can then be used to swap the object
@@ -39,7 +40,7 @@ namespace Edge.Data.Pipeline
 
 				var results = (from Delivery d in client where d.DeliveryID == deliveryID select d);
 				delivery = results.Count() > 0 ? results.First() : null;
-				client.Ext().OpenSession().Ext().Refresh(delivery, 30);
+				
 			}
 			finally
 			{
@@ -91,8 +92,13 @@ namespace Edge.Data.Pipeline
 						file.FileID = Guid.NewGuid();
 
 				// Try to store, and return new guid on success
-
+				client.Ext().Configure().ActivationDepth(30);
+				client.Ext().Configure().DetectSchemaChanges(true);
+				client.Ext().Configure().UpdateDepth(30);
+				client.Ext().Configure().CallConstructors(true);
+				
 				client.Store(delivery);
+				
 				return guid;
 			}
 		}
@@ -125,6 +131,7 @@ namespace Edge.Data.Pipeline
 
 		public static IObjectContainer Connect()
 		{
+
 			return Db4oClientServer.OpenClient(Host, Port, User, Password);
 		}
 	}
@@ -139,9 +146,20 @@ namespace Edge.Data.Pipeline
 
 		public void Start()
 		{
-			_server = Db4oClientServer.OpenServer(File, Port);
+			IServerConfiguration serverConfig = Db4oClientServer.NewServerConfiguration();
+			serverConfig.Common.ActivationDepth = 30;
+			serverConfig.Common.CallConstructors = true;
+			serverConfig.Common.DetectSchemaChanges = true;
+			serverConfig.Common.UpdateDepth = 30;
+
+
+			_server = Db4oClientServer.OpenServer(serverConfig,File, Port);
 			_server.GrantAccess(User, Password);
 			_server.Ext().Configure().ActivationDepth(30);
+			_server.Ext().Configure().CallConstructors(true);
+			_server.Ext().Configure().DetectSchemaChanges(true);
+			_server.Ext().Configure().UpdateDepth(30);
+			
 			
 		}
 
