@@ -10,6 +10,9 @@ using Db4objects.Db4o.TA;
 
 namespace Edge.Data.Pipeline
 {
+	/// <summary>
+	/// Represents a raw data file that belongs to a delivery.
+	/// </summary>
 	public class DeliveryFile
 	{
 		Delivery _parentDelivery=null;
@@ -18,7 +21,6 @@ namespace Edge.Data.Pipeline
 		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
 		DeliveryHistory<DeliveryOperation> _history;
-		private string _location;
 
 		/// <summary>
 		/// The delivery this file belongs to.
@@ -56,6 +58,16 @@ namespace Edge.Data.Pipeline
 			get;
 			set;
 		}
+
+		/// <summary>
+		/// Once it is downloaded, gets the location of the file in the FileManager-managed storage.
+		/// </summary>
+		public string Location
+		{
+			get;
+			internal set;
+		}
+
 
 		/// <summary>
 		/// Gets general parameters for use by services processing this delivery file.
@@ -110,43 +122,42 @@ namespace Edge.Data.Pipeline
 		//	return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
 		//}
 
-		public string Location
-		{
-			get
-			{
-				return _location;	// delivery.TargetLocationDirectory / {AccountID - if present} / yyyyMM / dd / DeliveryID / yyyyMMdd@hhmm-{df.FileID}{-df.Name}
-			}
-			internal set
-			{
-				_location = value;
-
-			}
-		}
 		public Stream Open()
 		{
-			if(string.IsNullOrEmpty(_location))
-				throw new Exception("DeliveryFile Open error: File was not downloaded yet or location was not updated");
+			if(string.IsNullOrEmpty(this.Location))
+				throw new InvalidOperationException("The delivery file does not have a valid file location. Make sure it has been downloaded properly.");
 
-			return FileManager.Open(_location);
+			return FileManager.Open(this.Location);
+		}
+
+		void EnsureSaved()
+		{
+			if (this.FileID == Guid.Empty)
+				throw new InvalidOperationException("Cannot download a delivery file before it has been saved.");
 		}
 
 		public DeliveryFileDownloadOperation Download(bool async = true)
 		{
+			EnsureSaved();
 			string location = CreateLocation();
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, location, async));
 		}
 
 		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true, long length = -1)
 		{
+			EnsureSaved();
 			string location = CreateLocation();
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, location, async, length));
 		}
 
 		public DeliveryFileDownloadOperation Download(WebRequest request, bool async = true)
 		{
+			EnsureSaved();
+			this.SourceUrl = request.RequestUri.ToString();
 			string location = CreateLocation();
 			return new DeliveryFileDownloadOperation(this, FileManager.Download(request, location, async));
 		}
+
 		private string CreateLocation()
 		{
 			StringBuilder location = new StringBuilder();
@@ -154,19 +165,23 @@ namespace Edge.Data.Pipeline
 			if (this.Delivery.Account != null)
 				location.AppendFormat(@"{0}\", this.Delivery.Account.ID);
 
-			location.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", _parentDelivery.DateCreated.ToString("yyyyMM")/*0*/,
+			location.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", _parentDelivery.DateCreated.ToString("yyyy-MM")/*0*/,
 			_parentDelivery.DateCreated.ToString("dd")/*1*/,
 				_parentDelivery.DateCreated.ToString("HHmm")/*2*/,
 				this.Delivery.DeliveryID.ToString("N")/*3*/,
 				DateTime.Now.ToString("yyyyMMdd@HHmm")/*4*/,
 				this.FileID.ToString("N")/*5*/,
 				this.Name == null ? string.Empty : this.Name);
+
 			return location.ToString();
 		}
 
 
 	}
 
+	/// <summary>
+	/// Contains information on an ongoing download operation of a delivery file.
+	/// </summary>
 	public class DeliveryFileDownloadOperation : FileDownloadOperation
 	{
 		FileDownloadOperation _innerOperation;
@@ -179,32 +194,11 @@ namespace Edge.Data.Pipeline
 			_innerOperation.Progressed += new EventHandler<ProgressEventArgs>(_innerOperation_Progressed);
 			_innerOperation.Ended += new EventHandler<EndedEventArgs>(_innerOperation_Ended);
 		}
-		internal override string TargetPath
-		{
-			get
-			{
-				return _innerOperation.TargetPath;
-			}
-			set
-			{
-				_innerOperation.TargetPath = value;
-			}
-		}
 
-		public FileDownloadOperation InnerOperation
+		public DeliveryFile DeliveryFile
 		{
-			get { return _innerOperation; }
-		}
-		public DeliveryFile DeliveryFile { get; private set; }
-
-		void _innerOperation_Progressed(object sender, ProgressEventArgs e)
-		{
-			RaiseProgress(e);
-		}
-		void _innerOperation_Ended(object sender, EndedEventArgs e)
-		{
-			this.DeliveryFile.Location = this.FileInfo.Location;
-			RaiseEnded(e);
+			get;
+			private set;
 		}
 
 		public override FileInfo FileInfo
@@ -216,6 +210,28 @@ namespace Edge.Data.Pipeline
 		{
 			get { return _innerOperation.Stream; }
 		}
+
+		public override bool IsAsync
+		{
+			get { return base.IsAsync; }
+		}
+
+		internal override string TargetPath
+		{
+			get { return _innerOperation.TargetPath; }
+			set { _innerOperation.TargetPath = value; }
+		}
+
+		void _innerOperation_Progressed(object sender, ProgressEventArgs e)
+		{
+			RaiseProgress(e);
+		}
+		void _innerOperation_Ended(object sender, EndedEventArgs e)
+		{
+			this.DeliveryFile.Location = this.FileInfo.Location;
+			RaiseEnded(e);
+		}
+
 	}
 
 }

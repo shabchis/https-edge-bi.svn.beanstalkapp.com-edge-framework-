@@ -33,13 +33,6 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
-		/*
-		public ReportConfigurationElement ReportSettings
-		{
-			get { return Instance.Configuration.ExtendedElements["ReportSettings"] as ReportConfigurationElement; }
-		}
-		*/
-
 		public Delivery Delivery
 		{
 			get

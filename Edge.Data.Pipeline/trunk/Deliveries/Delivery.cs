@@ -27,6 +27,11 @@ namespace Edge.Data.Pipeline
 		/// <param name="instanceID">ID of the service that is initializing the delivery. Equivalent to delivery.History.Add(DeliveryOperation.Created, serviceInstance.InstanceID)</param>
 		public Delivery(long instanceID)
 		{
+			// fuck db4o
+			_files = new DeliveryFileList(this);
+			_history = new DeliveryHistory<DeliveryOperation>();
+			_parameters = new Dictionary<string, object>();
+
 			this.History.Add(DeliveryOperation.Created, instanceID);
 		}
 
@@ -107,7 +112,7 @@ namespace Edge.Data.Pipeline
 		/// </summary>
 		public DeliveryFileList Files
 		{
-			get { return _files ?? (_files = new DeliveryFileList(this)); }
+			get { return _files; }
 		}
 
 		/// <summary>
@@ -115,7 +120,7 @@ namespace Edge.Data.Pipeline
 		/// </summary>
         public Dictionary<string,object> Parameters
 		{
-			get { return _parameters ?? (_parameters = new Dictionary<string, object>()); }
+			get { return _parameters; }
 		}
 
 		/// <summary>
@@ -124,7 +129,7 @@ namespace Edge.Data.Pipeline
 		/// </summary>
 		public DeliveryHistory<DeliveryOperation> History
 		{
-			get { return _history ?? (_history = new DeliveryHistory<DeliveryOperation>()); }
+			get { return _history; }
 		}
 
 		public void Save()
@@ -135,12 +140,19 @@ namespace Edge.Data.Pipeline
 				Saved(this);
 		}
 
+		public void Delete()
+		{
+			DeliveryDB.Delete(this);
+		}
+
 		internal event Action<Delivery> Saved;
 
 		public static Delivery Get(Guid deliveryID)
 		{
 			return DeliveryDB.Get(deliveryID);
 		}
+
+
 	}
     
 	

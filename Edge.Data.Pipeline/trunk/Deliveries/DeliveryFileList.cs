@@ -11,12 +11,11 @@ namespace Edge.Data.Pipeline
 		Delivery _parentDelivery;
 		Dictionary<string, DeliveryFile> _dict;
 
-		//internal DeliveryFileList()
-		//{
-		//}
-
 		internal DeliveryFileList(Delivery parentDelivery)
 		{
+			if (parentDelivery == null)
+				throw new ArgumentNullException("parentDelivery");
+
 			_parentDelivery = parentDelivery;
 		}
 
