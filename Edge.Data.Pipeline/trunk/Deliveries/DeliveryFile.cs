@@ -12,7 +12,7 @@ namespace Edge.Data.Pipeline
 {
 	public class DeliveryFile
 	{
-		Delivery _parentDelivery;
+		Delivery _parentDelivery=null;
 		Guid _fileID;
 		DateTime _dateCreated = DateTime.Now;
 		DateTime _dateModified = DateTime.Now;
