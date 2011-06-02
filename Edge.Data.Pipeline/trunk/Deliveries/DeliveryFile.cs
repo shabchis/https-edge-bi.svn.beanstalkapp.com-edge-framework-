@@ -40,6 +40,7 @@ namespace Edge.Data.Pipeline
 			internal set { _fileID = value; }
 		}
 
+		public FileFormat FileFormat { get; set; }
 		/// <summary>
 		/// Gets or sets the name of the delivery file.
 		/// </summary>
@@ -122,12 +123,12 @@ namespace Edge.Data.Pipeline
 		//	return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
 		//}
 
-		public Stream OpenContents(string subLocation = null)
+		public Stream OpenContents(string subLocation = null, FileFormat fileFormat = FileFormat.Unspecified)
 		{
 			if(string.IsNullOrEmpty(this.Location))
 				throw new InvalidOperationException("The delivery file does not have a valid file location. Make sure it has been downloaded properly.");
 
-			return FileManager.Open(subLocation == null ?  this.Location : Path.Combine(this.Location, subLocation));
+			return FileManager.Open(subLocation == null ?  this.Location : Path.Combine(this.Location, subLocation),fileFormat);
 		}
 
 		void EnsureSaved()
@@ -237,6 +238,12 @@ namespace Edge.Data.Pipeline
 			RaiseEnded(e);
 		}
 
+	}
+
+	public enum FileFormat
+	{
+		Unspecified=1,
+		GZip=2
 	}
 
 }
