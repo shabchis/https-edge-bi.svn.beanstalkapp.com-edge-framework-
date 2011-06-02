@@ -6,6 +6,7 @@ using System.Net;
 using System.IO;
 using System.Data.SqlClient;
 using ICSharpCode.SharpZipLib.Zip;
+using ICSharpCode.SharpZipLib.GZip;
 using System.Collections;
 using Edge.Data.Pipeline;
 using System.Threading;
@@ -140,15 +141,15 @@ namespace Edge.Data.Pipeline
 		/// Opens a file from the specified location.
 		/// </summary>
 		/// <param name="location">Relative location of file in the FileManager system.</param>
-		public static Stream Open(string location)
+		public static Stream Open(string location, FileFormat fileFormat=FileFormat.Unspecified)
 		{
-			return Open(GetInfo(location));
+			return Open(GetInfo(location,fileFormat),fileFormat);
 		}
 
 		/// <summary>
 		/// Opens the file represented by the FileInfo object.
 		/// </summary>
-		public static Stream Open(FileInfo fileInfo)
+		public static Stream Open(FileInfo fileInfo, FileFormat fileFormat = FileFormat.Unspecified)
 		{
 			Stream stream;
 			if (string.IsNullOrEmpty(fileInfo.ZipLocation)) //not zip
@@ -158,10 +159,25 @@ namespace Edge.Data.Pipeline
 			}
 			else //Zip File
 			{
-				FileStream zipStream = File.OpenRead(fileInfo.ZipLocation);
-				ZipFile zipFile = new ZipFile(zipStream);
-				ZipEntry zipEntry = zipFile.GetEntry(fileInfo.FileName);
-				stream = zipFile.GetInputStream(zipEntry);
+				//TODO: TEMPORARLY JUST FOR TESTS TALK WITH DORON
+				if (fileFormat==FileFormat.Unspecified)
+				{
+					FileStream zipStream = File.OpenRead(fileInfo.ZipLocation);
+					ZipFile zipFile = new ZipFile(zipStream);
+					ZipEntry zipEntry = zipFile.GetEntry(fileInfo.FileName);
+					stream = zipFile.GetInputStream(zipEntry);
+				}
+				else
+				{
+					Stream fs = new FileStream(fileInfo.ZipLocation, FileMode.Open, FileAccess.Read);
+					GZipInputStream gzipStream = new GZipInputStream(fs);
+					stream = gzipStream;
+
+					
+					
+				}
+				
+				
 			}
 
 			return stream;
@@ -184,7 +200,7 @@ namespace Edge.Data.Pipeline
 			return uri;
 
 		}
-		public static FileInfo GetInfo(string location)
+		public static FileInfo GetInfo(string location,FileFormat fileFormat=FileFormat.Unspecified)
 		{
 			Uri uri;
 
@@ -218,12 +234,22 @@ namespace Edge.Data.Pipeline
 			{
 				fileInfo.ZipLocation = directory;
 				fileInfo.Location = uri.ToString();
-				
-				using (ZipFile zipFile = new ZipFile(fileInfo.ZipLocation))
+
+				if (fileFormat==FileFormat.Unspecified)
 				{
-					ZipEntry zipEntry = zipFile.GetEntry(file);
-					fileInfo.TotalBytes = zipEntry.Size;
-					fileInfo.FileCreated = zipEntry.DateTime; //TODO: CHECK THE MEANING OF ZIP DATETIME
+					using (ZipFile zipFile = new ZipFile(fileInfo.ZipLocation))
+					{
+						ZipEntry zipEntry = zipFile.GetEntry(file);
+						fileInfo.TotalBytes = zipEntry.Size;
+						fileInfo.FileCreated = zipEntry.DateTime; //TODO: CHECK THE MEANING OF ZIP DATETIME
+					}
+				}
+				else
+				{
+					System.IO.FileInfo f = new System.IO.FileInfo(fileInfo.ZipLocation);
+					fileInfo.TotalBytes = f.Length;
+					fileInfo.FileCreated = f.CreationTime;
+					
 				}
 			}
 			else
