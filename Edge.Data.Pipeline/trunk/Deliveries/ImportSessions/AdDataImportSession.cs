@@ -302,22 +302,22 @@ namespace Edge.Data.Pipeline.Importing
 			return returnObject;
 		}
 
-		private long GetAdIdentity(Ad ad)
+		private string GetAdIdentity(Ad ad)
 		{
-			long val;
+			string val;
 			if (this.OnAdIdentityRequired != null)
-				val = this.OnAdIdentityRequired(ad);
+				val = this.OnAdIdentityRequired(ad).ToString();
 			else if (String.IsNullOrEmpty(ad.OriginalID))
 				throw new Exception("Ad.OriginalID is required. If it is not available, provide a function for AdDataImportSession.OnAdIdentityRequired that returns a unique value for this ad.");
 			else
-				val = long.Parse(ad.OriginalID);
+				val = ad.OriginalID.ToString();
 
 			return val;
 		}
 
 		public void ImportMetrics(AdMetricsUnit metrics)
 		{
-			long adUsid = -1;
+			string adUsid = "-1";
 			metrics.Guid = Guid.NewGuid();
 			DataRow row;
 			foreach (KeyValuePair<Measure, double> measure in metrics.Measures)
@@ -332,12 +332,13 @@ namespace Edge.Data.Pipeline.Importing
 				row[adUsidFieldName] = Normalize(adUsid);
 				row[Metrics_TargetPeriodStart_FieldName] = metrics.PeriodStart;
 				row[Metrics_TargetPeriodEnd_FieldName] = metrics.PeriodEnd;
+				if (metrics.Currency!=null)
 				row[Metrics_Currency_FieldName] = Normalize(metrics.Currency.Code);
 
 
 				//Measures
-				row[Metrics_MeasureID_FieldName] = measure.Key.ID;
-				row[Metrics_MeasureValue_FieldName] = measure.Value;
+				row[Metrics_MeasureID_FieldName] = Normalize(measure.Key.ID);
+				row[Metrics_MeasureValue_FieldName] = Normalize(measure.Value);
 
 
 
@@ -408,7 +409,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public void ImportAd(Ad ad)
 		{
-			long adUsid = GetAdIdentity(ad);
+			string adUsid = GetAdIdentity(ad);
 
 			DataRow row = _adDataTable.NewRow();
 
