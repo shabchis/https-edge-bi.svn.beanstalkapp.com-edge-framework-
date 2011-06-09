@@ -49,6 +49,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="sp.sql">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Test Scripts\Test.sql">
       <SubType>Content</SubType>
     </Content>

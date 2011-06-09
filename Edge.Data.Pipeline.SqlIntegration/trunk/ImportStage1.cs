@@ -88,40 +88,22 @@ public partial class StoredProcedures
 			SqlCommand cmd = new SqlCommand(String.Format(@"
 				select
 					ad.AdUsid,
-					ad.Campaign_Account				as Account_ID,
-					ad.Campaign_Channel				as Channel_ID,
-					ad.Campaign_Name				as Campaign_Name,
-					ad.Campaign_OriginalID			as Campaign_OriginalID,
-					ad.Campaign_Status				as Campaign_Status,
-					GK_GetCampaignGK										-- TODO: stored function
-					(
-							ad.Campaign_Account,
-							ad.Campaign_Channel,
-							ad.Campaign_Name,
-							ad.Campaign_OriginalID
-					)								as Campaign_GK,
-					segments.Value					as Adgroup_Name,
-					segments.ValueOriginalID		as Adgroup_OriginalID,
-					GK_GetAdgroupGK											-- TODO: stored function
-					(
-					)								as Adgroup_GK,
-					
+					campaign.GK						as Campaign_GK,
+					adgroup.GK						as Adgroup_GK,
 					creative_title.Field2			as Creative_Title,
 					creative_desc.Field2			as Creative_Desc1,
-					-- creative_desc.Field2			as Creative_Desc2,  -- TODO ??
+					creative_desc2.Field2			as Creative_Desc2,
 					creative_dispUrl.Field2			as Creative_DisplayUrl,
 					ad.Name							as AdgroupCreative_Name,
 					ad.OriginalID					as AdgroupCreative_OriginalID,
 					ad.DestinationUrl				as AdgroupCreative_DestUrl,
+					-- TODO: fields for AdTarget? (Facebook)
 					
 				into
-					#gks
+					#creatives
 				from
 					{0}_Ad ad
-					left outer join (
-					left outer join {0}_AdSegment adgroup on
-						adgroup.AdUsid = ad.AdUsid and
-						adgroup.SegmentID = -876
+					-- TODO: join with #campaigns and #adgroups to get GKs
 					left outer join {0}_AdCreative creative_title on
 						creative_title.AdUsid = ad.AdUsid and
 						creative_title.CreativeType = 1 and					-- (text creative)
@@ -129,7 +111,13 @@ public partial class StoredProcedures
 					left outer join {0}_AdCreative creative_desc on			-- TODO: distinguish between Desc1 and Desc2 on google? limit to 1? concat?
 						creative_desc.AdUsid = ad.AdUsid and
 						creative_desc.CreativeType = 1 and					-- (text creative)
-						creative_desc.Field1 = 2							-- (body)
+						creative_desc.Field1 = 2 and							-- (body)
+						(creative_desc.Name is null or creative_desc.Name != 'Desc2')
+					left outer join {0}_AdCreative creative_desc2 on			-- TODO: distinguish between Desc1 and Desc2 on google? limit to 1? concat?
+						creative_desc2.AdUsid = ad.AdUsid and
+						creative_desc2.CreativeType = 1 and					-- (text creative)
+						creative_desc2.Field1 = 2 and
+						(creative_desc2.Name is not null and creative_desc2.Name = 'Desc2')
 					left outer join {0}_AdCreative creative_dispUrl on		
 						creative_dispUrl.AdUsid = ad.AdUsid and
 						creative_dispUrl.CreativeType = 2					-- (URL creative)
