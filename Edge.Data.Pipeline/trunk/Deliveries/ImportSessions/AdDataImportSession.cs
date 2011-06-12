@@ -12,281 +12,434 @@ using Edge.Data.Objects;
 
 namespace Edge.Data.Pipeline.Importing
 {
-
+	/// <summary>
+	/// Encapsulates the process of adding ads and ad metrics to the delivery staging database.
+	/// </summary>
 	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
 	{
-		public const string Segments_ValueOriginalID_FieldName = "ValueOriginalID";
-		public const string Segments_Value_FieldName = "Value";
-		public const string Segments_SegmentID_FieldName = "SegmentID";
-		public const string Target_CustomField_Name = "CustomField{0}";
-		public const string Metrics_MeasureValue_FieldName = "MeasureValue";
-		public const string Metrics_MeasureID_FieldName = "MeasureID";
-		public const string MetricsUnit_Guid_FieldName = "MetricsUnitGuid";
+		#region Table structure
+		/*=========================*/
+
+		private static class Tables
+		{
+			public static class Ad
+			{
+				public static ColumnDef AdUsid					= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef Name					= new ColumnDef("Name", size: 100);
+				public static ColumnDef OriginalID				= new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef DestinationUrl			= new ColumnDef("DestinationUrl", size: 4096);
+				public static ColumnDef Campaign_Account		= new ColumnDef("Campaign_Account", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef Campaign_Channel		= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef Campaign_Name			= new ColumnDef("Campaign_Name", size: 100, nullable: false);
+				public static ColumnDef Campaign_OriginalID		= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
+				public static ColumnDef Campaign_Status			= new ColumnDef("Campaign_Status", type: SqlDbType.Int);
+			}
+
+			public static class AdCreative
+			{
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID");
+				public static ColumnDef Name = new ColumnDef("Name");
+				public static ColumnDef CreativeType = new ColumnDef("CreativeType", type: SqlDbType.Int);
+				public static ColumnDef FieldX = new ColumnDef("Field{0}");
+			}
+
+			public static class AdTarget
+			{
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID");
+				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
+				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl");
+				public static ColumnDef FieldX = new ColumnDef("Field{0}");
+				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}");
+			}
+
+			public static class AdSegment
+			{
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
+				public static ColumnDef SegmentID = new ColumnDef("SegmentID");
+				public static ColumnDef ValueOriginalID = new ColumnDef("ValueOriginalID");
+				public static ColumnDef Value = new ColumnDef("Value");
+			}
+
+			public static class Metrics
+			{
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
+				public static ColumnDef MetricsUnitGuid = new ColumnDef("MetricsUnitGuid");
+				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart");
+				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd");
+				public static ColumnDef Currency = new ColumnDef("Currency");
+				public static ColumnDef MeasureID = new ColumnDef("MeasureID");
+				public static ColumnDef MeasureValue = new ColumnDef("MeasureValue");
+			}
+
+			public static class MetricsTargetMatch
+			{
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID");
+			}
+
+			static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type,ColumnDef[]>();
+			public static ColumnDef[] GetColumns<T>(bool expandCopies = true)
+			{
+				return GetColumns(typeof(T), expandCopies);
+			}
+
+			public static ColumnDef[] GetColumns(Type type, bool expandCopies = true)
+			{
+				ColumnDef[] columns;
+				lock (_columns)
+				{
+					if (_columns.TryGetValue(type, out columns))
+						return columns;
+
+					FieldInfo[] fields = type.GetFields(BindingFlags.Static | BindingFlags.Public);
+					columns = new ColumnDef[fields.Length];
+					for (int i = 0; i < fields.Length; i++)
+					{
+						columns[i] = (ColumnDef) fields[i].GetValue(null);
+					}
+					_columns.Add(type, columns);
+				}
+
+				if (expandCopies)
+				{
+					var expanded = new List<ColumnDef>(columns.Length);
+					foreach(ColumnDef col in columns)
+					{
+						if (col.Size <= 1)
+						{
+							expanded.Add(col);
+						}
+						else
+						{
+							for (int i = 1; i <= col.Size; i++)
+								expanded.Add(new ColumnDef(
+									name: String.Format(col.Name, i),
+									size: col.Size,
+									type: col.Type,
+									nullable: col.Nullable,
+									copies: 1));
+						}
+
+					}
+					columns = expanded.ToArray();
+				}
+
+				return columns;
+			}
+		}
+
+		/*=========================*/
+		#endregion
+
+		#region Supporting classes
+		/*=========================*/
+
+		struct ColumnDef
+		{
+			public string Name;
+			public SqlDbType Type;
+			public int Size;
+			public bool Nullable;
+			public int Copies;
+
+			public ColumnDef(string name, int size = 0, SqlDbType type = SqlDbType.NVarChar, bool nullable = true, int copies = 1)
+			{
+				this.Name = name;
+				this.Type = type;
+				this.Size = size;
+				this.Nullable = nullable;
+				this.Copies = copies;
+
+				if (copies < 1)
+					throw new ArgumentException("Column copies cannot be less than 1.", "copies");
+				if (copies > 1 && this.Name.IndexOf("{0}") < 0)
+					throw new ArgumentException("If copies is bigger than 1, name must include a formattable placholder.", "name");
+			}
+		}
 
 
-		private SqlBulkCopy _bulkMetrics;
-		private DataTable _metricsDataTable;
-		private SqlBulkCopy _bulkMetricsTargetMatch;
-		private DataTable _adTargetDataTable;
-		private SqlBulkCopy _bulkAdTarget;
-		private DataTable _metricsTargetMatchDataTable;
-		private SqlBulkCopy _bulkAdCreatives;
-		private DataTable _adCreativesDataTable;
-		private SqlBulkCopy _bulkAd;
-		private DataTable _adDataTable;
-		private SqlBulkCopy _bulkSegments;
-		private DataTable _segmetsDataTable;
+		class BulkObjects
+		{
+			public SqlConnection Connection;
+			public ColumnDef[] Columns;
+			public DataTable Table;
+			public SqlBulkCopy BulkCopy;
+
+			public BulkObjects(string tablePrefix, Type tableDefinition, SqlConnection connection)
+			{
+				string tbl = tablePrefix + tableDefinition.Name;
+				ColumnDef[] columns = Tables.GetColumns(tableDefinition, true);
+
+				// Create the table used for bulk insert
+				this.Table = new DataTable(tbl);
+				foreach (ColumnDef col in columns)
+				{
+					var tableCol = new DataColumn(col.Name);
+					tableCol.AllowDBNull = col.Nullable;
+					if (col.Size != 0)
+						tableCol.MaxLength = col.Size;
+					this.Table.Columns.Add(tableCol);
+				}
+
+				// Create the bulk insert operation
+				this.BulkCopy = new SqlBulkCopy(connection);
+				this.BulkCopy.DestinationTableName = tbl;
+				foreach (ColumnDef col in columns)
+					this.BulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(col.Name, col.Name));
+			}
+
+			public void CreateTable()
+			{
+				StringBuilder builder = new StringBuilder();
+				builder.AppendFormat("create table [dbo].{0} (\n", this.Table.TableName);
+				for (int i = 0; i < this.Columns.Length; i++)
+				{
+					ColumnDef col = this.Columns[i];
+					builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}\n",
+						col.Name,
+						col.Type,
+						col.Size != 0 ? string.Format("({0})", col.Size) : null,
+						col.Nullable ? "null" : "not null"
+					);
+				}
+				builder.Append(")");
+
+				string cmdText = builder.ToString();
+				SqlCommand cmd = new SqlCommand(cmdText, this.Connection);
+				cmd.ExecuteNonQuery();
+			}
+
+			public void WriteToServer()
+			{
+				this.BulkCopy.WriteToServer(this.Table);
+				this.Table.Clear();
+			}
+		}
+
+		/*=========================*/
+		#endregion
+	
+		public Func<Ad, long> OnAdIdentityRequired = null;
+		
+		private BulkObjects _bulkAd;
+		private BulkObjects _bulkAdSegment;
+		private BulkObjects _bulkAdTarget;
+		private BulkObjects _bulkAdCreative;
+		private BulkObjects _bulkMetrics;
+		private BulkObjects _bulkMetricsTargetMatch;
 
 		private SqlConnection _sqlConnection;
 		private string _baseTableName;
 		private int _bufferSize;
 		private Dictionary<Type, int> _targetTypes;
 		private Dictionary<Type, int> _creativeType;
-		#region consts fields
-		public const string ads_CreativeType_FieldName = "CreativeType";
-		public const string FieldX_FiledName = "Field{0}";
-		public const string ads_TargetType_FieldName = "TargetType";
-		public const string Metrics_ConversionX_FieldName = "Conversion{0}";
-		public const string Metrics_AveragePosition_FieldName = "AveragePosition";
-		public const string Metrics_Clicks_FieldName = "Clicks";
-		public const string Metrics_Impressions_FieldName = "Impressions";
-		public const string Metrics_Cost_FieldName = "Cost";
-		public const string Metrics_Currency_FieldName = "Currency";
-		private const string Metrics_TargetPeriodStart_FieldName = "TargetPeriodStart";
-		private const string Metrics_TargetPeriodEnd_FieldName = "TargetPeriodEnd";
 
-		public const string ads_Campaign_Status_FieldName = "Campaign_Status";
-		public const string ads_Campaign_OriginalID_FieldName = "Campaign_OriginalID";
-		public const string ads_Campaign_Name_FieldName = "Campaign_Name";
-		public const string ads_Campaign_Channel_FieldName = "Campaign_Channel";
-		public const string ads_Campaign_Account_FieldName = "Campaign_Account";
-		public const string ads_DestinationUrl_FieldName = "DestinationUrl";
-		public const string ads_OriginalID_FieldName = "OriginalID";
-		public const string ads_Name_FieldName = "Name";
-		public const string adUsidFieldName = "AdUsid";
-		public Func<Ad, long> OnAdIdentityRequired = null;
-		#endregion
-
-		public AdDataImportSession(Delivery delivery)
-			: base(delivery)
+		public AdDataImportSession(Delivery delivery) : base(delivery)
 		{
 			_bufferSize = int.Parse(AppSettings.Get(this, "BufferSize"));
 		}
 
 		public override void Begin(bool reset = true)
 		{
-			_baseTableName = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Today.ToString("yyyMMdd"), Delivery._guid.ToString("N").ToLower());
-			initalizeDataTablesAndBulks(reset);
-		}
-
-		private void initalizeDataTablesAndBulks(bool reset)
-		{
+			_baseTableName = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Today.ToString("yyyMMdd_hhmmss"), Delivery._guid.ToString("N").ToLower());
+			
 			//initalize connection
 			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
 			_sqlConnection.Open();
-			int tableCount = 0;
-			//create/truncate/do nothing  to tables
-			using (SqlCommand sqlCommand = DataManager.CreateCommand("SP_BeginAdDataImportSession(@baseTableName:NvarChar,@reset:bit)", CommandType.StoredProcedure))
+
+			_bulkAd = new BulkObjects(_baseTableName, typeof(Tables.Ad), _sqlConnection);
+			_bulkAdSegment = new BulkObjects(_baseTableName, typeof(Tables.AdSegment), _sqlConnection);
+			_bulkAdTarget = new BulkObjects(_baseTableName, typeof(Tables.AdTarget), _sqlConnection);
+			_bulkAdCreative = new BulkObjects(_baseTableName, typeof(Tables.AdCreative), _sqlConnection);
+			_bulkMetrics = new BulkObjects(_baseTableName, typeof(Tables.Metrics), _sqlConnection);
+			_bulkMetricsTargetMatch = new BulkObjects(_baseTableName, typeof(Tables.MetricsTargetMatch), _sqlConnection);
+
+			// Create the tables
+			_bulkAd.CreateTable();
+			_bulkAdSegment.CreateTable();
+			_bulkAdTarget.CreateTable();
+			_bulkAdCreative.CreateTable();
+			_bulkMetrics.CreateTable();
+			_bulkMetricsTargetMatch.CreateTable();
+		}
+
+		public void ImportAd(Ad ad)
+		{
+			string adUsid = GetAdIdentity(ad);
+
+			DataRow row = _adDataTable.NewRow();
+
+			row[AdUsid] = Normalize(adUsid);
+			row[Ad_Name] = Normalize(ad.Name);
+			row[Ad_OriginalID] = Normalize(ad.OriginalID);
+			row[Ad_DestinationUrl] = Normalize(ad.DestinationUrl);
+			row[Ad_Campaign_Account] = Normalize(ad.Campaign.Account.ID);
+			row[Ad_Campaign_Channel] = Normalize(ad.Campaign.Channel.ID);
+			row[Ad_Campaign_Name] = Normalize(ad.Campaign.Name);
+			row[Ad_Campaign_OriginalID] = Normalize(ad.Campaign.OriginalID);
+			row[Ad_Campaign_Status] = Normalize(((int)ad.Campaign.Status).ToString());
+
+
+
+			_adDataTable.Rows.Add(row);
+			if (_adDataTable.Rows.Count == _bufferSize)
 			{
-				sqlCommand.Connection = _sqlConnection;
-				sqlCommand.Parameters["@baseTableName"].Value = _baseTableName;
-				sqlCommand.Parameters["@reset"].Value = reset;
-				tableCount=Convert.ToInt32( sqlCommand.ExecuteScalar());
+				_bulkAd.WriteToServer(_adDataTable);
+				_adDataTable.Clear();
+			}
+			//Targets
+			foreach (Target target in ad.Targets)
+			{
+				row = _adTargetDataTable.NewRow();
+				row[AdUsid] = adUsid;
+				row[Ad_OriginalID] = Normalize(target.OriginalID);
+				row[Ad_DestinationUrl] = Normalize(target.DestinationUrl);
+				int targetType = GetTargetType(target.GetType());
+				row[Ad_TargetType] = Normalize(targetType);
+				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
+				{
+					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
+					{
+						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
+						row[string.Format(FieldX, TargetColumn.TargetColumnIndex)] = Normalize(field.GetValue(target));
+					}
+
+
+
+				}
+				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
+				{
+					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = Normalize(customField.Value);
+				}
+				_adTargetDataTable.Rows.Add(row);
+				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkAdTarget.WriteToServer(_adTargetDataTable);
+					_adTargetDataTable.Clear();
+				}
 
 			}
 
-			#region Metrics
-			_bulkMetrics = new SqlBulkCopy(_sqlConnection);
-			if (tableCount == 0)
-				_bulkMetrics.DestinationTableName = _baseTableName + "Metrics";
-			else
-				_bulkMetrics.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "Metrics", tableCount);
-			_metricsDataTable = new DataTable(_bulkMetrics.DestinationTableName);
-			_metricsDataTable.Columns.Add(MetricsUnit_Guid_FieldName);
-			_metricsDataTable.Columns.Add(adUsidFieldName);
-			_metricsDataTable.Columns.Add(Metrics_TargetPeriodStart_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_TargetPeriodEnd_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_Currency_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_MeasureID_FieldName);
-			_metricsDataTable.Columns.Add(Metrics_MeasureValue_FieldName);
+			//Creatives
+			foreach (Creative creative in ad.Creatives)
+			{
+				row = _adCreativesDataTable.NewRow();
+				row[AdUsid] = Normalize(adUsid);
+				row[Ad_OriginalID] = Normalize(creative.OriginalID);
+				row[Ad_Name] = Normalize(creative.Name);
+				int creativeType = GetCreativeType(creative.GetType());
+				row[Ad_CreativeType] = Normalize(creativeType);
+				foreach (FieldInfo field in creative.GetType().GetFields())
+				{
+					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
+					{
+						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
+						row[string.Format(FieldX, creativeColumn.CreativeFieldIndex)] = Normalize(field.GetValue(creative));
+					}
+				}
+				_adCreativesDataTable.Rows.Add(row);
+				if (_adCreativesDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkAdCreative.WriteToServer(_adCreativesDataTable);
+					_adCreativesDataTable.Clear();
+				}
+			}
+			//segments
 
 
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(MetricsUnit_Guid_FieldName, MetricsUnit_Guid_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_TargetPeriodStart_FieldName, Metrics_TargetPeriodStart_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_TargetPeriodEnd_FieldName, Metrics_TargetPeriodEnd_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_Currency_FieldName, Metrics_Currency_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_MeasureID_FieldName, Metrics_MeasureID_FieldName));
-			_bulkMetrics.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Metrics_MeasureValue_FieldName, Metrics_MeasureValue_FieldName));
-			#endregion
-			#region MetricsTargetMatch
+			foreach (KeyValuePair<Segment, SegmentValue> Segment in ad.Segments)
+			{
+				row = _segmetsDataTable.NewRow();
+				row[AdUsid] = adUsid;
+				row[Segments_SegmentID] = Segment.Key.ID;
+				row[Segments_Value] = Segment.Value.Value;
+				row[Segments_ValueOriginalID] =Normalize( Segment.Value.OriginalID);
+				_segmetsDataTable.Rows.Add(row);
+				if (_segmetsDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkAdSegment.WriteToServer(_segmetsDataTable);
+					_segmetsDataTable.Clear();
+				}
+			}
+		}
 
-			_bulkMetricsTargetMatch = new SqlBulkCopy(_sqlConnection);
-			if (tableCount == 0)
-				_bulkMetricsTargetMatch.DestinationTableName = _baseTableName + "MetricsTargetMatch";
-			else
-				_bulkMetricsTargetMatch.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "MetricsTargetMatch", tableCount);
-		
-			_metricsTargetMatchDataTable = new DataTable(_bulkMetricsTargetMatch.DestinationTableName);
-			_metricsTargetMatchDataTable.Columns.Add(adUsidFieldName);
-			_metricsTargetMatchDataTable.Columns.Add(ads_OriginalID_FieldName);
-			_metricsTargetMatchDataTable.Columns.Add(ads_DestinationUrl_FieldName);
-			_metricsTargetMatchDataTable.Columns.Add(ads_TargetType_FieldName);
-			_metricsTargetMatchDataTable.Columns.Add("Field1");
-			_metricsTargetMatchDataTable.Columns.Add("Field2");
-			_metricsTargetMatchDataTable.Columns.Add("Field3");
-			_metricsTargetMatchDataTable.Columns.Add("Field4");
-			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 1));
-			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 2));
-			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 3));
-			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 4));
-			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 5));
-			_metricsTargetMatchDataTable.Columns.Add(string.Format(Target_CustomField_Name, 6));
 
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_DestinationUrl_FieldName, ads_DestinationUrl_FieldName));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_TargetType_FieldName, ads_TargetType_FieldName));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 1), string.Format(Target_CustomField_Name, 1)));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 2), string.Format(Target_CustomField_Name, 2)));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 3), string.Format(Target_CustomField_Name, 3)));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 4), string.Format(Target_CustomField_Name, 4)));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 5), string.Format(Target_CustomField_Name, 5)));
-			_bulkMetricsTargetMatch.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 6), string.Format(Target_CustomField_Name, 6)));
+		public void ImportMetrics(AdMetricsUnit metrics)
+		{
+			string adUsid = "-1";
+			metrics.Guid = Guid.NewGuid();
+			DataRow row;
+
+			foreach (KeyValuePair<Measure, double> measure in metrics.Measures)
+			{
+
+
+				row = _metricsDataTable.NewRow();
+
+				row[MetricsUnit_Guid] = metrics.Guid.ToString("N");
+				if (metrics.Ad != null)
+					adUsid = GetAdIdentity(metrics.Ad);
+				row[AdUsid] = Normalize(adUsid);
+				row[Metrics_TargetPeriodStart] = metrics.PeriodStart;
+				row[Metrics_TargetPeriodEnd] = metrics.PeriodEnd;
+				if (metrics.Currency != null)
+					row[Metrics_Currency] = Normalize(metrics.Currency.Code);
+
+
+				//Measures
+				row[Metrics_MeasureID] = Normalize(measure.Key.ID);
+				row[Metrics_MeasureValue] = Normalize(measure.Value);
 
 
 
-			#endregion
-			#region AdCreatives
-
-			_bulkAdCreatives = new SqlBulkCopy(_sqlConnection);
-
-			if (tableCount == 0)
-				_bulkAdCreatives.DestinationTableName = _baseTableName + "AdCreative";
-			else
-				_bulkAdCreatives.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "AdCreative", tableCount);
-
-			
-			_adCreativesDataTable = new DataTable(_bulkAdCreatives.DestinationTableName);
-			_adCreativesDataTable.Columns.Add(adUsidFieldName);
-			_adCreativesDataTable.Columns.Add(ads_OriginalID_FieldName);
-			_adCreativesDataTable.Columns.Add(ads_Name_FieldName);
-			_adCreativesDataTable.Columns.Add(ads_CreativeType_FieldName);
-			_adCreativesDataTable.Columns.Add("Field1");
-			_adCreativesDataTable.Columns.Add("Field2");
-			_adCreativesDataTable.Columns.Add("Field3");
-			_adCreativesDataTable.Columns.Add("Field4");
-			
 
 
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Name_FieldName, ads_Name_FieldName));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_CreativeType_FieldName, ads_CreativeType_FieldName));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
-			_bulkAdCreatives.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
-			
-			
-			#endregion
-			#region Ads
 
-			_bulkAd = new SqlBulkCopy(_sqlConnection);
+				_metricsDataTable.Rows.Add(row);
+				if (_metricsDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkMetrics.WriteToServer(_metricsDataTable);
+					_metricsDataTable.Rows.Clear();
+				}
+			}
 
-			if (tableCount == 0)
-				_bulkAd.DestinationTableName = _baseTableName + "Ad";
-			else
-				_bulkAd.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "Ad", tableCount);
-			
-			_adDataTable = new DataTable(_bulkAd.DestinationTableName);
-			_adDataTable.Columns.Add(adUsidFieldName);
-			_adDataTable.Columns.Add(ads_Name_FieldName);
-			_adDataTable.Columns.Add(ads_OriginalID_FieldName);
-			_adDataTable.Columns.Add(ads_DestinationUrl_FieldName);
-			_adDataTable.Columns.Add(ads_Campaign_Account_FieldName);
-			_adDataTable.Columns.Add(ads_Campaign_Channel_FieldName);
-			_adDataTable.Columns.Add(ads_Campaign_Name_FieldName);
-			_adDataTable.Columns.Add(ads_Campaign_OriginalID_FieldName);
-			_adDataTable.Columns.Add(ads_Campaign_Status_FieldName);
+			//tagetmatches
+			foreach (Target target in metrics.TargetMatches)
+			{
+				row = _metricsTargetMatchDataTable.NewRow();
+				row[AdUsid] = Normalize(adUsid);
+				row[Ad_OriginalID] = Normalize(target.OriginalID);
+				row[Ad_DestinationUrl] = Normalize(target.DestinationUrl);
+				int targetType = GetTargetType(target.GetType());
+				row[Ad_TargetType] = Normalize(targetType);
+				foreach (FieldInfo field in target.GetType().GetFields())
+				{
+					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
+					{
+						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
+						row[string.Format(FieldX, TargetColumn.TargetColumnIndex)] = Normalize(field.GetValue(target));
+					}
 
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Name_FieldName, ads_Name_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_DestinationUrl_FieldName, ads_DestinationUrl_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Account_FieldName, ads_Campaign_Account_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Channel_FieldName, ads_Campaign_Channel_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Name_FieldName, ads_Campaign_Name_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_OriginalID_FieldName, ads_Campaign_OriginalID_FieldName));
-			_bulkAd.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_Campaign_Status_FieldName, ads_Campaign_Status_FieldName));
-			#endregion
-			#region AdTarget
-			_bulkAdTarget = new SqlBulkCopy(_sqlConnection);
 
-			if (tableCount == 0)
-				_bulkAdTarget.DestinationTableName = _baseTableName + "AdTarget";
-			else
-				_bulkAdTarget.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "AdTarget", tableCount);
-			
-			_adTargetDataTable = new DataTable(_bulkAdTarget.DestinationTableName);
-			_adTargetDataTable.Columns.Add(adUsidFieldName);
-			_adTargetDataTable.Columns.Add(ads_OriginalID_FieldName);
-			_adTargetDataTable.Columns.Add(ads_DestinationUrl_FieldName);
-			_adTargetDataTable.Columns.Add(ads_TargetType_FieldName);
-			_adTargetDataTable.Columns.Add("Field1");
-			_adTargetDataTable.Columns.Add("Field2");
-			_adTargetDataTable.Columns.Add("Field3");
-			_adTargetDataTable.Columns.Add("Field4");
-			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 1));
-			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 2));
-			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 3));
-			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 4));
-			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 5));
-			_adTargetDataTable.Columns.Add(string.Format(Target_CustomField_Name, 6));
+				}
+				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
+				{
+					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = Normalize(customField.Value);
+				}
+				_metricsTargetMatchDataTable.Rows.Add(row);
+				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
+				{
+					_bulkMetricsTargetMatch.WriteToServer(_metricsTargetMatchDataTable);
+					_metricsTargetMatchDataTable.Clear();
 
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_OriginalID_FieldName, ads_OriginalID_FieldName));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_DestinationUrl_FieldName, ads_DestinationUrl_FieldName));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field1", "Field1"));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field2", "Field2"));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field3", "Field3"));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping("Field4", "Field4"));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(ads_TargetType_FieldName, ads_TargetType_FieldName));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 1), string.Format(Target_CustomField_Name, 1)));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 2), string.Format(Target_CustomField_Name, 2)));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 3), string.Format(Target_CustomField_Name, 3)));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 4), string.Format(Target_CustomField_Name, 4)));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 5), string.Format(Target_CustomField_Name, 5)));
-			_bulkAdTarget.ColumnMappings.Add(new SqlBulkCopyColumnMapping(string.Format(Target_CustomField_Name, 6), string.Format(Target_CustomField_Name, 6)));
-			#endregion
-			#region AdSegment
-			_bulkSegments = new SqlBulkCopy(_sqlConnection);
-
-			if (tableCount == 0)
-				_bulkSegments.DestinationTableName = _baseTableName + "AdSegment";
-			else
-				_bulkSegments.DestinationTableName = string.Format("{0}{1}_{2}", _baseTableName, "AdSegment", tableCount);
-			
-			_segmetsDataTable=new DataTable(_bulkSegments.DestinationTableName);
-				_segmetsDataTable.Columns.Add(adUsidFieldName);
-			_segmetsDataTable.Columns.Add(Segments_SegmentID_FieldName);
-			_segmetsDataTable.Columns.Add(Segments_Value_FieldName);
-			_segmetsDataTable.Columns.Add(Segments_ValueOriginalID_FieldName);
-
-			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(adUsidFieldName, adUsidFieldName));
-			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Segments_SegmentID_FieldName, Segments_SegmentID_FieldName));
-			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Segments_Value_FieldName, Segments_Value_FieldName));
-			_bulkSegments.ColumnMappings.Add(new SqlBulkCopyColumnMapping(Segments_ValueOriginalID_FieldName, Segments_ValueOriginalID_FieldName));
-
-			#endregion
-
-	
+				}
+			}
 
 		}
+
+
 		private object Normalize(object myObject)
 		{
 			object returnObject;
@@ -315,78 +468,6 @@ namespace Edge.Data.Pipeline.Importing
 			return val;
 		}
 
-		public void ImportMetrics(AdMetricsUnit metrics)
-		{
-			string adUsid = "-1";
-			metrics.Guid = Guid.NewGuid();
-			DataRow row;
-			foreach (KeyValuePair<Measure, double> measure in metrics.Measures)
-			{
-
-
-				row = _metricsDataTable.NewRow();
-
-				row[MetricsUnit_Guid_FieldName] = metrics.Guid.ToString("N");
-				if (metrics.Ad != null)
-					adUsid = GetAdIdentity(metrics.Ad);
-				row[adUsidFieldName] = Normalize(adUsid);
-				row[Metrics_TargetPeriodStart_FieldName] = metrics.PeriodStart;
-				row[Metrics_TargetPeriodEnd_FieldName] = metrics.PeriodEnd;
-				if (metrics.Currency!=null)
-				row[Metrics_Currency_FieldName] = Normalize(metrics.Currency.Code);
-
-
-				//Measures
-				row[Metrics_MeasureID_FieldName] = Normalize(measure.Key.ID);
-				row[Metrics_MeasureValue_FieldName] = Normalize(measure.Value);
-
-
-
-
-
-
-				_metricsDataTable.Rows.Add(row);
-				if (_metricsDataTable.Rows.Count == _bufferSize)
-				{
-					_bulkMetrics.WriteToServer(_metricsDataTable);
-					_metricsDataTable.Rows.Clear();
-				}
-			}
-
-			//tagetmatches
-			foreach (Target target in metrics.TargetMatches)
-			{
-				row = _metricsTargetMatchDataTable.NewRow();
-				row[adUsidFieldName] = Normalize(adUsid);
-				row[ads_OriginalID_FieldName] = Normalize(target.OriginalID);
-				row[ads_DestinationUrl_FieldName] = Normalize(target.DestinationUrl);
-				int targetType = GetTargetType(target.GetType());
-				row[ads_TargetType_FieldName] = Normalize(targetType);
-				foreach (FieldInfo field in target.GetType().GetFields())
-				{
-					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
-					{
-						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = Normalize(field.GetValue(target));
-					}
-
-
-				}
-				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
-				{
-					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = Normalize(customField.Value);
-				}
-				_metricsTargetMatchDataTable.Rows.Add(row);
-				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
-				{
-					_bulkMetricsTargetMatch.WriteToServer(_metricsTargetMatchDataTable);
-					_metricsTargetMatchDataTable.Clear();
-
-				}
-			}
-
-		}
-
 		private int GetTargetType(Type type)
 		{
 			int targetType = -1;
@@ -405,106 +486,6 @@ namespace Edge.Data.Pipeline.Importing
 					throw new Exception("Mapping Probem, targettype attribute is not defined");
 			}
 			return targetType;
-		}
-
-		public void ImportAd(Ad ad)
-		{
-			string adUsid = GetAdIdentity(ad);
-
-			DataRow row = _adDataTable.NewRow();
-
-			row[adUsidFieldName] = Normalize(adUsid);
-			row[ads_Name_FieldName] = Normalize(ad.Name);
-			row[ads_OriginalID_FieldName] = Normalize(ad.OriginalID);
-			row[ads_DestinationUrl_FieldName] = Normalize(ad.DestinationUrl);
-			row[ads_Campaign_Account_FieldName] = Normalize(ad.Campaign.Account.ID);
-			row[ads_Campaign_Channel_FieldName] = Normalize(ad.Campaign.Channel.ID);
-			row[ads_Campaign_Name_FieldName] = Normalize(ad.Campaign.Name);
-			row[ads_Campaign_OriginalID_FieldName] = Normalize(ad.Campaign.OriginalID);
-			row[ads_Campaign_Status_FieldName] = Normalize(((int)ad.Campaign.Status).ToString());
-
-
-
-			_adDataTable.Rows.Add(row);
-			if (_adDataTable.Rows.Count == _bufferSize)
-			{
-				_bulkAd.WriteToServer(_adDataTable);
-				_adDataTable.Clear();
-			}
-			//Targets
-			foreach (Target target in ad.Targets)
-			{
-				row = _adTargetDataTable.NewRow();
-				row[adUsidFieldName] = adUsid;
-				row[ads_OriginalID_FieldName] = Normalize(target.OriginalID);
-				row[ads_DestinationUrl_FieldName] = Normalize(target.DestinationUrl);
-				int targetType = GetTargetType(target.GetType());
-				row[ads_TargetType_FieldName] = Normalize(targetType);
-				foreach (FieldInfo field in target.GetType().GetFields())//TODO: GET FILEDS ONLY ONE TIME
-				{
-					if (Attribute.IsDefined(field, typeof(TargetFieldIndexAttribute)))
-					{
-						TargetFieldIndexAttribute TargetColumn = (TargetFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(TargetFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, TargetColumn.TargetColumnIndex)] = Normalize(field.GetValue(target));
-					}
-
-
-
-				}
-				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
-				{
-					row[string.Format(Target_CustomField_Name, customField.Key.FieldIndex)] = Normalize(customField.Value);
-				}
-				_adTargetDataTable.Rows.Add(row);
-				if (_metricsTargetMatchDataTable.Rows.Count == _bufferSize)
-				{
-					_bulkAdTarget.WriteToServer(_adTargetDataTable);
-					_adTargetDataTable.Clear();
-				}
-
-			}
-
-			//Creatives
-			foreach (Creative creative in ad.Creatives)
-			{
-				row = _adCreativesDataTable.NewRow();
-				row[adUsidFieldName] = Normalize(adUsid);
-				row[ads_OriginalID_FieldName] = Normalize(creative.OriginalID);
-				row[ads_Name_FieldName] = Normalize(creative.Name);
-				int creativeType = GetCreativeType(creative.GetType());
-				row[ads_CreativeType_FieldName] = Normalize(creativeType);
-				foreach (FieldInfo field in creative.GetType().GetFields())
-				{
-					if (Attribute.IsDefined(field, typeof(CreativeFieldIndexAttribute)))
-					{
-						CreativeFieldIndexAttribute creativeColumn = (CreativeFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(CreativeFieldIndexAttribute));
-						row[string.Format(FieldX_FiledName, creativeColumn.CreativeFieldIndex)] = Normalize(field.GetValue(creative));
-					}
-				}
-				_adCreativesDataTable.Rows.Add(row);
-				if (_adCreativesDataTable.Rows.Count == _bufferSize)
-				{
-					_bulkAdCreatives.WriteToServer(_adCreativesDataTable);
-					_adCreativesDataTable.Clear();
-				}
-			}
-			//segments
-
-
-			foreach (KeyValuePair<Segment, SegmentValue> Segment in ad.Segments)
-			{
-				row = _segmetsDataTable.NewRow();
-				row[adUsidFieldName] = adUsid;
-				row[Segments_SegmentID_FieldName] = Segment.Key.ID;
-				row[Segments_Value_FieldName] = Segment.Value.Value;
-				row[Segments_ValueOriginalID_FieldName] =Normalize( Segment.Value.OriginalID);
-				_segmetsDataTable.Rows.Add(row);
-				if (_segmetsDataTable.Rows.Count == _bufferSize)
-				{
-					_bulkSegments.WriteToServer(_segmetsDataTable);
-					_segmetsDataTable.Clear();
-				}
-			}
 		}
 
 		private int GetCreativeType(Type type)
@@ -529,24 +510,19 @@ namespace Edge.Data.Pipeline.Importing
 
 		public override void Commit()
 		{
-			// TODO: Fwd-only activate stored procedue
-
+			throw new NotSupportedException("Committing a session cannot be done from here.");
 		}
 
 		public void Dispose()
 		{
-			// TODO: clean up temp shit
-			//TODO: add uninserted rows
-			_bulkMetrics.WriteToServer(_metricsDataTable);
-			_bulkAd.WriteToServer(_adDataTable);
-			_bulkAdCreatives.WriteToServer(_adCreativesDataTable);
-			_bulkMetricsTargetMatch.WriteToServer(_metricsTargetMatchDataTable);
-			_bulkAd.WriteToServer(_adDataTable);
-			_bulkAdTarget.WriteToServer(_adTargetDataTable);
-			_bulkSegments.WriteToServer(_segmetsDataTable);
+			_bulkAd.WriteToServer();
+			_bulkAdCreative.WriteToServer();
+			_bulkAdTarget.WriteToServer();
+			_bulkAdSegment.WriteToServer();
+			_bulkMetrics.WriteToServer();
+			_bulkMetricsTargetMatch.WriteToServer();
+
 			_sqlConnection.Dispose();
-
-
 		}
 	}
 }
