@@ -41,6 +41,7 @@ namespace Edge.Data.Pipeline
 		}
 
 		public FileFormat FileFormat { get; set; }
+
 		/// <summary>
 		/// Gets or sets the name of the delivery file.
 		/// </summary>
@@ -177,7 +178,17 @@ namespace Edge.Data.Pipeline
 			return location.ToString();
 		}
 
+		/// <summary>
+		/// Gets info such as size and date created of the downloaded file. Equivelant to called FileManager.GetInfo(file.Location)
+		/// </summary>
+		/// <returns></returns>
+		public FileInfo GetFileInfo()
+		{
+			if (String.IsNullOrWhiteSpace(this.Location))
+				throw new InvalidOperationException("Cannot get info before the file has been downloaded.");
 
+			return FileManager.GetInfo(this.Location);
+		}
 	}
 
 	/// <summary>
