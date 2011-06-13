@@ -10,6 +10,6 @@ namespace Edge.Data.Objects
 		public int ID;
 		public Channel Channel;
 		public string Name;
-		public int FieldIndex;
+		public int ColumnIndex;
 	}
 }
