@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Edge.Data.Objects.Reflection;
 
 namespace Edge.Data.Objects
 {
-	public abstract class Creative
+	public abstract class Creative: MappedType
 	{
 		public string OriginalID;
 
@@ -13,24 +14,24 @@ namespace Edge.Data.Objects
 		public string Name { get; private set; }
 	}
 
-	[CreativeTypeID(1)]
+	[TypeID(1)]
 	public class TextCreative : Creative
 	{
-		[CreativeFieldIndex(1)]
+		[FieldIndex(1)]
 		public TextCreativeType TextType;
-		
 
-		[CreativeFieldIndex(2)]
+
+		[FieldIndex(2)]
 		public string Text;
 	}
 
-	[CreativeTypeID(2)]
+	[TypeID(2)]
 	public class ImageCreative : Creative
 	{
-		[CreativeFieldIndex(1)]
+		[FieldIndex(1)]
 		public string ImageSize;
 
-		[CreativeFieldIndex(2)]
+		[FieldIndex(2)]
 		public string ImageUrl;
 	}
 
@@ -40,26 +41,4 @@ namespace Edge.Data.Objects
 		Body = 2,
 		DisplayUrl = 3
 	}
-
-	#region Attributes
-
-	class CreativeTypeIDAttribute : Attribute
-	{
-		internal int CreativeTypeID;
-		public CreativeTypeIDAttribute(int creativeTypeID)
-		{
-			CreativeTypeID = creativeTypeID;
-		}
-	}
-
-	class CreativeFieldIndexAttribute : Attribute
-	{
-		internal int CreativeFieldIndex;
-		public CreativeFieldIndexAttribute(int creativeFieldIndex)
-		{
-			CreativeFieldIndex = creativeFieldIndex;
-		}
-	}
-
-	#endregion
 }
