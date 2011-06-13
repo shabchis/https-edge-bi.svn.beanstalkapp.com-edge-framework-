@@ -72,7 +72,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd");
 				public static ColumnDef Currency = new ColumnDef("Currency");
 				public static ColumnDef MeasureID = new ColumnDef("Measure{0}_ID", copies: 60);
-				public static ColumnDef MeasureValue = new ColumnDef("Measure{0}_Value", copies: 60);
+				public static ColumnDef MeasureValue = new ColumnDef("Measure{0}_Value", type: SqlDbType.Float, copies: 60);
 			}
 
 			public static class MetricsTargetMatch
