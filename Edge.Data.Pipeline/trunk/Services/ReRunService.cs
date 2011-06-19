@@ -33,7 +33,7 @@ namespace Edge.Data.Pipeline.Services
 
 					fromDate = fromDate.AddDays(1);
 
-
+					 
 					
 
 				}
