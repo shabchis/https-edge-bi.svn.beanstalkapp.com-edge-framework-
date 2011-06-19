@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 		public string OriginalID;
 
 		// Leave this null for now
-		public string Name { get; private set; }
+		public string Name { get; set; }
 	}
 
 	[TypeID(1)]

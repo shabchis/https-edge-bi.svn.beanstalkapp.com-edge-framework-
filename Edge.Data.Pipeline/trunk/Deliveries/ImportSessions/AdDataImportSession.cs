@@ -25,15 +25,16 @@ namespace Edge.Data.Pipeline.Importing
 		{
 			public static class Ad
 			{
-				public static ColumnDef AdUsid					= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef Name					= new ColumnDef("Name", size: 100);
-				public static ColumnDef OriginalID				= new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef DestinationUrl			= new ColumnDef("DestinationUrl", size: 4096);
-				public static ColumnDef Campaign_Account		= new ColumnDef("Campaign_Account", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Channel		= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Name			= new ColumnDef("Campaign_Name", size: 100, nullable: false);
-				public static ColumnDef Campaign_OriginalID		= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
-				public static ColumnDef Campaign_Status			= new ColumnDef("Campaign_Status", type: SqlDbType.Int);
+				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef Name						= new ColumnDef("Name", size: 100);
+				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4096);
+				public static ColumnDef Campaign_Account_ID			= new ColumnDef("Campaign_Account_ID", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar, nullable: false);
+				public static ColumnDef Campaign_Channel			= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef Campaign_Name				= new ColumnDef("Campaign_Name", size: 100, nullable: false);
+				public static ColumnDef Campaign_OriginalID			= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
+				public static ColumnDef Campaign_Status				= new ColumnDef("Campaign_Status", type: SqlDbType.Int);
 			}
 
 			public static class AdCreative
