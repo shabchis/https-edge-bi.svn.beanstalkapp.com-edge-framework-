@@ -9,21 +9,26 @@ namespace Edge.Data.Objects
 {
 	public class Measure
 	{
+		#region Const
+		public static class Common
+		{
+			public const string Cost = "Cost";
+			public const string Impressions = "Impressions";
+			public const string UniqueImpressions = "UniqueImpressions";
+			public const string Clicks = "Clicks";
+			public const string UniqueClicks = "UniqueClicks";
+			public const string AveragePosition = "AveragePosition";
+			public const string Other = "Other";
+		}
+		#endregion
+
 		public int ID;
 		public Account Account;
 		public string Name;
-		public MeasureType MeasureType;
 		public string OltpName;
 		public string DisplayName;
 
-		public static readonly Measure Cost					= new Measure() { ID = -601};
-		public static readonly Measure Impressions			= new Measure() { ID = -602};
-		public static readonly Measure UniqueImpressions	= new Measure() { ID = -603};
-		public static readonly Measure Clicks				= new Measure() { ID = -604};
-		public static readonly Measure UniqueClicks			= new Measure() { ID = -605};
-		public static readonly Measure AveragePosition		= new Measure() { ID = -606};
-
-		public static Measure[] GetMeasuresForAccount(Account account, SqlConnection connection)
+		public static Dictionary<string, Measure> GetMeasuresForAccount(Account account, SqlConnection connection)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasure(
 				@accountID:Int,
@@ -46,15 +51,14 @@ namespace Edge.Data.Objects
 						ID = (int) reader["MeasureID"],
 						Account = account,
 						Name = (string) reader["MeasureName"],
-						OltpName = (string) reader["FieldName"],
-						MeasureType = (MeasureType) reader["MeasureType"]
+						OltpName = (string) reader["FieldName"]
 					};
 
 					measures.Add(m);
 				}
 			}
 
-			return measures.ToArray();
+			return measures.ToDictionary(m => m.Name);
 		}
 
 		[Flags]
@@ -63,17 +67,6 @@ namespace Edge.Data.Objects
 			IsTarget = 0x2,
 			All = 0xff
 		}
-	}
-
-	public enum MeasureType
-	{
-		Cost,	
-		Impressions,
-		UniqueImpressions,
-		Clicks,	
-		UniqueClicks,
-		AveragePosition,
-		Other
 	}
 
 }
