@@ -30,7 +30,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
 				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4096);
 				public static ColumnDef Campaign_Account_ID			= new ColumnDef("Campaign_Account_ID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar, nullable: false);
+				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NV, nullable: false);
 				public static ColumnDef Campaign_Channel			= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Campaign_Name				= new ColumnDef("Campaign_Name", size: 100, nullable: false);
 				public static ColumnDef Campaign_OriginalID			= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
@@ -219,7 +219,7 @@ namespace Edge.Data.Pipeline.Importing
 					this.Flush();
 			}
 
-			public void CreateTableOnServer()
+			public string GetCreateTableSql()
 			{
 				StringBuilder builder = new StringBuilder();
 				builder.AppendFormat("create table [dbo].{0} (\n", this.Table.TableName);
@@ -233,11 +233,17 @@ namespace Edge.Data.Pipeline.Importing
 						col.Nullable ? "null" : "not null"
 					);
 				}
-				builder.Append(")");
+				builder.Append(");");
 
 				string cmdText = builder.ToString();
-				SqlCommand cmd = new SqlCommand(cmdText, this.Connection);
-				cmd.ExecuteNonQuery();
+				return cmdText;
+				//SqlCommand cmd = new SqlCommand(cmdText, this.Connection);
+				//cmd.ExecuteNonQuery();
+			}
+
+			public string GetCreateIndexSql()
+			{
+				throw new NotImplementedException();
 			}
 
 			public void Flush()
@@ -313,12 +319,15 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch		= new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
 
 			// Create the tables
-			_bulkAd.CreateTableOnServer();
-			_bulkAdSegment.CreateTableOnServer();
-			_bulkAdTarget.CreateTableOnServer();
-			_bulkAdCreative.CreateTableOnServer();
-			_bulkMetrics.CreateTableOnServer();
-			_bulkMetricsTargetMatch.CreateTableOnServer();
+			StringBuilder createTableCmdText = new StringBuilder();
+			createTableCmdText.Append(_bulkAd.GetCreateTableSql());
+			createTableCmdText.Append(_bulkAdSegment.GetCreateTableSql());
+			createTableCmdText.Append(_bulkAdTarget.GetCreateTableSql());
+			createTableCmdText.Append(_bulkAdCreative.GetCreateTableSql());
+			createTableCmdText.Append(_bulkMetrics.GetCreateTableSql());
+			createTableCmdText.Append(_bulkMetricsTargetMatch.GetCreateTableSql());
+			SqlCommand cmd = new SqlCommand(createTableCmdText.ToString(), _sqlConnection);
+			cmd.ExecuteNonQuery();
 		}
 
 		public void ImportAd(Ad ad)
@@ -332,7 +341,8 @@ namespace Edge.Data.Pipeline.Importing
 				{Tables.Ad.Name, ad.Name},
 				{Tables.Ad.OriginalID, ad.OriginalID},
 				{Tables.Ad.DestinationUrl, ad.DestinationUrl},
-				{Tables.Ad.Campaign_Account, ad.Campaign.Account.ID},
+				{Tables.Ad.Campaign_Account_ID, ad.Campaign.Account.ID},
+				{Tables.Ad.Campaign_Account_OriginalID, ad.Campaign.Account.OriginalID},
 				{Tables.Ad.Campaign_Channel, ad.Campaign.Channel.ID},
 				{Tables.Ad.Campaign_Name, ad.Campaign.Name},
 				{Tables.Ad.Campaign_OriginalID, ad.Campaign.OriginalID},
