@@ -291,16 +291,12 @@ namespace Edge.Data.Pipeline.Importing
 
 		private SqlConnection _sqlConnection;
 		
-		private Dictionary<Type, int> _targetTypes;
-		private Dictionary<Type, int> _creativeType;
-
 		public Func<Ad, long> OnAdIdentityRequired = null;
 		public string TablePrefix { get; private set; }
-		public Measure[] Measures { get; private set; }
+		public Dictionary<string, Measure> Measures { get; private set; }
 
-		public AdDataImportSession(Delivery delivery, Measure[] measures) : base(delivery)
+		public AdDataImportSession(Delivery delivery) : base(delivery)
 		{
-			this.Measures = measures;
 		}
 
 		public override void Begin(bool reset = true)
@@ -318,8 +314,11 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetrics				= new BulkObjects(this.TablePrefix, typeof(Tables.Metrics), _sqlConnection);
 			_bulkMetricsTargetMatch		= new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
 
+			// Get measures
+			this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, _sqlConnection);
+
 			// Add measure columns to metrics
-			foreach(Measure measure in this.Measures)
+			foreach(Measure measure in this.Measures.Values)
 			{
 				_bulkMetrics.Columns.Add(new ColumnDef(
 					name: measure.OltpName,
@@ -427,7 +426,7 @@ namespace Edge.Data.Pipeline.Importing
 				{Tables.Metrics.Currency, metrics.Currency == null ? null : metrics.Currency.Code}
 			};
 
-			foreach (KeyValuePair<Measure, double> measure in metrics.Measures)
+			foreach (KeyValuePair<Measure, double> measure in metrics.MeasureValues)
 			{
 				// Use the Oltp name of the measure as the column name
 				metricsRow[new ColumnDef(measure.Key.OltpName)] = measure.Value;
