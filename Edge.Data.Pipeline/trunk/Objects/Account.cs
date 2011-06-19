@@ -8,5 +8,6 @@ namespace Edge.Data.Objects
 	public class Account
 	{
 		public int ID;
+		public string OriginalID;
 	}
 }

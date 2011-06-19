@@ -22,6 +22,7 @@ namespace Edge.Data.Pipeline
 			throw new NotImplementedException();
 		}
 
+		// {start: '2009-01-01 23:00:00.00', end: 'iso date'}
 		public override string ToString()
 		{
 			throw new NotImplementedException();
@@ -31,7 +32,7 @@ namespace Edge.Data.Pipeline
 		//----------------------
 
 		/// <summary>
-		/// {start: {d:-1, h:0}, end: {d:-1, h:'*'}}
+		/// {start: {d:-1, h:0}, end: {d:-1, h:'*'}},
 		/// </summary>
 		public readonly static DateTimeRange AllOfYesterday = new DateTimeRange()
 		{
