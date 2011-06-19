@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 		public string OriginalID;
 
 		// Leave this null for now
-		public string Name { get; set; }
+		public string Name { get; private set; }
 	}
 
 	[TypeID(1)]
@@ -23,6 +23,9 @@ namespace Edge.Data.Objects
 
 		[FieldIndex(2)]
 		public string Text;
+
+		[FieldIndex(3)]
+		public string Text2;
 	}
 
 	[TypeID(2)]
