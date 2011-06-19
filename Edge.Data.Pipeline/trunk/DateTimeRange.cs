@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Globalization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System.Dynamic;
+using Newtonsoft.Json.Linq;
 
 namespace Edge.Data.Pipeline
 {
@@ -11,21 +15,34 @@ namespace Edge.Data.Pipeline
 		public DateTimeSpecification Start;
 		public DateTimeSpecification End;
 
+		/*
 		public DateTimeRange(DateTimeSpecification singleUnit)
 		{
-			Start = singleUnit; singleUnit.Boundary = DateTimeSpecificationBounds.Lower;
-			End = singleUnit; singleUnit.Boundary = DateTimeSpecificationBounds.Upper;
+			Start = singleUnit; Start.Boundary = DateTimeSpecificationBounds.Lower;
+			End = singleUnit; End.Boundary = DateTimeSpecificationBounds.Upper;
 		}
+		*/
 
 		public static DateTimeRange Parse(string json)
 		{
-			throw new NotImplementedException();
+			JObject jObjecttimeRange = JObject.Parse(json);
+			DateTimeRange dateTimeRange=new DateTimeRange();
+			dateTimeRange.Start.ExactDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["start"].ToString());
+			dateTimeRange.End.ExactDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["end"].ToString());
+			return dateTimeRange;
 		}
-
+		/// <summary>
+		/// Return Start End time as string isonDateTimejson
+		/// </summary>
+		/// <returns>DateTime as string json</returns>
 		// {start: '2009-01-01 23:00:00.00', end: 'iso date'}
 		public override string ToString()
 		{
-			throw new NotImplementedException();
+			dynamic timeRange = new ExpandoObject();
+			timeRange.start=JsonConvert.SerializeObject(Start.ToDateTime(), new IsoDateTimeConverter());
+			timeRange.end= JsonConvert.SerializeObject(End.ToDateTime(), new IsoDateTimeConverter());
+
+			return timeRange; // TODO: check this return ((ExpandoObject)timeRange).ToString(); 
 		}
 
 		#region Default values
@@ -33,6 +50,7 @@ namespace Edge.Data.Pipeline
 
 		/// <summary>
 		/// {start: {d:-1, h:0}, end: {d:-1, h:'*'}},
+		/// {start: '2009-01-01 00:00:00.00', end: '2009-01-01 23:59:59.99999'}
 		/// </summary>
 		public readonly static DateTimeRange AllOfYesterday = new DateTimeRange()
 		{
