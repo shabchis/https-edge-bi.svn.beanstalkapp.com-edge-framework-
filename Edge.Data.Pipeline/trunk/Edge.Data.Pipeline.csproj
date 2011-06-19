@@ -59,7 +59,8 @@
     <AssemblyOriginatorKeyFile>Edge.Data.Pipeline.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DataStreams">
+    <Reference Include="DataStreams, Version=5.15.0.0, Culture=neutral, PublicKeyToken=9c9b03c227e1bea6, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\(third party)\CsvReader.com\DotNet 4.0\DataStreams.dll</HintPath>
     </Reference>
     <Reference Include="Db4objects.Db4o, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
@@ -83,6 +84,9 @@
       <HintPath>..\..\(third party)\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\(third party)\Json.net\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core">
@@ -126,6 +130,7 @@
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
     <Compile Include="Readers\XmlDynamicReader.cs" />
+    <Compile Include="Services\ReRunService.cs" />
     <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\PipelineService.cs" />
     <Compile Include="DateTimeRange.cs" />
