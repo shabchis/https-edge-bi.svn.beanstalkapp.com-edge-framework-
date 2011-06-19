@@ -30,7 +30,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
 				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4096);
 				public static ColumnDef Campaign_Account_ID			= new ColumnDef("Campaign_Account_ID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NV, nullable: false);
+				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar, nullable: false);
 				public static ColumnDef Campaign_Channel			= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Campaign_Name				= new ColumnDef("Campaign_Name", size: 100, nullable: false);
 				public static ColumnDef Campaign_OriginalID			= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
@@ -72,8 +72,6 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart");
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd");
 				public static ColumnDef Currency = new ColumnDef("Currency");
-				public static ColumnDef MeasureID = new ColumnDef("Measure{0}_ID", copies: 60);
-				public static ColumnDef MeasureValue = new ColumnDef("Measure{0}_Value", type: SqlDbType.Float, copies: 60);
 			}
 
 			public static class MetricsTargetMatch
@@ -177,18 +175,18 @@ namespace Edge.Data.Pipeline.Importing
 			public readonly static int BufferSize = int.Parse(AppSettings.Get(typeof(AdDataImportSession), "BufferSize"));
 
 			public SqlConnection Connection;
-			public ColumnDef[] Columns;
+			public List<ColumnDef> Columns;
 			public DataTable Table;
 			public SqlBulkCopy BulkCopy;
 
 			public BulkObjects(string tablePrefix, Type tableDefinition, SqlConnection connection)
 			{
 				string tbl = tablePrefix + tableDefinition.Name;
-				ColumnDef[] columns = Tables.GetColumns(tableDefinition, true);
+				this.Columns = new List<ColumnDef>(Tables.GetColumns(tableDefinition, true));
 
 				// Create the table used for bulk insert
 				this.Table = new DataTable(tbl);
-				foreach (ColumnDef col in columns)
+				foreach (ColumnDef col in this.Columns)
 				{
 					var tableCol = new DataColumn(col.Name);
 					tableCol.AllowDBNull = col.Nullable;
@@ -200,7 +198,7 @@ namespace Edge.Data.Pipeline.Importing
 				// Create the bulk insert operation
 				this.BulkCopy = new SqlBulkCopy(connection);
 				this.BulkCopy.DestinationTableName = tbl;
-				foreach (ColumnDef col in columns)
+				foreach (ColumnDef col in this.Columns)
 					this.BulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(col.Name, col.Name));
 			}
 
@@ -223,7 +221,7 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				StringBuilder builder = new StringBuilder();
 				builder.AppendFormat("create table [dbo].{0} (\n", this.Table.TableName);
-				for (int i = 0; i < this.Columns.Length; i++)
+				for (int i = 0; i < this.Columns.Count; i++)
 				{
 					ColumnDef col = this.Columns[i];
 					builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}\n",
@@ -298,9 +296,11 @@ namespace Edge.Data.Pipeline.Importing
 
 		public Func<Ad, long> OnAdIdentityRequired = null;
 		public string TablePrefix { get; private set; }
+		public Measure[] Measures { get; private set; }
 
-		public AdDataImportSession(Delivery delivery) : base(delivery)
+		public AdDataImportSession(Delivery delivery, Measure[] measures) : base(delivery)
 		{
+			this.Measures = measures;
 		}
 
 		public override void Begin(bool reset = true)
@@ -317,6 +317,16 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkAdCreative				= new BulkObjects(this.TablePrefix, typeof(Tables.AdCreative), _sqlConnection);
 			_bulkMetrics				= new BulkObjects(this.TablePrefix, typeof(Tables.Metrics), _sqlConnection);
 			_bulkMetricsTargetMatch		= new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
+
+			// Add measure columns to metrics
+			foreach(Measure measure in this.Measures)
+			{
+				_bulkMetrics.Columns.Add(new ColumnDef(
+					name: measure.OltpName,
+					type: SqlDbType.Float,
+					nullable: true
+					));
+			}
 
 			// Create the tables
 			StringBuilder createTableCmdText = new StringBuilder();
@@ -419,9 +429,8 @@ namespace Edge.Data.Pipeline.Importing
 
 			foreach (KeyValuePair<Measure, double> measure in metrics.Measures)
 			{
-				// Measure ID and measure value are two separate columns
-				metricsRow[new ColumnDef(Tables.Metrics.MeasureID, measure.Key.DeliveryColumnIndex)] = measure.Key.ID;
-				metricsRow[new ColumnDef(Tables.Metrics.MeasureValue, measure.Key.DeliveryColumnIndex)] = measure.Value;
+				// Use the Oltp name of the measure as the column name
+				metricsRow[new ColumnDef(measure.Key.OltpName)] = measure.Value;
 			}
 
 			_bulkMetrics.SubmitRow(metricsRow);
