@@ -39,49 +39,50 @@ namespace Edge.Data.Pipeline.Importing
 
 			public static class AdCreative
 			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID");
-				public static ColumnDef Name = new ColumnDef("Name");
-				public static ColumnDef CreativeType = new ColumnDef("CreativeType", type: SqlDbType.Int);
-				public static ColumnDef FieldX = new ColumnDef("Field{0}");
+				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef Name						= new ColumnDef("Name", size: 100);
+				public static ColumnDef CreativeType				= new ColumnDef("CreativeType", type: SqlDbType.Int);
+				public static ColumnDef FieldX						= new ColumnDef("Field{0}",type:SqlDbType.NVarChar,size:4000,copies:4);
 			}
 
 			public static class AdTarget
 			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID");
-				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl");
-				public static ColumnDef FieldX = new ColumnDef("Field{0}");
-				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}");
+				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef TargetType					= new ColumnDef("TargetType", type: SqlDbType.Int);
+				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl",size:4096);
+				public static ColumnDef FieldX						= new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
+				public static ColumnDef CustomFieldX				= new ColumnDef("CustomField{0}",type:SqlDbType.NVarChar,copies:6,size:4000);
 			}
 
 			// TODO: flatten
 			public static class AdSegment
 			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
-				public static ColumnDef SegmentID = new ColumnDef("SegmentID");
-				public static ColumnDef ValueOriginalID = new ColumnDef("ValueOriginalID");
-				public static ColumnDef Value = new ColumnDef("Value");
+				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef SegmentID					= new ColumnDef("SegmentID",type:SqlDbType.Int,nullable:false);
+				public static ColumnDef ValueOriginalID				= new ColumnDef("ValueOriginalID",size:4096);
+				public static ColumnDef Value						= new ColumnDef("Value",size:4000);
 			}
 
 			public static class Metrics
 			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
-				public static ColumnDef MetricsUnitGuid = new ColumnDef("MetricsUnitGuid");
-				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart");
-				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd");
-				public static ColumnDef Currency = new ColumnDef("Currency");
+				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef MetricsUnitGuid				= new ColumnDef("MetricsUnitGuid",size:300,nullable:false);
+				public static ColumnDef TimeStamp					= new ColumnDef("TimeStamp", type: SqlDbType.DateTime, nullable: false, defaultValue: "GetDate()");
+				public static ColumnDef TargetPeriodStart			= new ColumnDef("TargetPeriodStart",type:SqlDbType.DateTime,nullable:false);
+				public static ColumnDef TargetPeriodEnd				= new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
+				public static ColumnDef Currency					= new ColumnDef("Currency",size:10);
 			}
 
 			public static class MetricsTargetMatch
 			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid");
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID");
-				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl");
-				public static ColumnDef FieldX = new ColumnDef("Field{0}");
-				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}");
+				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef TargetType					= new ColumnDef("TargetType", type: SqlDbType.Int);
+				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4096);
+				public static ColumnDef FieldX						= new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
+				public static ColumnDef CustomFieldX				= new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 			}
 
 			static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type,ColumnDef[]>();
@@ -143,14 +144,17 @@ namespace Edge.Data.Pipeline.Importing
 			public int Size;
 			public bool Nullable;
 			public int Copies;
+			public string DefaultValue;
 
-			public ColumnDef(string name, int size = 0, SqlDbType type = SqlDbType.NVarChar, bool nullable = true, int copies = 1)
+
+			public ColumnDef(string name, int size = 0, SqlDbType type = SqlDbType.NVarChar, bool nullable = true, int copies = 1,string defaultValue="")
 			{
 				this.Name = name;
 				this.Type = type;
 				this.Size = size;
 				this.Nullable = nullable;
 				this.Copies = copies;
+				this.DefaultValue = defaultValue;
 
 				if (copies < 1)
 					throw new ArgumentException("Column copies cannot be less than 1.", "copies");
@@ -224,11 +228,12 @@ namespace Edge.Data.Pipeline.Importing
 				for (int i = 0; i < this.Columns.Count; i++)
 				{
 					ColumnDef col = this.Columns[i];
-					builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}\n",
+					builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4} {5}\n",
 						col.Name,
 						col.Type,
 						col.Size != 0 ? string.Format("({0})", col.Size) : null,
-						col.Nullable ? "null" : "not null"
+						col.Nullable ? "null" : "not null",
+						col.DefaultValue !=string.Empty,string.Format("Default {0}",col.DefaultValue)
 					);
 				}
 				builder.Append(");");
