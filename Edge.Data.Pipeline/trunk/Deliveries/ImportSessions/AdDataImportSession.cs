@@ -28,9 +28,9 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef Name						= new ColumnDef("Name", size: 100);
 				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4096);
+				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef Campaign_Account_ID			= new ColumnDef("Campaign_Account_ID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar, nullable: false);
+				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar,size:100, nullable: false);
 				public static ColumnDef Campaign_Channel			= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Campaign_Name				= new ColumnDef("Campaign_Name", size: 100, nullable: false);
 				public static ColumnDef Campaign_OriginalID			= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
@@ -44,6 +44,8 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef Name						= new ColumnDef("Name", size: 100);
 				public static ColumnDef CreativeType				= new ColumnDef("CreativeType", type: SqlDbType.Int);
 				public static ColumnDef FieldX						= new ColumnDef("Field{0}",type:SqlDbType.NVarChar,size:4000,copies:4);
+				public static ColumnDef CreativeGK					= new ColumnDef("CreativeGK", size: 50, nullable:true);
+				public static ColumnDef PPCCreativeGK				= new ColumnDef("PPCCreativeGK", size: 50, nullable: true);
 			}
 
 			public static class AdTarget
@@ -51,7 +53,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
 				public static ColumnDef TargetType					= new ColumnDef("TargetType", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl",size:4096);
+				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl",size:4000);
 				public static ColumnDef FieldX						= new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef CustomFieldX				= new ColumnDef("CustomField{0}",type:SqlDbType.NVarChar,copies:6,size:4000);
 			}
@@ -61,7 +63,7 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef SegmentID					= new ColumnDef("SegmentID",type:SqlDbType.Int,nullable:false);
-				public static ColumnDef ValueOriginalID				= new ColumnDef("ValueOriginalID",size:4096);
+				public static ColumnDef ValueOriginalID				= new ColumnDef("ValueOriginalID",size:4000);
 				public static ColumnDef Value						= new ColumnDef("Value",size:4000);
 			}
 
@@ -69,7 +71,7 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef MetricsUnitGuid				= new ColumnDef("MetricsUnitGuid",size:300,nullable:false);
-				public static ColumnDef TimeStamp					= new ColumnDef("TimeStamp", type: SqlDbType.DateTime, nullable: false, defaultValue: "GetDate()");
+				public static ColumnDef TimeStamp					= new ColumnDef("TimeStamp", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
 				public static ColumnDef TargetPeriodStart			= new ColumnDef("TargetPeriodStart",type:SqlDbType.DateTime,nullable:false);
 				public static ColumnDef TargetPeriodEnd				= new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef Currency					= new ColumnDef("Currency",size:10);
@@ -80,7 +82,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
 				public static ColumnDef TargetType					= new ColumnDef("TargetType", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4096);
+				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX						= new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef CustomFieldX				= new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 			}
@@ -113,13 +115,13 @@ namespace Edge.Data.Pipeline.Importing
 					var expanded = new List<ColumnDef>(columns.Length);
 					foreach(ColumnDef col in columns)
 					{
-						if (col.Size <= 1)
+						if (col.Copies <= 1)
 						{
 							expanded.Add(col);
 						}
 						else
 						{
-							for (int i = 1; i <= col.Size; i++)
+							for (int i = 1; i <= col.Copies; i++)
 								expanded.Add(new ColumnDef(col, i));
 						}
 
@@ -195,7 +197,7 @@ namespace Edge.Data.Pipeline.Importing
 					var tableCol = new DataColumn(col.Name);
 					tableCol.AllowDBNull = col.Nullable;
 					if (col.Size != 0)
-						tableCol.MaxLength = col.Size;
+						tableCol.MaxLength = col.Size;								
 					this.Table.Columns.Add(tableCol);
 				}
 
@@ -204,6 +206,15 @@ namespace Edge.Data.Pipeline.Importing
 				this.BulkCopy.DestinationTableName = tbl;
 				foreach (ColumnDef col in this.Columns)
 					this.BulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(col.Name, col.Name));
+			}
+			public void AddColumn(ColumnDef columnDef)
+			{
+				this.Columns.Add(columnDef);
+				var tableCol = new DataColumn(columnDef.Name);
+				tableCol.AllowDBNull = columnDef.Nullable;
+				if (columnDef.Size != 0)
+					tableCol.MaxLength = columnDef.Size;
+				this.Table.Columns.Add(tableCol);
 			}
 
 			public void SubmitRow(Dictionary<ColumnDef, object> values)
@@ -228,14 +239,15 @@ namespace Edge.Data.Pipeline.Importing
 				for (int i = 0; i < this.Columns.Count; i++)
 				{
 					ColumnDef col = this.Columns[i];
-					builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4} {5}\n",
+					builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}, \n",
 						col.Name,
 						col.Type,
 						col.Size != 0 ? string.Format("({0})", col.Size) : null,
 						col.Nullable ? "null" : "not null",
-						col.DefaultValue !=string.Empty,string.Format("Default {0}",col.DefaultValue)
+						col.DefaultValue !=string.Empty ? string.Format("Default {0}",col.DefaultValue) : string.Empty
 					);
 				}
+				builder.Remove(builder.Length-1, 1);
 				builder.Append(");");
 
 				string cmdText = builder.ToString();
@@ -306,7 +318,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public override void Begin(bool reset = true)
 		{
-			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Today.ToString("yyyMMdd_hhmmss"), Delivery._guid.ToString("N").ToLower());
+			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery._guid.ToString("N").ToLower());
 			
 			// Connect to database
 			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
@@ -320,12 +332,17 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch		= new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
 
 			// Get measures
-			this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, _sqlConnection);
+			using (SqlConnection oltpConnection = new SqlConnection(AppSettings.GetConnectionString(this, "Oltp")))
+			{
+				oltpConnection.Open();
+
+				this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, oltpConnection);
+			}
 
 			// Add measure columns to metrics
 			foreach(Measure measure in this.Measures.Values)
 			{
-				_bulkMetrics.Columns.Add(new ColumnDef(
+				_bulkMetrics.AddColumn(new ColumnDef(
 					name: measure.OltpName,
 					type: SqlDbType.Float,
 					nullable: true

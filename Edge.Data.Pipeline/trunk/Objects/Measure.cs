@@ -30,7 +30,7 @@ namespace Edge.Data.Objects
 
 		public static Dictionary<string, Measure> GetMeasuresForAccount(Account account, SqlConnection connection)
 		{
-			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasure(
+			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasures(
 				@accountID:Int,
 				@measureID:Int,
 				@includeBase:bit,
@@ -40,7 +40,7 @@ namespace Edge.Data.Objects
 
 			cmd.Parameters["@accountID"].Value = account.ID;
 			cmd.Parameters["@flags"].Value = (int)MeasureOption.All - MeasureOption.IsTarget;
-
+			cmd.Parameters["@includeBase"].Value = 1;
 			List<Measure> measures = new List<Measure>();
 			using (SqlDataReader reader = cmd.ExecuteReader())
 			{
@@ -50,7 +50,7 @@ namespace Edge.Data.Objects
 					{
 						ID = (int) reader["MeasureID"],
 						Account = account,
-						Name = (string) reader["MeasureName"],
+						Name = (string) reader["DisplayName"],
 						OltpName = (string) reader["FieldName"]
 					};
 
