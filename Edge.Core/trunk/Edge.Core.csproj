@@ -122,7 +122,6 @@
     <Compile Include="Services\ServiceClient.cs" />
     <Compile Include="Services\Service.cs" />
     <Compile Include="Services\ServiceInstance.cs" />
-    <Compile Include="Utilities\DayCode.cs" />
     <Compile Include="Utilities\Log.cs" />
   </ItemGroup>
   <ItemGroup>

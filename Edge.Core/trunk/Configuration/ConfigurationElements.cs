@@ -254,11 +254,14 @@ namespace Edge.Core.Configuration
         private ConfigurationProperty s_arguments;
         private ConfigurationProperty s_maxInstances;
         private ConfigurationProperty s_maxInstancesPerAccount;
+        private ConfigurationProperty s_maxExecutionTime;
         private ConfigurationProperty s_serviceType;
         private ConfigurationProperty s_executionFlow;
         private ConfigurationProperty s_schedulingRules;
 		private ConfigurationProperty s_debugDelay;
 		private Dictionary<string, ConfigurationElement> _extendedElements = new Dictionary<string,ConfigurationElement>();
+		
+		private static TimeSpan _defaultMaxExecutionTime = TimeSpan.MinValue;
 		
 		#endregion
 
@@ -283,14 +286,19 @@ namespace Edge.Core.Configuration
                 typeof(string));
 
             s_maxInstances = new ConfigurationProperty(
-				"MaxConcurrent",
+                "MaxInstances",
                 typeof(int),
                 0);
 
             s_maxInstancesPerAccount = new ConfigurationProperty(
-				"MaxConcurrentPerAccount",
+                "MaxInstancesPerAccount",
                 typeof(int),
                 0);
+
+            s_maxExecutionTime = new ConfigurationProperty(
+                "MaxExecutionTime",
+                typeof(TimeSpan),
+                ServiceElement.DefaultMaxExecutionTime);
 
             s_serviceType = new ConfigurationProperty(
                 "ServiceType",
@@ -320,6 +328,7 @@ namespace Edge.Core.Configuration
 			InnerProperties.Add(s_class);
             InnerProperties.Add(s_maxInstances);
             InnerProperties.Add(s_maxInstancesPerAccount);
+            InnerProperties.Add(s_maxExecutionTime);
             InnerProperties.Add(s_serviceType);
             InnerProperties.Add(s_executionFlow);
 			InnerProperties.Add(s_schedulingRules);
@@ -328,6 +337,21 @@ namespace Edge.Core.Configuration
         #endregion
 
         #region Properties
+
+		public static TimeSpan DefaultMaxExecutionTime
+		{
+			get
+			{
+				if (_defaultMaxExecutionTime == TimeSpan.MinValue)
+				{
+					string raw = AppSettings.Get(typeof(ServiceElement), "DefaultMaxExecutionTime");
+					if (!TimeSpan.TryParse(raw, out _defaultMaxExecutionTime))
+						throw new ConfigurationErrorsException("Invalid value for DefaultMaxExecutionTime.");
+				}
+
+				return _defaultMaxExecutionTime;
+			}
+		}
 
 		public bool IsPublic
 		{
@@ -354,16 +378,28 @@ namespace Edge.Core.Configuration
         }
 
        
-		public int MaxConcurrent
+		public int MaxInstances
         {
             get { return (int)base[s_maxInstances]; }
             set { base[s_maxInstances] = value; }
         }
 
-        public int MaxConcurrentPerProfile
+        public int MaxInstancesPerAccount
         {
             get { return (int)base[s_maxInstancesPerAccount]; }
             set { base[s_maxInstancesPerAccount] = value; }
+        }
+
+        public TimeSpan MaxExecutionTime
+        {
+            get
+            {
+                return (TimeSpan)base[s_maxExecutionTime];
+            }
+            set
+            {
+                base[s_maxExecutionTime] = value;
+            }
         }
 
         public ServiceType ServiceType
@@ -396,10 +432,6 @@ namespace Edge.Core.Configuration
 			internal set { _extendedElements = value; }
 		}
 
-		public TimeSpan MaxExecutionTime
-		{
-			get { return TimeSpan.FromHours(1); }
-		}
 
 		#endregion
 
@@ -489,6 +521,7 @@ namespace Edge.Core.Configuration
 		#region Members
         
         private ConfigurationProperty s_serviceToUse;
+        private ConfigurationProperty s_maxExecutionTime;
         private ConfigurationProperty s_waitForPrevious;
         private ConfigurationProperty s_blocking;
         private ConfigurationProperty s_failureRepeat;
@@ -512,6 +545,12 @@ namespace Edge.Core.Configuration
 				new Converters.ElementReferenceConverter<ServiceElement>(this, "Base"),
 				null,
                 ConfigurationPropertyOptions.None);
+
+            s_maxExecutionTime = new ConfigurationProperty(
+                "MaxExecutionTime",
+                typeof(TimeSpan),
+				ServiceElement.DefaultMaxExecutionTime
+				);
 
             s_waitForPrevious = new ConfigurationProperty(
                 "WaitForPrevious",
@@ -570,6 +609,7 @@ namespace Edge.Core.Configuration
 				);
 
             InnerProperties.Add(s_serviceToUse);
+            InnerProperties.Add(s_maxExecutionTime);
             InnerProperties.Add(s_waitForPrevious);
             InnerProperties.Add(s_blocking);
             InnerProperties.Add(s_failureRepeat);
@@ -594,6 +634,19 @@ namespace Edge.Core.Configuration
             set
             {
                 base[s_serviceToUse] = value;
+            }
+        }
+
+
+        public TimeSpan MaxExecutionTime
+        {
+            get
+            {
+                return (TimeSpan)base[s_maxExecutionTime];
+            }
+            set
+            {
+                base[s_maxExecutionTime] = value;
             }
         }
 
