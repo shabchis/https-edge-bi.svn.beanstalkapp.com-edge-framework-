@@ -215,6 +215,7 @@ namespace Edge.Data.Pipeline.Importing
 				if (columnDef.Size != 0)
 					tableCol.MaxLength = columnDef.Size;
 				this.Table.Columns.Add(tableCol);
+				this.BulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(columnDef.Name, columnDef.Name));
 			}
 
 			public void SubmitRow(Dictionary<ColumnDef, object> values)
