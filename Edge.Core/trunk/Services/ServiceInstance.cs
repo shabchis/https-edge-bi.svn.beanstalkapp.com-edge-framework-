@@ -152,6 +152,14 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// 
 		/// </summary>
+		public DateTime TimeEnded
+		{
+			get { return TimeEndedProperty.GetValue(this); }
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public DateTime TimeScheduled
 		{
 			get { return TimeScheduledProperty.GetValue(this); }
@@ -215,6 +223,7 @@ namespace Edge.Core.Services
 		static readonly EntityProperty<ServiceInstance, ServiceOutcome> OutcomeProperty = new EntityProperty<ServiceInstance, ServiceOutcome>(ServiceOutcome.Unspecified);
 		static readonly EntityProperty<ServiceInstance, double> ProgressProperty = new EntityProperty<ServiceInstance, double>(0);
 		static readonly EntityProperty<ServiceInstance, DateTime> TimeStartedProperty = new EntityProperty<ServiceInstance, DateTime>(DateTime.MinValue);
+		static readonly EntityProperty<ServiceInstance, DateTime> TimeEndedProperty = new EntityProperty<ServiceInstance, DateTime>(DateTime.MinValue);
 		static readonly EntityProperty<ServiceInstance, DateTime> TimeScheduledProperty = new EntityProperty<ServiceInstance, DateTime>(DateTime.MinValue);
 		static readonly EntityProperty<ServiceInstance, ActiveServiceElement> ActiveConfigurationProperty = new EntityProperty<ServiceInstance, ActiveServiceElement>();
 		static readonly EntityProperty<ServiceInstance, SchedulingRuleElement> ActiveRuleProperty = new EntityProperty<ServiceInstance, SchedulingRuleElement>();
@@ -293,6 +302,7 @@ namespace Edge.Core.Services
 						ServiceName = @serviceName:NVarChar,
 						TimeScheduled = @timeScheduled:DateTime,
 						TimeStarted = @timeStarted:DateTime,
+						TimeEnded = @timeEnded:DateTime,
 						Priority = @priority:Int,
 						State = @state:Int,
 						Progress = @progress:Float,
@@ -306,6 +316,7 @@ namespace Edge.Core.Services
 					@"
 					update ServiceInstance set
 						TimeStarted = @timeStarted:DateTime,
+						TimeEnded = @timeEnded:DateTime,
 						State = @state:Int,
 						Progress = @progress:Float,
 						Outcome = @outcome:Int,
@@ -321,8 +332,9 @@ namespace Edge.Core.Services
 			cmd.Parameters["@state"].Value = this.State;
 			cmd.Parameters["@progress"].Value = this.Progress;
 			cmd.Parameters["@outcome"].Value = this.Outcome;
-			cmd.Parameters["@timeStarted"].Value = this.TimeStarted == DateTime.MinValue ? (object) DBNull.Value : (object) this.TimeStarted;
-			cmd.Parameters["@serviceUrl"].Value = this.ServiceUrl == null ? (object) DBNull.Value : (object) this.ServiceUrl;
+			cmd.Parameters["@timeStarted"].Value = this.TimeStarted == DateTime.MinValue ? (object)DBNull.Value : (object)this.TimeStarted;
+			cmd.Parameters["@timeEnded"].Value = this.TimeEnded == DateTime.MinValue ? (object)DBNull.Value : (object)this.TimeEnded;
+			cmd.Parameters["@serviceUrl"].Value = this.ServiceUrl == null ? (object)DBNull.Value : (object)this.ServiceUrl;
 
 			// Set only when uninitialized
 			if (this.State == ServiceState.Uninitialized || this.State == ServiceState.Initializing)
@@ -348,6 +360,12 @@ namespace Edge.Core.Services
 				cmd.Parameters["@instanceID"].Value = this.InstanceID;
 			}
 
+            const int maxTries = 2;
+            int tries = 0;
+            while (tries < maxTries)
+            {
+                try
+                {
 			using (SqlConnection cn = new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase", configFile: EdgeServicesConfiguration.Current.ConfigurationFile)))
 			{
 				cmd.Connection = cn;
@@ -359,16 +377,37 @@ namespace Edge.Core.Services
 					newID = cmd.ExecuteScalar();
 					if (newID is DBNull)
 						throw new Exception("Save failed to return a new InstanceID.");
-
-					InstanceIDProperty.SetValue(this, Convert.ToInt64(newID));
-				}
+                            else
+                            {
+                                InstanceIDProperty.SetValue(this, Convert.ToInt64(newID));
+                                break;
+                            }
+                        }
 				else
 				{
 					if (cmd.ExecuteNonQuery() < 1)
 						throw new Exception("Save did not affect any rows.");
-				}
-			}
-			
+                            else
+                                break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tries++;
+                    if (tries == maxTries)
+                    {
+                        Log.Write("Failed to save ServiceInstance.", ex);
+
+                        if (this.InstanceID < 0)
+                        {
+                            OnStateChanged(ServiceState.Ended, false);
+                            OnOutcomeReported(ServiceOutcome.Failure, false);
+                        }
+                    }
+                }
+            }
+
 
 		}
 
@@ -455,7 +494,11 @@ namespace Edge.Core.Services
 					OnOutcomeReported(ServiceOutcome.Failure);
 
 					// EXCEPTION:
-					throw new Exception(String.Format("Failed to create a new AppDomain for the service. Service name: {0}.", Configuration.Name), ex);
+						Log.Write(
+							String.Format("{0} ({1})", this.Configuration.Name, this.InstanceID),
+							"Failed to create a new AppDomain for the service.",
+							ex);
+                        return;
 				}
 			});
 
@@ -477,7 +520,11 @@ namespace Edge.Core.Services
 					OnOutcomeReported(ServiceOutcome.Failure);
 
 					// EXCEPTION:
-					throw new Exception(String.Format("Failed to initialize the service. Service name: {0}.", Configuration.Name), ex);
+						Log.Write(
+							String.Format("{0} ({1})", this.Configuration.Name, this.InstanceID),
+							"Failed to initialize the service",
+							ex);
+                        return;
 				}
 
 				// Try to open it again now that the service is running
@@ -556,11 +603,15 @@ namespace Edge.Core.Services
 			OnStateChanged(state);
 		}
 
-		private void OnStateChanged(ServiceState state)
+		private void OnStateChanged(ServiceState state, bool save = true)
 		{
 			ServiceState before = this.State;
 			StateProperty.SetValue(this, state);
-			this.Save();
+			if (state == ServiceState.Ended)
+				TimeEndedProperty.SetValue(this, DateTime.Now);
+
+            if (save)
+			    this.Save();
 
 			if (this.StateChanged != null)
 				StateChanged(this, new ServiceStateChangedEventArgs(before, state));
@@ -581,10 +632,12 @@ namespace Edge.Core.Services
 			OnOutcomeReported(outcome);
 		}
 
-		void OnOutcomeReported(ServiceOutcome outcome)
+        void OnOutcomeReported(ServiceOutcome outcome, bool save = true)
 		{
 			OutcomeProperty.SetValue(this, outcome);
-			this.Save();
+
+            if (save)
+			    this.Save();
 
 			if (this.OutcomeReported != null)
 				OutcomeReported(this, EventArgs.Empty);

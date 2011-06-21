@@ -56,8 +56,13 @@ namespace Edge.Core.Utilities
 
 		public void Save()
 		{
-			SqlCommand cmd = DataManager.CreateCommand(@"
-				insert into Log
+            /*Fixed buy alon 30/3/2001- bug-when  data manager.currecnt.openconnection() is starting transaction and 
+             * on the log.save you create transaction you get error message:"ther transaction is either not associete with the current connection
+             or has been commited.
+             the fix is to create the comand not using the datamatanger.createCommand so the transaction will not be associte withe the log connection*/
+            SqlCommand cmd = new SqlCommand();
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = @"insert into Log
 				(
 					MachineName,
 					ProcessID,
@@ -71,34 +76,65 @@ namespace Edge.Core.Utilities
 				)
 				values
 				(
-					@MachineName:NVarChar,
-					@ProcessID:Int,
-					@Source:NVarChar,
-					@MessageType:Int,
-					@ServiceInstanceID:BigInt,
-					@AccountID:Int,
-					@Message:NVarChar,
-					@IsException:Bit,
-					@ExceptionDetails:NVarChar
-				)
-			");
+					@MachineName,
+					@ProcessID,
+					@Source,
+					@MessageType,
+					@ServiceInstanceID,
+					@AccountID,
+					@Message,
+					@IsException,
+					@ExceptionDetails
+				)";
 
-			cmd.Parameters["@MachineName"].Value = this.MachineName;
-			cmd.Parameters["@ProcessID"].Value = this.ProcessID;
-			cmd.Parameters["@Source"].Value = this.Source;
-			cmd.Parameters["@MessageType"].Value = this.MessageType;
-			cmd.Parameters["@ServiceInstanceID"].Value = this.ServiceInstanceID;
-			cmd.Parameters["@AccountID"].Value = this.AccountID;
-			cmd.Parameters["@Message"].Value = Null(this.Message);
-			cmd.Parameters["@IsException"].Value = this.IsException;
-			cmd.Parameters["@ExceptionDetails"].Value = Null(this.ExceptionDetails);
 
-			using (SqlConnection connection = new SqlConnection(ConnectionString))
-			{
-				connection.Open();
-				cmd.Connection = connection;
-				cmd.ExecuteNonQuery();
-			}
+            cmd.Parameters.AddWithValue("@MachineName", this.MachineName);
+            cmd.Parameters.AddWithValue("@ProcessID", this.ProcessID);
+            cmd.Parameters.AddWithValue("@Source", this.Source);
+            cmd.Parameters.AddWithValue("@MessageType", this.MessageType);
+            cmd.Parameters.AddWithValue("@ServiceInstanceID", this.ServiceInstanceID);
+            cmd.Parameters.AddWithValue("@AccountID", this.AccountID);
+            cmd.Parameters.AddWithValue("@Message", Null(this.Message));
+            cmd.Parameters.AddWithValue("@IsException", this.IsException);
+            cmd.Parameters.AddWithValue("@ExceptionDetails", Null(this.ExceptionDetails));
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(ConnectionString))
+                {
+                    connection.Open();
+                    cmd.Connection = connection;
+                    cmd.ExecuteNonQuery();
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                try
+                {
+                    if (!EventLog.SourceExists("Edge.Core.Utilities.Log"))
+                    {
+                        EventLog.CreateEventSource(new EventSourceCreationData("Edge.Core.Utilities.Log", "Edge"));
+                    }
+                    EventLog eventLog = new EventLog();
+                    eventLog.Source = "Edge.Core.Utilities.Log";
+                    eventLog.WriteEntry(string.Format("Source:Log.Save\nerror: {0}", ex.Message), EventLogEntryType.Error);
+
+                }
+                catch (Exception)
+                {
+
+
+                }
+
+
+
+            }
+           
+            
+
+
 		}
 
 		object Null(object obj)
