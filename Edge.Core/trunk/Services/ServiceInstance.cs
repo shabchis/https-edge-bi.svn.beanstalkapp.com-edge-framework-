@@ -292,8 +292,8 @@ namespace Edge.Core.Services
 			bool isInsert = this.InstanceID < 0;
 			string cmdText = isInsert ?
 				@"
-				insert into ServiceInstance (AccountID, ParentInstanceID, ServiceName, TimeScheduled, TimeStarted, Priority, State, Progress, Outcome, ServiceUrl, Configuration, ActiveRule)
-				values (@accountID:Int, @parentInstanceID:BigInt, @serviceName:NVarChar, @timeScheduled:DateTime, @timeStarted:DateTime, @priority:Int, @state:Int, @progress:Float, @outcome:Int, @serviceUrl:NVarChar, @configuration:Xml, @activeRule:Xml);
+				insert into ServiceInstance (AccountID, ParentInstanceID, ServiceName, TimeScheduled, TimeStarted, TimeEnded, Priority, State, Progress, Outcome, ServiceUrl, Configuration, ActiveRule)
+				values (@accountID:Int, @parentInstanceID:BigInt, @serviceName:NVarChar, @timeScheduled:DateTime, @timeStarted:DateTime,@timeEnded:DateTime, @priority:Int, @state:Int, @progress:Float, @outcome:Int, @serviceUrl:NVarChar, @configuration:Xml, @activeRule:Xml);
 				select scope_identity();
 				" :
 				this.State == ServiceState.Uninitialized || this.State == ServiceState.Initializing ? 
@@ -397,7 +397,9 @@ namespace Edge.Core.Services
                     tries++;
                     if (tries == maxTries)
                     {
-                        Log.Write("Failed to save ServiceInstance.", ex);
+                        Log.Write(
+							String.Format("{0} ({1})", this.Configuration.Name, this.InstanceID),
+							"Failed to save ServiceInstance.", ex);
 
                         if (this.InstanceID < 0)
                         {
@@ -473,13 +475,6 @@ namespace Edge.Core.Services
 			AppDomainSetup setup = new AppDomainSetup();
 			setup.ApplicationBase = Directory.GetCurrentDirectory();
 
-			/*
-			string assemblyDir = AppSettings.Get(typeof(Service), "AssemblyDirectory");
-			setup.PrivateBinPath = Path.IsPathRooted(assemblyDir) ?
-				assemblyDir :
-				Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyDir);
-			*/
-
 			// Load the AppDomain in a different thread
 			Action loadAppDomain = new Action(delegate()
 			{
@@ -507,8 +502,19 @@ namespace Edge.Core.Services
 			{
 				try
 				{
-					_appDomain.CreateInstance(typeof(ServiceStart).Assembly.FullName, typeof(ServiceStart).FullName,
-						false, BindingFlags.CreateInstance, null, new object[] { new ServiceInstanceInfo(this) }, null, null, null);
+					ServiceStart start = (ServiceStart) _appDomain.CreateInstanceAndUnwrap(
+						typeof(ServiceStart).Assembly.FullName,
+						typeof(ServiceStart).FullName,
+						false,
+						BindingFlags.Default,
+						null,
+						new object[] { EdgeServicesConfiguration.CurrentFileName },
+						null,
+						null
+						);
+					
+					// cross-domain invoke
+					start.Start(new ServiceInstanceInfo(this));
 				}
 				catch (Exception ex)
 				{
