@@ -337,14 +337,14 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				oltpConnection.Open();
 
-				this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, oltpConnection);
+				this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, MeasureType.All ^ MeasureType.Target ^ MeasureType.Calculated, oltpConnection);
 			}
 
 			// Add measure columns to metrics
 			foreach(Measure measure in this.Measures.Values)
 			{
 				_bulkMetrics.AddColumn(new ColumnDef(
-					name: measure.OltpName,
+					name: measure.Name,
 					type: SqlDbType.Float,
 					nullable: true
 					));
@@ -452,7 +452,7 @@ namespace Edge.Data.Pipeline.Importing
 			foreach (KeyValuePair<Measure, double> measure in metrics.MeasureValues)
 			{
 				// Use the Oltp name of the measure as the column name
-				metricsRow[new ColumnDef(measure.Key.OltpName)] = measure.Value;
+				metricsRow[new ColumnDef(measure.Key.Name)] = measure.Value;
 			}
 
 			_bulkMetrics.SubmitRow(metricsRow);

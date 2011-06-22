@@ -28,7 +28,7 @@ namespace Edge.Data.Objects
 		public string OltpName;
 		public string DisplayName;
 
-		public static Dictionary<string, Measure> GetMeasuresForAccount(Account account, SqlConnection connection)
+		public static Dictionary<string, Measure> GetMeasuresForAccount(Account account, MeasureType measureTypeFlags, SqlConnection connection)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasures(
 				@accountID:Int,
@@ -39,7 +39,7 @@ namespace Edge.Data.Objects
 			cmd.Connection = connection;
 
 			cmd.Parameters["@accountID"].Value = account.ID;
-			cmd.Parameters["@flags"].Value = (int)MeasureOption.All - MeasureOption.IsTarget;
+			cmd.Parameters["@flags"].Value = measureTypeFlags;
 			cmd.Parameters["@includeBase"].Value = 1;
 			List<Measure> measures = new List<Measure>();
 			using (SqlDataReader reader = cmd.ExecuteReader())
@@ -50,7 +50,8 @@ namespace Edge.Data.Objects
 					{
 						ID = (int) reader["MeasureID"],
 						Account = account,
-						Name = (string) reader["DisplayName"],
+						Name = (string)reader["Name"],
+						DisplayName = (string)reader["DisplayName"],
 						OltpName = (string) reader["FieldName"]
 					};
 
@@ -61,12 +62,16 @@ namespace Edge.Data.Objects
 			return measures.ToDictionary(m => m.Name);
 		}
 
-		[Flags]
-		enum MeasureOption
-		{
-			IsTarget = 0x2,
-			All = 0xff
-		}
+		
 	}
+
+	[Flags]
+	public enum MeasureType
+	{
+		Target = 0x2,
+		Calculated = 0x10,
+		All = 0xff
+	}
+
 
 }
