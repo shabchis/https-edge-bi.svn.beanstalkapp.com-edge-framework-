@@ -24,11 +24,13 @@ namespace Edge.Core.Configuration
 		{
 			get
 			{
+				/*
 				if (_current == null)
 				{
 					// Auto load default config file
 					Load(DefaultFileName, DefaultSectionName, true);
 				}
+				*/
 				return _current;
 			}
 			private set { _current = value; }
@@ -58,9 +60,12 @@ namespace Edge.Core.Configuration
 			if (sectionName == null)
 				sectionName = DefaultSectionName;
 
+			string loadErrorMsg = String.Format("Could not find configuration section '{0}'.", sectionName);
 			if (configFileName == null)
 			{
 				Current = (EdgeServicesConfiguration)ConfigurationManager.GetSection(sectionName);
+				if (Current == null)
+					throw new ConfigurationErrorsException(loadErrorMsg);
 				CurrentFileName = null;
 			}
 			else
@@ -69,6 +74,9 @@ namespace Edge.Core.Configuration
 				System.Configuration.Configuration configFile = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
 
 				Current = (EdgeServicesConfiguration)configFile.GetSection(sectionName);
+				if (Current == null)
+					throw new ConfigurationErrorsException(loadErrorMsg);
+
 				Current.ConfigurationFile = configFile;
 				CurrentFileName = configFileName;
 

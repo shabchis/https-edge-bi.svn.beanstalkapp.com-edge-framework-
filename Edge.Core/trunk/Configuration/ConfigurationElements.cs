@@ -246,6 +246,8 @@ namespace Edge.Core.Configuration
     /// </summary>
 	public class ServiceElement: NamedConfigurationElement
     {
+		public static TimeSpan DefaultMaxExecutionTime = TimeSpan.FromMinutes(15);
+
         #region Fields
 
         private ConfigurationProperty s_isPublic;
@@ -260,8 +262,6 @@ namespace Edge.Core.Configuration
         private ConfigurationProperty s_schedulingRules;
 		private ConfigurationProperty s_debugDelay;
 		private Dictionary<string, ConfigurationElement> _extendedElements = new Dictionary<string,ConfigurationElement>();
-		
-		private static TimeSpan _defaultMaxExecutionTime = TimeSpan.MinValue;
 		
 		#endregion
 
@@ -338,20 +338,7 @@ namespace Edge.Core.Configuration
 
         #region Properties
 
-		public static TimeSpan DefaultMaxExecutionTime
-		{
-			get
-			{
-				if (_defaultMaxExecutionTime == TimeSpan.MinValue)
-				{
-					string raw = AppSettings.Get(typeof(ServiceElement), "DefaultMaxExecutionTime");
-					if (!TimeSpan.TryParse(raw, out _defaultMaxExecutionTime))
-						throw new ConfigurationErrorsException("Invalid value for DefaultMaxExecutionTime.");
-				}
-
-				return _defaultMaxExecutionTime;
-			}
-		}
+		
 
 		public bool IsPublic
 		{
@@ -1556,6 +1543,7 @@ namespace Edge.Core.Configuration
 
 		private ActiveServiceElement(SerializationInfo info, StreamingContext context)
 		{
+			
 			StringReader stringReader = new StringReader(info.GetString("xml"));
 			XmlTextReader reader = new XmlTextReader(stringReader);
 			reader.ReadToFollowing("ActiveService");

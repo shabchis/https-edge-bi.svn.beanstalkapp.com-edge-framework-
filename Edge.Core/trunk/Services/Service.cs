@@ -932,11 +932,14 @@ namespace Edge.Core.Services
 		#region Constructors
 		/*=========================*/
 
-		public ServiceStart(ServiceInstanceInfo instance)
+		public ServiceStart(string configurationFileName)
 		{
-			if (instance.ConfigurationFile != null)
-				EdgeServicesConfiguration.Load(instance.ConfigurationFile);
+			if (configurationFileName != null)
+				EdgeServicesConfiguration.Load(configurationFileName);
+		}
 
+		public void Start(ServiceInstanceInfo instance)
+		{
 			Service s = null;
 			string typeName = instance.Configuration.Class;
 
