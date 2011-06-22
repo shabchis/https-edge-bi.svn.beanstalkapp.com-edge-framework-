@@ -15,7 +15,6 @@ namespace Edge.Data.Objects
 		
 		public Ad Ad; //table
 		public List<Target> TargetMatches; //table
-		public Tracker Tracker;
 
 		public Currency Currency;
 
