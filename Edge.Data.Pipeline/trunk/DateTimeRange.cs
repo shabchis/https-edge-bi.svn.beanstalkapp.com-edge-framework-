@@ -111,10 +111,7 @@ namespace Edge.Data.Pipeline
 
 		public DateTime ToDateTime()
 		{
-			if (ExactDateTime != DateTime.MinValue)
-				return ExactDateTime;
-
-			DateTime result = DateTime.Now;
+			DateTime result = this.ExactDateTime != DateTime.MinValue ? this.ExactDateTime : DateTime.Now;
 
 			//...........................
 			// Year
