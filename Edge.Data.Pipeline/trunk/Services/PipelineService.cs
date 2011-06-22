@@ -5,6 +5,8 @@ using System.Text;
 using Edge.Core.Services;
 using Edge.Data.Pipeline.Configuration;
 using Edge.Data.Pipeline;
+using System.Text.RegularExpressions;
+using System.Configuration;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -12,6 +14,7 @@ namespace Edge.Data.Pipeline.Services
 	{
 		DateTimeRange? _range = null;
 		Delivery _delivery = null;
+		Regex[] _trackerPatterns = null;
 
 		public DateTimeRange TargetPeriod
 		{
@@ -57,6 +60,30 @@ namespace Edge.Data.Pipeline.Services
 			{
 				_delivery = value;
 				//_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryGuid"] = _delivery.Guid.ToString());
+			}
+		}
+
+		public Regex[] TrackerPatterns
+		{
+			get
+			{
+				if (_trackerPatterns == null)
+				{
+					ConfigurationElement extension;
+					if (!this.Instance.Configuration.ExtendedElements.TryGetValue("Patterns", out extension))
+					{
+						_trackerPatterns = new Regex[0];
+					}
+					else
+					{
+						var regexCollection = (RegexElementCollection)extension;
+						_trackerPatterns = new Regex[regexCollection.Count];
+						for (int i = 0; i < regexCollection.Count; i++)
+							_trackerPatterns[i] = new Regex(regexCollection[i].Pattern, RegexOptions.ExplicitCapture);
+					}
+				}
+
+				return _trackerPatterns;
 			}
 		}
 

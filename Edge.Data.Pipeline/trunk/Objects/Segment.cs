@@ -10,6 +10,7 @@ namespace Edge.Data.Objects
 		public int ID { get; set; }
 		
 		public static Segment AdGroupSegment = new Segment() { ID = -876 };
+		public static Segment UnifiedTracker = new Segment() { ID = -977 };
 	}
 
 	public class SegmentValue
@@ -17,27 +18,4 @@ namespace Edge.Data.Objects
 		public string OriginalID;
 		public string Value;
 	}
-
-	/*
-	class Program
-	{
-		void Main()
-		{
-			Ad ad = new Ad();
-
-			// setting
-			ad.Segments[Segment.AdGroupSegment] = new SegmentValue() { Value = "40+ Male" };
-	 * ad.Name = "asdasdas";
-
-			// saving to db
-			foreach (var pair in ad.Segments)
-			{
-				pair.Key.ID; // maps to SegmentID
-				pair.Value.OriginalID // maps to ValueOriginalID
-				pair.Value.Value // maps to Value
-
-			}
-		}
-	}
-	*/
 }

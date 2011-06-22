@@ -14,6 +14,11 @@ namespace Edge.Data.Objects
 
 		// This is for use by channels which have extra data per target
 		public Dictionary<TargetCustomField, object> CustomFields=new Dictionary<TargetCustomField,object>();
+
+		/// <summary>
+		/// Segments per target, e.g. tracker on a keyword.
+		/// </summary>
+		public Dictionary<Segment, SegmentValue> SegmentValues;
 	}
 
 
