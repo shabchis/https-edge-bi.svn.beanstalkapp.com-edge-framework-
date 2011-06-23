@@ -667,12 +667,12 @@ namespace Edge.Core.Services
 			*/
 		}
 
-		void IServiceSubscriber.ChildServiceRequested(int stepNumber, int attemptNumber)
+		void IServiceSubscriber.ChildServiceRequested(int stepNumber, int attemptNumber, SettingsCollection options)
 		{
-			OnChildServiceRequested(stepNumber, attemptNumber);
+			OnChildServiceRequested(stepNumber, attemptNumber, options);
 		}
 
-		void OnChildServiceRequested(int stepNumber, int attemptNumber)
+		void OnChildServiceRequested(int stepNumber, int attemptNumber, SettingsCollection options)
 		{
 			// Get the step configuration elements
 			WorkflowStepElement stepConfig = this.Configuration.Workflow[stepNumber];
@@ -681,13 +681,24 @@ namespace Edge.Core.Services
 				this.Configuration.StepSettings[stepConfig] : 
 				null;
 
+			// Take the step configuration
+			ActiveServiceElement configuration = stepSettings != null ?
+				new ActiveServiceElement(stepSettings) :
+				new ActiveServiceElement(stepConfig);
+
+			// Add child-specific options
+			if (options != null)
+				configuration.Options.Merge(options);
+
+			// Add parent options, without overriding child options with the same name
+			foreach (var parentOption in this.Configuration.Options)
+			{
+				if (!configuration.Options.ContainsKey(parentOption.Key))
+					configuration.Options.Add(parentOption.Key, parentOption.Value);
+			}
+
 			// Generate a child instance
-			ServiceInstance child = Service.CreateInstance(
-				stepSettings != null ?
-					(EnabledConfigurationElement) stepSettings :
-					(EnabledConfigurationElement) stepConfig,
-				this,
-				this.AccountID);
+			ServiceInstance child = Service.CreateInstance(configuration, this, this.AccountID);
 
 			child.StateChanged += _childStateHandler;
 			child.OutcomeReported += _childOutcomeHandler;

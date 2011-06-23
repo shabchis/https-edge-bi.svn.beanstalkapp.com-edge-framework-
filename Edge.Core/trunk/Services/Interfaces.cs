@@ -50,7 +50,7 @@ namespace Edge.Core.Services
 		void OutcomeReported(ServiceOutcome outcome);
 
 		[OperationContract(IsOneWay=true)]
-		void ChildServiceRequested(int stepNumber, int attemptNumber);
+		void ChildServiceRequested(int stepNumber, int attemptNumber, SettingsCollection options);
 		
 		[OperationContract(IsOneWay=true)]
 		void ProgressReported(double progress);
