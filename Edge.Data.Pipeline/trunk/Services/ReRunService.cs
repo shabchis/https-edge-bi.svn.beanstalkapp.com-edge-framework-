@@ -8,6 +8,7 @@ using Edge.Core.Scheduling;
 using Edge.Core;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -18,11 +19,13 @@ namespace Edge.Data.Pipeline.Services
 
 			using (ServiceClient<IScheduleManager> scheduleManager = new ServiceClient<IScheduleManager>())
 			{
-				string targetPeriod = this.TargetPeriod.ToString();
-				//Parso json
-				JObject jObjecttimeRange = JObject.Parse(targetPeriod);
-				DateTime fromDate = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["start"].ToString());
-				DateTime toDate = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["end"].ToString()); 
+
+
+
+			
+
+				DateTime fromDate = this.TargetPeriod.Start.ToDateTime();
+				DateTime toDate = this.TargetPeriod.End.ToDateTime();
 				string serviceName=Instance.Configuration.Options["ServiceToRun"];
 				
 				while (fromDate<=toDate)
@@ -32,28 +35,30 @@ namespace Edge.Data.Pipeline.Services
 					{
 						Start = new DateTimeSpecification()
 						{
-							ExactDateTime = fromDate,
-							Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Exact, Value = 0 }
+							BaseDateTime = fromDate,
+							Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Exact, Value = 0 },
+							Boundary=DateTimeSpecificationBounds.Lower
 						},
 						End = new DateTimeSpecification()
 						{
-							ExactDateTime = fromDate,
-							Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Max }
+							BaseDateTime = fromDate,
+							Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Max },
+							Boundary = DateTimeSpecificationBounds.Upper
 						}
 					};
 
 					// { start: '2009-01-01 00:00:00.00000', end: '2009-01-01 23:59:59.99999' }
 					var finalRange = new DateTimeRange()
 					{
-						Start = new DateTimeSpecification() { ExactDateTime = subRange.Start.ToDateTime() },
-						End = new DateTimeSpecification() { ExactDateTime = subRange.End.ToDateTime() }
+						Start = new DateTimeSpecification() { BaseDateTime = subRange.Start.ToDateTime() },
+						End = new DateTimeSpecification() { BaseDateTime = subRange.End.ToDateTime() }
 					};
 
 					SettingsCollection options = new SettingsCollection();
 					options.Add("TargetPeriod", finalRange.ToString());
 
 					//run the service
-					scheduleManager.Service.AddToSchedule(serviceName,this.Delivery.Account.ID,DateTime.Now, options);
+					scheduleManager.Service.AddToSchedule(serviceName,this.Instance.AccountID,DateTime.Now, options);
 
 					fromDate = fromDate.AddDays(1);
 
