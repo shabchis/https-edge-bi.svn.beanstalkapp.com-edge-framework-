@@ -71,7 +71,7 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef MetricsUnitGuid				= new ColumnDef("MetricsUnitGuid",size:300,nullable:false);
-				public static ColumnDef TimeStamp					= new ColumnDef("TimeStamp", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
+				public static ColumnDef DownloadedDate			    = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
 				public static ColumnDef TargetPeriodStart			= new ColumnDef("TargetPeriodStart",type:SqlDbType.DateTime,nullable:false);
 				public static ColumnDef TargetPeriodEnd				= new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef Currency					= new ColumnDef("Currency",size:10);
