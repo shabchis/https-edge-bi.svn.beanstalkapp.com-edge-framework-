@@ -43,17 +43,10 @@ namespace Edge.Data.Pipeline.Services
 				if (_delivery != null)
 					return _delivery;
 
-				Guid deliveryID;
-				string did;
-				//if (!this.WorkflowContext.TryGetValue("DeliveryGuid", out did))
-					if (!Instance.Configuration.Options.TryGetValue("DeliveryGuid", out did))
-						return null;
+				Guid deliveryID = this.TargetDeliveryID;
+				if (deliveryID != Guid.Empty)
+					_delivery = DeliveryDB.Get(deliveryID);
 
-				if (!Guid.TryParse(did, out deliveryID))
-					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
-
-				_delivery = DeliveryDB.Get(deliveryID);
-				//this.WorkflowContext["DeliveryGuid"] = did;
 				return _delivery;
 			}
 			set
@@ -63,6 +56,22 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
+		public Guid TargetDeliveryID
+		{
+			get
+			{
+				Guid deliveryID;
+				string did;
+				if (!Instance.Configuration.Options.TryGetValue(Delivery.DeliveryIdOptionName, out did))
+					return Guid.Empty;
+
+				if (!Guid.TryParse(did, out deliveryID))
+					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
+
+				return deliveryID;
+			}
+		}
+		
 		public Regex[] TrackerPatterns
 		{
 			get
