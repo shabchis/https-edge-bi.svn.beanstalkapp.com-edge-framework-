@@ -130,6 +130,7 @@
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
     <Compile Include="Readers\XmlDynamicReader.cs" />
+    <Compile Include="Services\PipelineWorkflowService.cs" />
     <Compile Include="Services\ReRunService.cs" />
     <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\PipelineService.cs" />
