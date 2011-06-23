@@ -25,10 +25,19 @@ namespace Edge.Data.Pipeline
 
 		public static DateTimeRange Parse(string json)
 		{
+			//reformat the json in order to be able to Deserialize
+			if (json.Contains("\""))			
+				json=json.Replace("\"", string.Empty);			
+			if (json.Contains("\\"))
+				json=json.Replace("\\","'");
+
 			JObject jObjecttimeRange = JObject.Parse(json);
 			DateTimeRange dateTimeRange=new DateTimeRange();
-			dateTimeRange.Start.ExactDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["start"].ToString());
-			dateTimeRange.End.ExactDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["end"].ToString());
+			JsonSerializerSettings settings=new JsonSerializerSettings();
+
+
+			dateTimeRange.Start.BaseDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["start"].ToString());
+			dateTimeRange.End.BaseDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["end"].ToString());
 			return dateTimeRange;
 		}
 		/// <summary>
@@ -42,7 +51,10 @@ namespace Edge.Data.Pipeline
 			timeRange.start=JsonConvert.SerializeObject(Start.ToDateTime(), new IsoDateTimeConverter());
 			timeRange.end= JsonConvert.SerializeObject(End.ToDateTime(), new IsoDateTimeConverter());
 
-			return timeRange; // TODO: check this return ((ExpandoObject)timeRange).ToString(); 
+
+			 return JsonConvert.SerializeObject(timeRange);
+			
+			
 		}
 
 		#region Default values
@@ -97,8 +109,8 @@ namespace Edge.Data.Pipeline
 	public struct DateTimeSpecification
 	{
 		public DateTimeSpecificationBounds Boundary;
-		public DateTime ExactDateTime;
-		public TimeSpan ExactTime;
+		public DateTime BaseDateTime;
+		public TimeSpan BaseTime;
 		public DayOfWeek FirstDayOfWeek;
 
 		public DateTimeTransformation Year;
@@ -111,7 +123,7 @@ namespace Edge.Data.Pipeline
 
 		public DateTime ToDateTime()
 		{
-			DateTime result = this.ExactDateTime != DateTime.MinValue ? this.ExactDateTime : DateTime.Now;
+			DateTime result = this.BaseDateTime != DateTime.MinValue ? this.BaseDateTime : DateTime.Now;
 
 			//...........................
 			// Year
@@ -173,10 +185,9 @@ namespace Edge.Data.Pipeline
 
 			//...........................
 			// Time
-			if (ExactTime != TimeSpan.Zero)
+			if (BaseTime != TimeSpan.Zero)
 			{
-				result = new DateTime(result.Year, result.Month, result.Day).Add(ExactTime);
-				return result;
+				result = new DateTime(result.Year, result.Month, result.Day).Add(BaseTime);
 			}
 
 			//...........................
