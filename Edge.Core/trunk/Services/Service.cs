@@ -846,14 +846,14 @@ namespace Edge.Core.Services
 		/// <summary>
 		///
 		/// </summary>
-		void RequestChildService(int stepNumber, int attemptNumber)
+		protected virtual void RequestChildService(int stepNumber, int attemptNumber, SettingsCollection options = null)
 		{
 			List<IServiceSubscriber> subscribers;
 			if (!_subscribers.TryGetValue(ServiceEventType.ChildServiceRequested, out subscribers))
 				return;
 
 			foreach (IServiceSubscriber subscriber in subscribers)
-				subscriber.ChildServiceRequested(stepNumber, attemptNumber);
+				subscriber.ChildServiceRequested(stepNumber, attemptNumber, options);
 		}
 
 		/// <summary>
