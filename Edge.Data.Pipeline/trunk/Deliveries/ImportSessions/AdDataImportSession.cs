@@ -319,7 +319,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		public override void Begin(bool reset = true)
 		{
-			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery._guid.ToString("N").ToLower());
+			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
 			
 			// Connect to database
 			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
