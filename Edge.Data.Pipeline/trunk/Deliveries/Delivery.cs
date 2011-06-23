@@ -13,7 +13,8 @@ namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
-		public Guid _guid = Guid.Empty;
+		internal const string DeliveryIdOptionName = "DeliveryID";
+
 		DeliveryFileList _files;
 		DateTimeRange _targetPeriod;
 		DateTime _dateCreated = DateTime.Now;
@@ -25,12 +26,18 @@ namespace Edge.Data.Pipeline
 		/// Creates a new delivery and sets the specified instance ID as the creator.
 		/// </summary>
 		/// <param name="instanceID">ID of the service that is initializing the delivery. Equivalent to delivery.History.Add(DeliveryOperation.Created, serviceInstance.InstanceID)</param>
-		public Delivery(long instanceID)
+		public Delivery(long instanceID, Guid specifiedDeliveryID)
 		{
+			if (specifiedDeliveryID == Guid.Empty)
+				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. "+
+					"If in an initializer service, check that the workflow service is defined as Edge.Data.Pipeline.Services.PipelineWorkflowService.");
+
 			// fuck db4o
 			_files = new DeliveryFileList(this);
 			_history = new DeliveryHistory<DeliveryOperation>();
 			_parameters = new Dictionary<string, object>();
+			
+			this.DeliveryID = specifiedDeliveryID;
 
 			this.History.Add(DeliveryOperation.Created, instanceID);
 		}
@@ -40,7 +47,8 @@ namespace Edge.Data.Pipeline
 		/// </summary>
 		public Guid DeliveryID
 		{
-			get { return _guid; }
+			get;
+			private set;
 		}
 
 		public Account Account
@@ -134,7 +142,7 @@ namespace Edge.Data.Pipeline
 
 		public void Save()
 		{
-			_guid = DeliveryDB.Save(this);
+			this.DeliveryID = DeliveryDB.Save(this);
 			
 			if (Saved != null)
 				Saved(this);
