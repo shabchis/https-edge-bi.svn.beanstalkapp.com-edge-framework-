@@ -36,6 +36,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef Campaign_Name = new ColumnDef("Campaign_Name", size: 100, nullable: false);
 				public static ColumnDef Campaign_OriginalID = new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
 				public static ColumnDef Campaign_Status = new ColumnDef("Campaign_Status", type: SqlDbType.Int);
+				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 			}
 
 			public static class AdCreative
@@ -56,7 +57,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
+				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 			}
 
 			// TODO: flatten
@@ -391,7 +392,7 @@ namespace Edge.Data.Pipeline.Importing
 			string adUsid = GetAdIdentity(ad);
 
 			// Ad
-			_bulkAd.SubmitRow(new Dictionary<ColumnDef, object>()
+			var adRow = new Dictionary<ColumnDef, object>()
 			{
 				{Tables.Ad.AdUsid, adUsid},
 				{Tables.Ad.Name, ad.Name},
@@ -403,7 +404,11 @@ namespace Edge.Data.Pipeline.Importing
 				{Tables.Ad.Campaign_Name, ad.Campaign.Name},
 				{Tables.Ad.Campaign_OriginalID, ad.Campaign.OriginalID},
 				{Tables.Ad.Campaign_Status, ad.Campaign.Status},
-			});
+			};
+			foreach (KeyValuePair<ExtraField, object> extraField in ad.ExtraFields)
+				adRow[new ColumnDef(Tables.AdTarget.ExtraFieldX, extraField.Key.ColumnIndex)] = extraField.Value;
+
+			_bulkAd.SubmitRow(adRow);
 
 			// AdTarget
 			foreach (Target target in ad.Targets)
@@ -419,8 +424,8 @@ namespace Edge.Data.Pipeline.Importing
 				foreach (KeyValuePair<MappedFieldMetadata, object> fixedField in target.GetFieldValues())
 					row[new ColumnDef(Tables.AdTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
 
-				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
-					row[new ColumnDef(Tables.AdTarget.CustomFieldX, customField.Key.ColumnIndex)] = customField.Value;
+				foreach (KeyValuePair<ExtraField, object> extraField in target.ExtraFields)
+					row[new ColumnDef(Tables.AdTarget.ExtraFieldX, extraField.Key.ColumnIndex)] = extraField.Value;
 
 				_bulkAdTarget.SubmitRow(row);
 			}
@@ -497,7 +502,7 @@ namespace Edge.Data.Pipeline.Importing
 					row[new ColumnDef(Tables.AdTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
 
 				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
-					row[new ColumnDef(Tables.AdTarget.CustomFieldX, customField.Key.ColumnIndex)] = customField.Value;
+					row[new ColumnDef(Tables.AdTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
 
 				_bulkMetricsTargetMatch.SubmitRow(row);
 			}
