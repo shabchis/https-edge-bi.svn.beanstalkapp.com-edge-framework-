@@ -103,6 +103,11 @@ namespace Edge.Data.Pipeline.Configuration
 	{
 		public static string ExtensionName = "AutoSegments";
 
+		public static AutoSegmentDefinitionCollection()
+		{
+			EdgeServicesConfiguration.RegisterExtension<AutoSegmentDefinitionCollection>(ExtensionName);
+		}
+
 		public override ConfigurationElementCollectionType CollectionType
 		{
 			get { return ConfigurationElementCollectionType.BasicMap; }
