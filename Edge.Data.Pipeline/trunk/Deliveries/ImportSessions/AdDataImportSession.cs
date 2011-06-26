@@ -88,6 +88,10 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
+
+				// For Amit
+				public static ColumnDef KeywordGK = new ColumnDef("KeywordGK", type: SqlDbType.NChar, size: 50, nullable: true);
+				public static ColumnDef PpcKeywordGK = new ColumnDef("PpcKeywordGK", type: SqlDbType.NChar, size: 50, nullable: true);
 			}
 
 			static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type, ColumnDef[]>();
