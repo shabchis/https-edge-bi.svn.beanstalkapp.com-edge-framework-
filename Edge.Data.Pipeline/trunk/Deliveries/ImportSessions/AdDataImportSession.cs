@@ -82,6 +82,7 @@ namespace Edge.Data.Pipeline.Importing
 			public static class MetricsTargetMatch
 			{
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef MetricsUnitGuid = new ColumnDef("MetricsUnitGuid", size: 300, nullable: false);
 				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
 				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
@@ -492,6 +493,7 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				var row = new Dictionary<ColumnDef, object>()
 				{
+					{ Tables.MetricsTargetMatch.MetricsUnitGuid, metricsRow[Tables.Metrics.MetricsUnitGuid] },
 					{ Tables.MetricsTargetMatch.AdUsid, adUsid },
 					{ Tables.MetricsTargetMatch.OriginalID, target.OriginalID },
 					{ Tables.MetricsTargetMatch.DestinationUrl, target.DestinationUrl },
