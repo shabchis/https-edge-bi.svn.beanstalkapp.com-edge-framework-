@@ -9,8 +9,9 @@ namespace Edge.Data.Objects
 	{
 		public int ID { get; set; }
 		public string Name { get; set; }
-		
-		public static Segment AdGroupSegment = new Segment() { ID = -876 };
+
+		public static Segment AdGroupSegment = new Segment() { ID = -876, Name="AdGroup" };
+		public static Segment TrackerSegment = new Segment() { ID = -977, Name="Tracker" };
 	}
 
 	public class SegmentValue

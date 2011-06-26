@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline
 	public class AutoSegmentationUtility
 	{
 		public AutoSegmentDefinitionCollection Definitions { get; set; }
-		public Func<Segment, Dictionary<string,string>,SegmentValue> OnCreateSegmentValues { get; set; }
+		public Func<Segment, Dictionary<string,string>,SegmentValue> OnCreateValueFromFragments { get; set; }
 
 		JsonSerializer _serializer = new JsonSerializer();
 
@@ -31,15 +31,15 @@ namespace Edge.Data.Pipeline
 
 			AutoSegmentDefinition def = this.Definitions[segment.Name];
 			if (def == null)
-				throw new ArgumentException(String.Format("The segment '{0}' was not found in the AutoSegments configuration.", segment.Name), "segmentName");
+				throw new ArgumentException(String.Format("The segment '{0}' was not found in the {1} configuration.", segment.Name, AutoSegmentDefinitionCollection.ExtensionName), "segmentName");
 
-			var values = new Dictionary<string,string>();
+			var fragmentValues = new Dictionary<string,string>();
 
 			// Find a definition that works
 			for (int p = 0; p < def.Patterns.Count; p++)
 			{
 				// reset because previous iteration found nothing
-				values.Clear();
+				fragmentValues.Clear();
 
 				AutoSegmentPattern pattern = def.Patterns[p];
 
@@ -54,13 +54,13 @@ namespace Edge.Data.Pipeline
 						if (!group.Success)
 							continue;
 						else
-							values[pattern.Fragments[g]] = group.Value;
+							fragmentValues[pattern.Fragments[g]] = group.Value;
 					}
 				}
 
 				// found all the values, create a segment value
-				if (values.Count == pattern.Fragments.Length)
-					return CreateSegmentValue(segment, values);
+				if (fragmentValues.Count == pattern.Fragments.Length)
+					return CreateValueFromFragments(segment, fragmentValues);
 			}
 
 			// found nothing
@@ -69,25 +69,30 @@ namespace Edge.Data.Pipeline
 
 		public Dictionary<Segment, SegmentValue> ExtractSegmentValues(Segment[] segments, string source)
 		{
-			for (int r = 0; r < this.Definitions.Count; r++)
-			{
-			}
 			throw new NotImplementedException();
 		}
 
 
 		private StringBuilder _stringBuilder = new StringBuilder();
-		private SegmentValue CreateSegmentValue(Segment segment, Dictionary<string, string> values)
+		private SegmentValue CreateValueFromFragments(Segment segment, Dictionary<string, string> fragments)
 		{
-			// Custom segment generation
-			if (OnCreateSegmentValues != null)
-				return OnCreateSegmentValues(segment, values);
+			if (fragments == null || fragments.Count < 1)
+				return null;
 
+			// Custom segment generation
+			if (OnCreateValueFromFragments != null)
+				return OnCreateValueFromFragments(segment, fragments);
+			
+			// Serialize multiple values as json
+			string originalID;
 			using (var writer = new StringWriter(new StringBuilder()))
 			{
-				_serializer.Serialize(writer, values);
-				return new SegmentValue() { Value = writer.ToString() };
+				_serializer.Serialize(writer, fragments);
+				originalID = writer.ToString();
 			}
+
+			// For a single fragment, return only the value without
+			return new SegmentValue() { OriginalID = originalID, Value = fragments.Count > 1 ? originalID : fragments.First().Value };
 		}
 	}
 }
@@ -96,6 +101,8 @@ namespace Edge.Data.Pipeline.Configuration
 {
 	public class AutoSegmentDefinitionCollection : ConfigurationElementCollectionBase<AutoSegmentDefinition>
 	{
+		public static string ExtensionName = "AutoSegments";
+
 		public override ConfigurationElementCollectionType CollectionType
 		{
 			get { return ConfigurationElementCollectionType.BasicMap; }

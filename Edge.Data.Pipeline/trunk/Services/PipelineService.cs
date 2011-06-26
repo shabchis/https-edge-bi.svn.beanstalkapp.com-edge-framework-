@@ -7,21 +7,40 @@ using Edge.Data.Pipeline.Configuration;
 using Edge.Data.Pipeline;
 using System.Text.RegularExpressions;
 using System.Configuration;
+using Edge.Core.Configuration;
 
 namespace Edge.Data.Pipeline.Services
 {
 	public abstract class PipelineService: Service
 	{
+		//................................................
+		protected sealed override void OnInit()
+		{
+			// TODO: check for required configuration options
+		}
+
+		protected sealed override ServiceOutcome DoWork()
+		{
+			ServiceOutcome outcome = DoPipelineWork();
+			return outcome;
+		}
+
+		protected abstract ServiceOutcome DoPipelineWork();
+
+		protected override void OnEnded(ServiceOutcome outcome)
+		{
+			// TODO: update delivery history automatically?
+		}
+		//................................................
+
 		public static class ConfigurationOptionNames
 		{
 			public const string DeliveryID = "DeliveryID";
 			public const string TargetPeriod = "TargetPeriod";
 		}
 
-		DateTimeRange? _range = null;
-		Delivery _delivery = null;
-		Regex[] _trackerPatterns = null;
 
+		DateTimeRange? _range = null;
 		public DateTimeRange TargetPeriod
 		{
 			get
@@ -42,6 +61,7 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
+		Delivery _delivery = null;
 		public Delivery Delivery
 		{
 			get
@@ -107,22 +127,23 @@ namespace Edge.Data.Pipeline.Services
 			throw new NotImplementedException();
 		}
 
-		protected sealed override void OnInit()
+
+
+		AutoSegmentationUtility _autoSegments = null;
+		
+		public AutoSegmentationUtility AutoSegmets
 		{
-			// TODO: check for required configuration options
+			get
+			{
+				if (_autoSegments == null)
+				{
+					AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
+					_autoSegments = new AutoSegmentationUtility(account.Extensions[AutoSegmentDefinitionCollection.ExtensionName] as AutoSegmentDefinitionCollection);
+				}
+
+				return _autoSegments;
+			}
 		}
 
-		protected sealed override ServiceOutcome DoWork()
-		{
-			ServiceOutcome outcome = DoPipelineWork();
-			return outcome;
-		}
-
-		protected abstract ServiceOutcome DoPipelineWork();
-
-		protected override void OnEnded(ServiceOutcome outcome)
-		{
-			// TODO: update delivery history automatically?
-		}
 	}
 }

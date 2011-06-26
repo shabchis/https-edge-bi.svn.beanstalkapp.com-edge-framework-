@@ -46,8 +46,16 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef Name = new ColumnDef("Name", size: 100);
 				public static ColumnDef CreativeType = new ColumnDef("CreativeType", type: SqlDbType.Int);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
+
+				/// <summary>
+				/// Reserved for post-processing
+				/// </summary>
 				public static ColumnDef CreativeGK = new ColumnDef("CreativeGK", size: 50, nullable: true);
-				public static ColumnDef PPCCreativeGK = new ColumnDef("PPCCreativeGK", size: 50, nullable: true);
+
+				/// <summary>
+				/// Reserved for post-processing
+				/// </summary>
+				public static ColumnDef PpcCreativeGK = new ColumnDef("PpcCreativeGK", size: 50, nullable: true);
 			}
 
 			public static class AdTarget
@@ -89,8 +97,14 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 
-				// For Amit
+				/// <summary>
+				/// Reserved for post-processing
+				/// </summary>
 				public static ColumnDef KeywordGK = new ColumnDef("KeywordGK", type: SqlDbType.NChar, size: 50, nullable: true);
+				
+				/// <summary>
+				/// Reserved for post-processing
+				/// </summary>
 				public static ColumnDef PpcKeywordGK = new ColumnDef("PpcKeywordGK", type: SqlDbType.NChar, size: 50, nullable: true);
 			}
 
