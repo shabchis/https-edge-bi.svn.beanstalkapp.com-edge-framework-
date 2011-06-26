@@ -9,6 +9,7 @@ using Edge.Core.Configuration;
 using Edge.Core.Data;
 using Edge.Data.Objects;
 using Edge.Data.Objects.Reflection;
+using Edge.Core.Utilities;
 
 
 namespace Edge.Data.Pipeline.Importing
@@ -25,69 +26,69 @@ namespace Edge.Data.Pipeline.Importing
 		{
 			public static class Ad
 			{
-				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef Name						= new ColumnDef("Name", size: 100);
-				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4000);
-				public static ColumnDef Campaign_Account_ID			= new ColumnDef("Campaign_Account_ID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Account_OriginalID	= new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar,size:100, nullable: false);
-				public static ColumnDef Campaign_Channel			= new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Campaign_Name				= new ColumnDef("Campaign_Name", size: 100, nullable: false);
-				public static ColumnDef Campaign_OriginalID			= new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
-				public static ColumnDef Campaign_Status				= new ColumnDef("Campaign_Status", type: SqlDbType.Int);
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef Name = new ColumnDef("Name", size: 100);
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
+				public static ColumnDef Campaign_Account_ID = new ColumnDef("Campaign_Account_ID", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef Campaign_Account_OriginalID = new ColumnDef("Campaign_Account_OriginalID", type: SqlDbType.NVarChar, size: 100, nullable: false);
+				public static ColumnDef Campaign_Channel = new ColumnDef("Campaign_Channel", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef Campaign_Name = new ColumnDef("Campaign_Name", size: 100, nullable: false);
+				public static ColumnDef Campaign_OriginalID = new ColumnDef("Campaign_OriginalID", size: 100, nullable: false);
+				public static ColumnDef Campaign_Status = new ColumnDef("Campaign_Status", type: SqlDbType.Int);
 			}
 
 			public static class AdCreative
 			{
-				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef Name						= new ColumnDef("Name", size: 100);
-				public static ColumnDef CreativeType				= new ColumnDef("CreativeType", type: SqlDbType.Int);
-				public static ColumnDef FieldX						= new ColumnDef("Field{0}",type:SqlDbType.NVarChar,size:4000,copies:4);
-				public static ColumnDef CreativeGK					= new ColumnDef("CreativeGK", size: 50, nullable:true);
-				public static ColumnDef PPCCreativeGK				= new ColumnDef("PPCCreativeGK", size: 50, nullable: true);
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef Name = new ColumnDef("Name", size: 100);
+				public static ColumnDef CreativeType = new ColumnDef("CreativeType", type: SqlDbType.Int);
+				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
+				public static ColumnDef CreativeGK = new ColumnDef("CreativeGK", size: 50, nullable: true);
+				public static ColumnDef PPCCreativeGK = new ColumnDef("PPCCreativeGK", size: 50, nullable: true);
 			}
 
 			public static class AdTarget
 			{
-				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef TargetType					= new ColumnDef("TargetType", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl",size:4000);
-				public static ColumnDef FieldX						= new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef CustomFieldX				= new ColumnDef("CustomField{0}",type:SqlDbType.NVarChar,copies:6,size:4000);
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
+				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
+				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
+				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 			}
 
 			// TODO: flatten
 			public static class AdSegment
 			{
-				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef SegmentID					= new ColumnDef("SegmentID",type:SqlDbType.Int,nullable:false);
-				public static ColumnDef ValueOriginalID				= new ColumnDef("ValueOriginalID",size:4000);
-				public static ColumnDef Value						= new ColumnDef("Value",size:4000);
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef SegmentID = new ColumnDef("SegmentID", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef ValueOriginalID = new ColumnDef("ValueOriginalID", size: 4000);
+				public static ColumnDef Value = new ColumnDef("Value", size: 4000);
 			}
 
 			public static class Metrics
 			{
-				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef MetricsUnitGuid				= new ColumnDef("MetricsUnitGuid",size:300,nullable:false);
-				public static ColumnDef DownloadedDate			    = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
-				public static ColumnDef TargetPeriodStart			= new ColumnDef("TargetPeriodStart",type:SqlDbType.DateTime,nullable:false);
-				public static ColumnDef TargetPeriodEnd				= new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
-				public static ColumnDef Currency					= new ColumnDef("Currency",size:10);
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef MetricsUnitGuid = new ColumnDef("MetricsUnitGuid", size: 300, nullable: false);
+				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
+				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
+				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
+				public static ColumnDef Currency = new ColumnDef("Currency", size: 10);
 			}
 
 			public static class MetricsTargetMatch
 			{
-				public static ColumnDef AdUsid						= new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef OriginalID					= new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef TargetType					= new ColumnDef("TargetType", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl				= new ColumnDef("DestinationUrl", size: 4000);
-				public static ColumnDef FieldX						= new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef CustomFieldX				= new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
+				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
+				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
+				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 			}
 
-			static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type,ColumnDef[]>();
+			static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type, ColumnDef[]>();
 			public static ColumnDef[] GetColumns<T>(bool expandCopies = true)
 			{
 				return GetColumns(typeof(T), expandCopies);
@@ -105,7 +106,7 @@ namespace Edge.Data.Pipeline.Importing
 					columns = new ColumnDef[fields.Length];
 					for (int i = 0; i < fields.Length; i++)
 					{
-						columns[i] = (ColumnDef) fields[i].GetValue(null);
+						columns[i] = (ColumnDef)fields[i].GetValue(null);
 					}
 					_columns.Add(type, columns);
 				}
@@ -113,7 +114,7 @@ namespace Edge.Data.Pipeline.Importing
 				if (expandCopies)
 				{
 					var expanded = new List<ColumnDef>(columns.Length);
-					foreach(ColumnDef col in columns)
+					foreach (ColumnDef col in columns)
 					{
 						if (col.Copies <= 1)
 						{
@@ -149,7 +150,7 @@ namespace Edge.Data.Pipeline.Importing
 			public string DefaultValue;
 
 
-			public ColumnDef(string name, int size = 0, SqlDbType type = SqlDbType.NVarChar, bool nullable = true, int copies = 1,string defaultValue="")
+			public ColumnDef(string name, int size = 0, SqlDbType type = SqlDbType.NVarChar, bool nullable = true, int copies = 1, string defaultValue = "")
 			{
 				this.Name = name;
 				this.Type = type;
@@ -164,19 +165,20 @@ namespace Edge.Data.Pipeline.Importing
 					throw new ArgumentException("If copies is bigger than 1, name must include a formattable placholder.", "name");
 			}
 
-			public ColumnDef(ColumnDef copySource, int index):this (
-				name:		String.Format(copySource.Name, index),
-				size:		copySource.Size,
-				type:		copySource.Type,
-				nullable:	copySource.Nullable,
-				copies:		1
-				)
+			public ColumnDef(ColumnDef copySource, int index)
+				: this(
+					name: String.Format(copySource.Name, index),
+					size: copySource.Size,
+					type: copySource.Type,
+					nullable: copySource.Nullable,
+					copies: 1
+					)
 			{
 			}
 		}
 
 
-		class BulkObjects: IDisposable
+		class BulkObjects : IDisposable
 		{
 			public readonly static int BufferSize = int.Parse(AppSettings.Get(typeof(AdDataImportSession), "BufferSize"));
 
@@ -197,7 +199,7 @@ namespace Edge.Data.Pipeline.Importing
 					var tableCol = new DataColumn(col.Name);
 					tableCol.AllowDBNull = col.Nullable;
 					if (col.Size != 0)
-						tableCol.MaxLength = col.Size;								
+						tableCol.MaxLength = col.Size;
 					this.Table.Columns.Add(tableCol);
 				}
 
@@ -227,7 +229,7 @@ namespace Edge.Data.Pipeline.Importing
 				}
 
 				this.Table.Rows.Add(row);
-				
+
 				// Auto flush
 				if (this.Table.Rows.Count >= BufferSize)
 					this.Flush();
@@ -245,10 +247,10 @@ namespace Edge.Data.Pipeline.Importing
 						col.Type,
 						col.Size != 0 ? string.Format("({0})", col.Size) : null,
 						col.Nullable ? "null" : "not null",
-						col.DefaultValue !=string.Empty ? string.Format("Default {0}",col.DefaultValue) : string.Empty
+						col.DefaultValue != string.Empty ? string.Format("Default {0}", col.DefaultValue) : string.Empty
 					);
 				}
-				builder.Remove(builder.Length-1, 1);
+				builder.Remove(builder.Length - 1, 1);
 				builder.Append(");");
 
 				string cmdText = builder.ToString();
@@ -299,7 +301,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		/*=========================*/
 		#endregion
-	
+
 		private BulkObjects _bulkAd;
 		private BulkObjects _bulkAdSegment;
 		private BulkObjects _bulkAdTarget;
@@ -308,40 +310,61 @@ namespace Edge.Data.Pipeline.Importing
 		private BulkObjects _bulkMetricsTargetMatch;
 
 		private SqlConnection _sqlConnection;
-		
+
 		public Func<Ad, long> OnAdIdentityRequired = null;
 		public string TablePrefix { get; private set; }
 		public Dictionary<string, Measure> Measures { get; private set; }
 
-		public AdDataImportSession(Delivery delivery) : base(delivery)
+		public AdDataImportSession(Delivery delivery)
+			: base(delivery)
 		{
 		}
 
 		public override void Begin(bool reset = true)
 		{
-			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
-			
-			// Connect to database
-			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
-			_sqlConnection.Open();
 
-			_bulkAd						= new BulkObjects(this.TablePrefix, typeof(Tables.Ad), _sqlConnection);
-			_bulkAdSegment				= new BulkObjects(this.TablePrefix, typeof(Tables.AdSegment), _sqlConnection);
-			_bulkAdTarget				= new BulkObjects(this.TablePrefix, typeof(Tables.AdTarget), _sqlConnection);
-			_bulkAdCreative				= new BulkObjects(this.TablePrefix, typeof(Tables.AdCreative), _sqlConnection);
-			_bulkMetrics				= new BulkObjects(this.TablePrefix, typeof(Tables.Metrics), _sqlConnection);
-			_bulkMetricsTargetMatch		= new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
+			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
+
+			// Connect to database
+			try
+			{
+				_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
+				_sqlConnection.Open();
+			}
+			catch (Exception ex)
+			{
+
+				Log.Write(string.Format("DeliverisDb: {0} ",ex.Message), ex, LogMessageType.Error);
+
+			}
+
+			_bulkAd = new BulkObjects(this.TablePrefix, typeof(Tables.Ad), _sqlConnection);
+			_bulkAdSegment = new BulkObjects(this.TablePrefix, typeof(Tables.AdSegment), _sqlConnection);
+			_bulkAdTarget = new BulkObjects(this.TablePrefix, typeof(Tables.AdTarget), _sqlConnection);
+			_bulkAdCreative = new BulkObjects(this.TablePrefix, typeof(Tables.AdCreative), _sqlConnection);
+			_bulkMetrics = new BulkObjects(this.TablePrefix, typeof(Tables.Metrics), _sqlConnection);
+			_bulkMetricsTargetMatch = new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
 
 			// Get measures
-			using (SqlConnection oltpConnection = new SqlConnection(AppSettings.GetConnectionString(this, "Oltp")))
-			{
-				oltpConnection.Open();
 
-				this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, MeasureType.All ^ MeasureType.Target ^ MeasureType.Calculated, oltpConnection);
+			try
+			{
+				using (SqlConnection oltpConnection = new SqlConnection(AppSettings.GetConnectionString(this, "Oltp")))
+				{
+					oltpConnection.Open();
+
+					this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, MeasureType.All ^ MeasureType.Target ^ MeasureType.Calculated, oltpConnection);
+				}
+			}
+			catch (Exception ex)
+			{
+
+				Log.Write(string.Format("Oltp: {0} ", ex.Message), ex, LogMessageType.Error);
+
 			}
 
 			// Add measure columns to metrics
-			foreach(Measure measure in this.Measures.Values)
+			foreach (Measure measure in this.Measures.Values)
 			{
 				_bulkMetrics.AddColumn(new ColumnDef(
 					name: measure.Name,
@@ -360,6 +383,7 @@ namespace Edge.Data.Pipeline.Importing
 			createTableCmdText.Append(_bulkMetricsTargetMatch.GetCreateTableSql());
 			SqlCommand cmd = new SqlCommand(createTableCmdText.ToString(), _sqlConnection);
 			cmd.ExecuteNonQuery();
+
 		}
 
 		public void ImportAd(Ad ad)
@@ -481,7 +505,7 @@ namespace Edge.Data.Pipeline.Importing
 		}
 
 
-		
+
 		private string GetAdIdentity(Ad ad)
 		{
 			string val;

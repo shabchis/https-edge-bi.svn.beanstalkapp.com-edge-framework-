@@ -30,6 +30,7 @@ namespace Edge.Data.Pipeline
 				client = DeliveryDBClient.Connect();
 
 			previousActivationDepth = client.Ext().Configure().ActivationDepth();
+			int resultCount = -1;
 
 			try
 			{
@@ -38,7 +39,8 @@ namespace Edge.Data.Pipeline
 					client.Ext().Configure().ActivationDepth(0);
 
 				var results = (from Delivery d in client where d.DeliveryID == deliveryID select d);
-				delivery = results.Count() > 0 ? results.First() : null;
+				resultCount = results.Count();
+				delivery = resultCount > 0 ? results.First() : null;
 			}
 			finally
 			{
@@ -53,12 +55,16 @@ namespace Edge.Data.Pipeline
 				}
 			}
 
+#if DEBUG
+			Log.Write(String.Format("Delivery - {3}found: {0} (activate: {2}, {1} results)\n", deliveryID, resultCount, activate, delivery == null ? "not " : "" ), LogMessageType.Information);
 
+#endif			
 			return delivery;
 		}
 
 		internal static Guid Save(Delivery delivery)
 		{
+			Log.Write(String.Format("Delivery - saving: {0}\n", delivery.DeliveryID), LogMessageType.Information);
 			using (var client = DeliveryDBClient.Connect())
 			{
 				Guid guid = delivery.DeliveryID;
@@ -72,11 +78,13 @@ namespace Edge.Data.Pipeline
 						// http://stackoverflow.com/questions/5848990/retrieve-an-object-in-one-db4o-session-store-in-another-disconnected-scenario
 						long tempDb4oID = client.Ext().GetID(inactiveReference);
 						client.Ext().Bind(delivery, tempDb4oID);
+						Log.Write(String.Format("Delivery - overwrite (db4o id {0})", tempDb4oID), LogMessageType.Information);
 					}
 				}
 				else
 				{
 					guid = Guid.NewGuid();
+					throw new NotSupportedException("In Pipeline 2.9, you cannot save a Delivery without first giving it a GUID.");
 				}
 
 				// Give GUIDs to delivery files
