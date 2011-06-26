@@ -49,7 +49,7 @@ namespace Edge.Data.Pipeline.Services
 				if (_delivery != null)
 					return _delivery;
 
-				Guid deliveryID = this.TargetDeliveryID;
+				Guid deliveryID = this.DeliveryID;
 				if (deliveryID != Guid.Empty)
 					_delivery = DeliveryDB.Get(deliveryID);
 
@@ -62,7 +62,7 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
-		public Guid TargetDeliveryID
+		public Guid DeliveryID
 		{
 			get
 			{
@@ -77,29 +77,34 @@ namespace Edge.Data.Pipeline.Services
 				return deliveryID;
 			}
 		}
-		
-		public Regex[] TrackerPatterns
-		{
-			get
-			{
-				if (_trackerPatterns == null)
-				{
-					ConfigurationElement extension;
-					if (!this.Instance.Configuration.ExtendedElements.TryGetValue("Patterns", out extension))
-					{
-						_trackerPatterns = new Regex[0];
-					}
-					else
-					{
-						var regexCollection = (RegexElementCollection)extension;
-						_trackerPatterns = new Regex[regexCollection.Count];
-						for (int i = 0; i < regexCollection.Count; i++)
-							_trackerPatterns[i] = new Regex(regexCollection[i].Pattern, RegexOptions.ExplicitCapture);
-					}
-				}
 
-				return _trackerPatterns;
+		protected void HandleConflictingDeliveries()
+		{
+			throw new NotImplementedException();
+			/*
+			Delivery[] conflicting = this.NewDeliveryWithMinimalValues().GetConflicting();
+			if (conflicting.Length > 0)
+			{
+				if (Instance.Configuration.Options["Lidros"])
+				{
+					foreach (Delivery delivery in conflicting)
+						delivery.Rollback(guid);
+				}
+				else
+					throw new Exception("Data already exists");
 			}
+			*/
+		}
+
+		/// <summary>
+		/// This method must be implemented in order to use HandleConflictingDeliveries.
+		/// It must return a new Delivery object with settings/parameters that should be considered
+		/// unique, i.e. if another delivery exists with the same settings/parameters, its data will be rolled back.
+		/// </summary>
+		/// <returns></returns>
+		protected virtual Delivery NewDeliveryWithMinimalValues()
+		{
+			throw new NotImplementedException();
 		}
 
 		protected sealed override void OnInit()

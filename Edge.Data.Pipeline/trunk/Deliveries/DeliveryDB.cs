@@ -188,4 +188,9 @@ namespace Edge.Data.Pipeline
 		#endregion
 	}
 
+
+	public class DeliveryStore
+	{
+		internal IObjectContainer Connection;
+	}
 }

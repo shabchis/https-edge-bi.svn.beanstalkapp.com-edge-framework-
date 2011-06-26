@@ -105,7 +105,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\RegexElementCollection.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
@@ -120,13 +119,13 @@
     <Compile Include="Objects\Channel.cs" />
     <Compile Include="Objects\Currency.cs" />
     <Compile Include="Objects\Measure.cs" />
+    <Compile Include="Objects\Reflection\ExtraField.cs" />
     <Compile Include="Objects\Reflection\MappedType.cs" />
-    <Compile Include="Objects\TargetCustomField.cs" />
     <Compile Include="Objects\Targets.cs" />
     <Compile Include="Objects\Campaign.cs" />
     <Compile Include="Objects\Creative.cs" />
     <Compile Include="Objects\Segment.cs" />
-    <Compile Include="AutoSegmentation.cs" />
+    <Compile Include="Utilities\AutoSegments.cs" />
     <Compile Include="Readers\Base\DynamicDictionaryObject.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
@@ -167,6 +166,9 @@
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
       <Name>Edge.Core %28v2\Edge.Core%29</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Configuration\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

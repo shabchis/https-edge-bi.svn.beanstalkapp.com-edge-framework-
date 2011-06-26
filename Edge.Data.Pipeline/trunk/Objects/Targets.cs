@@ -7,21 +7,27 @@ using Edge.Data.Objects.Reflection;
 
 namespace Edge.Data.Objects
 {
+	//==================================================================================
+	// BASE CLASSES
+
 	public abstract class Target : MappedType
 	{
 		public string OriginalID;
 		public string DestinationUrl;
 
-		// This is for use by channels which have extra data per target
-		public Dictionary<TargetCustomField, object> CustomFields=new Dictionary<TargetCustomField,object>();
+		/// <summary>
+		/// Extra fields for use by channels which have extra metadata per target.
+		/// </summary>
+		public Dictionary<ExtraField, object> ExtraFields=new Dictionary<ExtraField,object>();
 
 		/// <summary>
 		/// Segments per target, e.g. tracker on a keyword.
 		/// </summary>
-		public Dictionary<Segment, SegmentValue> SegmentValues;
+		public Dictionary<Segment, SegmentValue> Segments;
 	}
 
-
+	//==================================================================================
+	// TARGET TYPES
 
 	[TypeID(2)]
 	public class KeywordTarget : Target
