@@ -126,12 +126,13 @@
     <Compile Include="Objects\Campaign.cs" />
     <Compile Include="Objects\Creative.cs" />
     <Compile Include="Objects\Segment.cs" />
-    <Compile Include="Objects\Tracker.cs" />
+    <Compile Include="AutoSegmentation.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
     <Compile Include="Readers\XmlDynamicReader.cs" />
     <Compile Include="Services\PipelineWorkflowService.cs" />
     <Compile Include="Services\ReRunService.cs" />
+    <Compile Include="Services\RollbackService.cs" />
     <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\PipelineService.cs" />
     <Compile Include="DateTimeRange.cs" />

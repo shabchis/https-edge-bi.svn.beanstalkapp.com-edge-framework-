@@ -8,7 +8,7 @@ using Edge.Data.Objects;
 namespace Edge.Data.Pipeline
 {
 
-	public class AutoSegmentationEngine
+	public class AutoSegmentationUtility
 	{
 		public Regex[] Patterns {get; set;}
 		public AutoSegmentationDefinition[] Definitions {get; set;}
