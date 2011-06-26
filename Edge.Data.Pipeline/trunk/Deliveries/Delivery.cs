@@ -142,7 +142,7 @@ namespace Edge.Data.Pipeline
 
 		public void Save()
 		{
-			this.
+			
 			this.DeliveryID = DeliveryDB.Save(this);
 			
 			if (Saved != null)
