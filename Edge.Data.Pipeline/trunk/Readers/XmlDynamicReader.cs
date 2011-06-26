@@ -62,7 +62,7 @@ namespace Edge.Data.Pipeline
 
 			// Decide what to return
 			object returnObj;
-			if (xmlObject.Children == null && xmlObject.Attributes == null)
+			if (xmlObject.Values == null && xmlObject.Attributes == null)
 			{
 				// If nothing is defined inside this node, return null; if only the inner text, return a string
 				if (xmlObject.InnerText == null)
@@ -85,47 +85,22 @@ namespace Edge.Data.Pipeline
 		}
 	}
 
-	public class XmlDynamicObject:DynamicObject
+	public class XmlDynamicObject:DynamicDictionaryObject
 	{
 		public dynamic Attributes { get; internal set; }
 		public string InnerText { get; set; }
 		public bool ArrayAddingMode = false;
-		public bool CaseSensitive = true;
-		internal Dictionary<string, object> Children = null;
 
 		public XmlDynamicObject()
 		{
 			this.Attributes = null;
 			this.InnerText = null;
 		}
-		public override IEnumerable<string> GetDynamicMemberNames()
+
+		protected override bool SetMemberInternal(string name, object value)
 		{
-			return base.GetDynamicMemberNames();
-		}
-
-		public override bool TryGetMember(GetMemberBinder binder, out object result)
-		{
-			string name = CaseSensitive ? binder.Name : binder.Name.ToLower();
-			Children.TryGetValue(name, out result);
-			return true; // always return true to avoid 'undefined member' exception
-		}
-
-		public override bool TrySetMember(SetMemberBinder binder, object value)
-		{
-			SetMember(binder.Name, value);
-			return true;
-		}
-
-		private void SetMember(string name, object value)
-		{
-			if (Children == null)
-				Children = new Dictionary<string, object>();
-
-			if (CaseSensitive)
-				name = name.ToLower();
-
 			object current;
-			if (ArrayAddingMode && Children.TryGetValue(name, out current))
+			if (this.ArrayAddingMode && this.Values.TryGetValue(name, out current))
 			{
 				// In array adding mode, either expand an existing list or convert a value to a list
 				if (current is IList)
@@ -138,39 +113,17 @@ namespace Edge.Data.Pipeline
 					List<object> list = new List<object>();
 					list.Add(current);
 					list.Add(value);
-					Children[name] = list;
+					this.Values[name] = list;
 				}
+
+				// Custom handling
+				return true;
 			}
 			else
 			{
-				Children[name] = value;
-			}
-		}
-
-		public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
-		{
-			if (Children == null || indexes.Length != 1 || !(indexes[0] is string))
-			{
-				result = null;
+				// Default handling
 				return false;
 			}
-
-			string name = indexes[0] as string;
-			if (CaseSensitive)
-				name = name.ToLower();
-
-			return Children.TryGetValue(name, out result);
-		}
-
-		public override bool TrySetIndex(SetIndexBinder binder, object[] indexes, object value)
-		{
-			if (indexes.Length != 1 || !(indexes[0] is string))
-			{
-				return false;
-			}
-
-			SetMember(indexes[0] as string, value);
-			return true;
 		}
 
 		/// <summary>
@@ -186,7 +139,7 @@ namespace Edge.Data.Pipeline
 			object child;
 			object[] returnArray;
 
-			if (!Children.TryGetValue(childName, out child))
+			if (!this.Values.TryGetValue(childName, out child))
 			{
 				returnArray = new object[0];
 			}

@@ -26,10 +26,11 @@ namespace Edge.Data.Pipeline
 		dynamic ReadRow(object reader, string[] headers, string[] values)
 		{
 			
-			dynamic obj = new ExpandoObject();
+			var obj = new DynamicDictionaryObject();
 
 			if (headers.Length==0)
 				throw new Exception("No Headers"); //TODO: TALK WITH DORON
+
 			for (int i = 0; i < headers.Length; i++)
 			{			 
 			
@@ -39,7 +40,7 @@ namespace Edge.Data.Pipeline
 				else
 					name = headers[i];
 
-				((IDictionary<string, object>)obj).Add(name, values.Length <= i ? string.Empty : values[i]);				
+				obj.Values.Add(name, values.Length <= i ? string.Empty : values[i]);				
 				
 			}
 			return obj;
