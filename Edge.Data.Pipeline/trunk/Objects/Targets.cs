@@ -44,10 +44,17 @@ namespace Edge.Data.Objects
 		Unidentified = 0,
 		Broad = 1,
 		Phrase = 2,
-		Exact = 3,
-		Content = 4,
-		WebSite = 5
+		Exact = 3
 	};
+
+
+	[TypeID(5)]
+	public class PlacementTarget : Target
+	{
+		[FieldIndex(1)]
+		public string Url;
+	}
+
 
 	[TypeID(3)]
 	public class GenderTarget : Target
@@ -58,9 +65,9 @@ namespace Edge.Data.Objects
 
 	public enum Gender
 	{
+		Unspecified=0,
 		Male = 1,
-		Female = 2,
-		UnSpecified=3
+		Female = 2
 	}
 
 	[TypeID(4)]
