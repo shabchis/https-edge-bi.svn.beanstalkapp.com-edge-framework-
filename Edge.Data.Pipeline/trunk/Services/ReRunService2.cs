@@ -12,25 +12,20 @@ using Newtonsoft.Json.Converters;
 
 namespace Edge.Data.Pipeline.Services
 {
-	class ReRunService : PipelineService	
+	class RerunService : PipelineService	
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
 
 			using (ServiceClient<IScheduleManager> scheduleManager = new ServiceClient<IScheduleManager>())
 			{
-
-
-
-			
-
 				DateTime fromDate = this.TargetPeriod.Start.ToDateTime();
 				DateTime toDate = this.TargetPeriod.End.ToDateTime();
 				string serviceName=Instance.Configuration.Options["ServiceToRun"];
 				
 				while (fromDate<=toDate)
 				{
-					// {start: {exact : '2009-01-01', h:0}, end: {'2009-01-01', h:'*'}}
+					// {start: {base : '2009-01-01', h:0}, end: {base: '2009-01-01', h:'*'}}
 					var subRange = new DateTimeRange()
 					{
 						Start = new DateTimeSpecification()
@@ -55,7 +50,7 @@ namespace Edge.Data.Pipeline.Services
 					};
 
 					SettingsCollection options = new SettingsCollection();
-					options.Add("TargetPeriod", finalRange.ToString());
+					options.Add(PipelineService.ConfigurationOptionNames.TargetPeriod, finalRange.ToString());
 
 					//run the service
 					scheduleManager.Service.AddToSchedule(serviceName,this.Instance.AccountID,DateTime.Now, options);
