@@ -114,6 +114,7 @@ namespace Edge.Core.Configuration
 		private ConfigurationProperty s_isEnabled;
 		//private ConfigurationProperty s_options;
 		protected SettingsCollection _options = new SettingsCollection();
+		private Dictionary<string, ConfigurationElement> _extendedElements = new Dictionary<string, ConfigurationElement>();
 
 		#endregion
 
@@ -162,9 +163,16 @@ namespace Edge.Core.Configuration
 			}
 		}
 
+		public Dictionary<string, ConfigurationElement> Extensions
+		{
+			get { return _extendedElements; }
+			internal set { _extendedElements = value; }
+		}
+
 		#endregion
 
 		#region Methods
+
 		protected override bool OnDeserializeUnrecognizedAttribute(string name, string value)
 		{
 			if (Options.ContainsKey(name))
@@ -175,19 +183,69 @@ namespace Edge.Core.Configuration
 			return true;
 		}
 
+		protected override bool OnDeserializeUnrecognizedElement(string elementName, XmlReader reader)
+		{
+			// Try to retrieve the extension type data
+			ExtensionElement extension = EdgeServicesConfiguration.Current.Extensions[elementName];
+			if (extension == null)
+				return false;
+
+			if (this.Properties.Contains(elementName))
+				throw new ConfigurationErrorsException(String.Format("The extension element '{0}' is defined more than once in this service.", elementName));
+
+			// Check the type
+			Type t = Type.GetType(extension.Type, false, false);
+			if (t == null)
+				throw new ConfigurationErrorsException("The specified extension type could not be found.");
+			if (t.GetInterface(typeof(ISerializableConfigurationElement).FullName) == null || !t.IsSubclassOf(typeof(ConfigurationElement)))
+				throw new ConfigurationErrorsException("The specified extension type must inherit from ConfigurationElement and implement IDeserializableConfigurationElement.");
+
+			// Check the constructor
+			ConstructorInfo ctor = t.GetConstructor(Type.EmptyTypes);
+			if (ctor == null)
+				throw new ConfigurationErrorsException("The extension type must include a default parameterless constructor.");
+
+			// Create the element
+			ISerializableConfigurationElement elem = (ISerializableConfigurationElement)ctor.Invoke(new object[] { });
+			elem.Deserialize(reader);
+
+			// Register a new property for this element - for serialization
+			ConfigurationProperty newProperty = new ConfigurationProperty(
+				elementName,
+				elem.GetType()
+			);
+			InnerProperties.Add(newProperty);
+
+			// Add the element to the recognized elements
+			_extendedElements.Add(elementName, (ConfigurationElement)elem);
+			return true;
+		}
+
+		// Serialize extended elements - in theory should have happened automatically
+		// because of the newProperty added to InnerProperties via OnDeserializeUnrecognizedElement,
+		// but this is not the case
 		protected override bool SerializeElement(XmlWriter writer, bool serializeCollectionKey)
 		{
-			// Write is null before the start tag is written, and is a valid object
-			//	when we can write attributes
+			bool wasSerialized = base.SerializeElement(writer, serializeCollectionKey);
+
+			// Writer is null before the start tag is written, and is a valid object
+			//	once it is time to write content
 			if (writer != null)
 			{
 				foreach (KeyValuePair<string, string> pair in Options)
 					writer.WriteAttributeString(pair.Key, pair.Value);
+
+				foreach (KeyValuePair<string, ConfigurationElement> pair in _extendedElements)
+				{
+					// Serialize with the element name
+					ConfigurationElement elem = pair.Value;
+					((ISerializableConfigurationElement)elem).Serialize(writer, pair.Key);
+				}
 			}
-			
-			// Output the rest
-			return base.SerializeElement(writer, serializeCollectionKey);
+
+			return wasSerialized;
 		}
+
 		#endregion
 	}
 
@@ -261,7 +319,6 @@ namespace Edge.Core.Configuration
         private ConfigurationProperty s_executionFlow;
         private ConfigurationProperty s_schedulingRules;
 		private ConfigurationProperty s_debugDelay;
-		private Dictionary<string, ConfigurationElement> _extendedElements = new Dictionary<string,ConfigurationElement>();
 		
 		#endregion
 
@@ -413,12 +470,6 @@ namespace Edge.Core.Configuration
 			set { base[s_debugDelay] = value; }
 		}
 
-		public Dictionary<string, ConfigurationElement> ExtendedElements
-		{
-			get { return _extendedElements; }
-			internal set { _extendedElements = value; }
-		}
-
 
 		#endregion
 
@@ -430,72 +481,14 @@ namespace Edge.Core.Configuration
 			foreach(WorkflowStepElement step in this.Workflow)
 				step.ResolveReferences(services, this);
 
-			foreach (ConfigurationElement element in this.ExtendedElements.Values)
+			foreach (ConfigurationElement element in this.Extensions.Values)
 			{
 				if (element is ISerializableConfigurationElement)
 					(element as ISerializableConfigurationElement).ResolveReferences(services, this);
 			}
 		}
 
-		protected override bool OnDeserializeUnrecognizedElement(string elementName, XmlReader reader)
-		{
-			// Try to retrieve the extension type data
-			ExtensionElement extension = EdgeServicesConfiguration.Current.Extensions[elementName];
-			if (extension == null)
-				return false;
 
-			if (this.Properties.Contains(elementName))
-				throw new ConfigurationErrorsException(String.Format("The extension element '{0}' is defined more than once in this service.", elementName));
-
-			// Check the type
-			Type t = Type.GetType(extension.Type, false, false);
-			if (t == null)
-				throw new ConfigurationErrorsException("The specified extension type could not be found.");
-			if (t.GetInterface(typeof(ISerializableConfigurationElement).FullName) == null || !t.IsSubclassOf(typeof(ConfigurationElement)))
-				throw new ConfigurationErrorsException("The specified extension type must inherit from ConfigurationElement and implement IDeserializableConfigurationElement.");
-			
-			// Check the constructor
-			ConstructorInfo ctor = t.GetConstructor(Type.EmptyTypes);
-			if (ctor == null)
-				throw new ConfigurationErrorsException("The extension type must include a default parameterless constructor.");
-			
-			// Create the element
-			ISerializableConfigurationElement elem = (ISerializableConfigurationElement) ctor.Invoke(new object[]{});
-			elem.Deserialize(reader);
-
-			// Register a new property for this element - for serialization
-			ConfigurationProperty newProperty = new ConfigurationProperty(
-				elementName,
-				elem.GetType()
-			);
-			InnerProperties.Add(newProperty);
-
-			// Add the element to the recognized elements
-			_extendedElements.Add(elementName, (ConfigurationElement) elem);
-			return true;
-		}
-
-		// Serialize extended elements - in theory should have happened automatically
-		// because of the newProperty added to InnerProperties via OnDeserializeUnrecognizedElement,
-		// but this is not the case
-		protected override bool SerializeElement(XmlWriter writer, bool serializeCollectionKey)
-		{
-			bool wasSerialized = base.SerializeElement(writer, serializeCollectionKey);
-
-			// Writer is null before the start tag is written, and is a valid object
-			//	once it is time to write content
-			if (writer != null)
-			{
-				foreach (KeyValuePair<string, ConfigurationElement> pair in _extendedElements)
-				{
-					// Serialize with the element name
-					ConfigurationElement elem = pair.Value;
-					((ISerializableConfigurationElement) elem).Serialize(writer, pair.Key);
-				}
-			}
-
-			return wasSerialized;
-		}
 
 		#endregion
 	}
@@ -1026,12 +1019,11 @@ namespace Edge.Core.Configuration
     /// <summary>
     /// Represents a single account element.
     /// </summary>
-	public class AccountElement: ReferencingConfigurationElement
+	public class AccountElement: EnabledConfigurationElement
     {
         #region Members
         private ConfigurationProperty s_id;
         private ConfigurationProperty s_name;
-        private ConfigurationProperty s_isEnabled;
         private ConfigurationProperty s_services;
         #endregion
 
@@ -1050,11 +1042,6 @@ namespace Edge.Core.Configuration
                 null,
                 ConfigurationPropertyOptions.IsRequired);
 
-            s_isEnabled = new ConfigurationProperty(
-                "IsEnabled",
-                typeof(bool),
-                true);
-
             s_services = new ConfigurationProperty(
                 "Services",
 				typeof(AccountServiceElementCollection),
@@ -1063,7 +1050,6 @@ namespace Edge.Core.Configuration
 
             InnerProperties.Add(s_id);
             InnerProperties.Add(s_name);
-			InnerProperties.Add(s_isEnabled);
 			InnerProperties.Add(s_services);
         }
         #endregion
@@ -1090,18 +1076,6 @@ namespace Edge.Core.Configuration
             set
             {
                 base[s_id] = value;
-            }
-        }
-
-        public bool IsEnabled
-        {
-            get
-            {
-                return (bool)base[s_isEnabled];
-            }
-            set
-            {
-                base[s_isEnabled] = value;
             }
         }
 
@@ -1404,8 +1378,8 @@ namespace Edge.Core.Configuration
 				this.Options.Add(pair.Key, pair.Value);
 
 			// Add extended elements
-			foreach (KeyValuePair<string, ConfigurationElement> pair in serviceElement.ExtendedElements)
-				this.ExtendedElements.Add(pair.Key, pair.Value);
+			foreach (KeyValuePair<string, ConfigurationElement> pair in serviceElement.Extensions)
+				this.Extensions.Add(pair.Key, pair.Value);
 			
 			// Inherit step settings from parent step settings
 			if (serviceElement is ActiveServiceElement)
