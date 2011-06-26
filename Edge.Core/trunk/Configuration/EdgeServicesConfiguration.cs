@@ -19,6 +19,20 @@ namespace Edge.Core.Configuration
  		public static string DefaultSectionName = "edge.services";
 
 		private static EdgeServicesConfiguration _current = null;
+		private static Dictionary<string, Type> _extensions = new Dictionary<string,Type>();
+
+		public static void RegisterExtension<ConfigurationElementT>(string elementName) where ConfigurationElementT: ConfigurationElement
+		{
+			_extensions.Add(elementName, typeof(ConfigurationElementT));
+		}
+		public static Type GetExtension(string elementName)
+		{
+			Type extensionType;
+			if (!_extensions.TryGetValue(elementName, out extensionType))
+				return null;
+			else
+				return extensionType;
+		}
 
 		public static EdgeServicesConfiguration Current
 		{
@@ -97,10 +111,8 @@ namespace Edge.Core.Configuration
         private static ConfigurationPropertyCollection s_properties;
         private static ConfigurationProperty s_services;
         private static ConfigurationProperty s_accounts;
-		private static ConfigurationProperty s_extensions;
 
 		bool _loading = true;
-		ExtensionElementCollection _extensions;
 		
 		#endregion
 
@@ -119,15 +131,9 @@ namespace Edge.Core.Configuration
                 null,
                 ConfigurationPropertyOptions.IsRequired | ConfigurationPropertyOptions.IsDefaultCollection);
 
-			s_extensions = new ConfigurationProperty(
-			   "Extensions",
-			   typeof(ExtensionElementCollection),
-			   null);
-			
 			s_properties = new ConfigurationPropertyCollection();
             s_properties.Add(s_services);
 			s_properties.Add(s_accounts);
-			s_properties.Add(s_extensions);
        }
         #endregion
 
@@ -142,23 +148,6 @@ namespace Edge.Core.Configuration
             get { return (AccountElementCollection)base[s_accounts]; }
         }
 
-		public ExtensionElementCollection Extensions
-		{
-			get
-			{
-				if (_loading)
-					return _extensions;
-				else
-					return (ExtensionElementCollection) base[s_extensions];
-			}
-			internal set
-			{
-				if (!_loading)
-					throw new InvalidOperationException();
-				_extensions = value;
-			}
-		}
-		
 		public AccountElement SystemAccount
 		{
 			get { return Accounts.GetAccount(-1); }

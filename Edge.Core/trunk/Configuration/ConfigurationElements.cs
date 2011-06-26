@@ -186,15 +186,14 @@ namespace Edge.Core.Configuration
 		protected override bool OnDeserializeUnrecognizedElement(string elementName, XmlReader reader)
 		{
 			// Try to retrieve the extension type data
-			ExtensionElement extension = EdgeServicesConfiguration.Current.Extensions[elementName];
-			if (extension == null)
+			Type t = EdgeServicesConfiguration.GetExtension(elementName);
+			if (t == null)
 				return false;
 
 			if (this.Properties.Contains(elementName))
 				throw new ConfigurationErrorsException(String.Format("The extension element '{0}' is defined more than once in this service.", elementName));
 
 			// Check the type
-			Type t = Type.GetType(extension.Type, false, false);
 			if (t == null)
 				throw new ConfigurationErrorsException("The specified extension type could not be found.");
 			if (t.GetInterface(typeof(ISerializableConfigurationElement).FullName) == null || !t.IsSubclassOf(typeof(ConfigurationElement)))
@@ -1629,59 +1628,10 @@ namespace Edge.Core.Configuration
 	/// <summary>
 	/// 
 	/// </summary>
-	public class ExtensionElement: ReferencingConfigurationElement
+	public class ConfigurationExtension
 	{
-		#region Members
-		private ConfigurationProperty s_name;
-		private ConfigurationProperty s_type;
-		#endregion
+		public string Name {get; set;}
+		public Type Type {get; set;}
 
-		#region Constructor
-		public ExtensionElement()
-		{
-			s_name = new ConfigurationProperty(
-				"Name",
-				typeof(string),
-				null,
-				ConfigurationPropertyOptions.IsRequired);
-
-			s_type = new ConfigurationProperty(
-				"Type",
-				typeof(string),
-				null,
-				ConfigurationPropertyOptions.IsRequired);
-
-			InnerProperties.Add(s_name);
-			InnerProperties.Add(s_type);
-
-		}
-		#endregion
-
-		#region Properties
-		public string Name
-		{
-			get
-			{
-				return (string) base[s_name];
-			}
-			set
-			{
-				base[s_name] = value;
-			}
-		}
-
-		public string Type
-		{
-			get
-			{
-				return (string) base[s_type];
-			}
-			set
-			{
-				base[s_type] = value;
-			}
-		}
-
-		#endregion
 	}
 }
