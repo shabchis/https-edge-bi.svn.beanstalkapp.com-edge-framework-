@@ -419,7 +419,7 @@ namespace Edge.Data.Pipeline.Importing
 				foreach (KeyValuePair<MappedFieldMetadata, object> fixedField in target.GetFieldValues())
 					row[new ColumnDef(Tables.AdTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
 
-				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
+				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
 					row[new ColumnDef(Tables.AdTarget.CustomFieldX, customField.Key.ColumnIndex)] = customField.Value;
 
 				_bulkAdTarget.SubmitRow(row);
@@ -496,7 +496,7 @@ namespace Edge.Data.Pipeline.Importing
 				foreach (KeyValuePair<MappedFieldMetadata, object> fixedField in target.GetFieldValues())
 					row[new ColumnDef(Tables.AdTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
 
-				foreach (KeyValuePair<TargetCustomField, object> customField in target.CustomFields)
+				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
 					row[new ColumnDef(Tables.AdTarget.CustomFieldX, customField.Key.ColumnIndex)] = customField.Value;
 
 				_bulkMetricsTargetMatch.SubmitRow(row);

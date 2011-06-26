@@ -13,8 +13,6 @@ namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
-		internal const string DeliveryIdOptionName = "DeliveryID";
-
 		DeliveryFileList _files;
 		DateTimeRange _targetPeriod;
 		DateTime _dateCreated = DateTime.Now;
@@ -142,7 +140,6 @@ namespace Edge.Data.Pipeline
 
 		public void Save()
 		{
-			
 			this.DeliveryID = DeliveryDB.Save(this);
 			
 			if (Saved != null)
@@ -152,6 +149,11 @@ namespace Edge.Data.Pipeline
 		public void Delete()
 		{
 			DeliveryDB.Delete(this);
+		}
+
+		public void Undo()
+		{
+			//DeliveryDB.Rollback
 		}
 
 		internal event Action<Delivery> Saved;

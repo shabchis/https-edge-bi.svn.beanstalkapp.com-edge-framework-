@@ -12,7 +12,7 @@ namespace Edge.Data.Pipeline
 {
 	public class CsvDynamicReader : CsvObjectReader<dynamic>
 	{
-		public CsvDynamicReader(string url,string[] requiredColumns, char delimeter = ',', Encoding encoding = null)
+		public CsvDynamicReader(string url, string[] requiredColumns, char delimeter = ',', Encoding encoding = null)
 			: base(url,requiredColumns, delimeter, encoding)
 		{
 			this.OnObjectRequired = ReadRow;
@@ -23,27 +23,20 @@ namespace Edge.Data.Pipeline
 			this.OnObjectRequired = ReadRow;	
 		}
 
-		dynamic ReadRow(object reader, string[] headers, string[] values)
+		dynamic ReadRow(object reader, string[] columns, string[] values)
 		{
-			
 			dynamic obj = new DynamicDictionaryObject();
 
-			if (headers.Length==0)
-				throw new Exception("No Headers"); //TODO: TALK WITH DORON
+			if (columns == null || columns.Length==0)
+				throw new CsvException("No columns could be found.");
 
-			for (int i = 0; i < headers.Length; i++)
+			for (int i = 0; i < columns.Length; i++)
 			{
-
-				string name = headers[i];
-				
-
+				string name = columns[i];
 				obj[name] = values.Length <= i ? string.Empty : values[i];
-				
 			}
 			return obj;
 		}
 		 
 	}
-
-
 }
