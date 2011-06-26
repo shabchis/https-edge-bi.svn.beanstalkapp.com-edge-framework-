@@ -12,6 +12,12 @@ namespace Edge.Data.Pipeline.Services
 {
 	public abstract class PipelineService: Service
 	{
+		public static class ConfigurationOptionNames
+		{
+			public const string DeliveryID = "DeliveryID";
+			public const string TargetPeriod = "TargetPeriod";
+		}
+
 		DateTimeRange? _range = null;
 		Delivery _delivery = null;
 		Regex[] _trackerPatterns = null;
@@ -22,9 +28,9 @@ namespace Edge.Data.Pipeline.Services
 			{
 				if (_range == null)
 				{
-					if (Instance.Configuration.Options.ContainsKey("TargetPeriod"))
+					if (Instance.Configuration.Options.ContainsKey(ConfigurationOptionNames.TargetPeriod))
 					{
-						_range = DateTimeRange.Parse(Instance.Configuration.Options["TargetPeriod"]);
+						_range = DateTimeRange.Parse(Instance.Configuration.Options[ConfigurationOptionNames.TargetPeriod]);
 					}
 					else
 					{
@@ -62,7 +68,7 @@ namespace Edge.Data.Pipeline.Services
 			{
 				Guid deliveryID;
 				string did;
-				if (!Instance.Configuration.Options.TryGetValue(Delivery.DeliveryIdOptionName, out did))
+				if (!Instance.Configuration.Options.TryGetValue(ConfigurationOptionNames.DeliveryID, out did))
 					return Guid.Empty;
 
 				if (!Guid.TryParse(did, out deliveryID))

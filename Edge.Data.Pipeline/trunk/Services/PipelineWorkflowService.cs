@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline.Services
 		{
 			Guid deliveryID;
 			string did;
-			if (Instance.Configuration.Options.TryGetValue(Delivery.DeliveryIdOptionName, out did))
+			if (Instance.Configuration.Options.TryGetValue(PipelineService.ConfigurationOptionNames.DeliveryID, out did))
 			{
 				if (!Guid.TryParse(did, out deliveryID))
 					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline.Services
 
 			_deliveryOptions = new SettingsCollection()
 			{
-				{Delivery.DeliveryIdOptionName, deliveryID.ToString()}
+				{PipelineService.ConfigurationOptionNames.DeliveryID, deliveryID.ToString()}
 			};
 		}
 
