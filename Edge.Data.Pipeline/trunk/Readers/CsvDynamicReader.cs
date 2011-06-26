@@ -26,21 +26,18 @@ namespace Edge.Data.Pipeline
 		dynamic ReadRow(object reader, string[] headers, string[] values)
 		{
 			
-			var obj = new DynamicDictionaryObject();
+			dynamic obj = new DynamicDictionaryObject();
 
 			if (headers.Length==0)
 				throw new Exception("No Headers"); //TODO: TALK WITH DORON
 
 			for (int i = 0; i < headers.Length; i++)
-			{			 
-			
-				string name;
-				if (headers[i].Contains(" "))
-					name = headers[i].Replace(" ", "_");
-				else
-					name = headers[i];
+			{
 
-				obj.Values.Add(name, values.Length <= i ? string.Empty : values[i]);				
+				string name = headers[i];
+				
+
+				obj[name] = values.Length <= i ? string.Empty : values[i];
 				
 			}
 			return obj;
