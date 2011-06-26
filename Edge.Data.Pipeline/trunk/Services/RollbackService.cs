@@ -10,16 +10,7 @@ namespace Edge.Data.Pipeline.Services
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			if (this.TargetDeliveryID != Guid.Empty)
-			{
-				// TODO: execute rollback SP
-			}
-			else
-			{
-				// Find deliveries matching this service pipeline
-				//this.
-			}
-			return Core.Services.ServiceOutcome.Success;
+			throw new NotImplementedException();
 		}
 
 		
