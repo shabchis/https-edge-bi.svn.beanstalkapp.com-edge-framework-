@@ -52,7 +52,7 @@ namespace Edge.Data.Objects
 	public class PlacementTarget : Target
 	{
 		[FieldIndex(1)]
-		public string Url;
+		public string Placement;
 	}
 
 
