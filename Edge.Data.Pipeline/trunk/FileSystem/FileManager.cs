@@ -34,9 +34,10 @@ namespace Edge.Data.Pipeline
 			try { uri = new Uri(sourceUrl); }
 			catch (Exception ex) { throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
 
-			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
+
+			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);		    
 			request.Method = "GET";
-			request.Timeout = (int)TimeSpan.FromDays(7).TotalMilliseconds;
+			request.Timeout = (int)TimeSpan.FromDays(7).TotalMilliseconds;			
 			request.UserAgent = FileManager.UserAgentString;
 			return Download(request, targetLocation, true);
 		}
@@ -53,6 +54,7 @@ namespace Edge.Data.Pipeline
 				if (String.IsNullOrEmpty(httpRequest.UserAgent))
 					httpRequest.UserAgent = FileManager.UserAgentString;
 			}
+
 
 			WebResponse response = request.GetResponse();
 			return Download(response.GetResponseStream(), targetLocation, async, response.ContentLength);
