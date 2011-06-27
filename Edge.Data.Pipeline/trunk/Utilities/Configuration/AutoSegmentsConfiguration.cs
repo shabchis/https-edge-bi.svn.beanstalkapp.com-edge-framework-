@@ -109,6 +109,13 @@ namespace Edge.Data.Pipeline.Configuration
 				if (_regex == null)
 				{
 					_regex = new Regex(this.Value, RegexOptions.ExplicitCapture);
+					//var groups = _regex.GetGroupNames();
+					//var namedGroups = new List<string>();
+					//int nothing;
+					//for (int i = 0; i < groups.Length; i++)
+					//    if (!Int32.TryParse(groups[i], out nothing))
+					//        namedGroups.Add(groups[i]);
+					_fragments = _regex.GetGroupNames();
 				}
 				return _regex;
 			}

@@ -100,7 +100,7 @@ namespace Edge.Data.Pipeline
 		/// <param name="o">InternalDownloadParams containing relevant data.</param>
 		internal static void InternalDownload(object o)
 		{
-			int notifyProgressEvery = 128;
+			//int notifyProgressEvery = 128;
 
 			var operation = (FileDownloadOperation)o;
 
@@ -115,17 +115,16 @@ namespace Edge.Data.Pipeline
 				byte[] buffer = new byte[bufferSize];
 
 				int bytesRead = 0;
+				int totalBytesRead = 0;
 				while ((bytesRead = responseStream.Read(buffer, 0, bufferSize)) != 0)
 				{
+					totalBytesRead += bytesRead;
 					outputStream.Write(buffer, 0, bytesRead);
-					if (bytesRead >= notifyProgressEvery)
-					{
-						notifyProgressEvery += 128;
-						progressEventArgs.DownloadedBytes = bytesRead;
-						operation.RaiseProgress(progressEventArgs);
-					}
+					operation.DownloadedBytes = progressEventArgs.DownloadedBytes = totalBytesRead;
+					operation.RaiseProgress(progressEventArgs);
 				}
 				outputStream.Close();
+
 				// Update the file info with physical file info
 				System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
 				operation.FileInfo.TotalBytes = f.Length;
@@ -479,6 +478,7 @@ namespace Edge.Data.Pipeline
 	/// </summary>
 	public class FileDownloadOperation
 	{
+		public long DownloadedBytes { get; internal set; }
 		public virtual FileInfo FileInfo { get; internal set; }
 		public virtual Stream Stream { get; internal set; }
 		public event EventHandler<ProgressEventArgs> Progressed;
@@ -499,6 +499,8 @@ namespace Edge.Data.Pipeline
 
 		public virtual void Start()
 		{
+			this.DownloadedBytes = 0;
+
 			if (IsAsync)
 			{
 				Thread saveFileThread = new Thread(FileManager.InternalDownload);
