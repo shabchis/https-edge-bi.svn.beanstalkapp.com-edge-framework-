@@ -566,4 +566,15 @@ namespace Edge.Core.Configuration
         }
         #endregion
     }
+
+
+	public class ExtensionElementCollection : KeyValueConfigurationCollection
+	{
+		protected override void BaseAdd(ConfigurationElement element)
+		{
+			var pair = (KeyValueConfigurationElement) element;
+			EdgeServicesConfiguration.RegisterExtension(pair.Key, Type.GetType(pair.Value, true));
+		}
+
+	}
 }

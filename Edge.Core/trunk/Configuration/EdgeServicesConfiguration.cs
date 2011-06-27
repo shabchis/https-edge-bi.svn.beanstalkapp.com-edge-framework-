@@ -21,9 +21,12 @@ namespace Edge.Core.Configuration
 		private static EdgeServicesConfiguration _current = null;
 		private static Dictionary<string, Type> _extensions = new Dictionary<string,Type>();
 
-		public static void RegisterExtension<ConfigurationElementT>(string elementName) where ConfigurationElementT: ConfigurationElement
+		public static void RegisterExtension(string elementName, Type extensionType)
 		{
-			_extensions.Add(elementName, typeof(ConfigurationElementT));
+			if (!extensionType.IsSubclassOf(typeof(ConfigurationElement)))
+				throw new InvalidOperationException("Extensions must derive from the ConfigurationElement class.");
+
+			_extensions.Add(elementName, extensionType);
 		}
 		public static Type GetExtension(string elementName)
 		{
@@ -109,7 +112,8 @@ namespace Edge.Core.Configuration
 		#region Fields
 
         private static ConfigurationPropertyCollection s_properties;
-        private static ConfigurationProperty s_services;
+		private static ConfigurationProperty s_extensions;
+		private static ConfigurationProperty s_services;
         private static ConfigurationProperty s_accounts;
 
 		bool _loading = true;
@@ -119,6 +123,10 @@ namespace Edge.Core.Configuration
         #region Constructor
 		static EdgeServicesConfiguration()
         {
+			s_extensions = new ConfigurationProperty(
+				"Extensions",
+				typeof(ExtensionElementCollection)
+				);
             s_services = new ConfigurationProperty(
                 "Services",
                 typeof(ServiceElementCollection),
@@ -132,12 +140,19 @@ namespace Edge.Core.Configuration
                 ConfigurationPropertyOptions.IsRequired | ConfigurationPropertyOptions.IsDefaultCollection);
 
 			s_properties = new ConfigurationPropertyCollection();
-            s_properties.Add(s_services);
+			s_properties.Add(s_extensions);
+			s_properties.Add(s_services);
 			s_properties.Add(s_accounts);
        }
         #endregion
 
         #region Properties
+		public ExtensionElementCollection Extensions
+		{
+			get { return (ExtensionElementCollection)base[s_extensions]; }
+		}
+
+
         public ServiceElementCollection Services
         {
             get { return (ServiceElementCollection)base[s_services]; }
