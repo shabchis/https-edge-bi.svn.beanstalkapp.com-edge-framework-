@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline
 	/// </summary>
 	public class DeliveryFile
 	{
-		Delivery _parentDelivery=null;
+		Delivery _parentDelivery = null;
 		Guid _fileID;
 		DateTime _dateCreated = DateTime.Now;
 		DateTime _dateModified = DateTime.Now;
@@ -126,10 +126,15 @@ namespace Edge.Data.Pipeline
 
 		public Stream OpenContents(string subLocation = null, FileFormat fileFormat = FileFormat.Unspecified)
 		{
-			if(string.IsNullOrEmpty(this.Location))
+			if (string.IsNullOrEmpty(this.Location))
 				throw new InvalidOperationException("The delivery file does not have a valid file location. Make sure it has been downloaded properly.");
-
-			return FileManager.Open(subLocation == null ?  this.Location : Path.Combine(this.Location, subLocation),fileFormat);
+			if (this.Parameters.ContainsKey("InnerFileName") && !this.Location.Contains(this.Parameters["InnerFileName"].ToString()))
+			{
+				string fullLocation = string.Format("{0}{1}", this.Location, this.Parameters["InnerFileName"]);
+				return FileManager.Open(subLocation == null ? fullLocation : Path.Combine(fullLocation, subLocation), fileFormat);
+			}
+			else
+				return FileManager.Open(subLocation == null ? this.Location : Path.Combine(this.Location, subLocation), fileFormat);
 		}
 
 		void EnsureSaved()
@@ -174,6 +179,7 @@ namespace Edge.Data.Pipeline
 				DateTime.Now.ToString("yyyyMMdd@HHmm")/*4*/,
 				this.FileID.ToString("N")/*5*/,
 				this.Name == null ? string.Empty : this.Name);
+
 
 			return location.ToString();
 		}
@@ -253,8 +259,8 @@ namespace Edge.Data.Pipeline
 
 	public enum FileFormat
 	{
-		Unspecified=1,
-		GZip=2
+		Unspecified = 1,
+		GZip = 2
 	}
 
 }
