@@ -225,15 +225,18 @@ namespace Edge.Core.Configuration
 		// but this is not the case
 		protected override bool SerializeElement(XmlWriter writer, bool serializeCollectionKey)
 		{
-			bool wasSerialized = base.SerializeElement(writer, serializeCollectionKey);
-
 			// Writer is null before the start tag is written, and is a valid object
 			//	once it is time to write content
 			if (writer != null)
 			{
 				foreach (KeyValuePair<string, string> pair in Options)
 					writer.WriteAttributeString(pair.Key, pair.Value);
+			}
 
+			bool wasSerialized = base.SerializeElement(writer, serializeCollectionKey);
+
+			if (writer != null)
+			{
 				foreach (KeyValuePair<string, ConfigurationElement> pair in _extendedElements)
 				{
 					// Serialize with the element name
