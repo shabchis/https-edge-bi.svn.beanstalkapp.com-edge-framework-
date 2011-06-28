@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline
 	public class AutoSegmentationUtility
 	{
 		public AutoSegmentDefinitionCollection Definitions { get; set; }
-		public Func<Segment, Dictionary<string,string>,SegmentValue> OnCreateValueFromFragments { get; set; }
+		public event EventHandler<AutoSegmentFoundEventArgs> SegmentFound;
 
 		JsonSerializer _serializer = new JsonSerializer();
 
@@ -60,7 +60,7 @@ namespace Edge.Data.Pipeline
 
 				// found all the values, create a segment value
 				if (fragmentValues.Count == pattern.Fragments.Length)
-					return CreateValueFromFragments(segment, fragmentValues);
+					return CreateValueFromFragments(segment, fragmentValues, pattern);
 			}
 
 			// found nothing
@@ -72,28 +72,71 @@ namespace Edge.Data.Pipeline
 			throw new NotImplementedException();
 		}
 
+		private string JsonSerialize(Dictionary<string, string> fragments)
+		{
+			using (var writer = new StringWriter(new StringBuilder()))
+			{
+				_serializer.Serialize(writer, fragments);
+				return writer.ToString();
+			}
+		}
+
 
 		private StringBuilder _stringBuilder = new StringBuilder();
-		private SegmentValue CreateValueFromFragments(Segment segment, Dictionary<string, string> fragments)
+		private SegmentValue CreateValueFromFragments(Segment segment, Dictionary<string, string> fragments, AutoSegmentPattern pattern)
 		{
 			if (fragments == null || fragments.Count < 1)
 				return null;
 
 			// Custom segment generation
-			if (OnCreateValueFromFragments != null)
-				return OnCreateValueFromFragments(segment, fragments);
-			
-			// Serialize multiple values as json
-			string originalID;
-			using (var writer = new StringWriter(new StringBuilder()))
+			if (SegmentFound != null)
 			{
-				_serializer.Serialize(writer, fragments);
-				originalID = writer.ToString();
+				var e = new AutoSegmentFoundEventArgs() { Segment = segment, Fragments = fragments, Pattern = pattern };
+				SegmentFound(this, e);
+				if (e.Value != null)
+					return e.Value;
 			}
 
-			// For a single fragment, return only the value without
-			return new SegmentValue() { OriginalID = originalID, Value = fragments.Count > 1 ? originalID : fragments.First().Value };
+			string originalID = null;
+			string value;
+
+			// EVERYBODY DO THE FORMATTING DANCE
+
+			originalID = pattern.OriginalID != null ?
+				// use custom format
+				String.Format(pattern.OriginalID, fragments.Values.ToArray())
+			:
+				// json serialize fragments if no custom format defined
+				originalID = JsonSerialize(fragments)
+			;
+
+			value = pattern.Value != null ?
+				// use custom format
+				String.Format(pattern.Value, fragments.Values.ToArray())
+			:
+				// no custom format
+				value = fragments.Count == 1 ?
+					// one fragment only, just use it
+					fragments.First().Value
+				:
+					// json serialize fragments (re-use originalID if it was serialized above)
+					(originalID != null ?
+						originalID :
+						JsonSerialize(fragments)
+					)
+			;
+
+			// Return the value!
+			return new SegmentValue() { OriginalID = originalID, Value = value };
 		}
+	}
+
+	public class AutoSegmentFoundEventArgs : EventArgs
+	{
+		public Segment Segment { get; internal set; }
+		public Dictionary<string, string> Fragments {get; internal set;}
+		public AutoSegmentPattern Pattern { get; internal set; }
+		public SegmentValue Value { get; set; }
 	}
 }
 

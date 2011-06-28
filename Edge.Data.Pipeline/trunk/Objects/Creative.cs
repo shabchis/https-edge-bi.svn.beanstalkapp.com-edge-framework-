@@ -11,6 +11,16 @@ namespace Edge.Data.Objects
 		public string OriginalID;
 
 		public string Name { get; set; }
+
+		/// <summary>
+		/// Extra fields for use by channels which have additional metadata per creative.
+		/// </summary>
+		public Dictionary<Segment, SegmentValue> Segments = new Dictionary<Segment, SegmentValue>();
+
+		/// <summary>
+		/// Extra fields for use by channels which have additional metadata per creative.
+		/// </summary>
+		public Dictionary<ExtraField, object> ExtraFields = new Dictionary<ExtraField, object>();
 	}
 
 	[TypeID(1)]
