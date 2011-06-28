@@ -87,43 +87,55 @@ namespace Edge.Data.Pipeline.Configuration
 
 	public class AutoSegmentPattern : ConfigurationElement
 	{
-		[ConfigurationProperty("Value", IsRequired = true)]
-		public string Value
+		static Regex _fixRegex = new Regex(@"\(\?\{(\w+)\}");
+		static string _fixReplace = @"(?<$1>";
+
+
+		[ConfigurationProperty("Regex", IsRequired = true)]
+		public string RegexString
 		{
-			get { return (string)this[(string)"Value"]; }
+			get { return (string)this["Regex"]; }
 			set
 			{
-				this[(string)"Value"] = value;
-				_regex = null;
-				_fragments = null;
+				this["Regex"] = value;
+				this.Regex = value == null ? null : new Regex(_fixRegex.Replace(value, _fixReplace), RegexOptions.ExplicitCapture);
+				this.Fragments = value == null ? null : this.Regex.GetGroupNames();
 			}
 		}
 
-		Regex _regex = null;
-		string[] _fragments = null;
+		[ConfigurationProperty("Value")]
+		public string Value
+		{
+			get { return (string)this["Value"]; }
+			set { this["Value"] = FixFormat(value); }
+		}
+
+		[ConfigurationProperty("OriginalID")]
+		public string OriginalID
+		{
+			get { return (string)this["OriginalID"]; }
+			set { this["OriginalID"] = FixFormat(value); }
+		}
 
 		public Regex Regex
 		{
-			get
-			{
-				if (_regex == null)
-				{
-					_regex = new Regex(this.Value, RegexOptions.ExplicitCapture);
-					//var groups = _regex.GetGroupNames();
-					//var namedGroups = new List<string>();
-					//int nothing;
-					//for (int i = 0; i < groups.Length; i++)
-					//    if (!Int32.TryParse(groups[i], out nothing))
-					//        namedGroups.Add(groups[i]);
-					_fragments = _regex.GetGroupNames();
-				}
-				return _regex;
-			}
+			get;
+			private set;
 		}
 
 		public string[] Fragments
 		{
-			get { return _fragments; }
+			get;
+			private set;
+		}
+
+		string FixFormat(string raw)
+		{
+			string format = raw;
+			for (int i = 0; i < this.Fragments.Length; i++)
+				format = new Regex(@"\{" + this.Fragments[i] + @"([^\}]*)\}").Replace(format, "{" + i.ToString() + "$1}");
+
+			return format;
 		}
 	}
 }
