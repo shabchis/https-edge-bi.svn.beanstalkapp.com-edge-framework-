@@ -131,7 +131,7 @@ namespace Edge.Data.Pipeline.Services
 
 		AutoSegmentationUtility _autoSegments = null;
 		
-		public AutoSegmentationUtility AutoSegmets
+		public AutoSegmentationUtility AutoSegments
 		{
 			get
 			{
