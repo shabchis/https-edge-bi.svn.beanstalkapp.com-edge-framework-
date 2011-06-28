@@ -1627,14 +1627,4 @@ namespace Edge.Core.Configuration
 		/*=========================*/
 		#endregion
 	}
-
-	/// <summary>
-	/// 
-	/// </summary>
-	public class ConfigurationExtension
-	{
-		public string Name {get; set;}
-		public Type Type {get; set;}
-
-	}
 }
