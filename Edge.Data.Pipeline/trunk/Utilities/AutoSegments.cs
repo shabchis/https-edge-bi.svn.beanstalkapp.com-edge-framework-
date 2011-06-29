@@ -102,7 +102,7 @@ namespace Edge.Data.Pipeline
 
 			// EVERYBODY DO THE FORMATTING DANCE
 
-			originalID = pattern.OriginalID != null ?
+			originalID = !String.IsNullOrWhiteSpace(pattern.OriginalID) ?
 				// use custom format
 				String.Format(pattern.OriginalID, fragments.Values.ToArray())
 			:
@@ -110,7 +110,7 @@ namespace Edge.Data.Pipeline
 				originalID = JsonSerialize(fragments)
 			;
 
-			value = pattern.Value != null ?
+			value = !String.IsNullOrWhiteSpace(pattern.Value) ?
 				// use custom format
 				String.Format(pattern.Value, fragments.Values.ToArray())
 			:
