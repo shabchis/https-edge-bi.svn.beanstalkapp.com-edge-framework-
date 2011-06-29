@@ -98,44 +98,62 @@ namespace Edge.Data.Pipeline.Configuration
 			set
 			{
 				this["Regex"] = value;
-				this.Regex = value == null ? null : new Regex(_fixRegex.Replace(value, _fixReplace), RegexOptions.ExplicitCapture);
-				this.Fragments = value == null ? null : this.Regex.GetGroupNames();
+				_regex = null;
+				CreateRegex();
 			}
 		}
 
 		[ConfigurationProperty("Value")]
 		public string Value
 		{
-			get { return (string)this["Value"]; }
-			set { this["Value"] = FixFormat(value); }
+			get { return FixFormat("Value", (string) this["Value"], false); }
+			set { FixFormat("Value", value, true); }
 		}
 
 		[ConfigurationProperty("OriginalID")]
 		public string OriginalID
 		{
-			get { return (string)this["OriginalID"]; }
-			set { this["OriginalID"] = FixFormat(value); }
+			get { return FixFormat("OriginalID", (string)this["OriginalID"], false); }
+			set { FixFormat("OriginalID", value, true); }
 		}
 
 		public Regex Regex
 		{
-			get;
-			private set;
+			get { CreateRegex(); return _regex; }
 		}
 
 		public string[] Fragments
 		{
-			get;
-			private set;
+			get { CreateRegex(); return _fragments; }
 		}
 
-		string FixFormat(string raw)
+		Dictionary<string, Boolean> _isFormatted = new Dictionary<string, bool>();
+		string FixFormat(string propertyName, string raw, bool force)
 		{
-			string format = raw;
-			for (int i = 0; i < this.Fragments.Length; i++)
-				format = new Regex(@"\{" + this.Fragments[i] + @"([^\}]*)\}").Replace(format, "{" + i.ToString() + "$1}");
+			if (force || !_isFormatted.ContainsKey(propertyName))
+			{
+				string format = raw;
+				if (!string.IsNullOrWhiteSpace(raw))
+				{
+					for (int i = 0; i < this.Fragments.Length; i++)
+						format = new Regex(@"\{" + this.Fragments[i] + @"([^\}]*)\}").Replace(format, "{" + i.ToString() + "$1}");
+				}
+				this[propertyName] = format;
+				_isFormatted[propertyName] = true;
+			}
 
-			return format;
+			return (string)this[propertyName];
+		}
+
+		Regex _regex = null;
+		string[] _fragments = null;
+		void CreateRegex()
+		{
+			if (_regex == null && !String.IsNullOrWhiteSpace(this.RegexString))
+			{
+				_regex = this.RegexString == null ? null : new Regex(_fixRegex.Replace(this.RegexString, _fixReplace), RegexOptions.ExplicitCapture);
+				_fragments = this.RegexString == null ? null : this.Regex.GetGroupNames();
+			}
 		}
 	}
 }
