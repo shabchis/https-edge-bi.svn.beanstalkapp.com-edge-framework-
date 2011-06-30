@@ -43,18 +43,22 @@ namespace Edge.Data.Pipeline
 
 				AutoSegmentPattern pattern = def.Patterns[p];
 
-				foreach(Match match in pattern.Regex.Matches(source))
+				MatchCollection matches = pattern.Regex.Matches(source);
+				foreach (Match match in matches)
 				{
 					if (!match.Success)
 						continue;
 
+					int fragmentCounter = 0;
 					for(int g = 0; g < match.Groups.Count; g++)
 					{
 						Group group = match.Groups[g];
-						if (!group.Success)
+						string groupName = pattern.RawGroupNames[g];
+						if (!group.Success || !AutoSegmentPattern.IsValidFragmentName(groupName))
 							continue;
-						else
-							fragmentValues[pattern.Fragments[g]] = group.Value;
+
+						// Save the fragment
+						fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
 					}
 				}
 
