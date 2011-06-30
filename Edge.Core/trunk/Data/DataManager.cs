@@ -977,6 +977,22 @@ namespace Edge.Core.Data
 		{
 			return new SqlBulkCopy(DataManager.Current.Connection, options, null);
 		}
+
+		public static object Normalize(object value, object nullValue = null)
+		{
+			object returnObject;
+			if (value == null)
+				returnObject = nullValue ?? DBNull.Value;
+			else
+			{
+				if (value is Enum)
+					returnObject = (int)value;
+				else
+					returnObject = value;
+			}
+			return returnObject;
+		}
+
 	}
 
 	/// <summary>
