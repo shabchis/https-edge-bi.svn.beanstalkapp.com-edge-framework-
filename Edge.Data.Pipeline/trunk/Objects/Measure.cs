@@ -28,7 +28,7 @@ namespace Edge.Data.Objects
 		public string OltpName;
 		public string DisplayName;
 
-		public static Dictionary<string, Measure> GetMeasuresForAccount(Account account, MeasureType measureTypeFlags, SqlConnection connection)
+		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasures(
 				@accountID:Int,
@@ -38,8 +38,9 @@ namespace Edge.Data.Objects
 			System.Data.CommandType.StoredProcedure);
 			cmd.Connection = connection;
 
-			cmd.Parameters["@accountID"].Value = account.ID;
-			cmd.Parameters["@flags"].Value = measureTypeFlags;
+			cmd.Parameters["@accountID"].Value = account == null ? -1 : account.ID;
+			cmd.Parameters["@accountID"].Value = channel == null ? -1 : account.ID;
+			cmd.Parameters["@flags"].Value = options;
 			cmd.Parameters["@includeBase"].Value = 1;
 			List<Measure> measures = new List<Measure>();
 			using (SqlDataReader reader = cmd.ExecuteReader())
@@ -66,12 +67,18 @@ namespace Edge.Data.Objects
 	}
 
 	[Flags]
-	public enum MeasureType
+	public enum MeasureOptions
 	{
-		Target = 0x2,
-		Calculated = 0x10,
+		IsTarget = 0x2,
+		IsCalculated = 0x10,
 		All = 0xff
 	}
 
+	public enum MeasureOptionsOperator
+	{
+		Or = 0,
+		And = 1,
+		Not = -1
+	}
 
 }
