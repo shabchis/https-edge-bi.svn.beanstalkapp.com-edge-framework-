@@ -27,21 +27,24 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OltpName;
 		public string DisplayName;
+		public MeasureOptions Options;
 
 		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasures(
 				@accountID:Int,
-				@measureID:Int,
-				@includeBase:bit,
-				@flags:int",
+				@channelID:Int,
+				@flags:int,
+				@operator:int"
+				,
 			System.Data.CommandType.StoredProcedure);
 			cmd.Connection = connection;
 
 			cmd.Parameters["@accountID"].Value = account == null ? DBNull.Value : (object)account.ID;
 			cmd.Parameters["@channelID"].Value = channel == null ? DBNull.Value : (object)channel.ID;
 			cmd.Parameters["@flags"].Value = options;
-			cmd.Parameters["@includeBase"].Value = 1;
+			cmd.Parameters["@operator"].Value = @operator;
+
 			List<Measure> measures = new List<Measure>();
 			using (SqlDataReader reader = cmd.ExecuteReader())
 			{
@@ -53,7 +56,8 @@ namespace Edge.Data.Objects
 						Account = account,
 						Name = (string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
-						OltpName = (string) reader["FieldName"]
+						OltpName = (string) reader["FieldName"],
+						Options = (MeasureOptions)reader["Flags"]
 					};
 
 					measures.Add(m);

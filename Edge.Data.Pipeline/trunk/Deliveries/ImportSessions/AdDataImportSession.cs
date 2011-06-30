@@ -316,7 +316,8 @@ namespace Edge.Data.Pipeline.Importing
 
 		private SqlConnection _sqlConnection;
 
-		public Func<Ad, long> OnAdIdentityRequired = null;
+		public Func<Ad, long> OnAdUsidRequired = null;
+
 		public string TablePrefix { get; private set; }
 		public Dictionary<string, Measure> Measures { get; private set; }
 
@@ -526,8 +527,8 @@ namespace Edge.Data.Pipeline.Importing
 		private string GetAdIdentity(Ad ad)
 		{
 			string val;
-			if (this.OnAdIdentityRequired != null)
-				val = this.OnAdIdentityRequired(ad).ToString();
+			if (this.OnAdUsidRequired != null)
+				val = this.OnAdUsidRequired(ad).ToString();
 			else if (String.IsNullOrEmpty(ad.OriginalID))
 				throw new Exception("Ad.OriginalID is required. If it is not available, provide a function for AdDataImportSession.OnAdIdentityRequired that returns a unique value for this ad.");
 			else

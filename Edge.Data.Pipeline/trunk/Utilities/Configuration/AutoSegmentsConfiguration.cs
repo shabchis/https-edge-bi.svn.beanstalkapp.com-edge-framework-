@@ -89,7 +89,11 @@ namespace Edge.Data.Pipeline.Configuration
 	{
 		static Regex _fixRegex = new Regex(@"\(\?\{(\w+)\}");
 		static string _fixReplace = @"(?<$1>";
+		static Regex _fragmentNameInvalid = new Regex(@"^\d+$");
 
+		Regex _regex = null;
+		string[] _fragments = null;
+		internal string[] RawGroupNames = null;
 
 		[ConfigurationProperty("Regex", IsRequired = true)]
 		public string RegexString
@@ -145,15 +149,28 @@ namespace Edge.Data.Pipeline.Configuration
 			return (string)this[propertyName];
 		}
 
-		Regex _regex = null;
-		string[] _fragments = null;
 		void CreateRegex()
 		{
 			if (_regex == null && !String.IsNullOrWhiteSpace(this.RegexString))
 			{
 				_regex = this.RegexString == null ? null : new Regex(_fixRegex.Replace(this.RegexString, _fixReplace), RegexOptions.ExplicitCapture);
-				_fragments = this.RegexString == null ? null : this.Regex.GetGroupNames();
+				this.RawGroupNames = this.RegexString == null ? null : this.Regex.GetGroupNames();
+				if (this.RawGroupNames != null)
+				{
+					List<string> frags = new List<string>();
+					foreach (string frag in this.RawGroupNames)
+						if (IsValidFragmentName(frag))
+							frags.Add(frag);
+					_fragments = frags.ToArray();
+				}
+				else
+					_fragments = null;
 			}
+		}
+
+		public static bool IsValidFragmentName(string name)
+		{
+			return !_fragmentNameInvalid.IsMatch(name);
 		}
 	}
 }
