@@ -40,7 +40,7 @@ namespace Edge.Data.Objects
 	[TypeID(2)]
 	public class ImageCreative : Creative
 	{
-		[FieldIndex(1)]
+		[FieldIndex(3)]
 		public string ImageSize;
 
 		[FieldIndex(2)]
