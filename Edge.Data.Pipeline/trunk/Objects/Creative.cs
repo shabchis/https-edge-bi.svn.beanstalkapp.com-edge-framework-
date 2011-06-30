@@ -26,6 +26,9 @@ namespace Edge.Data.Objects
 	[TypeID(1)]
 	public class TextCreative : Creative
 	{
+		/// <summary>
+		/// Title,Body or displayUrl
+		/// </summary>
 		[FieldIndex(1)]
 		public TextCreativeType TextType;
 
@@ -40,11 +43,17 @@ namespace Edge.Data.Objects
 	[TypeID(2)]
 	public class ImageCreative : Creative
 	{
-		[FieldIndex(3)]
-		public string ImageSize;
+		/// <summary>
+		/// Title,Body or displayUrl
+		/// </summary>
+		[FieldIndex(1)]
+		public string AdUnitType;
 
 		[FieldIndex(2)]
 		public string ImageUrl;
+
+		[FieldIndex(3)]
+		public string ImageSize;
 	}
 
 	public enum TextCreativeType : int
