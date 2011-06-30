@@ -37,6 +37,9 @@ namespace Edge.Data.Objects
 
 		[FieldIndex(2)]
 		public KeywordMatchType MatchType;
+
+		[FieldIndex(3)]
+		public string QualityScore;
 	}
 
 	public enum KeywordMatchType
