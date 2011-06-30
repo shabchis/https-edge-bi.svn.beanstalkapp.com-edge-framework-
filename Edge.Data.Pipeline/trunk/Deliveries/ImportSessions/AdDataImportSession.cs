@@ -95,7 +95,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef CustomFieldX = new ColumnDef("CustomField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
+				public static ColumnDef CustomFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 
 				/// <summary>
 				/// Reserved for post-processing
@@ -245,7 +245,7 @@ namespace Edge.Data.Pipeline.Importing
 				DataRow row = this.Table.NewRow();
 				foreach (KeyValuePair<ColumnDef, object> col in values)
 				{
-					row[col.Key.Name] = Normalize(col.Value);
+					row[col.Key.Name] = DataManager.Normalize(col.Value);
 				}
 
 				this.Table.Rows.Add(row);
@@ -288,21 +288,6 @@ namespace Edge.Data.Pipeline.Importing
 			{
 				this.BulkCopy.WriteToServer(this.Table);
 				this.Table.Clear();
-			}
-
-			private static object Normalize(object myObject)
-			{
-				object returnObject;
-				if (myObject == null)
-					returnObject = DBNull.Value;
-				else
-				{
-					if (myObject is Enum)
-						returnObject = (int)myObject;
-					else
-						returnObject = myObject;
-				}
-				return returnObject;
 			}
 
 			public void Dispose(bool flush)
@@ -373,7 +358,14 @@ namespace Edge.Data.Pipeline.Importing
 				{
 					oltpConnection.Open();
 
-					this.Measures = Measure.GetMeasuresForAccount(this.Delivery.Account, MeasureType.All ^ MeasureType.Target ^ MeasureType.Calculated, oltpConnection);
+					this.Measures = Measure.GetMeasures(
+						this.Delivery.Account,
+						this.Delivery.Channel,
+						oltpConnection,
+							// NOT IsTarget and NOT IsCalculated
+							MeasureOptions.IsTarget | MeasureOptions.IsCalculated,
+							MeasureOptionsOperator.Not
+						);
 				}
 			}
 			catch (Exception ex)
