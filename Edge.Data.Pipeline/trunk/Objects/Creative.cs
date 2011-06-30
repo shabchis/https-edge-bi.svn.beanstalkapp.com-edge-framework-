@@ -38,6 +38,8 @@ namespace Edge.Data.Objects
 
 		[FieldIndex(3)]
 		public string Text2;
+
+
 	}
 
 	[TypeID(2)]
