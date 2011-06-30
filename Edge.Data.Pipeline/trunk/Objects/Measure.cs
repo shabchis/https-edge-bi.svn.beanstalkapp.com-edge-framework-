@@ -38,8 +38,8 @@ namespace Edge.Data.Objects
 			System.Data.CommandType.StoredProcedure);
 			cmd.Connection = connection;
 
-			cmd.Parameters["@accountID"].Value = account == null ? -1 : account.ID;
-			cmd.Parameters["@channelID"].Value = channel == null ? -1 : account.ID;
+			cmd.Parameters["@accountID"].Value = account == null ? DBNull.Value : (object)account.ID;
+			cmd.Parameters["@channelID"].Value = channel == null ? DBNull.Value : (object)channel.ID;
 			cmd.Parameters["@flags"].Value = options;
 			cmd.Parameters["@includeBase"].Value = 1;
 			List<Measure> measures = new List<Measure>();
