@@ -39,7 +39,7 @@ namespace Edge.Data.Objects
 			cmd.Connection = connection;
 
 			cmd.Parameters["@accountID"].Value = account == null ? -1 : account.ID;
-			cmd.Parameters["@accountID"].Value = channel == null ? -1 : account.ID;
+			cmd.Parameters["@channelID"].Value = channel == null ? -1 : account.ID;
 			cmd.Parameters["@flags"].Value = options;
 			cmd.Parameters["@includeBase"].Value = 1;
 			List<Measure> measures = new List<Measure>();
