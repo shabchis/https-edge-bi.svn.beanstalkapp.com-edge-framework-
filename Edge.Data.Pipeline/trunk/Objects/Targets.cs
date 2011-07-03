@@ -56,6 +56,16 @@ namespace Edge.Data.Objects
 	{
 		[FieldIndex(1)]
 		public string Placement;
+
+		[FieldIndex(2)]
+		public PlacementType PlacementType;
+	}
+
+	public enum PlacementType
+	{
+		Unidentified = 0,
+		Automatic = 4,
+		Manual = 5
 	}
 
 

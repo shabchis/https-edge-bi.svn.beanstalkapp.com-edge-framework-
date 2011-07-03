@@ -73,7 +73,8 @@ namespace Edge.Data.Objects
 	[Flags]
 	public enum MeasureOptions
 	{
-		IsTarget = 0x2,
+		IsBackOffice = 0x04,
+		IsTarget = 0x02,
 		IsCalculated = 0x10,
 		All = 0xff
 	}

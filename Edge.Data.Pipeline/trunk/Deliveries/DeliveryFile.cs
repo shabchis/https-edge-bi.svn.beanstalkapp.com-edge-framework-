@@ -143,26 +143,26 @@ namespace Edge.Data.Pipeline
 				throw new InvalidOperationException("Cannot download a delivery file before it has been saved.");
 		}
 
-		public DeliveryFileDownloadOperation Download(bool async = true)
+		public DeliveryFileDownloadOperation NewDownload()
 		{
 			EnsureSaved();
 			string location = CreateLocation();
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(this.SourceUrl, location, async));
+			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(this.SourceUrl, location));
 		}
 
-		public DeliveryFileDownloadOperation Download(Stream sourceStream, bool async = true, long length = -1)
+		public DeliveryFileDownloadOperation NewDownload(Stream sourceStream, long length = -1)
 		{
 			EnsureSaved();
 			string location = CreateLocation();
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(sourceStream, location, async, length));
+			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(sourceStream, location, length));
 		}
 
-		public DeliveryFileDownloadOperation Download(WebRequest request, bool async = true)
+		public DeliveryFileDownloadOperation NewDownload(WebRequest request)
 		{
 			EnsureSaved();
 			this.SourceUrl = request.RequestUri.ToString();
 			string location = CreateLocation();
-			return new DeliveryFileDownloadOperation(this, FileManager.Download(request, location, async));
+			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(request, location));
 		}
 
 		private string CreateLocation()
@@ -204,7 +204,7 @@ namespace Edge.Data.Pipeline
 	{
 		FileDownloadOperation _innerOperation;
 
-		internal DeliveryFileDownloadOperation(DeliveryFile file, FileDownloadOperation operation)
+		internal DeliveryFileDownloadOperation(DeliveryFile file, FileDownloadOperation operation):base(operation.FileInfo.Location)
 		{
 			this.DeliveryFile = file;
 
@@ -227,11 +227,6 @@ namespace Edge.Data.Pipeline
 		public override System.IO.Stream Stream
 		{
 			get { return _innerOperation.Stream; }
-		}
-
-		public override bool IsAsync
-		{
-			get { return base.IsAsync; }
 		}
 
 		internal override string TargetPath

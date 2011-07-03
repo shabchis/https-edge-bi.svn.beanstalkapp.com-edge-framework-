@@ -26,97 +26,44 @@ namespace Edge.Data.Pipeline
 		// =========================================
 
 		/// <summary>
-		/// Downloads a file from a URL.
-		/// </summary>
-		public static FileDownloadOperation Download(string sourceUrl, string targetLocation, bool async = true)
-		{
-			Uri uri;
-			try { uri = new Uri(sourceUrl); }
-			catch (Exception ex) { throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
-
-
-			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);		    
-			request.Method = "GET";
-			request.Timeout = (int)TimeSpan.FromDays(7).TotalMilliseconds;			
-			request.UserAgent = FileManager.UserAgentString;
-			return Download(request, targetLocation, true);
-		}
-
-		/// <summary>
-		/// Downloads a file using the a web request.
-		/// </summary>
-		public static FileDownloadOperation Download(WebRequest request, string targetLocation, bool async = true)
-		{
-			if (request is HttpWebRequest)
-			{
-				// force user agent string, for good internet behavior :-)
-				var httpRequest = (HttpWebRequest)request;
-				if (String.IsNullOrEmpty(httpRequest.UserAgent))
-					httpRequest.UserAgent = FileManager.UserAgentString;
-			}
-
-
-			WebResponse response = request.GetResponse();
-			return Download(response.GetResponseStream(), targetLocation, async, response.ContentLength);
-		}
-
-		/// <summary>
-		/// Downloads a file from a raw stream.
-		/// </summary>
-		public static FileDownloadOperation Download(Stream sourceStream, string targetLocation, bool async = true, long length = -1)
-		{
-			Uri uri;
-			uri = GetRelativeUri(targetLocation);
-
-			// Get full path
-			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
-			if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
-				Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
-
-			// Get length from stream only if length was not specified
-			if (length <= 0 && sourceStream.CanSeek)
-				length = sourceStream.Length;
-
-			// Object returned to caller for monitoring progress
-			FileDownloadOperation fileDownLoadOperation = new FileDownloadOperation()
-			{
-				IsAsync = async,
-				FileInfo = new FileInfo()
-				{
-					Location = uri.ToString(),
-					TotalBytes = length
-				},
-				Stream = sourceStream
-
-			};
-			fileDownLoadOperation.TargetPath = fullPath;
-
-			return fileDownLoadOperation;
-		}
-
-		/// <summary>
 		/// Does the actual downloading
 		/// </summary>
 		/// <param name="o">InternalDownloadParams containing relevant data.</param>
 		internal static void InternalDownload(object o)
 		{
-			//int notifyProgressEvery = 128;
-
 			var operation = (FileDownloadOperation)o;
 
-			var progressEventArgs = new ProgressEventArgs() { TotalBytes = operation.FileInfo.TotalBytes };
+			var progressEventArgs = new ProgressEventArgs(0, operation.FileInfo.TotalBytes);
 			FileStream outputStream = File.Create(operation.TargetPath);
-			//var streamReader = new StreamReader(operation.Stream,Encoding.UTF8,true);
 
-			using (Stream responseStream = operation.Stream)
+			if (operation.Stream == null)
+			{
+				if (operation.Request == null)
+					throw new InvalidOperationException("A download operation needs either a stream or web request object to start.");
+
+				// Try to get the response stream from the web request
+				WebResponse response;
+				try { response = operation.Request.GetResponse(); }
+				catch (Exception ex)
+				{
+					operation.Success = false;
+					operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
+					return;
+				}
+
+				operation.Stream = response.GetResponseStream();
+				progressEventArgs.TotalBytes = operation.TotalBytes = response.ContentLength;
+				operation.RaiseProgress(progressEventArgs);
+			}
+
+			using (operation.Stream)
 			{
 				int bufferSize = 2 << int.Parse(AppSettings.Get(typeof(FileManager), "BufferSize"));
-				//notifyProgressEvery = bufferSize;
 				byte[] buffer = new byte[bufferSize];
 
 				int bytesRead = 0;
 				int totalBytesRead = 0;
-				while ((bytesRead = responseStream.Read(buffer, 0, bufferSize)) != 0)
+				while ((bytesRead = operation.Stream.Read(buffer, 0, bufferSize)) != 0)
 				{
 					totalBytesRead += bytesRead;
 					outputStream.Write(buffer, 0, bytesRead);
@@ -131,6 +78,7 @@ namespace Edge.Data.Pipeline
 				operation.FileInfo.FileCreated = f.CreationTime;
 
 				// Notify that we have succeeded
+				operation.Success = true;
 				operation.RaiseEnded(new EndedEventArgs() { Success = true });
 			}
 		}
@@ -473,57 +421,6 @@ namespace Edge.Data.Pipeline
 
 	}
 
-	/// <summary>
-	/// Contains information on an ongoing download operation.
-	/// </summary>
-	public class FileDownloadOperation
-	{
-		public long DownloadedBytes { get; internal set; }
-		public virtual FileInfo FileInfo { get; internal set; }
-		public virtual Stream Stream { get; internal set; }
-		public event EventHandler<ProgressEventArgs> Progressed;
-		public event EventHandler<EndedEventArgs> Ended;
-		public virtual bool IsAsync { get; internal set; }
-		internal virtual string TargetPath { get; set; }
 
-		internal protected void RaiseProgress(ProgressEventArgs e)
-		{
-			if (this.Progressed != null)
-				this.Progressed(this, e);
-		}
-		internal protected void RaiseEnded(EndedEventArgs e)
-		{
-			if (this.Ended != null)
-				this.Ended(this, e);
-		}
-
-		public virtual void Start()
-		{
-			this.DownloadedBytes = 0;
-
-			if (IsAsync)
-			{
-				Thread saveFileThread = new Thread(FileManager.InternalDownload);
-				saveFileThread.Start(this);
-			}
-			else
-			{
-				FileManager.InternalDownload(this);
-			}
-
-		}
-
-	}
-
-	public class ProgressEventArgs : EventArgs
-	{
-		public long DownloadedBytes;
-		public long TotalBytes;
-	}
-	public class EndedEventArgs : EventArgs
-	{
-		public bool Success;
-		public Exception Exception;
-	}
 
 }
