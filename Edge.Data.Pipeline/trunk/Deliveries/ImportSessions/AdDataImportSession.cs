@@ -95,7 +95,7 @@ namespace Edge.Data.Pipeline.Importing
 				public static ColumnDef TargetType = new ColumnDef("TargetType", type: SqlDbType.Int);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef CustomFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
+				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
 
 				/// <summary>
 				/// Reserved for post-processing
