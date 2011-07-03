@@ -363,8 +363,8 @@ namespace Edge.Data.Pipeline.Importing
 						this.Delivery.Account,
 						this.Delivery.Channel,
 						oltpConnection,
-							// NOT IsTarget and NOT IsCalculated
-							MeasureOptions.IsTarget | MeasureOptions.IsCalculated,
+							// NOT IsTarget and NOT IsCalculated and NOT IsBO
+							MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice,
 							MeasureOptionsOperator.Not
 						);
 				}
