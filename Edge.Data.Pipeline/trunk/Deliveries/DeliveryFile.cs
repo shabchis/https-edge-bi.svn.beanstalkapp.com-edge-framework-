@@ -143,21 +143,21 @@ namespace Edge.Data.Pipeline
 				throw new InvalidOperationException("Cannot download a delivery file before it has been saved.");
 		}
 
-		public DeliveryFileDownloadOperation NewDownload()
+		public DeliveryFileDownloadOperation Download()
 		{
 			EnsureSaved();
 			string location = CreateLocation();
 			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(this.SourceUrl, location));
 		}
 
-		public DeliveryFileDownloadOperation NewDownload(Stream sourceStream, long length = -1)
+		public DeliveryFileDownloadOperation Download(Stream sourceStream, long length = -1)
 		{
 			EnsureSaved();
 			string location = CreateLocation();
 			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(sourceStream, location, length));
 		}
 
-		public DeliveryFileDownloadOperation NewDownload(WebRequest request)
+		public DeliveryFileDownloadOperation Download(WebRequest request)
 		{
 			EnsureSaved();
 			this.SourceUrl = request.RequestUri.ToString();
