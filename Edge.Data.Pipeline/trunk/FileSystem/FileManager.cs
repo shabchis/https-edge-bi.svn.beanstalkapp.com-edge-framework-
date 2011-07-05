@@ -33,14 +33,12 @@ namespace Edge.Data.Pipeline
 		{
 			var operation = (FileDownloadOperation)o;
 
-			var progressEventArgs = new ProgressEventArgs(0, operation.FileInfo.TotalBytes);
-
 			if (operation.Stream == null)
 			{
 				if (operation.Request == null)
 					throw new InvalidOperationException("A download operation needs either a stream or web request object to start.");
 
-				if (String.IsNullOrEmpty(operation.RequestBody))
+				if (!String.IsNullOrEmpty(operation.RequestBody))
 				{
 					try
 					{
@@ -53,7 +51,6 @@ namespace Edge.Data.Pipeline
 					{
 						operation.Success = false;
 						operation.Exception = ex;
-						operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
 						return;
 					}
 				}
@@ -65,13 +62,12 @@ namespace Edge.Data.Pipeline
 				{
 					operation.Success = false;
 					operation.Exception = ex;
-					operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
 					return;
 				}
 
 				operation.Stream = response.GetResponseStream();
-				progressEventArgs.TotalBytes = operation.TotalBytes = response.ContentLength;
-				operation.RaiseProgress(progressEventArgs);
+				operation.TotalBytes = response.ContentLength;
+				operation.RaiseProgress();
 			}
 
 			using (FileStream outputStream = File.Create(operation.TargetPath))
@@ -87,8 +83,8 @@ namespace Edge.Data.Pipeline
 					{
 						totalBytesRead += bytesRead;
 						outputStream.Write(buffer, 0, bytesRead);
-						operation.DownloadedBytes = progressEventArgs.DownloadedBytes = totalBytesRead;
-						operation.RaiseProgress(progressEventArgs);
+						operation.DownloadedBytes = totalBytesRead;
+						operation.RaiseProgress();
 					}
 					outputStream.Close();
 
@@ -99,7 +95,6 @@ namespace Edge.Data.Pipeline
 
 					// Notify that we have succeeded
 					operation.Success = true;
-					operation.RaiseEnded(new EndedEventArgs() { Success = true });
 				}
 			}
 		}
