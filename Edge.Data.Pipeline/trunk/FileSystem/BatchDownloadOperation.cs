@@ -28,24 +28,6 @@ namespace Edge.Data.Pipeline
 			this.MaxConcurrent = 5;
 		}
 
-		public override FileInfo FileInfo
-		{
-			get { return null; }
-			internal set { throw new NotSupportedException(); }
-		}
-
-		public override Stream Stream
-		{
-			get { return null; }
-			internal set { throw new NotSupportedException(); }
-		}
-
-		internal override string TargetPath
-		{
-			get { throw new NotSupportedException(); }
-			set { throw new NotSupportedException(); }
-		}
-
 		public override void Start()
 		{
 			_waitHandle = new ManualResetEventSlim();
@@ -75,6 +57,32 @@ namespace Edge.Data.Pipeline
 		public override void Wait()
 		{
 			_waitHandle.Wait();
+		}
+
+		public override void EnsureSuccess()
+		{
+			if (_waitHandle == null)
+				throw new InvalidOperationException("The operation has not been started yet.");
+
+			if (!_waitHandle.IsSet)
+				throw new InvalidOperationException("The operation is still running.");
+
+			BatchDownloadException ex = null;
+
+			foreach (FileDownloadOperation op in _operations)
+			{
+				if (op.Success)
+					continue;
+
+				// operation failed
+				if (ex == null)
+					ex = new BatchDownloadException();
+
+				ex.InnerExceptions.Add(ex);
+			}
+
+			if (ex != null)
+				throw ex;
 		}
 
 		void operation_Progressed(object sender, ProgressEventArgs e)
@@ -219,5 +227,18 @@ namespace Edge.Data.Pipeline
 		// ---------------------------
 		#endregion
 
+	}
+
+	[Serializable]
+	public class BatchDownloadException : Exception
+	{
+		public BatchDownloadException() { }
+		public BatchDownloadException(string message) : base(message) { }
+		protected BatchDownloadException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
+
+		public readonly List<Exception> InnerExceptions = new List<Exception>();
 	}
 }

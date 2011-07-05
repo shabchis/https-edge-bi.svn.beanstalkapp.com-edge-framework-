@@ -147,14 +147,14 @@ namespace Edge.Data.Pipeline
 		{
 			EnsureSaved();
 			string location = CreateLocation();
-			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(this.SourceUrl, location));
+			return new DeliveryFileDownloadOperation(this, this.SourceUrl, location);
 		}
 
 		public DeliveryFileDownloadOperation Download(Stream sourceStream, long length = -1)
 		{
 			EnsureSaved();
 			string location = CreateLocation();
-			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(sourceStream, location, length));
+			return new DeliveryFileDownloadOperation(this, sourceStream, location, length);
 		}
 
 		public DeliveryFileDownloadOperation Download(WebRequest request)
@@ -162,7 +162,7 @@ namespace Edge.Data.Pipeline
 			EnsureSaved();
 			this.SourceUrl = request.RequestUri.ToString();
 			string location = CreateLocation();
-			return new DeliveryFileDownloadOperation(this, new FileDownloadOperation(request, location));
+			return new DeliveryFileDownloadOperation(this, request, location);
 		}
 
 		private string CreateLocation()
@@ -202,17 +202,29 @@ namespace Edge.Data.Pipeline
 	/// </summary>
 	public class DeliveryFileDownloadOperation : FileDownloadOperation
 	{
-		FileDownloadOperation _innerOperation;
-
-		internal DeliveryFileDownloadOperation(DeliveryFile file, FileDownloadOperation operation)
+		private void Init(DeliveryFile file, string targetLocation)
 		{
 			this.DeliveryFile = file;
+			this.SetTargetLocation(targetLocation);
+			this.Ended += new EventHandler<EndedEventArgs>(this.OnEnded); 
+		}
 
-			_innerOperation = operation;
-			_innerOperation.Progressed += new EventHandler<ProgressEventArgs>(_innerOperation_Progressed);
-			_innerOperation.Ended += new EventHandler<EndedEventArgs>(_innerOperation_Ended);
+		internal DeliveryFileDownloadOperation(DeliveryFile file, string sourceUrl, string targetLocation)
+			: base(sourceUrl, targetLocation)
+		{
+			Init(file, targetLocation);
+		}
 
-			this.SetTargetLocation(operation.FileInfo.Location);
+		internal DeliveryFileDownloadOperation(DeliveryFile file, WebRequest request, string targetLocation)
+			: base(request, targetLocation)
+		{
+			Init(file, targetLocation);
+		}
+
+		internal DeliveryFileDownloadOperation(DeliveryFile file, Stream sourceStream, string targetLocation, long length = -1)
+			: base(sourceStream, targetLocation, length)
+		{
+			Init(file, targetLocation);
 		}
 
 		public DeliveryFile DeliveryFile
@@ -221,35 +233,9 @@ namespace Edge.Data.Pipeline
 			private set;
 		}
 
-		public override FileInfo FileInfo
-		{
-			get { return _innerOperation.FileInfo; }
-		}
-
-		public override System.IO.Stream Stream
-		{
-			get { return _innerOperation.Stream; }
-		}
-
-		internal override string TargetPath
-		{
-			get { return _innerOperation.TargetPath; }
-			set { _innerOperation.TargetPath = value; }
-		}
-
-		public override void Start()
-		{
-			_innerOperation.Start();
-		}
-
-		void _innerOperation_Progressed(object sender, ProgressEventArgs e)
-		{
-			RaiseProgress(e);
-		}
-		void _innerOperation_Ended(object sender, EndedEventArgs e)
+		void OnEnded(object sender, EndedEventArgs e)
 		{
 			this.DeliveryFile.Location = this.FileInfo.Location;
-			RaiseEnded(e);
 		}
 
 	}
