@@ -78,7 +78,7 @@ namespace Edge.Data.Pipeline
 				if (ex == null)
 					ex = new BatchDownloadException();
 
-				ex.InnerExceptions.Add(ex);
+				ex.InnerExceptions.Add(op.Exception);
 			}
 
 			if (ex != null)
