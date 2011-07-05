@@ -17,13 +17,14 @@ namespace Edge.Data.Pipeline
 		public long TotalBytes { get; internal set; }
 		public long DownloadedBytes { get; internal set; }
 		public bool Success { get; internal set; }
+		public Exception Exception { get; internal set; }
 
-		public virtual FileInfo FileInfo { get; internal set; }
-		public virtual Stream Stream { get; internal set; }
-		public virtual WebRequest Request { get; internal set; }
+		public FileInfo FileInfo { get; internal set; }
+		public Stream Stream { get; internal set; }
+		public WebRequest Request { get; internal set; }
 		public string RequestBody { get; set; }
 
-		internal virtual string TargetPath { get; set; }
+		internal string TargetPath { get; set; }
 
 		public event EventHandler<ProgressEventArgs> Progressed;
 		public event EventHandler<EndedEventArgs> Ended;
@@ -147,6 +148,18 @@ namespace Edge.Data.Pipeline
 				throw new InvalidOperationException("The operation has not been started yet, so Wait cannot be called now.");
 
 			_downloadThread.Join();
+		}
+
+		public virtual void EnsureSuccess()
+		{
+			if (_downloadThread == null)
+				throw new InvalidOperationException("The operation has not been started yet.");
+
+			if ((int)(_downloadThread.ThreadState & ThreadState.Running) > 0)
+				throw new InvalidOperationException("The operation is still running.");
+
+			if (!this.Success)
+				throw this.Exception;
 		}
 
 		// ---------------------------

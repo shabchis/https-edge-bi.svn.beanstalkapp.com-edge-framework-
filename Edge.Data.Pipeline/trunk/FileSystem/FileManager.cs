@@ -34,7 +34,6 @@ namespace Edge.Data.Pipeline
 			var operation = (FileDownloadOperation)o;
 
 			var progressEventArgs = new ProgressEventArgs(0, operation.FileInfo.TotalBytes);
-			FileStream outputStream = File.Create(operation.TargetPath);
 
 			if (operation.Stream == null)
 			{
@@ -53,6 +52,7 @@ namespace Edge.Data.Pipeline
 					catch (Exception ex)
 					{
 						operation.Success = false;
+						operation.Exception = ex;
 						operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
 						return;
 					}
@@ -64,6 +64,7 @@ namespace Edge.Data.Pipeline
 				catch (Exception ex)
 				{
 					operation.Success = false;
+					operation.Exception = ex;
 					operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
 					return;
 				}
@@ -73,30 +74,33 @@ namespace Edge.Data.Pipeline
 				operation.RaiseProgress(progressEventArgs);
 			}
 
-			using (operation.Stream)
+			using (FileStream outputStream = File.Create(operation.TargetPath))
 			{
-				int bufferSize = 2 << int.Parse(AppSettings.Get(typeof(FileManager), "BufferSize"));
-				byte[] buffer = new byte[bufferSize];
-
-				int bytesRead = 0;
-				int totalBytesRead = 0;
-				while ((bytesRead = operation.Stream.Read(buffer, 0, bufferSize)) != 0)
+				using (operation.Stream)
 				{
-					totalBytesRead += bytesRead;
-					outputStream.Write(buffer, 0, bytesRead);
-					operation.DownloadedBytes = progressEventArgs.DownloadedBytes = totalBytesRead;
-					operation.RaiseProgress(progressEventArgs);
+					int bufferSize = 2 << int.Parse(AppSettings.Get(typeof(FileManager), "BufferSize"));
+					byte[] buffer = new byte[bufferSize];
+
+					int bytesRead = 0;
+					int totalBytesRead = 0;
+					while ((bytesRead = operation.Stream.Read(buffer, 0, bufferSize)) != 0)
+					{
+						totalBytesRead += bytesRead;
+						outputStream.Write(buffer, 0, bytesRead);
+						operation.DownloadedBytes = progressEventArgs.DownloadedBytes = totalBytesRead;
+						operation.RaiseProgress(progressEventArgs);
+					}
+					outputStream.Close();
+
+					// Update the file info with physical file info
+					System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
+					operation.FileInfo.TotalBytes = f.Length;
+					operation.FileInfo.FileCreated = f.CreationTime;
+
+					// Notify that we have succeeded
+					operation.Success = true;
+					operation.RaiseEnded(new EndedEventArgs() { Success = true });
 				}
-				outputStream.Close();
-
-				// Update the file info with physical file info
-				System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
-				operation.FileInfo.TotalBytes = f.Length;
-				operation.FileInfo.FileCreated = f.CreationTime;
-
-				// Notify that we have succeeded
-				operation.Success = true;
-				operation.RaiseEnded(new EndedEventArgs() { Success = true });
 			}
 		}
 
