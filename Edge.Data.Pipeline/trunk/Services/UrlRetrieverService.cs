@@ -46,7 +46,7 @@ namespace Edge.Data.Pipeline.Services
 				else
 				{
 					// Start downloading, and report progress of the download divided by total number of files
-					DeliveryFileDownloadOperation operation = file.NewDownload();
+					DeliveryFileDownloadOperation operation = file.Download();
 					operation.Progressed += _progressHandler;
 					operation.Ended += _endedHandler;
 				}
