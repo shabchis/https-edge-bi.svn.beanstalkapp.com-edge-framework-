@@ -19,7 +19,6 @@ namespace Edge.Data.Pipeline
 		private List<FileDownloadOperation> _operations = new List<FileDownloadOperation>();
 		private int _next = 0;
 		private int _current = 0;
-		private ManualResetEventSlim _waitHandle;
 		private object _queueLock = new object();
 		private bool _started = false;
 
@@ -28,15 +27,14 @@ namespace Edge.Data.Pipeline
 			this.MaxConcurrent = 5;
 		}
 
-		public override void Start()
+		protected override void OnStart()
 		{
-			_waitHandle = new ManualResetEventSlim();
 
 			// Hook up all events before starting
 			foreach (FileDownloadOperation operation in _operations)
 			{
-				operation.Progressed += new EventHandler<ProgressEventArgs>(operation_Progressed);
-				operation.Ended += new EventHandler<EndedEventArgs>(operation_Ended);
+				operation.Progressed += new EventHandler(operation_Progressed);
+				operation.Ended += new EventHandler(operation_Ended);
 				this.TotalBytes += operation.TotalBytes;
 			}
 
@@ -54,19 +52,8 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		public override void Wait()
+		protected override void OnEnsureSuccess()
 		{
-			_waitHandle.Wait();
-		}
-
-		public override void EnsureSuccess()
-		{
-			if (_waitHandle == null)
-				throw new InvalidOperationException("The operation has not been started yet.");
-
-			if (!_waitHandle.IsSet)
-				throw new InvalidOperationException("The operation is still running.");
-
 			BatchDownloadException ex = null;
 
 			foreach (FileDownloadOperation op in _operations)
@@ -85,7 +72,7 @@ namespace Edge.Data.Pipeline
 				throw ex;
 		}
 
-		void operation_Progressed(object sender, ProgressEventArgs e)
+		void operation_Progressed(object sender, EventArgs e)
 		{
 			long downloaded = 0;
 			long total = 0;
@@ -99,10 +86,10 @@ namespace Edge.Data.Pipeline
 			this.DownloadedBytes = downloaded;
 			this.TotalBytes = total;
 
-			this.RaiseProgress(new ProgressEventArgs(this.DownloadedBytes, this.TotalBytes));
+			this.RaiseProgress();
 		}
 
-		void operation_Ended(object sender, EndedEventArgs e)
+		void operation_Ended(object sender, EventArgs e)
 		{
 			lock (_queueLock)
 			{
@@ -111,12 +98,8 @@ namespace Edge.Data.Pipeline
 				if (_next >= _operations.Count && _current == 0)
 				{
 					// We're done, since there's no next to progress to and all the current are finished
-					_waitHandle.Set();
 					this.Success = _operations.TrueForAll(op => op.Success);
-					RaiseEnded(new EndedEventArgs()
-					{
-						Success = this.Success
-					});
+					RaiseEnded();
 				}
 				else if (_next < _operations.Count)
 				{
@@ -240,5 +223,16 @@ namespace Edge.Data.Pipeline
 			: base(info, context) { }
 
 		public readonly List<Exception> InnerExceptions = new List<Exception>();
+
+		public override string ToString()
+		{
+			StringBuilder builder = new StringBuilder();
+			foreach (Exception ex in this.InnerExceptions)
+			{
+				builder.Append(ex.ToString());
+				builder.Append("\n\n");
+			}
+			return builder.ToString();
+		}
 	}
 }

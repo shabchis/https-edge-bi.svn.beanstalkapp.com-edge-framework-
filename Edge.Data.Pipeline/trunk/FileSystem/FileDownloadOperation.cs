@@ -26,16 +26,16 @@ namespace Edge.Data.Pipeline
 
 		internal string TargetPath { get; set; }
 
-		public event EventHandler<ProgressEventArgs> Progressed;
-		public event EventHandler<EndedEventArgs> Ended;
+		public event EventHandler Progressed;
+		public event EventHandler Ended;
 
-		private Thread _downloadThread;
-		
+		private ManualResetEventSlim _waitHandle;
+
 		public double Progress
 		{
 			get { return DownloadedBytes / TotalBytes; }
 		}
-	
+
 		#region Constructors
 		// ---------------------------
 
@@ -73,7 +73,6 @@ namespace Edge.Data.Pipeline
 			Uri uri;
 			try { uri = new Uri(sourceUrl); }
 			catch (Exception ex) { throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
-
 
 			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
 			request.Method = "GET";
@@ -123,69 +122,73 @@ namespace Edge.Data.Pipeline
 		#region Methods
 		// ---------------------------
 
-		internal protected void RaiseProgress(ProgressEventArgs e)
-		{
-			if (this.Progressed != null)
-				this.Progressed(this, e);
-		}
-		internal protected void RaiseEnded(EndedEventArgs e)
-		{
-			if (this.Ended != null)
-				this.Ended(this, e);
-		}
 
-		public virtual void Start()
+		public void Start()
 		{
+			_waitHandle = new ManualResetEventSlim();
 			this.DownloadedBytes = 0;
-
-			_downloadThread = new Thread(FileManager.InternalDownload);
-			_downloadThread.Start(this);
+			OnStart();
 		}
 
-		public virtual void Wait()
+		protected virtual void OnStart()
 		{
-			if (_downloadThread == null)
-				throw new InvalidOperationException("The operation has not been started yet, so Wait cannot be called now.");
-
-			_downloadThread.Join();
+			var internalDownload = new Action<object>(FileManager.InternalDownload);
+			internalDownload.BeginInvoke(this, result =>
+			{
+				// finish the async operation and catch exceptions that were waiting for EndInvoke
+				try { internalDownload.EndInvoke(result); }
+				catch (Exception ex)
+				{
+					this.Success = false;
+					this.Exception = ex;
+				}
+				this.RaiseEnded();
+			},
+			null);
 		}
 
-		public virtual void EnsureSuccess()
+		public void Wait()
 		{
-			if (_downloadThread == null)
+			if (_waitHandle == null)
+				throw new InvalidOperationException("The operation has not been started yet.");
+			if (!_waitHandle.IsSet)
+				_waitHandle.Wait();
+		}
+
+		public void EnsureSuccess()
+		{
+			if (_waitHandle == null)
 				throw new InvalidOperationException("The operation has not been started yet.");
 
-			if ((int)(_downloadThread.ThreadState & ThreadState.Running) > 0)
+			if (!_waitHandle.IsSet)
 				throw new InvalidOperationException("The operation is still running.");
 
+			OnEnsureSuccess();
+		}
+
+		protected virtual void OnEnsureSuccess()
+		{
 			if (!this.Success)
 				throw this.Exception;
+		}
+
+
+		internal protected void RaiseProgress()
+		{
+			if (this.Progressed != null)
+				this.Progressed(this, EventArgs.Empty);
+		}
+		internal protected void RaiseEnded()
+		{
+			if (this.Ended != null)
+				this.Ended(this, EventArgs.Empty);
+
+			_waitHandle.Set();
+			_waitHandle.Dispose();
 		}
 
 		// ---------------------------
 		#endregion
 	}
 
-
-	public class ProgressEventArgs : EventArgs
-	{
-		public long DownloadedBytes { get; internal set; }
-		public long TotalBytes { get; internal set; }
-
-		public ProgressEventArgs(long downloaded, long total)
-		{
-			this.DownloadedBytes = downloaded;
-			this.TotalBytes = total;
-		}
-
-		public double Progress
-		{
-			get { return this.DownloadedBytes / this.TotalBytes; }
-		}
-	}
-	public class EndedEventArgs : EventArgs
-	{
-		public bool Success;
-		public Exception Exception;
-	}
 }

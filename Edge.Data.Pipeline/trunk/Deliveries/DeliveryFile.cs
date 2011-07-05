@@ -206,7 +206,7 @@ namespace Edge.Data.Pipeline
 		{
 			this.DeliveryFile = file;
 			this.SetTargetLocation(targetLocation);
-			this.Ended += new EventHandler<EndedEventArgs>(this.OnEnded); 
+			this.Ended += new EventHandler(this.OnEnded); 
 		}
 
 		internal DeliveryFileDownloadOperation(DeliveryFile file, string sourceUrl, string targetLocation)
@@ -233,7 +233,7 @@ namespace Edge.Data.Pipeline
 			private set;
 		}
 
-		void OnEnded(object sender, EndedEventArgs e)
+		void OnEnded(object sender, EventArgs e)
 		{
 			this.DeliveryFile.Location = this.FileInfo.Location;
 		}
