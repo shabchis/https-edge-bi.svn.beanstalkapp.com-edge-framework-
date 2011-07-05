@@ -37,7 +37,11 @@ namespace Edge.Data.Pipeline
 		#region Constructors
 		// ---------------------------
 
-		protected FileDownloadOperation(string targetLocation)
+		protected FileDownloadOperation()
+		{
+		}
+
+		protected void SetTargetLocation(string targetLocation)
 		{
 			if (String.IsNullOrEmpty(targetLocation))
 				return;
@@ -62,8 +66,8 @@ namespace Edge.Data.Pipeline
 		/// Downloads a file from a URL.
 		/// </summary>
 		public FileDownloadOperation(string sourceUrl, string targetLocation)
-			: this(targetLocation)
 		{
+			SetTargetLocation(targetLocation);
 			Uri uri;
 			try { uri = new Uri(sourceUrl); }
 			catch (Exception ex) { throw new ArgumentException("Invalid source URL. Check inner exception for details.", "sourceUrl", ex); }
@@ -81,8 +85,9 @@ namespace Edge.Data.Pipeline
 		/// Downloads a file using the a web request.
 		/// </summary>
 		public FileDownloadOperation(WebRequest request, string targetLocation)
-			: this(targetLocation)
 		{
+			SetTargetLocation(targetLocation);
+
 			if (request is HttpWebRequest)
 			{
 				// force user agent string, for good internet behavior :-)
@@ -98,8 +103,9 @@ namespace Edge.Data.Pipeline
 		/// Downloads a file from a raw stream.
 		/// </summary>
 		public FileDownloadOperation(Stream sourceStream, string targetLocation, long length = -1)
-			: this(targetLocation)
 		{
+			SetTargetLocation(targetLocation);
+
 			// Get length from stream only if length was not specified
 			if (length <= 0 && sourceStream.CanSeek)
 				length = sourceStream.Length;
@@ -136,6 +142,9 @@ namespace Edge.Data.Pipeline
 
 		public virtual void Wait()
 		{
+			if (_downloadThread == null)
+				throw new InvalidOperationException("The operation has not been started yet, so Wait cannot be called now.");
+
 			_downloadThread.Join();
 		}
 

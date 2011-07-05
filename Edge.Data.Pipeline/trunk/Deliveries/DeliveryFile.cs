@@ -204,13 +204,15 @@ namespace Edge.Data.Pipeline
 	{
 		FileDownloadOperation _innerOperation;
 
-		internal DeliveryFileDownloadOperation(DeliveryFile file, FileDownloadOperation operation):base(operation.FileInfo.Location)
+		internal DeliveryFileDownloadOperation(DeliveryFile file, FileDownloadOperation operation)
 		{
 			this.DeliveryFile = file;
 
 			_innerOperation = operation;
 			_innerOperation.Progressed += new EventHandler<ProgressEventArgs>(_innerOperation_Progressed);
 			_innerOperation.Ended += new EventHandler<EndedEventArgs>(_innerOperation_Ended);
+
+			this.SetTargetLocation(operation.FileInfo.Location);
 		}
 
 		public DeliveryFile DeliveryFile

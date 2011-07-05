@@ -23,8 +23,9 @@ namespace Edge.Data.Pipeline
 		private object _queueLock = new object();
 		private bool _started = false;
 
-		public BatchDownloadOperation(): base(null)
+		public BatchDownloadOperation()
 		{
+			this.MaxConcurrent = 5;
 		}
 
 		public override FileInfo FileInfo
