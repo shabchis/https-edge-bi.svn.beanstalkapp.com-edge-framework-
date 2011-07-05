@@ -41,6 +41,23 @@ namespace Edge.Data.Pipeline
 				if (operation.Request == null)
 					throw new InvalidOperationException("A download operation needs either a stream or web request object to start.");
 
+				if (String.IsNullOrEmpty(operation.RequestBody))
+				{
+					try
+					{
+						using (StreamWriter writer = new StreamWriter(operation.Request.GetRequestStream()))
+						{
+							writer.Write(operation.RequestBody);
+						}
+					}
+					catch (Exception ex)
+					{
+						operation.Success = false;
+						operation.RaiseEnded(new EndedEventArgs() { Success = false, Exception = ex });
+						return;
+					}
+				}
+
 				// Try to get the response stream from the web request
 				WebResponse response;
 				try { response = operation.Request.GetResponse(); }

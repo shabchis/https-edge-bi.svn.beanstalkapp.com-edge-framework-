@@ -21,6 +21,7 @@ namespace Edge.Data.Pipeline
 		public virtual FileInfo FileInfo { get; internal set; }
 		public virtual Stream Stream { get; internal set; }
 		public virtual WebRequest Request { get; internal set; }
+		public string RequestBody { get; set; }
 
 		internal virtual string TargetPath { get; set; }
 
