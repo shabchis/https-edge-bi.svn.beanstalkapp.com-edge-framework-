@@ -65,7 +65,7 @@ namespace Edge.Data.Objects
 	{
 		Unidentified = 0,
 		Automatic = 4,
-		Manual = 5
+		Managed = 5
 	}
 
 
