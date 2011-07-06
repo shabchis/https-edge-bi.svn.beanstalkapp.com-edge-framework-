@@ -9,7 +9,7 @@ using Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Services
 {
-	public abstract class CommitBase : PipelineService
+	public abstract class AdDataCommitBase : PipelineService
 	{
 		public abstract DeliveryManager GetDeliveryManager();
 
@@ -42,7 +42,7 @@ namespace Edge.Data.Pipeline.Services
 
 			// ...........................
 			// FINALIZE data
-			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb")))
+			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb)))
 			{
 				connection.Open();
 				using (SqlCommand command = DataManager.CreateCommand(prepareCmdText, CommandType.StoredProcedure))
@@ -78,7 +78,7 @@ namespace Edge.Data.Pipeline.Services
 
 			// ...........................
 			// COMMIT data to OLTP
-			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb")))
+			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb)))
 			{
 				connection.Open();
 				using (SqlCommand command = DataManager.CreateCommand(commitCmdText, CommandType.StoredProcedure))

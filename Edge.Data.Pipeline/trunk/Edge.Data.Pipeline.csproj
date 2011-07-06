@@ -108,14 +108,14 @@
     <Compile Include="Consts.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Services\CommitBase.cs" />
+    <Compile Include="Services\AdDataCommitBase.cs" />
     <Compile Include="Services\InitializerBase.cs" />
     <Compile Include="Services\Misc\DeliveryManager.cs" />
     <Compile Include="Utilities\Configuration\AutoSegmentsConfiguration.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
-    <Compile Include="Deliveries\DeliveryDB.cs" />
+    <Compile Include="FileSystem\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
     <Compile Include="Deliveries\DeliveryHistory.cs" />
     <Compile Include="Deliveries\DeliveryImportSession.cs" />

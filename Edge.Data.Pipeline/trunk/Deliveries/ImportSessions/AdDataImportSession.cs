@@ -335,17 +335,8 @@ namespace Edge.Data.Pipeline.Importing
 			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this.TablePrefix);
 			
 			// Connect to database
-			try
-			{
-				_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb"));
-				_sqlConnection.Open();
-			}
-			catch (Exception ex)
-			{
-
-				Log.Write(string.Format("DeliverisDb: {0} ",ex.Message), ex, LogMessageType.Error);
-
-			}
+			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb));
+			_sqlConnection.Open();
 
 			_bulkAd = new BulkObjects(this.TablePrefix, typeof(Tables.Ad), _sqlConnection);
 			_bulkAdSegment = new BulkObjects(this.TablePrefix, typeof(Tables.AdSegment), _sqlConnection);
@@ -355,28 +346,18 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch = new BulkObjects(this.TablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
 
 			// Get measures
-
-			try
+			using (SqlConnection oltpConnection = new SqlConnection(AppSettings.GetConnectionString(this, "Oltp")))
 			{
-				using (SqlConnection oltpConnection = new SqlConnection(AppSettings.GetConnectionString(this, "Oltp")))
-				{
-					oltpConnection.Open();
+				oltpConnection.Open();
 
-					this.Measures = Measure.GetMeasures(
-						this.Delivery.Account,
-						this.Delivery.Channel,
-						oltpConnection,
-							// NOT IsTarget and NOT IsCalculated and NOT IsBO
-							MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice,
-							MeasureOptionsOperator.Not
-						);
-				}
-			}
-			catch (Exception ex)
-			{
-
-				Log.Write(string.Format("Oltp: {0} ", ex.Message), ex, LogMessageType.Error);
-
+				this.Measures = Measure.GetMeasures(
+					this.Delivery.Account,
+					this.Delivery.Channel,
+					oltpConnection,
+						// NOT IsTarget and NOT IsCalculated and NOT IsBO
+						MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice,
+						MeasureOptionsOperator.Not
+					);
 			}
 
 
