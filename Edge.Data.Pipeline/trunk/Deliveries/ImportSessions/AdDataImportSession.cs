@@ -209,7 +209,7 @@ namespace Edge.Data.Pipeline.Importing
 
 			public BulkObjects(string tablePrefix, Type tableDefinition, SqlConnection connection)
 			{
-				string tbl = tablePrefix + tableDefinition.Name;
+				string tbl = tablePrefix + "_" + tableDefinition.Name;
 				this.Columns = new List<ColumnDef>(Tables.GetColumns(tableDefinition, true));
 
 				// Create the table used for bulk insert
@@ -331,7 +331,7 @@ namespace Edge.Data.Pipeline.Importing
 		public override void Begin(bool reset = true)
 		{
 
-			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
+			this.TablePrefix = string.Format("D{0}_{1}_{2}", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
 			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this.TablePrefix);
 			
 			// Connect to database
