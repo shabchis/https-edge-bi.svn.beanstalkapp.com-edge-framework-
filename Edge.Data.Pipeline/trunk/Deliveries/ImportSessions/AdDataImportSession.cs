@@ -321,6 +321,8 @@ namespace Edge.Data.Pipeline.Importing
 		public string TablePrefix { get; private set; }
 		public Dictionary<string, Measure> Measures { get; private set; }
 
+		public readonly Dictionary<string, object> OutputParameters = new Dictionary<string, object>();
+
 		public AdDataImportSession(Delivery delivery)
 			: base(delivery)
 		{
@@ -330,7 +332,7 @@ namespace Edge.Data.Pipeline.Importing
 		{
 
 			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
-			this.Delivery.Parameters.Add(Consts.DeliverParameters.TablePerfix, this.TablePrefix);
+			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this.TablePrefix);
 			
 			// Connect to database
 			try
@@ -382,6 +384,7 @@ namespace Edge.Data.Pipeline.Importing
 			// Add measure columns to metrics,create measuresFieldNamesSQL,measuresNamesSQL
 			StringBuilder measuresFieldNamesSQL = new StringBuilder();
 			StringBuilder measuresNamesSQL = new StringBuilder();
+			int count = 0;
 			foreach (Measure  measure in this.Measures.Values)
 			{
 				_bulkMetrics.AddColumn(new ColumnDef(
@@ -390,17 +393,13 @@ namespace Edge.Data.Pipeline.Importing
 					nullable: true
 					));
 
-				measuresFieldNamesSQL.AppendFormat("{0},",measure.OltpName);
-				measuresNamesSQL.AppendFormat("{0},", measure.Name);
-
-
+				measuresFieldNamesSQL.AppendFormat("{0}{1}",measure.OltpName, count < this.Measures.Values.Count-1 ? "," : null);
+				measuresNamesSQL.AppendFormat("{0}{1}", measure.Name, count < this.Measures.Values.Count - 1 ? "," : null);
+				count++;
 			}
-			//remove last ','
-			measuresFieldNamesSQL.Remove(measuresFieldNamesSQL.Length - 1, 1);
-			measuresNamesSQL.Remove(measuresNamesSQL.Length - 1, 1);
 
-			this.Delivery.Parameters.Add(Consts.DeliverParameters.MeasuresFieldNamesSQL, measuresFieldNamesSQL.ToString());
-			this.Delivery.Parameters.Add(Consts.DeliverParameters.MeasuresNamesSQL, measuresNamesSQL.ToString());
+			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql, measuresFieldNamesSQL.ToString());
+			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
 
 			// Create the tables
 			StringBuilder createTableCmdText = new StringBuilder();
@@ -558,7 +557,7 @@ namespace Edge.Data.Pipeline.Importing
 			throw new NotSupportedException("Committing a session cannot be done from here.");
 		}
 
-		public void Dispose()
+		public void Apply()
 		{
 			_bulkAd.Dispose(true);
 			_bulkAdCreative.Dispose(true);
@@ -568,6 +567,14 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch.Dispose(true);
 
 			_sqlConnection.Dispose();
+
+			this.Delivery.History.Add(DeliveryOperation.Processed, Edge.Core.Services.Service.Current.Instance.InstanceID, this.OutputParameters);
+			this.Delivery.Save();
+		}
+
+		void IDisposable.Dispose()
+		{
+			this.Apply();
 		}
 	}
 }
