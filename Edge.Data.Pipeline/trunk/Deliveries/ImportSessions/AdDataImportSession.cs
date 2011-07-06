@@ -330,7 +330,8 @@ namespace Edge.Data.Pipeline.Importing
 		{
 
 			this.TablePrefix = string.Format("D{0}_{1}_{2}_", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
-
+			this.Delivery.Parameters.Add(Consts.DeliverParameters.TablePerfix, this.TablePrefix);
+			
 			// Connect to database
 			try
 			{
@@ -376,15 +377,30 @@ namespace Edge.Data.Pipeline.Importing
 
 			}
 
-			// Add measure columns to metrics
-			foreach (Measure measure in this.Measures.Values)
+
+
+			// Add measure columns to metrics,create measuresFieldNamesSQL,measuresNamesSQL
+			StringBuilder measuresFieldNamesSQL = new StringBuilder();
+			StringBuilder measuresNamesSQL = new StringBuilder();
+			foreach (Measure  measure in this.Measures.Values)
 			{
 				_bulkMetrics.AddColumn(new ColumnDef(
 					name: measure.Name,
 					type: SqlDbType.Float,
 					nullable: true
 					));
+
+				measuresFieldNamesSQL.AppendFormat("{0},",measure.OltpName);
+				measuresNamesSQL.AppendFormat("{0},", measure.Name);
+
+
 			}
+			//remove last ','
+			measuresFieldNamesSQL.Remove(measuresFieldNamesSQL.Length - 1, 1);
+			measuresNamesSQL.Remove(measuresNamesSQL.Length - 1, 1);
+
+			this.Delivery.Parameters.Add(Consts.DeliverParameters.MeasuresFieldNamesSQL, measuresFieldNamesSQL.ToString());
+			this.Delivery.Parameters.Add(Consts.DeliverParameters.MeasuresNamesSQL, measuresNamesSQL.ToString());
 
 			// Create the tables
 			StringBuilder createTableCmdText = new StringBuilder();
