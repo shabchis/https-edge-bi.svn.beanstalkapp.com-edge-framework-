@@ -47,6 +47,8 @@ namespace Edge.Data.Pipeline.Services
 				connection.Open();
 				using (SqlCommand command = DataManager.CreateCommand(prepareCmdText, CommandType.StoredProcedure))
 				{
+					command.Connection = connection;
+
 					command.Parameters["@DeliveryID"].Size = 4000;
 					command.Parameters["@DeliveryID"].Value = deliveryId;
 
@@ -85,11 +87,11 @@ namespace Edge.Data.Pipeline.Services
 				{
 					command.Connection = connection;
 
-					command.Parameters["@DeliveryID"].Size = 4000;
-					command.Parameters["@DeliveryID"].Value = deliveryId;
+					command.Parameters["@DeliveryFileName"].Size = 4000;
+					command.Parameters["@DeliveryFileName"].Value = tablePerfix;
 
-					command.Parameters["@DeliveryTablePrefix"].Size = 4000;
-					command.Parameters["@DeliveryTablePrefix"].Value = tablePerfix;
+					command.Parameters["@CommitTableName"].Size = 4000;
+					command.Parameters["@CommitTableName"].Value = commitTableName;
 
 					command.Parameters["@MeasuresNamesSQL"].Size = 4000;
 					command.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
