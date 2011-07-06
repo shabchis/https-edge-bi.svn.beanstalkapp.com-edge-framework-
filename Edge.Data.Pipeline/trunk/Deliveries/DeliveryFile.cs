@@ -20,7 +20,7 @@ namespace Edge.Data.Pipeline
 		DateTime _dateCreated = DateTime.Now;
 		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
-		DeliveryHistory<DeliveryOperation> _history;
+		DeliveryHistory _history;
 
 		/// <summary>
 		/// The delivery this file belongs to.
@@ -84,9 +84,9 @@ namespace Edge.Data.Pipeline
 		/// Represents the history of operations on the delivery file. Each service that does an operation related to this file
 		/// should add itself with the corresponding action.
 		/// </summary>
-		public DeliveryHistory<DeliveryOperation> History
+		public DeliveryHistory History
 		{
-			get { return _history ?? (_history = new DeliveryHistory<DeliveryOperation>()); }
+			get { return _history ?? (_history = new DeliveryHistory()); }
 		}
 
 		public Account Account

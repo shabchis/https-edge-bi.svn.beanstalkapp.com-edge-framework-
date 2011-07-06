@@ -108,7 +108,9 @@
     <Compile Include="Consts.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Services\CommitService.cs" />
+    <Compile Include="Services\BaseCommitService.cs" />
+    <Compile Include="Services\BaseInitializerService.cs" />
+    <Compile Include="Services\Misc\DeliveryManager.cs" />
     <Compile Include="Utilities\Configuration\AutoSegmentsConfiguration.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />

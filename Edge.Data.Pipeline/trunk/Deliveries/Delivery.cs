@@ -18,13 +18,13 @@ namespace Edge.Data.Pipeline
 		DateTime _dateCreated = DateTime.Now;
 		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
-		DeliveryHistory<DeliveryOperation> _history;
+		DeliveryHistory _history;
 
 		/// <summary>
 		/// Creates a new delivery and sets the specified instance ID as the creator.
 		/// </summary>
 		/// <param name="instanceID">ID of the service that is initializing the delivery. Equivalent to delivery.History.Add(DeliveryOperation.Created, serviceInstance.InstanceID)</param>
-		public Delivery(long instanceID, Guid specifiedDeliveryID)
+		internal Delivery(long instanceID, Guid specifiedDeliveryID)
 		{
 			if (specifiedDeliveryID == Guid.Empty)
 				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. "+
@@ -32,12 +32,12 @@ namespace Edge.Data.Pipeline
 
 			// fuck db4o
 			_files = new DeliveryFileList(this);
-			_history = new DeliveryHistory<DeliveryOperation>();
+			_history = new DeliveryHistory();
 			_parameters = new Dictionary<string, object>();
 			
 			this.DeliveryID = specifiedDeliveryID;
 
-			this.History.Add(DeliveryOperation.Created, instanceID);
+			this.History.Add(DeliveryOperation.Initialized, instanceID);
 		}
 
 		/// <summary>
@@ -133,7 +133,7 @@ namespace Edge.Data.Pipeline
 		/// Represents the history of operations on the delivery. Each service that does an operation related to this delivery
 		/// should add itself with the corresponding action.
 		/// </summary>
-		public DeliveryHistory<DeliveryOperation> History
+		public DeliveryHistory History
 		{
 			get { return _history; }
 		}
@@ -141,9 +141,6 @@ namespace Edge.Data.Pipeline
 		public void Save()
 		{
 			this.DeliveryID = DeliveryDB.Save(this);
-			
-			if (Saved != null)
-				Saved(this);
 		}
 
 		public void Delete()
@@ -151,28 +148,39 @@ namespace Edge.Data.Pipeline
 			DeliveryDB.Delete(this);
 		}
 
-		public void Undo()
+		public void Rollback()
 		{
 			//DeliveryDB.Rollback
 		}
 
-		internal event Action<Delivery> Saved;
+
+		// Statics
+		// =============================
 
 		public static Delivery Get(Guid deliveryID)
 		{
 			return DeliveryDB.Get(deliveryID);
 		}
 
+		public static Delivery[] GetSimilars(Delivery exampleDelivery)
+		{
+			return DeliveryDB.GetSimilars(exampleDelivery);
+		}
 
+		public static void Rollback(params Delivery[] deliveries)
+		{
+			DeliveryDB.Rollback(deliveries);
+		}
 	}
     
 	
 	public enum DeliveryOperation
 	{
-		Created = 1,
+		Initialized = 1,
 		Retrieved = 2,
 		Processed = 3,
-		RolledBack = 4
+		Comitted = 4,
+		RolledBack = 5
 	}
     
 }

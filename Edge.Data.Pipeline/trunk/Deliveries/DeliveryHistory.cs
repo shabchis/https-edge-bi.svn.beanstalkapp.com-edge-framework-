@@ -5,40 +5,40 @@ using System.Text;
 
 namespace Edge.Data.Pipeline
 {
-	public class DeliveryHistory<OperationT>: IList<DeliveryHistoryEntry<OperationT>> where OperationT: struct
+	public class DeliveryHistory: IList<DeliveryHistoryEntry>
 	{
 		const string ERROR_MSG = "History can only be added (insert/remove/swap/clear not supported).";
 
-		List<DeliveryHistoryEntry<OperationT>> _list;
+		List<DeliveryHistoryEntry> _list;
 
-		private List<DeliveryHistoryEntry<OperationT>> InnerList
+		private List<DeliveryHistoryEntry> InnerList
 		{
-			get { return _list ?? (_list = new List<DeliveryHistoryEntry<OperationT>>()); }
+			get { return _list ?? (_list = new List<DeliveryHistoryEntry>()); }
 		}
 
-		public void Add(OperationT operation, long instanceID)
+		public void Add(DeliveryOperation operation, long? serviceInstanceID, Dictionary<string,object> parameters = null)
 		{
-			InnerList.Add(new DeliveryHistoryEntry<OperationT>(operation, instanceID));
+			InnerList.Add(new DeliveryHistoryEntry(operation, serviceInstanceID, parameters));
 		}
 
-		#region IList<DeliveryHistoryEntry<OperationT>> Members
+		#region IList<DeliveryHistoryEntry> Members
 		//===================================
-		int IList<DeliveryHistoryEntry<OperationT>>.IndexOf(DeliveryHistoryEntry<OperationT> item)
+		int IList<DeliveryHistoryEntry>.IndexOf(DeliveryHistoryEntry item)
 		{
 			return InnerList.IndexOf(item);
 		}
 
-		void IList<DeliveryHistoryEntry<OperationT>>.Insert(int index, DeliveryHistoryEntry<OperationT> item)
+		void IList<DeliveryHistoryEntry>.Insert(int index, DeliveryHistoryEntry item)
 		{
 			throw new NotSupportedException();
 		}
 
-		void IList<DeliveryHistoryEntry<OperationT>>.RemoveAt(int index)
+		void IList<DeliveryHistoryEntry>.RemoveAt(int index)
 		{
 			throw new NotSupportedException(ERROR_MSG);
 		}
 
-		public DeliveryHistoryEntry<OperationT> this[int index]
+		public DeliveryHistoryEntry this[int index]
 		{
 			get { return InnerList[index]; }
 			set { throw new NotSupportedException(ERROR_MSG); }
@@ -46,25 +46,25 @@ namespace Edge.Data.Pipeline
 		//===================================
 		#endregion
 
-		#region ICollection<DeliveryHistoryEntry<OperationT>> Members
+		#region ICollection<DeliveryHistoryEntry> Members
 		//===================================
 
-		public void Add(DeliveryHistoryEntry<OperationT> item)
+		public void Add(DeliveryHistoryEntry item)
 		{
 			throw new NotImplementedException();
 		}
 
-		void ICollection<DeliveryHistoryEntry<OperationT>>.Clear()
+		void ICollection<DeliveryHistoryEntry>.Clear()
 		{
 			throw new NotSupportedException(ERROR_MSG);
 		}
 
-		public bool Contains(DeliveryHistoryEntry<OperationT> item)
+		public bool Contains(DeliveryHistoryEntry item)
 		{
 			return InnerList.Contains(item);
 		}
 
-		public void CopyTo(DeliveryHistoryEntry<OperationT>[] array, int arrayIndex)
+		public void CopyTo(DeliveryHistoryEntry[] array, int arrayIndex)
 		{
 			InnerList.CopyTo(array, arrayIndex);
 		}
@@ -79,7 +79,7 @@ namespace Edge.Data.Pipeline
 			get { return false; }
 		}
 
-		public bool Remove(DeliveryHistoryEntry<OperationT> item)
+		public bool Remove(DeliveryHistoryEntry item)
 		{
 			throw new NotSupportedException(ERROR_MSG); 
 		}
@@ -87,10 +87,10 @@ namespace Edge.Data.Pipeline
 		//===================================
 		#endregion
 
-		#region IEnumerable<DeliveryHistoryEntry<OperationT>> Members
+		#region IEnumerable<DeliveryHistoryEntry> Members
 		//===================================
 
-		public IEnumerator<DeliveryHistoryEntry<OperationT>> GetEnumerator()
+		public IEnumerator<DeliveryHistoryEntry> GetEnumerator()
 		{
 			return InnerList.GetEnumerator();
 		}
@@ -108,22 +108,36 @@ namespace Edge.Data.Pipeline
 		#endregion
 	}
 
-	public struct DeliveryHistoryEntry<OperationT>
+	public class DeliveryHistoryEntry
 	{
-		KeyValuePair<OperationT, long> _pair;
-
-		public DeliveryHistoryEntry(OperationT operation, long instanceID)
+		internal DeliveryHistoryEntry(DeliveryOperation operation, long? serviceInstanceID, Dictionary<string,object> parameters = null)
 		{
-			_pair = new KeyValuePair<OperationT, long>(operation, instanceID);
+			this.Operation = operation;
+			this.ServiceInstanceID = serviceInstanceID;
+			this.DateRecorded = DateTime.Now;
+			this.Parameters = parameters;
 		}
 
-		public OperationT Operation
+		public DeliveryOperation Operation
 		{
-			get { return _pair.Key; }
+			get;
+			private set;
 		}
-		public long InstanceID
+		public long? ServiceInstanceID
 		{
-			get { return _pair.Value; }
+			get;
+			private set;
+		}
+		public DateTime DateRecorded
+		{
+			get;
+			private set;
+		}
+
+		public Dictionary<string, object> Parameters
+		{
+			get;
+			private set;
 		}
 	}
 }

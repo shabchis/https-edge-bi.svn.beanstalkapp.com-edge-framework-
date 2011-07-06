@@ -13,6 +13,8 @@ using Edge.Core;
 using System.Diagnostics;
 using System.IO;
 using System.Data.Common;
+using System.Data.SqlClient;
+using Edge.Core.Services;
 
 
 
@@ -54,11 +56,12 @@ namespace Edge.Data.Pipeline
 					client.Ext().Configure().ActivationDepth(previousActivationDepth);
 				}
 			}
-
+/*
 #if DEBUG
 			Log.Write(String.Format("Delivery - {3}found: {0} (activate: {2}, {1} results)\n", deliveryID, resultCount, activate, delivery == null ? "not " : "" ), LogMessageType.Information);
 
 #endif			
+*/
 			return delivery;
 		}
 
@@ -78,7 +81,7 @@ namespace Edge.Data.Pipeline
 						// http://stackoverflow.com/questions/5848990/retrieve-an-object-in-one-db4o-session-store-in-another-disconnected-scenario
 						long tempDb4oID = client.Ext().GetID(inactiveReference);
 						client.Ext().Bind(delivery, tempDb4oID);
-						Log.Write(String.Format("Delivery - overwrite (db4o id {0})", tempDb4oID), LogMessageType.Information);
+						//Log.Write(String.Format("Delivery - overwrite (db4o id {0})", tempDb4oID), LogMessageType.Information);
 					}
 				}
 				else
@@ -120,6 +123,33 @@ namespace Edge.Data.Pipeline
 			{
 				if (close)
 					client.Dispose();
+			}
+		}
+
+		internal static Delivery[] GetSimilars(Delivery exampleDelivery, int activationLevel = -1)
+		{
+			Delivery[] similars;
+			using (var client = DeliveryDBClient.Connect())
+			{
+				IObjectSet results = client.QueryByExample(exampleDelivery);
+				similars = new Delivery[results.Count];
+				results.CopyTo(similars, 0);
+			}
+			return similars;
+		}
+
+		internal static void Rollback(Delivery[] deliveries)
+		{
+			using (SqlConnection connection = new SqlConnection())
+			{
+				foreach (Delivery delivery in deliveries)
+				{
+					// TODO: execute stored procedure
+
+					delivery.History.Add(
+						DeliveryOperation.RolledBack,
+						Service.Current != null ? new long?(Service.Current.Instance.InstanceID) : null);
+				}
 			}
 		}
 	}
