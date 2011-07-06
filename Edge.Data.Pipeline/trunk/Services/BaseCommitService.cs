@@ -23,6 +23,7 @@ namespace Edge.Data.Pipeline.Services
 			if (!this.Instance.Configuration.Options.TryGetValue(Consts.DeliverParameters.CommitProcedureName, out procedureName))
 				throw new InvalidOperationException(string.Format("Configuration option required: {0}", Consts.DeliverParameters.CommitProcedureName));
 
+			// TODO: get this from last 'Processed' history entry
 			string measuresFieldNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresFieldNamesSQL].ToString();
 			string measuresNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresNamesSQL].ToString();
 			string tablePerfix = Delivery.Parameters[Consts.DeliverParameters.TablePerfix].ToString();
@@ -59,7 +60,9 @@ namespace Edge.Data.Pipeline.Services
 
 			// If there's a rollback going on, wait for it to end (will throw exceptions if error occured)
 			if (rollbackOperation != null)
+			{
 				rollbackOperation.Wait();
+			}
 
 			this.Delivery.History.Add(DeliveryOperation.Comitted, this.Instance.InstanceID);
 			this.Delivery.Save();

@@ -145,6 +145,7 @@ namespace Edge.Data.Pipeline
 				foreach (Delivery delivery in deliveries)
 				{
 					// TODO: execute stored procedure
+					throw new NotImplementedException("Need to call Amit's Rollback service here");
 
 					delivery.History.Add(
 						DeliveryOperation.RolledBack,
