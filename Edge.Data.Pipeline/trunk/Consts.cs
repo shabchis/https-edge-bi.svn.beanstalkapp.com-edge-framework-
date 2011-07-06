@@ -14,5 +14,10 @@ namespace Edge.Data.Pipeline
 			public const string MeasureOltpFieldsSql = "MeasureOltpFieldsSql";
 		}
 
+		public static class AppSettings
+		{
+			public const string Delivery_SqlDb = "Sql.DeliveriesDb";
+			public const string Delivery_RollbackCommand = "Sql.RollbackSqlCommand";
+		}
 	}
 }
