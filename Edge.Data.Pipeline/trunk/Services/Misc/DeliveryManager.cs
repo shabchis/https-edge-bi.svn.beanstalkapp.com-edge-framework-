@@ -40,6 +40,8 @@ namespace Edge.Data.Pipeline.Services
 				Delivery[] conflicting = Delivery.GetSimilars(newDelivery);
 				if (conflicting.Length > 0)
 				{
+					// TODO: check that the devliery last history entry is 'Comitted'
+
 					if (behavior == DeliveryConflictBehavior.Rollback)
 					{
 						if (async)
