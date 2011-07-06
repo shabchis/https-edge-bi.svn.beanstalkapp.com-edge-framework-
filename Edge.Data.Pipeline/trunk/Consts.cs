@@ -7,12 +7,11 @@ namespace Edge.Data.Pipeline
 {
 	public class Consts
 	{
-		public static class DeliverParameters
+		public static class DeliveryHistoryParameters
 		{
 			public const string TablePerfix = "TablePerfix";
-			public const string MeasuresNamesSQL = "MeasuresNamesSQL";
-			public const string MeasuresFieldNamesSQL = "MeasuresFieldNamesSQL";
-			public const string CommitProcedureName = "CommitProcedureName";
+			public const string MeasureNamesSql = "MeasureNamesSql";
+			public const string MeasureOltpFieldsSql = "MeasureOltpFieldsSql";
 		}
 
 	}

@@ -5,6 +5,7 @@ using System.Text;
 using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
+using Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -19,54 +20,88 @@ namespace Edge.Data.Pipeline.Services
 			Delivery unused;
 			RollbackOperation rollbackOperation = deliveryManager.HandleConflicts(DeliveryConflictBehavior.Rollback, out unused, true);
 
-			string procedureName;
-			if (!this.Instance.Configuration.Options.TryGetValue(Consts.DeliverParameters.CommitProcedureName, out procedureName))
-				throw new InvalidOperationException(string.Format("Configuration option required: {0}", Consts.DeliverParameters.CommitProcedureName));
+			string prepareCmdText;
+			if (!this.Instance.Configuration.Options.TryGetValue("PrepareSqlCommand", out prepareCmdText))
+				throw new InvalidOperationException(string.Format("Configuration option required: {0}", "PrepareSqlCommand"));
+			string commitCmdText;
+			if (!this.Instance.Configuration.Options.TryGetValue("CommitSqlCommand", out commitCmdText))
+				throw new InvalidOperationException(string.Format("Configuration option required: {0}", "CommitSqlCommand"));
+
+			DeliveryHistoryEntry processedEntry = this.Delivery.History.Last(entry => entry.Operation == DeliveryOperation.Processed);
+			if (processedEntry == null)
+				throw new Exception("This delivery has not been processed yet (could not find a 'processed' history entry).");
 
 			DeliveryHistoryEntry commitEntry = new DeliveryHistoryEntry(DeliveryOperation.Comitted, this.Instance.InstanceID, new Dictionary<string,object>());
 
-			// TODO: get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresFieldNamesSQL].ToString();
-			string measuresNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresNamesSQL].ToString();
-			string tablePerfix = Delivery.Parameters[Consts.DeliverParameters.TablePerfix].ToString();
-			string deliveryId = Delivery.DeliveryID.ToString("N");
+			// get this from last 'Processed' history entry
+			string measuresFieldNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
+			string measuresNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
+			string tablePerfix = processedEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			string deliveryId = this.Delivery.DeliveryID.ToString("N");
+			string commitTableName;
 
+			// ...........................
+			// FINALIZE data
 			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb")))
 			{
 				connection.Open();
-				using (SqlCommand command = new SqlCommand(procedureName, connection))
+				using (SqlCommand command = DataManager.CreateCommand(prepareCmdText, CommandType.StoredProcedure))
 				{
-					command.Parameters.Add("@DeliveryID", SqlDbType.NVarChar, 4000);
+					command.Parameters["@DeliveryID"].Size = 4000;
 					command.Parameters["@DeliveryID"].Value = deliveryId;
 
-					command.Parameters.Add("@DeliveryTablePrefix", SqlDbType.NVarChar, 4000);
+					command.Parameters["@DeliveryTablePrefix"].Size = 4000;
 					command.Parameters["@DeliveryTablePrefix"].Value = tablePerfix;
 
-					command.Parameters.Add("@MeasuresNamesSQL", SqlDbType.NVarChar, 4000);
+					command.Parameters["@MeasuresNamesSQL"].Size = 4000;
 					command.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
 
-					command.Parameters.Add("@MeasuresFieldNamesSQL", SqlDbType.NVarChar, 4000);
+					command.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
 					command.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
 
-					
-					SqlParameter outputCommitTableName=new SqlParameter("@CommitTableName",SqlDbType.NVarChar,4000);
-					outputCommitTableName.Direction=ParameterDirection.Output;
-					command.Parameters.Add(outputCommitTableName);
+					command.Parameters["@CommitTableName"].Size = 4000;
 
 					command.ExecuteNonQuery();
 
-					commitEntry.Parameters["CommitTableName"] = command.Parameters["@CommitTableName"].Value;
+					commitEntry.Parameters["CommitTableName"] = commitTableName = command.Parameters["@CommitTableName"].Value.ToString();
 
 				}
 			}
 
+			// ...........................
+			// WAIT FOR ROLLBACK TO END
 			// If there's a rollback going on, wait for it to end (will throw exceptions if error occured)
 			if (rollbackOperation != null)
 			{
 				rollbackOperation.Wait();
 			}
 
-			this.Delivery.History.Add();
+			// ...........................
+			// COMMIT data to OLTP
+			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb")))
+			{
+				connection.Open();
+				using (SqlCommand command = DataManager.CreateCommand(commitCmdText, CommandType.StoredProcedure))
+				{
+					command.Connection = connection;
+
+					command.Parameters["@DeliveryID"].Size = 4000;
+					command.Parameters["@DeliveryID"].Value = deliveryId;
+
+					command.Parameters["@DeliveryTablePrefix"].Size = 4000;
+					command.Parameters["@DeliveryTablePrefix"].Value = tablePerfix;
+
+					command.Parameters["@MeasuresNamesSQL"].Size = 4000;
+					command.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
+
+					command.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
+					command.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
+
+					command.ExecuteNonQuery();
+				}
+			}
+
+			this.Delivery.History.Add(commitEntry);
 			this.Delivery.Save();
 
 			return Core.Services.ServiceOutcome.Success;
