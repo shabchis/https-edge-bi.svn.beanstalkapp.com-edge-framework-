@@ -141,7 +141,7 @@ namespace Edge.Data.Pipeline
 
 		internal static void Rollback(Delivery[] deliveries)
 		{
-			string cmdText = AppSettings.Get(typeof(Delivery), Consts.AppSettings.Delivery_RollbackCommand);
+			string cmdText = Service.Current.Instance.Configuration.Options["RollbackSqlCommand"];
 			SqlCommand cmd = DataManager.CreateCommand(cmdText, System.Data.CommandType.StoredProcedure);
 
 			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb)))
