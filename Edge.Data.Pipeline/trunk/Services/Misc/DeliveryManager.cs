@@ -40,7 +40,23 @@ namespace Edge.Data.Pipeline.Services
 				Delivery[] conflicting = Delivery.GetSimilars(newDelivery);
 				if (conflicting.Length > 0)
 				{
-					// TODO: check that the devliery last history entry is 'Comitted'
+					// Check whether the last commit was not rolled back for each conflicting delivery
+					List<Delivery> toRollback = new List<Delivery>();
+					foreach (Delivery d in conflicting)
+					{
+						int rollbackIndex = -1;
+						int commitIndex = -1;
+						for (int i = 0; i < d.History.Count; i++)
+						{
+							if (d.History[i].Operation == DeliveryOperation.Comitted)
+								commitIndex = i;
+							else if (d.History[i].Operation == DeliveryOperation.RolledBack)
+								rollbackIndex = i;
+						}
+
+						if (commitIndex > rollbackIndex)
+							toRollback.Add(d);
+					}
 
 					if (behavior == DeliveryConflictBehavior.Rollback)
 					{
@@ -48,11 +64,11 @@ namespace Edge.Data.Pipeline.Services
 						{
 							operation = new RollbackOperation();
 							operation.AsyncDelegate = new Action<Delivery[]>(Delivery.Rollback);
-							operation.AsyncResult = operation.AsyncDelegate.BeginInvoke(conflicting, null, null);
+							operation.AsyncResult = operation.AsyncDelegate.BeginInvoke(toRollback.ToArray(), null, null);
 						}
 						else
 						{
-							Delivery.Rollback(conflicting);
+							Delivery.Rollback(toRollback.ToArray());
 						}
 					}
 					else

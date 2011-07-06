@@ -8,7 +8,7 @@ using Edge.Core.Configuration;
 
 namespace Edge.Data.Pipeline.Services
 {
-	public abstract class BaseCommitService : PipelineService
+	public abstract class CommitBase : PipelineService
 	{
 		public abstract DeliveryManager GetDeliveryManager();
 
@@ -22,6 +22,8 @@ namespace Edge.Data.Pipeline.Services
 			string procedureName;
 			if (!this.Instance.Configuration.Options.TryGetValue(Consts.DeliverParameters.CommitProcedureName, out procedureName))
 				throw new InvalidOperationException(string.Format("Configuration option required: {0}", Consts.DeliverParameters.CommitProcedureName));
+
+			DeliveryHistoryEntry commitEntry = new DeliveryHistoryEntry(DeliveryOperation.Comitted, this.Instance.InstanceID, new Dictionary<string,object>());
 
 			// TODO: get this from last 'Processed' history entry
 			string measuresFieldNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresFieldNamesSQL].ToString();
@@ -53,7 +55,7 @@ namespace Edge.Data.Pipeline.Services
 
 					command.ExecuteNonQuery();
 
-					Delivery.Parameters["CommitTableName"] = command.Parameters["@CommitTableName"].Value;
+					commitEntry.Parameters["CommitTableName"] = command.Parameters["@CommitTableName"].Value;
 
 				}
 			}
@@ -64,7 +66,7 @@ namespace Edge.Data.Pipeline.Services
 				rollbackOperation.Wait();
 			}
 
-			this.Delivery.History.Add(DeliveryOperation.Comitted, this.Instance.InstanceID);
+			this.Delivery.History.Add();
 			this.Delivery.Save();
 
 			return Core.Services.ServiceOutcome.Success;
