@@ -9,32 +9,23 @@ using Edge.Core.Configuration;
 namespace Edge.Data.Pipeline.Services
 {
 	class CommitService : PipelineService
-	{
-		
-	
-		
+	{	
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			
-			//1. handle conflictingDeliveris
+			// 1. handle conflictingDeliveris
 			HandleConflictingDeliveries();
-			string procedureName = string.Empty;
-			if (!this.Delivery.Parameters.ContainsKey(Consts.DeliverParameters.CommitProcedureName))
-				throw new InvalidOperationException(string.Format("Configuration must contains key: {0}", Consts.DeliverParameters.CommitProcedureName));
-			else
-				procedureName = Delivery.Parameters[Consts.DeliverParameters.CommitProcedureName].ToString();
 
+			string procedureName;
+			if (!this.Instance.Configuration.Options.TryGetValue(Consts.DeliverParameters.CommitProcedureName, out procedureName))
+				throw new InvalidOperationException(string.Format("Configuration must contains key: {0}", Consts.DeliverParameters.CommitProcedureName));
 
 			string measuresFieldNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresFieldNamesSQL].ToString();
-
 			string measuresNamesSQL = Delivery.Parameters[Consts.DeliverParameters.MeasuresNamesSQL].ToString();
-
 			string tablePerfix = Delivery.Parameters[Consts.DeliverParameters.TablePerfix].ToString();
-
 			string deliveryId = Delivery.DeliveryID.ToString("N");
 
 
-			//TODO: CONSTS FOR PARAMETERSNAME AND CONNECTIONSTRING?
+			// TODO: CONSTS FOR PARAMETERSNAME AND CONNECTIONSTRING?
 			using (SqlConnection deliveriesDBConnection = new SqlConnection(AppSettings.GetConnectionString(this, "DeliveriesDb")))
 			{
 				deliveriesDBConnection.Open();
@@ -57,18 +48,14 @@ namespace Edge.Data.Pipeline.Services
 					outputCommitTableName.Direction=ParameterDirection.Output;
 					command.Parameters.Add(outputCommitTableName);
 
-					//TODO: USE ROWS AFFECTED?
-					int rowsAfected = command.ExecuteNonQuery();
+					command.ExecuteNonQuery();
 
-					Delivery.Parameters.Add("CommitTableName", command.Parameters["@CommitTableName"].Value);             
+					Delivery.Parameters["CommitTableName"] = command.Parameters["@CommitTableName"].Value;
 
 				}
 			}
+
 			return Core.Services.ServiceOutcome.Success;
-
-
-
-
 		}
 	}
 	
