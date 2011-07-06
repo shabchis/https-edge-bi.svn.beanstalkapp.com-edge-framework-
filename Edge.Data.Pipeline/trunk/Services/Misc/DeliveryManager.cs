@@ -8,14 +8,14 @@ namespace Edge.Data.Pipeline.Services
 {
 	public abstract class DeliveryManager
 	{
-		PipelineService _service;
+		protected PipelineService CurrentService { get; private set; }
 
 		public DeliveryManager()
 		{
 			if (Service.Current == null || !(Service.Current is PipelineService))
 				throw new InvalidOperationException("DeliveryFactory can only be created inside a PipelineService.");
 
-			_service = (PipelineService)Service.Current;
+			this.CurrentService = (PipelineService)Service.Current;
 		}
 
 		public Delivery NewDelivery()
