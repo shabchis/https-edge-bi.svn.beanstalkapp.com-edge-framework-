@@ -8,7 +8,7 @@ namespace Edge.Data.Pipeline.Services
 	public abstract class BaseInitializerService: PipelineService
 	{
 		public abstract DeliveryManager GetDeliveryManager();
-		public abstract void InitializeDelivery();
+		public abstract void ApplyDeliveryDetails();
 
 		protected sealed override Core.Services.ServiceOutcome DoPipelineWork()
 		{
@@ -18,7 +18,7 @@ namespace Edge.Data.Pipeline.Services
 			deliveryManager.HandleConflicts(DeliveryConflictBehavior.Abort, out newDelivery, false);
 			this.Delivery = newDelivery;
 
-			InitializeDelivery();
+			ApplyDeliveryDetails();
 
 			return Core.Services.ServiceOutcome.Success;
 		}
