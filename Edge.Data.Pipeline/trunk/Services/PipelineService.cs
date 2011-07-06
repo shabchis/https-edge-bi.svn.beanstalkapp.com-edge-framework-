@@ -13,7 +13,9 @@ namespace Edge.Data.Pipeline.Services
 {
 	public abstract class PipelineService: Service
 	{
-		//................................................
+		#region Core methods
+		// ==============================
+
 		protected sealed override void OnInit()
 		{
 			// TODO: check for required configuration options
@@ -31,7 +33,12 @@ namespace Edge.Data.Pipeline.Services
 		{
 			// TODO: update delivery history automatically?
 		}
-		//................................................
+
+		// ==============================
+		#endregion
+
+		#region Configuration
+		// ==============================
 
 		public static class ConfigurationOptionNames
 		{
@@ -69,20 +76,20 @@ namespace Edge.Data.Pipeline.Services
 				if (_delivery != null)
 					return _delivery;
 
-				Guid deliveryID = this.DeliveryID;
+				Guid deliveryID = this.TargetDeliveryID;
 				if (deliveryID != Guid.Empty)
 					_delivery = DeliveryDB.Get(deliveryID);
 
 				return _delivery;
 			}
-			set
+			internal set
 			{
 				_delivery = value;
 				//_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryGuid"] = _delivery.Guid.ToString());
 			}
 		}
 
-		public Guid DeliveryID
+		internal Guid TargetDeliveryID
 		{
 			get
 			{
@@ -98,36 +105,11 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
-		protected void HandleConflictingDeliveries()
-		{
-			throw new NotImplementedException();
-			/*
-			Delivery[] conflicting = this.NewDeliveryWithMinimalValues().GetConflicting();
-			if (conflicting.Length > 0)
-			{
-				if (Instance.Configuration.Options["Lidros"])
-				{
-					foreach (Delivery delivery in conflicting)
-						delivery.Rollback(guid);
-				}
-				else
-					throw new Exception("Data already exists");
-			}
-			*/
-		}
+		// ==============================
+		#endregion
 
-		/// <summary>
-		/// This method must be implemented in order to use HandleConflictingDeliveries.
-		/// It must return a new Delivery object with settings/parameters that should be considered
-		/// unique, i.e. if another delivery exists with the same settings/parameters, its data will be rolled back.
-		/// </summary>
-		/// <returns></returns>
-		protected virtual Delivery NewDeliveryWithMinimalValues()
-		{
-			throw new NotImplementedException();
-		}
-
-
+		#region Auto segments
+		// ==============================
 
 		AutoSegmentationUtility _autoSegments = null;
 		
@@ -145,5 +127,16 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
+		// ==============================
+		#endregion
 	}
+
+	enum DeliveryConflictBehavior
+	{
+		Default,
+		Ignore,
+		Abort,
+		Rollback
+	}
+
 }
