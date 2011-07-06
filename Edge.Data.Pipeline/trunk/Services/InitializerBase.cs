@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Pipeline.Services
 {
-	public abstract class BaseInitializerService: PipelineService
+	public abstract class InitializerBase: PipelineService
 	{
 		public abstract DeliveryManager GetDeliveryManager();
 		public abstract void ApplyDeliveryDetails();
