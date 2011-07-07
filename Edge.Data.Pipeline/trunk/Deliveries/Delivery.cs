@@ -138,6 +138,15 @@ namespace Edge.Data.Pipeline
 			get { return _history; }
 		}
 
+		/// <summary>
+		/// Gets or sets a unique signature that will be used to identify whether any conflicting deliveries exist.
+		/// </summary>
+		public string Signature
+		{
+			get;
+			set;
+		}
+
 		public void Save()
 		{
 			this.DeliveryID = DeliveryDB.Save(this);
@@ -148,11 +157,10 @@ namespace Edge.Data.Pipeline
 			DeliveryDB.Delete(this);
 		}
 
-		public void Rollback()
+		public Delivery[] GetConflicting()
 		{
-			//DeliveryDB.Rollback
+			DeliveryDB.GetConflicting(this);
 		}
-
 
 		// Statics
 		// =============================
@@ -161,16 +169,6 @@ namespace Edge.Data.Pipeline
 		{
 			return DeliveryDB.Get(deliveryID);
 		}
-
-		public static Delivery[] GetSimilars(Delivery exampleDelivery)
-		{
-			return DeliveryDB.GetSimilars(exampleDelivery);
-		}
-
-		public static void Rollback(params Delivery[] deliveries)
-		{
-			DeliveryDB.Rollback(deliveries);
-		}
 	}
     
 	
@@ -178,9 +176,21 @@ namespace Edge.Data.Pipeline
 	{
 		Initialized = 1,
 		Retrieved = 2,
-		Processed = 3,
+		Imported = 3,
 		Comitted = 4,
 		RolledBack = 5
 	}
-    
+
+
+	internal class RollbackOperation
+	{
+		public IAsyncResult AsyncResult;
+		public Action<Delivery[]> AsyncDelegate;
+
+		public void Wait()
+		{
+			this.AsyncResult.AsyncWaitHandle.WaitOne();
+			this.AsyncDelegate.EndInvoke(this.AsyncResult);
+		}
+	}
 }

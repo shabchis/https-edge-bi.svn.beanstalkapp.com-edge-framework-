@@ -10,6 +10,7 @@ using Edge.Core.Data;
 using Edge.Data.Objects;
 using Edge.Data.Objects.Reflection;
 using Edge.Core.Utilities;
+using Edge.Core.Services;
 
 
 namespace Edge.Data.Pipeline.Importing
@@ -17,8 +18,26 @@ namespace Edge.Data.Pipeline.Importing
 	/// <summary>
 	/// Encapsulates the process of adding ads and ad metrics to the delivery staging database.
 	/// </summary>
-	public class AdDataImportSession : DeliveryImportSession<AdMetricsUnit>, IDisposable
+	public class AdMetricsImportManager : DeliveryImportManager, IDisposable
 	{
+		#region Consts
+		public class Consts
+		{
+			public static class DeliveryHistoryParameters
+			{
+				public const string TablePerfix = "TablePerfix";
+				public const string MeasureNamesSql = "MeasureNamesSql";
+				public const string MeasureOltpFieldsSql = "MeasureOltpFieldsSql";
+			}
+
+			public static class AppSettings
+			{
+				public const string Delivery_SqlDb = "Sql.DeliveriesDb";
+				public const string Delivery_RollbackCommand = "Sql.RollbackSqlCommand";
+			}
+		}
+		#endregion
+
 		#region Table structure
 		/*=========================*/
 
@@ -200,7 +219,7 @@ namespace Edge.Data.Pipeline.Importing
 
 		class BulkObjects : IDisposable
 		{
-			public readonly static int BufferSize = int.Parse(AppSettings.Get(typeof(AdDataImportSession), "BufferSize"));
+			public readonly static int BufferSize = int.Parse(AppSettings.Get(typeof(AdMetricsImportManager), "BufferSize"));
 
 			public SqlConnection Connection;
 			public List<ColumnDef> Columns;
@@ -307,6 +326,9 @@ namespace Edge.Data.Pipeline.Importing
 		/*=========================*/
 		#endregion
 
+		#region Fields
+		/*=========================*/
+
 		private BulkObjects _bulkAd;
 		private BulkObjects _bulkAdSegment;
 		private BulkObjects _bulkAdTarget;
@@ -321,21 +343,25 @@ namespace Edge.Data.Pipeline.Importing
 		public string TablePrefix { get; private set; }
 		public Dictionary<string, Measure> Measures { get; private set; }
 
-		public readonly Dictionary<string, object> OutputParameters = new Dictionary<string, object>();
 
-		public AdDataImportSession(Delivery delivery)
-			: base(delivery)
+		public AdMetricsImportManager(long serviceInstanceID):base(serviceInstanceID)
 		{
 		}
 
-		public override void Begin(bool reset = true)
-		{
 
-			this.TablePrefix = string.Format("D{0}_{1}_{2}", Delivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), Delivery.DeliveryID.ToString("N").ToLower());
-			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this.TablePrefix);
+		/*=========================*/
+		#endregion
+
+		#region Import
+		/*=========================*/
+	
+		protected override void OnBeginImport()
+		{
+			this.TablePrefix = string.Format("D{0}_{1}_{2}", this.CurrentDelivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
+			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this.TablePrefix);
 			
 			// Connect to database
-			_sqlConnection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb));
+			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 
 			_bulkAd = new BulkObjects(this.TablePrefix, typeof(Tables.Ad), _sqlConnection);
@@ -351,16 +377,14 @@ namespace Edge.Data.Pipeline.Importing
 				oltpConnection.Open();
 
 				this.Measures = Measure.GetMeasures(
-					this.Delivery.Account,
-					this.Delivery.Channel,
+					this.CurrentDelivery.Account,
+					this.CurrentDelivery.Channel,
 					oltpConnection,
 						// NOT IsTarget and NOT IsCalculated and NOT IsBO
 						MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice,
 						MeasureOptionsOperator.Not
 					);
 			}
-
-
 
 			// Add measure columns to metrics,create measuresFieldNamesSQL,measuresNamesSQL
 			StringBuilder measuresFieldNamesSQL = new StringBuilder();
@@ -379,8 +403,8 @@ namespace Edge.Data.Pipeline.Importing
 				count++;
 			}
 
-			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql, measuresFieldNamesSQL.ToString());
-			this.OutputParameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
+			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql, measuresFieldNamesSQL.ToString());
+			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
 
 			// Create the tables
 			StringBuilder createTableCmdText = new StringBuilder();
@@ -397,6 +421,9 @@ namespace Edge.Data.Pipeline.Importing
 
 		public void ImportAd(Ad ad)
 		{
+			if (this.State != DeliveryImportManagerState.Importing)
+				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
+
 			string adUsid = GetAdIdentity(ad);
 
 			// Ad
@@ -471,6 +498,9 @@ namespace Edge.Data.Pipeline.Importing
 
 		public void ImportMetrics(AdMetricsUnit metrics)
 		{
+			if (this.State != DeliveryImportManagerState.Importing)
+				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
+
 			if (metrics.Ad == null)
 				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with an ad.");
 
@@ -533,12 +563,214 @@ namespace Edge.Data.Pipeline.Importing
 			return val;
 		}
 
-		public override void Commit()
+		protected void OnEndImport()
 		{
-			throw new NotSupportedException("Committing a session cannot be done from here.");
 		}
 
-		public void Apply()
+		/*=========================*/
+		#endregion
+
+		#region Commit
+		/*=========================*/
+
+		SqlTransaction _transaction = null;
+		SqlCommand _prepareCommand = null;
+
+		protected override void OnBeginCommit()
+		{
+			_sqlConnection = NewDeliveryDbConnection();
+			_sqlConnection.Open();
+
+			_transaction = _sqlConnection.BeginTransaction("Delivery Commit");
+		}
+
+		protected override void OnCommit()
+		{
+			string prepareCmdText;
+			if (!Service.Current.Instance.Configuration.Options.TryGetValue("PrepareSqlCommand", out prepareCmdText))
+				throw new InvalidOperationException(string.Format("Configuration option required: {0}", "PrepareSqlCommand"));
+			string commitCmdText;
+			if (!this.Instance.Configuration.Options.TryGetValue("CommitSqlCommand", out commitCmdText))
+				throw new InvalidOperationException(string.Format("Configuration option required: {0}", "CommitSqlCommand"));
+
+			DeliveryHistoryEntry processedEntry = this.Delivery.History.Last(entry => entry.Operation == DeliveryOperation.Imported);
+			if (processedEntry == null)
+				throw new Exception("This delivery has not been processed yet (could not find a 'processed' history entry).");
+
+			DeliveryHistoryEntry commitEntry = new DeliveryHistoryEntry(DeliveryOperation.Comitted, this.Instance.InstanceID, new Dictionary<string, object>());
+
+			// get this from last 'Processed' history entry
+			string measuresFieldNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
+			string measuresNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
+			string tablePerfix = processedEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			string deliveryId = this.Delivery.DeliveryID.ToString("N");
+			string commitTableName;
+
+			// ...........................
+			// FINALIZE data
+			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb)))
+			{
+				connection.Open();
+				using (SqlCommand command = DataManager.CreateCommand(prepareCmdText, CommandType.StoredProcedure))
+				{
+					command.Connection = connection;
+
+					command.Parameters["@DeliveryID"].Size = 4000;
+					command.Parameters["@DeliveryID"].Value = deliveryId;
+
+					command.Parameters["@DeliveryTablePrefix"].Size = 4000;
+					command.Parameters["@DeliveryTablePrefix"].Value = tablePerfix;
+
+					command.Parameters["@MeasuresNamesSQL"].Size = 4000;
+					command.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
+
+					command.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
+					command.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
+
+					command.Parameters["@CommitTableName"].Size = 4000;
+
+					command.ExecuteNonQuery();
+
+					commitEntry.Parameters["CommitTableName"] = commitTableName = command.Parameters["@CommitTableName"].Value.ToString();
+
+				}
+			}
+
+			// ...........................
+			// WAIT FOR ROLLBACK TO END
+			// If there's a rollback going on, wait for it to end (will throw exceptions if error occured)
+			if (rollbackOperation != null)
+			{
+				rollbackOperation.Wait();
+			}
+
+			// ...........................
+			// COMMIT data to OLTP
+			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb)))
+			{
+				connection.Open();
+				using (SqlCommand command = DataManager.CreateCommand(commitCmdText, CommandType.StoredProcedure))
+				{
+					command.Connection = connection;
+
+					command.Parameters["@DeliveryFileName"].Size = 4000;
+					command.Parameters["@DeliveryFileName"].Value = tablePerfix;
+
+					command.Parameters["@CommitTableName"].Size = 4000;
+					command.Parameters["@CommitTableName"].Value = commitTableName;
+
+					command.Parameters["@MeasuresNamesSQL"].Size = 4000;
+					command.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
+
+					command.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
+					command.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
+
+					command.ExecuteNonQuery();
+				}
+			}
+
+			this.Delivery.History.Add(commitEntry);
+			this.Delivery.Save();
+
+			return Core.Services.ServiceOutcome.Success;
+		}
+
+		internal static void Rollback(Delivery[] deliveries)
+		{
+			
+		}
+
+		public override void OnRollback()
+		{
+			string cmdText = AppSettings.Get(this, "Sql.RollbackCommand");
+			SqlCommand cmd = DataManager.CreateCommand(cmdText, System.Data.CommandType.StoredProcedure);
+			cmd.Connection = _sqlConnection;
+
+			string guid = this.Delivery.DeliveryID.ToString("N");
+			DeliveryHistoryEntry commitEntry = this.Delivery.History.Last(entry => entry.Operation == DeliveryOperation.Comitted);
+			if (commitEntry == null)
+				throw new Exception(String.Format("The delivery '{0}' has never been comitted so it cannot be rolled back.", guid));
+
+			cmd.Parameters["@DeliveryID"].Value = guid;
+			cmd.Parameters["@TableName"].Value = commitEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
+
+			this.Delivery.History.Add(
+				DeliveryOperation.RolledBack,
+				Service.Current != null ? new long?(Service.Current.Instance.InstanceID) : null);
+		}
+
+		public RollbackOperation RollbackConflicting(DeliveryConflictBehavior defaultBehavior, out Delivery newDelivery, bool async)
+		{
+			DeliveryConflictBehavior behavior = defaultBehavior;
+			string configuredBehavior;
+			if (Service.Current.Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
+				behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
+
+			RollbackOperation operation = null;
+			newDelivery = NewDelivery();
+
+			if (behavior != DeliveryConflictBehavior.Ignore)
+			{
+				Delivery[] conflicting = Delivery.GetConflicting(newDelivery);
+				if (conflicting.Length > 0)
+				{
+					// Check whether the last commit was not rolled back for each conflicting delivery
+					List<Delivery> toRollback = new List<Delivery>();
+					foreach (Delivery d in conflicting)
+					{
+						int rollbackIndex = -1;
+						int commitIndex = -1;
+						for (int i = 0; i < d.History.Count; i++)
+						{
+							if (d.History[i].Operation == DeliveryOperation.Comitted)
+								commitIndex = i;
+							else if (d.History[i].Operation == DeliveryOperation.RolledBack)
+								rollbackIndex = i;
+						}
+
+						if (commitIndex > rollbackIndex)
+							toRollback.Add(d);
+					}
+
+					if (behavior == DeliveryConflictBehavior.Rollback)
+					{
+						if (async)
+						{
+							operation = new RollbackOperation();
+							operation.AsyncDelegate = new Action<Delivery[]>(Delivery.Rollback);
+							operation.AsyncResult = operation.AsyncDelegate.BeginInvoke(toRollback.ToArray(), null, null);
+						}
+						else
+						{
+							Delivery.Rollback(toRollback.ToArray());
+						}
+					}
+					else
+					{
+						StringBuilder guids = new StringBuilder();
+						for (int i = 0; i < conflicting.Length; i++)
+						{
+							guids.Append(conflicting[i].DeliveryID.ToString("N"));
+							if (i < conflicting.Length - 1)
+								guids.Append(", ");
+						}
+						throw new Exception("Conflicting deliveries found: " + guids.ToString());
+					}
+				}
+			}
+
+			return operation;
+		}
+
+		/*=========================*/
+		#endregion
+
+		SqlConnection NewDeliveryDbConnection()
+		{
+			return new SqlConnection(AppSettings.GetConnectionString(this, Consts.AppSettings.Delivery_SqlDb));
+		}
+			
+		void IDisposable.Dispose()
 		{
 			_bulkAd.Dispose(true);
 			_bulkAdCreative.Dispose(true);
@@ -548,14 +780,9 @@ namespace Edge.Data.Pipeline.Importing
 			_bulkMetricsTargetMatch.Dispose(true);
 
 			_sqlConnection.Dispose();
-
-			this.Delivery.History.Add(DeliveryOperation.Processed, Edge.Core.Services.Service.Current.Instance.InstanceID, this.OutputParameters);
-			this.Delivery.Save();
 		}
 
-		void IDisposable.Dispose()
-		{
-			this.Apply();
-		}
+
 	}
+
 }

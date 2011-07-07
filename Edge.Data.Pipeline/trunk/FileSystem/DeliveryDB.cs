@@ -139,44 +139,7 @@ namespace Edge.Data.Pipeline
 			return similars;
 		}
 
-		internal static void Rollback(Delivery[] deliveries)
-		{
-			string cmdText = Service.Current.Instance.Configuration.Options["RollbackSqlCommand"];
-			SqlCommand cmd = DataManager.CreateCommand(cmdText, System.Data.CommandType.StoredProcedure);
-
-			using (SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), Consts.AppSettings.Delivery_SqlDb)))
-			{
-				connection.Open();
-				using (SqlTransaction transaction = connection.BeginTransaction())
-				{
-					cmd.Connection = connection;
-					cmd.Transaction = transaction;
-
-					foreach (Delivery delivery in deliveries)
-					{
-						string guid = delivery.DeliveryID.ToString("N");
-						DeliveryHistoryEntry commitEntry = delivery.History.Last(entry => entry.Operation == DeliveryOperation.Comitted);
-						if (commitEntry == null)
-							throw new Exception(String.Format("The delivery '{0}' has never been comitted so it cannot be rolled back.", guid));
-
-						cmd.Parameters["@DeliveryID"].Value = guid;
-						cmd.Parameters["@TableName"].Value = commitEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
-
-						cmd.ExecuteNonQuery();
-					}
-
-					transaction.Commit();
-				}
-			}
-
-			// If all the rollback transactions executed successfully, add a rolled back entry to all of them
-			foreach (Delivery delivery in deliveries)
-			{
-				delivery.History.Add(
-					DeliveryOperation.RolledBack,
-					Service.Current != null ? new long?(Service.Current.Instance.InstanceID) : null);
-			}
-		}
+		
 	}
 
 	internal static class DeliveryDBClient

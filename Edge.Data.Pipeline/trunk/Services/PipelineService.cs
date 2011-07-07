@@ -8,6 +8,7 @@ using Edge.Data.Pipeline;
 using System.Text.RegularExpressions;
 using System.Configuration;
 using Edge.Core.Configuration;
+using Edge.Data.Pipeline.Importing;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -82,10 +83,9 @@ namespace Edge.Data.Pipeline.Services
 
 				return _delivery;
 			}
-			internal set
+			private set
 			{
 				_delivery = value;
-				//_delivery.Saved += new Action<Delivery>((d) => this.WorkflowContext["DeliveryGuid"] = _delivery.Guid.ToString());
 			}
 		}
 
@@ -102,6 +102,45 @@ namespace Edge.Data.Pipeline.Services
 					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
 
 				return deliveryID;
+			}
+		}
+
+		public Delivery NewDelivery()
+		{
+			return new Delivery(this.Instance.InstanceID, this.TargetDeliveryID);
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="delivery"></param>
+		/// <param name="conflictBehavior">Indicates how conflicting deliveries will be handled.</param>
+		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
+		public void ApplyDelivery(Delivery delivery, DeliveryImportManager importManager = null, DeliveryConflictBehavior conflictBehavior = DeliveryConflictBehavior.Default)
+		{
+			if (this.Delivery != null)
+				throw new InvalidOperationException("Cannot apply a delivery because a delivery is already applied.");
+
+			Delivery[] conflicting = delivery.GetConflicting();
+			if (conflicting.Length > 0)
+			{
+				// Check whether the last commit was not rolled back for each conflicting delivery
+				List<Delivery> toRollback = new List<Delivery>();
+				foreach (Delivery d in conflicting)
+				{
+					int rollbackIndex = -1;
+					int commitIndex = -1;
+					for (int i = 0; i < d.History.Count; i++)
+					{
+						if (d.History[i].Operation == DeliveryOperation.Comitted)
+							commitIndex = i;
+						else if (d.History[i].Operation == DeliveryOperation.RolledBack)
+							rollbackIndex = i;
+					}
+
+					if (commitIndex > rollbackIndex)
+						toRollback.Add(d);
+				}
 			}
 		}
 
@@ -131,7 +170,7 @@ namespace Edge.Data.Pipeline.Services
 		#endregion
 	}
 
-	enum DeliveryConflictBehavior
+	public enum DeliveryConflictBehavior
 	{
 		Default,
 		Ignore,
