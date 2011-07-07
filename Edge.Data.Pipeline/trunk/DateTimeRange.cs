@@ -53,8 +53,23 @@ namespace Edge.Data.Pipeline
 
 
 			 return JsonConvert.SerializeObject(timeRange);
-			
-			
+		}
+
+		public DateTimeRange ToAbsolute()
+		{
+			return new DateTimeRange()
+			{
+				Start = new DateTimeSpecification()
+				{
+					BaseDateTime = this.Start.ToDateTime(),
+					Boundary = DateTimeSpecificationBounds.Lower
+				},
+				End = new DateTimeSpecification()
+				{
+					BaseDateTime = this.End.ToDateTime(),
+					Boundary = DateTimeSpecificationBounds.Upper
+				}
+			};
 		}
 
 		#region Default values
