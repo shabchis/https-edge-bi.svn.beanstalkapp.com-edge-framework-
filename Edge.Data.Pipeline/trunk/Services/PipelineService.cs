@@ -8,7 +8,7 @@ using Edge.Data.Pipeline;
 using System.Text.RegularExpressions;
 using System.Configuration;
 using Edge.Core.Configuration;
-using Edge.Data.Pipeline.Importing;
+using System.Threading;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -83,8 +83,11 @@ namespace Edge.Data.Pipeline.Services
 
 				return _delivery;
 			}
-			private set
+			set
 			{
+				if (this.Delivery != null)
+					throw new InvalidOperationException("Cannot apply a delivery because a delivery is already applied.");
+
 				_delivery = value;
 			}
 		}
@@ -116,32 +119,59 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="delivery"></param>
 		/// <param name="conflictBehavior">Indicates how conflicting deliveries will be handled.</param>
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
-		public void ApplyDelivery(Delivery delivery, DeliveryImportManager importManager = null, DeliveryConflictBehavior conflictBehavior = DeliveryConflictBehavior.Default)
+		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior)
 		{
-			if (this.Delivery != null)
-				throw new InvalidOperationException("Cannot apply a delivery because a delivery is already applied.");
+			DeliveryConflictBehavior behavior = defaultConflictBehavior;
+			string configuredBehavior;
+			if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
+				behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
 
-			Delivery[] conflicting = delivery.GetConflicting();
-			if (conflicting.Length > 0)
+			Delivery[] conflicting = this.Delivery.GetConflicting();
+			if (conflicting.Length < 1)
+				return null;
+
+			
+			// Check whether the last commit was not rolled back for each conflicting delivery
+			List<Delivery> toRollback = new List<Delivery>();
+			foreach (Delivery d in conflicting)
 			{
-				// Check whether the last commit was not rolled back for each conflicting delivery
-				List<Delivery> toRollback = new List<Delivery>();
-				foreach (Delivery d in conflicting)
+				int rollbackIndex = -1;
+				int commitIndex = -1;
+				for (int i = 0; i < d.History.Count; i++)
 				{
-					int rollbackIndex = -1;
-					int commitIndex = -1;
-					for (int i = 0; i < d.History.Count; i++)
-					{
-						if (d.History[i].Operation == DeliveryOperation.Comitted)
-							commitIndex = i;
-						else if (d.History[i].Operation == DeliveryOperation.RolledBack)
-							rollbackIndex = i;
-					}
+					if (d.History[i].Operation == DeliveryOperation.Comitted)
+						commitIndex = i;
+					else if (d.History[i].Operation == DeliveryOperation.RolledBack)
+						rollbackIndex = i;
+				}
 
-					if (commitIndex > rollbackIndex)
-						toRollback.Add(d);
+				if (commitIndex > rollbackIndex)
+					toRollback.Add(d);
+			}
+
+			DeliveryRollbackOperation operation = null;
+			if (toRollback.Count > 0)
+			{
+				if (behavior == DeliveryConflictBehavior.Rollback)
+				{
+					operation = new DeliveryRollbackOperation();
+					operation.AsyncDelegate = new Action<Delivery[]>(importManager.Rollback);
+					operation.AsyncResult = operation.AsyncDelegate.BeginInvoke(toRollback.ToArray(), null, null);	
+				}
+				else
+				{
+					StringBuilder guids = new StringBuilder();
+					for (int i = 0; i < conflicting.Length; i++)
+					{
+						guids.Append(conflicting[i].DeliveryID.ToString("N"));
+						if (i < conflicting.Length - 1)
+							guids.Append(", ");
+					}
+					throw new Exception("Conflicting deliveries found: " + guids.ToString());
 				}
 			}
+
+			return operation;
 		}
 
 		// ==============================
@@ -172,10 +202,21 @@ namespace Edge.Data.Pipeline.Services
 
 	public enum DeliveryConflictBehavior
 	{
-		Default,
 		Ignore,
 		Abort,
 		Rollback
+	}
+
+	public class DeliveryRollbackOperation
+	{
+		internal IAsyncResult AsyncResult;
+		internal Action<Delivery[]> AsyncDelegate;
+
+		public void Wait()
+		{
+			this.AsyncResult.AsyncWaitHandle.WaitOne();
+			this.AsyncDelegate.EndInvoke(this.AsyncResult);
+		}
 	}
 
 }

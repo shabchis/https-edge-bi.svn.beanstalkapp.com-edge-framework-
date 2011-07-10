@@ -11,8 +11,9 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OriginalID;
 		public string DestinationUrl;
-		public List<Creative> Creatives=new List<Creative>();
-		public List<Target> Targets=new List<Target>();
+		public List<Creative> Creatives = new List<Creative>();
+		public List<Target> Targets = new List<Target>();
+		public ObjectStatus Status;
 
 		/// <summary>
 		/// Extra fields for use by channels which have extra metadata per target.
