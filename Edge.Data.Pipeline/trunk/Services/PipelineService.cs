@@ -45,6 +45,7 @@ namespace Edge.Data.Pipeline.Services
 		{
 			public const string DeliveryID = "DeliveryID";
 			public const string TargetPeriod = "TargetPeriod";
+			public const string ConflictBehavior = "ConflictBehavior";
 		}
 
 
@@ -119,12 +120,15 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="delivery"></param>
 		/// <param name="conflictBehavior">Indicates how conflicting deliveries will be handled.</param>
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
-		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior)
+		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
 			DeliveryConflictBehavior behavior = defaultConflictBehavior;
-			string configuredBehavior;
-			if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
-				behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
+			if (getBehaviorFromConfiguration)
+			{
+				string configuredBehavior;
+				if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
+					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
+			}
 
 			if (behavior == DeliveryConflictBehavior.Ignore)
 				return null;

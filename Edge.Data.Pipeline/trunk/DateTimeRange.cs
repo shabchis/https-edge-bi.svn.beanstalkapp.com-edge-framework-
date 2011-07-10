@@ -55,6 +55,10 @@ namespace Edge.Data.Pipeline
 			 return JsonConvert.SerializeObject(timeRange);
 		}
 
+		/// <summary>
+		/// Converts the transformations of the range into absolute base date/time values.
+		/// </summary>
+		/// <returns></returns>
 		public DateTimeRange ToAbsolute()
 		{
 			return new DateTimeRange()

@@ -19,7 +19,10 @@ namespace Edge.Data.Pipeline.AdMetrics
 				SqlRollbackCommand = Instance.Configuration.Options[AdMetricsImportManager.Consts.AppSettings.SqlRollbackCommand],
 			});
 
-			DeliveryRollbackOperation rollback = this.HandleConflicts(importManager, DeliveryConflictBehavior.Rollback);
+			DeliveryRollbackOperation rollback = this.HandleConflicts(importManager, DeliveryConflictBehavior.Rollback,
+				getBehaviorFromConfiguration:false
+			);
+
 			if (rollback != null)
 				rollback.Wait();
 
