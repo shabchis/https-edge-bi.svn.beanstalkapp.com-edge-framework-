@@ -12,7 +12,12 @@ namespace Edge.Data.Pipeline.AdMetrics
 	{
 		protected override ServiceOutcome DoPipelineWork()
 		{
-			AdMetricsImportManager importManager = new AdMetricsImportManager(this.Instance.InstanceID);
+			AdMetricsImportManager importManager = new AdMetricsImportManager(this.Instance.InstanceID, new AdMetricsImportManager.ImportManagerOptions()
+			{
+				SqlPrepareCommand = Instance.Configuration.Options[AdMetricsImportManager.Consts.AppSettings.SqlPrepareCommand],
+				SqlCommitCommand = Instance.Configuration.Options[AdMetricsImportManager.Consts.AppSettings.SqlCommitCommand],
+				SqlRollbackCommand = Instance.Configuration.Options[AdMetricsImportManager.Consts.AppSettings.SqlRollbackCommand],
+			});
 
 			DeliveryRollbackOperation rollback = this.HandleConflicts(importManager, DeliveryConflictBehavior.Rollback);
 			if (rollback != null)
