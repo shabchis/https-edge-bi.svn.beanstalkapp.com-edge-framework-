@@ -18,5 +18,10 @@ namespace Edge.Data.Objects
 	{
 		public string OriginalID;
 		public string Value;
+
+		/// <summary>
+		/// Extra fields for use by channels which have additional metadata per segment.
+		/// </summary>
+		public Dictionary<ExtraField, object> ExtraFields = new Dictionary<ExtraField, object>();
 	}
 }

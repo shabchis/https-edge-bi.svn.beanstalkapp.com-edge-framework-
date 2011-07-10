@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Data.Pipeline.Importing
+namespace Edge.Data.Pipeline
 {
-	public abstract class DeliveryImportManager
+	public abstract class DeliveryImportManager: IDisposable
 	{
 		long _serviceInstanceID;
 
@@ -34,6 +34,16 @@ namespace Edge.Data.Pipeline.Importing
 			private set;
 		}
 
+		protected virtual int CommitPassCount
+		{
+			get { return 1; }
+		}
+		protected virtual int RollbackPassCount
+		{
+			get { return 1; }
+		}
+
+
 		public void BeginImport(Delivery delivery)
 		{
 			ThrowIfNotIdle();
@@ -57,68 +67,99 @@ namespace Edge.Data.Pipeline.Importing
 			this.HistoryEntryParameters = null;
 
 			this.State = DeliveryImportManagerState.Idle;
+
+			OnDisposeImport();
+			OnDispose();
 		}
 
 		public void Commit(Delivery[] deliveries)
 		{
-			ThrowIfNotIdle();
-			this.State = DeliveryImportManagerState.Comitting;
-			Dictionary<string, object>[] entryParams = new Dictionary<string, object>[deliveries.Length];
-			OnBeginCommit();
-			for(int i = 0; i < deliveries.Length; i++)
-			{
-				this.CurrentDelivery = deliveries[i];
-				this.HistoryEntryParameters = new Dictionary<string, object>();
-
-				OnCommit();
-				entryParams[i] = this.HistoryEntryParameters;
-			}
-
-			this.CurrentDelivery = null;
-			this.HistoryEntryParameters = null;
-
-			OnEndCommit();
-
-			// Add history and save
-			for (int i = 0; i < deliveries.Length; i++)
-			{
-				Delivery delivery = deliveries[i];
-				delivery.History.Add(DeliveryOperation.Comitted, this._serviceInstanceID, entryParams[i]);
-				delivery.Save();
-			}
-			
-			this.State = DeliveryImportManagerState.Idle;
+			this.Batch(deliveries,
+				this.CommitPassCount,
+				OnBeginCommit,
+				OnEndCommit,
+				OnBeginCommitPass,
+				OnEndCommitPass,
+				OnCommit,
+				OnDisposeCommit,
+				DeliveryImportManagerState.Comitting,
+				DeliveryOperation.Comitted);
 		}
 
 		public void Rollback(Delivery[] deliveries)
 		{
-			ThrowIfNotIdle();
-			this.State = DeliveryImportManagerState.Comitting;
-			Dictionary<string, object>[] entryParams = new Dictionary<string, object>[deliveries.Length];
-			OnBeginRollback();
-			for (int i = 0; i < deliveries.Length; i++)
-			{
-				this.CurrentDelivery = deliveries[i];
-				this.HistoryEntryParameters = new Dictionary<string, object>();
+			this.Batch(deliveries,
+				this.RollbackPassCount,
+				OnBeginRollback,
+				OnEndRollback,
+				OnBeginRollbackPass,
+				OnEndRollbackPass,
+				OnRollback,
+				OnDisposeRollback,
+				DeliveryImportManagerState.RollingBack,
+				DeliveryOperation.RolledBack);
+		}
 
-				OnRollback();
-				entryParams[i] = this.HistoryEntryParameters;
+
+		void Batch(Delivery[] deliveries,
+			int passes,
+			Action onBegin,
+			Action<Exception> onEnd,
+			Action<int> onBeginPass,
+			Action<int> onEndPass,
+			Action<int> onItem,
+			Action onDispose,
+			DeliveryImportManagerState activeState,
+			DeliveryOperation historyOperation)
+		{
+			ThrowIfNotIdle();
+			this.State = activeState;
+			Dictionary<string, object>[] entryParams = new Dictionary<string, object>[deliveries.Length];
+
+			onBegin();
+			Exception exception = null;
+
+			try
+			{
+				for (int pass = 0; pass < passes; pass++)
+				{
+					for (int i = 0; i < deliveries.Length; i++)
+					{
+						this.CurrentDelivery = deliveries[i];
+						this.HistoryEntryParameters = entryParams[i] ?? (entryParams[i] = new Dictionary<string, object>());
+
+						onItem(pass);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				exception = ex;
 			}
 
 			this.CurrentDelivery = null;
 			this.HistoryEntryParameters = null;
 
-			OnEndRollback();
+			onEnd(exception);
 
-			// Add history and save
-			for (int i = 0; i < deliveries.Length; i++)
+			if (exception == null)
 			{
-				Delivery delivery = deliveries[i];
-				delivery.History.Add(DeliveryOperation.Comitted, this._serviceInstanceID, entryParams[i]);
-				delivery.Save();
+				// Add history and save
+				for (int i = 0; i < deliveries.Length; i++)
+				{
+					Delivery delivery = deliveries[i];
+					delivery.History.Add(historyOperation, this._serviceInstanceID, entryParams[i]);
+					delivery.Save();
+				}
 			}
+			else
+				// Throw exception
+				throw exception;
 
 			this.State = DeliveryImportManagerState.Idle;
+
+			onDispose();
+			OnDispose();
 		}
 
 		void ThrowIfNotIdle()
@@ -127,14 +168,30 @@ namespace Edge.Data.Pipeline.Importing
 				throw new InvalidOperationException("DeliveryImportManager is currently in a busy state.");
 		}
 
-		protected abstract void OnBeginImport();
-		protected abstract void OnEndImport();
-		protected abstract void OnBeginCommit();
-		protected abstract void OnCommit();
-		protected abstract void OnEndCommit();
-		protected abstract void OnBeginRollback();
-		protected abstract void OnRollback();
-		protected abstract void OnEndRollback();
+		public void Dispose()
+		{
+			OnDisposeImport();
+			OnDisposeCommit();
+			OnDisposeRollback();
+			OnDispose();
+		}
+
+		protected virtual void OnBeginImport() {}
+		protected virtual void OnEndImport() { }
+		protected virtual void OnDisposeImport() { }
+		protected virtual void OnBeginCommit() { }
+		protected virtual void OnBeginCommitPass(int pass) { }
+		protected abstract void OnCommit(int pass);
+		protected virtual void OnEndCommitPass(int pass) { }
+		protected virtual void OnEndCommit(Exception ex) { }
+		protected virtual void OnDisposeCommit() { }
+		protected virtual void OnBeginRollback() { }
+		protected virtual void OnBeginRollbackPass(int pass) { }
+		protected abstract void OnRollback(int pass);
+		protected virtual void OnEndRollbackPass(int pass) { }
+		protected virtual void OnEndRollback(Exception ex) { }
+		protected virtual void OnDisposeRollback() { }
+		protected virtual void OnDispose() { }
 	}
 
 	public enum DeliveryImportManagerState

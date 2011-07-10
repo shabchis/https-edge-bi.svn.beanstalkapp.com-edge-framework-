@@ -13,6 +13,16 @@ namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
+		#region Consts
+		public class Consts
+		{
+			public static class ConnectionStrings
+			{
+				public const string SqlStagingDatabase = "Sql.StagingDatabase";
+			}
+		}
+		#endregion
+
 		DeliveryFileList _files;
 		DateTimeRange _targetPeriod;
 		DateTime _dateCreated = DateTime.Now;
@@ -159,7 +169,10 @@ namespace Edge.Data.Pipeline
 
 		public Delivery[] GetConflicting()
 		{
-			DeliveryDB.GetConflicting(this);
+			if (this.Signature == null)
+				throw new InvalidOperationException("The delivery does not have a signature - cannot search for conflicts.");
+
+			return DeliveryDB.GetBySignature(this.Signature, new Guid[] {this.DeliveryID});
 		}
 
 		// Statics
@@ -170,8 +183,8 @@ namespace Edge.Data.Pipeline
 			return DeliveryDB.Get(deliveryID);
 		}
 	}
-    
-	
+
+
 	public enum DeliveryOperation
 	{
 		Initialized = 1,
@@ -179,18 +192,5 @@ namespace Edge.Data.Pipeline
 		Imported = 3,
 		Comitted = 4,
 		RolledBack = 5
-	}
-
-
-	internal class RollbackOperation
-	{
-		public IAsyncResult AsyncResult;
-		public Action<Delivery[]> AsyncDelegate;
-
-		public void Wait()
-		{
-			this.AsyncResult.AsyncWaitHandle.WaitOne();
-			this.AsyncDelegate.EndInvoke(this.AsyncResult);
-		}
 	}
 }

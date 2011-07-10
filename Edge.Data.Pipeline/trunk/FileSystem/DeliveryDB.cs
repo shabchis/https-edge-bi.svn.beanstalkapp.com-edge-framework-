@@ -127,16 +127,17 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		internal static Delivery[] GetSimilars(Delivery exampleDelivery, int activationLevel = -1)
+		internal static Delivery[] GetBySignature(string signature, Guid[] exclude)
 		{
-			Delivery[] similars;
 			using (var client = DeliveryDBClient.Connect())
 			{
-				IObjectSet results = client.QueryByExample(exampleDelivery);
-				similars = new Delivery[results.Count];
-				results.CopyTo(similars, 0);
+				// Select deliveries that match a signature but none of the guids in 'exclude'
+				var results = from Delivery d in client
+							  where d.Signature == signature && !exclude.Any(toExclude => d.DeliveryID == toExclude)
+							 select d;
+
+				return results.ToArray();
 			}
-			return similars;
 		}
 
 		
