@@ -42,15 +42,9 @@ namespace Edge.Data.Pipeline.Services
 						}
 					};
 
-					// { start: '2009-01-01 00:00:00.00000', end: '2009-01-01 23:59:59.99999' }
-					var finalRange = new DateTimeRange()
-					{
-						Start = new DateTimeSpecification() { BaseDateTime = subRange.Start.ToDateTime() },
-						End = new DateTimeSpecification() { BaseDateTime = subRange.End.ToDateTime() }
-					};
-
 					SettingsCollection options = new SettingsCollection();
-					options.Add(PipelineService.ConfigurationOptionNames.TargetPeriod, finalRange.ToString());
+					options.Add(PipelineService.ConfigurationOptionNames.TargetPeriod, subRange.ToAbsolute().ToString());
+					options.Add(PipelineService.ConfigurationOptionNames.ConflictBehavior, DeliveryConflictBehavior.Ignore.ToString());
 
 					//run the service
 					scheduleManager.Service.AddToSchedule(serviceName,this.Instance.AccountID,DateTime.Now, options);
