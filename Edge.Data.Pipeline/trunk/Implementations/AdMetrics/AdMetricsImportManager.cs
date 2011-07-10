@@ -28,10 +28,20 @@ namespace Edge.Data.Pipeline.AdMetrics
 				public const string TablePerfix = "TablePerfix";
 				public const string MeasureNamesSql = "MeasureNamesSql";
 				public const string MeasureOltpFieldsSql = "MeasureOltpFieldsSql";
+				public const string CommitTableName = "CommitTableName";
 			}
 
 			public static class AppSettings
 			{
+				public const string BufferSize = "BufferSize";
+				public const string SqlPrepareCommand = "SQL.PrepareCommand";
+				public const string SqlCommitCommand = "SQL.CommitCommand";
+				public const string SqlRollbackCommand = "SQL.RollbackCommand";
+			}
+
+			public static class ConnectionStrings
+			{
+				public const string Oltp = "OLTP";
 			}
 		}
 		#endregion
@@ -216,7 +226,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 		class BulkObjects : IDisposable
 		{
-			public readonly static int BufferSize = int.Parse(AppSettings.Get(typeof(AdMetricsImportManager), "BufferSize"));
+			public readonly static int BufferSize = int.Parse(AppSettings.Get(typeof(AdMetricsImportManager), AdMetricsImportManager.Consts.AppSettings.BufferSize));
 
 			public SqlConnection Connection;
 			public List<ColumnDef> Columns;
@@ -339,10 +349,11 @@ namespace Edge.Data.Pipeline.AdMetrics
 		public AdMetricsImportManager(long serviceInstanceID, ImportManagerOptions options = null):base(serviceInstanceID)
 		{
 			options = options ?? new ImportManagerOptions();
-			options.SqlOltpConnectionString = options.SqlOltpConnectionString ?? AppSettings.GetConnectionString(this, "OLTP");
-			options.SqlPrepareCommand = options.SqlPrepareCommand ?? AppSettings.Get(this, "SQL.PrepareCommand");
-			options.SqlCommitCommand = options.SqlCommitCommand ?? AppSettings.Get(this, "SQL.CommitCommand");
-			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, "SQL.RollbackCommand");
+			options.SqlOltpConnectionString = options.SqlOltpConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Oltp);
+			options.SqlPrepareCommand = options.SqlPrepareCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlPrepareCommand, throwException: false);
+			options.SqlCommitCommand = options.SqlCommitCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlCommitCommand, throwException: false);
+			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
+			this.Options = options;
 		}
 
 		/*=========================*/
@@ -612,6 +623,12 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 		protected override void OnBeginCommit()
 		{
+			if (String.IsNullOrWhiteSpace(this.Options.SqlPrepareCommand))
+				throw new ConfigurationException("Options.SqlPrepareCommand is empty.");
+
+			if (String.IsNullOrWhiteSpace(this.Options.SqlCommitCommand))
+				throw new ConfigurationException("Options.SqlCommitCommand is empty.");
+
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 		}
@@ -656,7 +673,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 				
 				_prepareCommand.ExecuteNonQuery();
 
-				this.HistoryEntryParameters["CommitTableName"] = _prepareCommand.Parameters["@CommitTableName"].Value.ToString();
+				this.HistoryEntryParameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
 			}
 			else if (pass == Commit_COMMIT_PASS)
 			{
@@ -705,6 +722,9 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 		protected override void OnBeginRollback()
 		{
+			if (String.IsNullOrWhiteSpace(this.Options.SqlRollbackCommand))
+				throw new ConfigurationException("Options.SqlRollbackCommand is empty.");
+
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 			_rollbackTransaction = _sqlConnection.BeginTransaction("Delivery Rollback");
@@ -722,7 +742,9 @@ namespace Edge.Data.Pipeline.AdMetrics
 			_rollbackCommand.Transaction = _rollbackTransaction;
 
 			_rollbackCommand.Parameters["@DeliveryID"].Value = guid;
-			_rollbackCommand.Parameters["@TableName"].Value = commitEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
+			_rollbackCommand.Parameters["@TableName"].Value = commitEntry.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+			
+			_rollbackCommand.ExecuteNonQuery();
 		}
 
 		protected override void OnEndRollback(Exception ex)
@@ -735,7 +757,8 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 		protected override void OnDisposeRollback()
 		{
-			_rollbackTransaction.Dispose();
+			if (_rollbackTransaction != null)
+				_rollbackTransaction.Dispose();
 		}
 
 		/*=========================*/

@@ -126,14 +126,17 @@ namespace Edge.Data.Pipeline.Services
 			if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
 				behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
 
-			Delivery[] conflicting = this.Delivery.GetConflicting();
-			if (conflicting.Length < 1)
+			if (behavior == DeliveryConflictBehavior.Ignore)
 				return null;
 
-			
+			Delivery[] conflicting = this.Delivery.GetConflicting();
+			Delivery[] toCheck = new Delivery[conflicting.Length + 1];
+			toCheck[0] = this.Delivery;
+			conflicting.CopyTo(toCheck, 1);
+
 			// Check whether the last commit was not rolled back for each conflicting delivery
 			List<Delivery> toRollback = new List<Delivery>();
-			foreach (Delivery d in conflicting)
+			foreach (Delivery d in toCheck)
 			{
 				int rollbackIndex = -1;
 				int commitIndex = -1;
@@ -161,10 +164,10 @@ namespace Edge.Data.Pipeline.Services
 				else
 				{
 					StringBuilder guids = new StringBuilder();
-					for (int i = 0; i < conflicting.Length; i++)
+					for (int i = 0; i < toRollback.Count; i++)
 					{
-						guids.Append(conflicting[i].DeliveryID.ToString("N"));
-						if (i < conflicting.Length - 1)
+						guids.Append(toRollback[i].DeliveryID.ToString("N"));
+						if (i < toRollback.Count - 1)
 							guids.Append(", ");
 					}
 					throw new Exception("Conflicting deliveries found: " + guids.ToString());
