@@ -51,7 +51,7 @@ namespace Edge.Data.Pipeline
 
 		public void Add(DeliveryHistoryEntry item)
 		{
-			throw new NotImplementedException();
+			_list.Add(item);
 		}
 
 		void ICollection<DeliveryHistoryEntry>.Clear()
