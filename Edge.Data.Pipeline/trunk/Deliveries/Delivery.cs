@@ -18,7 +18,7 @@ namespace Edge.Data.Pipeline
 		{
 			public static class ConnectionStrings
 			{
-				public const string SqlStagingDatabase = "Sql.StagingDatabase";
+				public const string SqlStagingDatabase = "Sql.DeliveriesDb";
 			}
 		}
 		#endregion

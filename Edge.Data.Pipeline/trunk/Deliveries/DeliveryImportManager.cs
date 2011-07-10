@@ -123,6 +123,7 @@ namespace Edge.Data.Pipeline
 			{
 				for (int pass = 0; pass < passes; pass++)
 				{
+					onBeginPass(pass);
 					for (int i = 0; i < deliveries.Length; i++)
 					{
 						this.CurrentDelivery = deliveries[i];
@@ -130,6 +131,7 @@ namespace Edge.Data.Pipeline
 
 						onItem(pass);
 					}
+					onEndPass(pass);
 				}
 			}
 			catch (Exception ex)
