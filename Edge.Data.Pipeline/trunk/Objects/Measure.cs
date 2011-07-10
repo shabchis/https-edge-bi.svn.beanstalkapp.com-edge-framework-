@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
 using Edge.Core.Data;
+using Edge.Core.Configuration;
 
 namespace Edge.Data.Objects
 {
@@ -31,13 +32,8 @@ namespace Edge.Data.Objects
 
 		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator)
 		{
-			SqlCommand cmd = DataManager.CreateCommand(@"Measure_GetMeasures(
-				@accountID:Int,
-				@channelID:Int,
-				@flags:int,
-				@operator:int"
-				,
-			System.Data.CommandType.StoredProcedure);
+			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure),"GetMeasures.SP"),
+				System.Data.CommandType.StoredProcedure);
 			cmd.Connection = connection;
 
 			cmd.Parameters["@accountID"].Value = account == null ? DBNull.Value : (object)account.ID;
