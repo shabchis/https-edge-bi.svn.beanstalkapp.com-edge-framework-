@@ -133,6 +133,9 @@ namespace Edge.Data.Pipeline.Services
 			if (behavior == DeliveryConflictBehavior.Ignore)
 				return null;
 
+			if (this.Delivery.Signature == null)
+				throw new InvalidOperationException("Cannot handle conflicts before a valid signature is given to the delivery.");
+
 			Delivery[] conflicting = this.Delivery.GetConflicting();
 			Delivery[] toCheck = new Delivery[conflicting.Length + 1];
 			toCheck[0] = this.Delivery;

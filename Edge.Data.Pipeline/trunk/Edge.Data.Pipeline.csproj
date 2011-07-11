@@ -105,11 +105,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Consts.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
     <Compile Include="Implementations\AdMetrics\AdMetricsCommitService.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
+    <Compile Include="Services\Generic\Const.cs" />
+    <Compile Include="Services\Generic\InitializerService.cs" />
+    <Compile Include="Services\Generic\RetrieverService.cs" />
     <Compile Include="Utilities\Configuration\AutoSegmentsConfiguration.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
