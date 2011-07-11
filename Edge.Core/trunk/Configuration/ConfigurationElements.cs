@@ -1371,9 +1371,22 @@ namespace Edge.Core.Configuration
 			if (serviceElement == null)
 				throw new ArgumentNullException("serviceElement");
 
+			// Clone the workflow steps so they won't be read only
+			this.Workflow = new WorkflowStepElementCollection();
+			foreach (WorkflowStepElement step in serviceElement.Workflow)
+			{
+				WorkflowStepElement duplicatedStep = new WorkflowStepElement();
+				foreach (ConfigurationProperty property in duplicatedStep.InnerProperties)
+					duplicatedStep[property] = step[property];
+				this.Workflow.Add(duplicatedStep);
+			}
+
 			// Apply base service properties
 			foreach (ConfigurationProperty property in serviceElement.InnerProperties)
-				ApplyProperty(serviceElement, property, true);
+			{
+				if (property.Type != typeof(WorkflowStepElementCollection))
+					ApplyProperty(serviceElement, property, true);
+			}
 
 			// Apply options
 			foreach (KeyValuePair<string, string> pair in serviceElement.Options)
