@@ -68,7 +68,7 @@ namespace Edge.Data.Pipeline
 
 		internal static Guid Save(Delivery delivery)
 		{
-			Log.Write(String.Format("Delivery - saving: {0}\n", delivery.DeliveryID), LogMessageType.Information);
+			
 			using (var client = DeliveryDBClient.Connect())
 			{
 				Guid guid = delivery.DeliveryID;
