@@ -725,10 +725,13 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 		protected override void OnEndCommit(Exception ex)
 		{
-			if (ex == null)
-				_commitTransaction.Commit();
-			else
-				_commitTransaction.Rollback();
+			if (_commitTransaction != null)
+			{
+				if (ex == null)
+					_commitTransaction.Commit();
+				else
+					_commitTransaction.Rollback();
+			}
 		}
 
 		protected override void OnDisposeCommit()
