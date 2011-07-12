@@ -135,6 +135,15 @@ namespace Edge.Data.Pipeline.AdMetrics
 				public static ColumnDef PpcKeywordGK = new ColumnDef("PpcKeywordGK", type: SqlDbType.NChar, size: 50, nullable: true);
 			}
 
+			public static class MetricsTargetMatchSegment
+			{
+				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
+				public static ColumnDef MetricsUnitGuid = new ColumnDef("MetricsUnitGuid", size: 300, nullable: false);
+				public static ColumnDef SegmentID = new ColumnDef("SegmentID", type: SqlDbType.Int, nullable: false);
+				public static ColumnDef ValueOriginalID = new ColumnDef("ValueOriginalID", size: 4000);
+				public static ColumnDef Value = new ColumnDef("Value", size: 4000);
+			}
+
 			static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type, ColumnDef[]>();
 			public static ColumnDef[] GetColumns<T>(bool expandCopies = true)
 			{
@@ -368,6 +377,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 		private BulkObjects _bulkAdCreative;
 		private BulkObjects _bulkMetrics;
 		private BulkObjects _bulkMetricsTargetMatch;
+		private BulkObjects _bulkMetricsTargetMatchSegment;
 		private string _tablePrefix;
 
 		public Func<Ad, long> OnAdUsidRequired = null;
@@ -387,6 +397,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 			_bulkAdCreative = new BulkObjects(this._tablePrefix, typeof(Tables.AdCreative), _sqlConnection);
 			_bulkMetrics = new BulkObjects(this._tablePrefix, typeof(Tables.Metrics), _sqlConnection);
 			_bulkMetricsTargetMatch = new BulkObjects(this._tablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
+			_bulkMetricsTargetMatch = new BulkObjects(this._tablePrefix, typeof(Tables.MetricsTargetMatchSegment), _sqlConnection);
 
 			// Get measures
 			using (SqlConnection oltpConnection = new SqlConnection(this.Options.SqlOltpConnectionString))
@@ -431,6 +442,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 			createTableCmdText.Append(_bulkAdCreative.GetCreateTableSql());
 			createTableCmdText.Append(_bulkMetrics.GetCreateTableSql());
 			createTableCmdText.Append(_bulkMetricsTargetMatch.GetCreateTableSql());
+			createTableCmdText.Append(_bulkMetricsTargetMatchSegment.GetCreateTableSql());
 			SqlCommand cmd = new SqlCommand(createTableCmdText.ToString(), _sqlConnection);
 			cmd.ExecuteNonQuery();
 
@@ -522,11 +534,12 @@ namespace Edge.Data.Pipeline.AdMetrics
 				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with an ad.");
 
 			string adUsid = GetAdIdentity(metrics.Ad);
+			string metricsGuid = metrics.Guid.ToString("N");
 
 			// Metrics
 			var metricsRow = new Dictionary<ColumnDef, object>()
 			{
-				{Tables.Metrics.MetricsUnitGuid, metrics.Guid.ToString("N")},
+				{Tables.Metrics.MetricsUnitGuid, metricsGuid},
 				{Tables.Metrics.AdUsid, adUsid},
 				{Tables.Metrics.TargetPeriodStart, metrics.PeriodStart},
 				{Tables.Metrics.TargetPeriodEnd, metrics.PeriodEnd},
@@ -547,7 +560,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 			{
 				var row = new Dictionary<ColumnDef, object>()
 				{
-					{ Tables.MetricsTargetMatch.MetricsUnitGuid, metricsRow[Tables.Metrics.MetricsUnitGuid] },
+					{ Tables.MetricsTargetMatch.MetricsUnitGuid, metricsGuid },
 					{ Tables.MetricsTargetMatch.AdUsid, adUsid },
 					{ Tables.MetricsTargetMatch.OriginalID, target.OriginalID },
 					{ Tables.MetricsTargetMatch.DestinationUrl, target.DestinationUrl },
@@ -559,6 +572,19 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
 					row[new ColumnDef(Tables.AdTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
+
+				// AdSegment
+				foreach (KeyValuePair<Segment, SegmentValue> segment in target.Segments)
+				{
+					_bulkMetricsTargetMatchSegment.SubmitRow(new Dictionary<ColumnDef, object>()
+					{
+						{ Tables.MetricsTargetMatchSegment.MetricsUnitGuid, metricsGuid },
+						{ Tables.MetricsTargetMatchSegment.AdUsid, adUsid },
+						{ Tables.MetricsTargetMatchSegment.SegmentID, segment.Key.ID },
+						{ Tables.MetricsTargetMatchSegment.Value, segment.Value.Value },
+						{ Tables.MetricsTargetMatchSegment.ValueOriginalID, segment.Value.OriginalID }
+					});
+				}
 
 				_bulkMetricsTargetMatch.SubmitRow(row);
 			}
