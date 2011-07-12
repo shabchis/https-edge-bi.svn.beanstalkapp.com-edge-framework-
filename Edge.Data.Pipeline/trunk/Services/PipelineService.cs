@@ -198,8 +198,14 @@ namespace Edge.Data.Pipeline.Services
 			{
 				if (_autoSegments == null)
 				{
-					AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
-					_autoSegments = new AutoSegmentationUtility(account.Extensions[AutoSegmentDefinitionCollection.ExtensionName] as AutoSegmentDefinitionCollection);
+					ConfigurationElement extension;
+					if (!this.Instance.Configuration.Extensions.TryGetValue(AutoSegmentDefinitionCollection.ExtensionName, out extension))
+					{
+						AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
+						if (!account.Extensions.TryGetValue(AutoSegmentDefinitionCollection.ExtensionName, out extension))
+							throw new ConfigurationException("No AutoSegments configuration found.");
+					}
+					_autoSegments = new AutoSegmentationUtility(extension as AutoSegmentDefinitionCollection);
 				}
 
 				return _autoSegments;
