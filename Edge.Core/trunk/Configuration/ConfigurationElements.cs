@@ -1413,6 +1413,10 @@ namespace Edge.Core.Configuration
 			// Apply options
 			foreach (KeyValuePair<string, string> pair in accountElement.Options)
 				this.Options[pair.Key] = pair.Value;
+
+			// Apply extensions
+			foreach (var extension in accountElement.Extensions)
+				this.Extensions[extension.Key] = extension.Value;
 		}
 
 		public ActiveServiceElement(WorkflowStepElement stepElement)
@@ -1425,6 +1429,10 @@ namespace Edge.Core.Configuration
 			// Apply options
 			foreach (KeyValuePair<string, string> pair in stepElement.Options)
 				this.Options[pair.Key] = pair.Value;
+			
+			// Apply extensions
+			foreach (var extension in stepElement.Extensions)
+				this.Extensions[extension.Key] = extension.Value;
 		}
 
 		public ActiveServiceElement(AccountServiceSettingsElement settingsElement)
@@ -1437,6 +1445,10 @@ namespace Edge.Core.Configuration
 			// Apply options
 			foreach (KeyValuePair<string, string> pair in settingsElement.Options)
 				this.Options[pair.Key] = pair.Value;
+
+			// Apply extensions
+			foreach (var extension in settingsElement.Extensions)
+				this.Extensions[extension.Key] = extension.Value;
 		}
 		/*=========================*/
 		#endregion
