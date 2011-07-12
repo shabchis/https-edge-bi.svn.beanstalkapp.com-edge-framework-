@@ -397,7 +397,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 			_bulkAdCreative = new BulkObjects(this._tablePrefix, typeof(Tables.AdCreative), _sqlConnection);
 			_bulkMetrics = new BulkObjects(this._tablePrefix, typeof(Tables.Metrics), _sqlConnection);
 			_bulkMetricsTargetMatch = new BulkObjects(this._tablePrefix, typeof(Tables.MetricsTargetMatch), _sqlConnection);
-			_bulkMetricsTargetMatch = new BulkObjects(this._tablePrefix, typeof(Tables.MetricsTargetMatchSegment), _sqlConnection);
+			_bulkMetricsTargetMatchSegment = new BulkObjects(this._tablePrefix, typeof(Tables.MetricsTargetMatchSegment), _sqlConnection);
 
 			// Get measures
 			using (SqlConnection oltpConnection = new SqlConnection(this.Options.SqlOltpConnectionString))
