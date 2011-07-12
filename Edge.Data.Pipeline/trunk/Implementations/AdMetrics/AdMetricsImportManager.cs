@@ -574,9 +574,11 @@ namespace Edge.Data.Pipeline.AdMetrics
 					row[new ColumnDef(Tables.AdTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
 
 				// AdSegment
-				foreach (KeyValuePair<Segment, SegmentValue> segment in target.Segments)
+				if (target.Segments != null)
 				{
-					_bulkMetricsTargetMatchSegment.SubmitRow(new Dictionary<ColumnDef, object>()
+					foreach (KeyValuePair<Segment, SegmentValue> segment in target.Segments)
+					{
+						_bulkMetricsTargetMatchSegment.SubmitRow(new Dictionary<ColumnDef, object>()
 					{
 						{ Tables.MetricsTargetMatchSegment.MetricsUnitGuid, metricsGuid },
 						{ Tables.MetricsTargetMatchSegment.AdUsid, adUsid },
@@ -584,6 +586,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 						{ Tables.MetricsTargetMatchSegment.Value, segment.Value.Value },
 						{ Tables.MetricsTargetMatchSegment.ValueOriginalID, segment.Value.OriginalID }
 					});
+					}
 				}
 
 				_bulkMetricsTargetMatch.SubmitRow(row);
