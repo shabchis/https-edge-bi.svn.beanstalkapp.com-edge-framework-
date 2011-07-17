@@ -384,7 +384,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 
 		protected override void OnBeginImport()
 		{
-			this._tablePrefix = string.Format("D{0}_{1}_{2}", this.CurrentDelivery.Account.ID, DateTime.Now.ToString("yyyMMdd_hhmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
+			this._tablePrefix = string.Format("D{0}_{1}_{2}", this.CurrentDelivery.Account.ID, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
 			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this._tablePrefix);
 			
 			// Connect to database
