@@ -147,6 +147,7 @@
     <Compile Include="Readers\Base\IReader.cs" />
     <Compile Include="Readers\XmlObjectReader.cs" />
     <Compile Include="Readers\Base\ReaderBase.cs" />
+    <Compile Include="Utilities\Configuration\OptionsConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -174,6 +175,5 @@
       <Name>Edge.Core</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
