@@ -167,12 +167,13 @@ namespace Edge.Data.Pipeline
 
 		private string CreateLocation()
 		{
-			StringBuilder location = new StringBuilder();
-			location.AppendFormat(@"{0}\", this.Delivery.TargetLocationDirectory);
+			StringBuilder locationBuilder = new StringBuilder();
+			string location = string.Empty;
+			locationBuilder.AppendFormat(@"{0}\", this.Delivery.TargetLocationDirectory);
 			if (this.Delivery.Account != null)
-				location.AppendFormat(@"{0}\", this.Delivery.Account.ID);
+				locationBuilder.AppendFormat(@"{0}\", this.Delivery.Account.ID);
 
-			location.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", _parentDelivery.DateCreated.ToString("yyyy-MM")/*0*/,
+			locationBuilder.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", _parentDelivery.DateCreated.ToString("yyyy-MM")/*0*/,
 			_parentDelivery.DateCreated.ToString("dd")/*1*/,
 				_parentDelivery.DateCreated.ToString("HHmm")/*2*/,
 				this.Delivery.DeliveryID.ToString("N")/*3*/,
@@ -180,8 +181,17 @@ namespace Edge.Data.Pipeline
 				this.FileID.ToString("N")/*5*/,
 				this.Name == null ? string.Empty : this.Name);
 
+			location = locationBuilder.ToString();
+			if (location.Length > 260)
+			{
+				int diff = locationBuilder.ToString().Length - 260;
+				string shortDeliveryId = Delivery.DeliveryID.ToString("N").Remove(locationBuilder.ToString().Length - diff);
+				location= location.Replace(Delivery.DeliveryID.ToString("N"), shortDeliveryId);
 
-			return location.ToString();
+			}
+
+
+			return location;
 		}
 
 		/// <summary>
