@@ -609,7 +609,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 			return val;
 		}
 
-		protected void OnEndImport()
+		protected override void OnEndImport()
 		{
 			_bulkAd.Flush();
 			_bulkAdCreative.Flush();
@@ -617,6 +617,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 			_bulkAdSegment.Flush();
 			_bulkMetrics.Flush();
 			_bulkMetricsTargetMatch.Flush();
+			_bulkMetricsTargetMatchSegment.Flush();
 		}
 
 		protected override void OnDisposeImport()
@@ -629,6 +630,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 				_bulkAdSegment.Dispose();
 				_bulkMetrics.Dispose();
 				_bulkMetricsTargetMatch.Dispose();
+				_bulkMetricsTargetMatchSegment.Dispose();
 			}
 		}
 
