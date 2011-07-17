@@ -181,11 +181,11 @@ namespace Edge.Data.Pipeline
 			string file = string.Empty;
 			FileInfo fileInfo = new FileInfo() { Location = uri.ToString() };
 
-			if (!File.Exists(fullPath))
+			if (fullPath.Length > 260 || !File.Exists(fullPath))
 			{
 				isZip = true;
 				directory = Path.GetDirectoryName(fullPath);
-				while (Directory.Exists(directory))
+				while (directory.Length>260 || Directory.Exists(directory)) 
 				{
 					directory = Path.GetDirectoryName(directory);
 				}
