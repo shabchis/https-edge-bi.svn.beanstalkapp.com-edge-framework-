@@ -415,8 +415,8 @@ namespace Edge.Data.Pipeline.AdMetrics
 			}
 
 			// Add measure columns to metrics,create measuresFieldNamesSQL,measuresNamesSQL
-			StringBuilder measuresFieldNamesSQL = new StringBuilder();
-			StringBuilder measuresNamesSQL = new StringBuilder();
+			StringBuilder measuresFieldNamesSQL = new StringBuilder(",");
+			StringBuilder measuresNamesSQL = new StringBuilder(",");
 			int count = 0;
 			foreach (Measure  measure in this.Measures.Values)
 			{
