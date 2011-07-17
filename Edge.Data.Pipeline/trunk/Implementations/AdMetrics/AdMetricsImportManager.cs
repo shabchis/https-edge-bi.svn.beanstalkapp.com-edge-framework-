@@ -426,8 +426,8 @@ namespace Edge.Data.Pipeline.AdMetrics
 					nullable: true
 					));
 
-				measuresFieldNamesSQL.AppendFormat("{0}{1}",measure.OltpName, count < this.Measures.Values.Count-1 ? "," : null);
-				measuresNamesSQL.AppendFormat("{0}{1}", measure.Name, count < this.Measures.Values.Count - 1 ? "," : null);
+				measuresFieldNamesSQL.AppendFormat("[{0}]{1}",measure.OltpName, count < this.Measures.Values.Count-1 ? "," : null);
+				measuresNamesSQL.AppendFormat("[{0}]{1}", measure.Name, count < this.Measures.Values.Count - 1 ? "," : null);
 				count++;
 			}
 
