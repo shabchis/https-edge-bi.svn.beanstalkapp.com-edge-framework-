@@ -18,13 +18,15 @@ namespace Edge.Data.Pipeline.AdMetrics
 				SqlCommitCommand = Instance.Configuration.Options[AdMetricsImportManager.Consts.AppSettings.SqlCommitCommand],
 				SqlRollbackCommand = Instance.Configuration.Options[AdMetricsImportManager.Consts.AppSettings.SqlRollbackCommand],
 			});
+			ReportProgress(0.1);
 
 			DeliveryRollbackOperation rollback = this.HandleConflicts(importManager, DeliveryConflictBehavior.Rollback,
 				getBehaviorFromConfiguration:false
 			);
-
+			ReportProgress(0.2);
 			if (rollback != null)
 				rollback.Wait();
+			ReportProgress(0.3);
 
 			importManager.Commit(new Delivery[] { this.Delivery });
 
