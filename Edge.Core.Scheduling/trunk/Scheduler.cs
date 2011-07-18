@@ -277,7 +277,7 @@ namespace Edge.Core.Scheduling
         /// <returns></returns>
         private List<SchedulingData> FindSuitableSchedulingRule()
         {
-            SchedulingData Schedulingdata;
+            SchedulingData schedulingdata;
             List<SchedulingData> foundedSchedulingdata = new List<SchedulingData>();
              List<SchedulingData> willNotRun = new List<SchedulingData>();
             lock (_servicesWarehouse)
@@ -304,18 +304,18 @@ namespace Edge.Core.Scheduling
                                             {
                                                 if (timeToRun >= _timeLineFrom && timeToRun <= _timeLineTo || timeToRun <= _timeLineFrom && timeToRun.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now)
                                                 {
-                                                    Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun };
-                                                    if (!CheckIfSpecificSchedulingRuleDidNotRunYet(Schedulingdata))
-                                                        foundedSchedulingdata.Add(Schedulingdata);
+                                                    schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun };
+                                                    if (!CheckIfSpecificSchedulingRuleDidNotRunYet(schedulingdata))
+                                                        foundedSchedulingdata.Add(schedulingdata);
 
                                                 }
                                                 else //Check if it already been trying to schedule then it it should be error
                                                 {
-                                                    Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun };
-                                                    if (_scheduledServices.ContainsKey(Schedulingdata) || _mayNotBescheduleServices.ContainsKey(Schedulingdata))
-                                                    {
-                                                        Log.Write(this.ToString(), string.Format("Service {0} will not run!! since it's scheduling exceed max MaxDeviation", Schedulingdata.Configuration.Name), new Exception("Service will not run!"), LogMessageType.Error);
-                                                        willNotRun.Add(Schedulingdata);
+                                                    schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun };
+													if (_scheduledServices.ContainsKey(schedulingdata) && _scheduledServices[schedulingdata].LegacyInstance.State==Legacy.ServiceState.Uninitialized)
+													{
+                                                        Log.Write(this.ToString(), string.Format("Service {0} will not run!! since it's scheduling exceed max MaxDeviation", schedulingdata.Configuration.Name), new Exception("Service will not run!"), LogMessageType.Error);
+                                                        willNotRun.Add(schedulingdata);
                                                     }
  
                                                 }
@@ -340,9 +340,9 @@ namespace Edge.Core.Scheduling
                                                 {
                                                     if (timeToRunFrom >= _timeLineFrom && timeToRunFrom <= _timeLineTo || timeToRunFrom <= _timeLineFrom && timeToRunFrom.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now)
                                                     {
-                                                        Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunFrom };
-                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(Schedulingdata))
-                                                            foundedSchedulingdata.Add(Schedulingdata);
+                                                        schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunFrom };
+                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(schedulingdata))
+                                                            foundedSchedulingdata.Add(schedulingdata);
 
                                                     }
 
@@ -351,19 +351,19 @@ namespace Edge.Core.Scheduling
                                                 {
                                                     if (timeToRunTo >= _timeLineFrom && timeToRunTo <= _timeLineTo || timeToRunTo <= _timeLineFrom && timeToRunTo.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now)
                                                     {
-                                                        Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
-                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(Schedulingdata))
-                                                            foundedSchedulingdata.Add(Schedulingdata);
+                                                        schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
+                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(schedulingdata))
+                                                            foundedSchedulingdata.Add(schedulingdata);
 
                                                     }
                                                 }
                                                 else //Check if it already been trying to schedule then it it should be error
                                                 {
-                                                    Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
-                                                    if (_scheduledServices.ContainsKey(Schedulingdata) || _mayNotBescheduleServices.ContainsKey(Schedulingdata))
+                                                    schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
+													if (_scheduledServices.ContainsKey(schedulingdata) && _scheduledServices[schedulingdata].LegacyInstance.State == Legacy.ServiceState.Uninitialized)
                                                     {
-                                                        Log.Write(this.ToString(), string.Format("Service {0} will not run!! since it's scheduling exceed max MaxDeviation", Schedulingdata.Configuration.Name), new Exception("Service will not run!"), LogMessageType.Error);
-                                                        willNotRun.Add(Schedulingdata);
+                                                        Log.Write(this.ToString(), string.Format("Service {0} will not run!! since it's scheduling exceed max MaxDeviation", schedulingdata.Configuration.Name), new Exception("Service will not run!"), LogMessageType.Error);
+                                                        willNotRun.Add(schedulingdata);
                                                     }
 
                                                 }
@@ -384,9 +384,9 @@ namespace Edge.Core.Scheduling
                                                 {
                                                     if (timeToRunFrom >= _timeLineFrom && timeToRunFrom <= _timeLineTo || timeToRunFrom <= _timeLineFrom && timeToRunFrom.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now)
                                                     {
-                                                        Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunFrom };
-                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(Schedulingdata))
-                                                            foundedSchedulingdata.Add(Schedulingdata);
+                                                        schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunFrom };
+                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(schedulingdata))
+                                                            foundedSchedulingdata.Add(schedulingdata);
 
                                                     }
                                                 }
@@ -394,19 +394,19 @@ namespace Edge.Core.Scheduling
                                                 {
                                                     if (timeToRunTo >= _timeLineFrom && timeToRunTo <= _timeLineTo || timeToRunTo <= _timeLineFrom && timeToRunTo.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now)
                                                     {
-                                                        Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
-                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(Schedulingdata))
-                                                            foundedSchedulingdata.Add(Schedulingdata);
+                                                        schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
+                                                        if (!CheckIfSpecificSchedulingRuleDidNotRunYet(schedulingdata))
+                                                            foundedSchedulingdata.Add(schedulingdata);
 
                                                     }
                                                 }
                                                 else //Check if it already been trying to schedule then it it should be error
                                                 {
-                                                    Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
-                                                    if (_scheduledServices.ContainsKey(Schedulingdata) || _mayNotBescheduleServices.ContainsKey(Schedulingdata))
+                                                    schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRunTo };
+													if (_scheduledServices.ContainsKey(schedulingdata) && _scheduledServices[schedulingdata].LegacyInstance.State == Legacy.ServiceState.Uninitialized)
                                                     {
-                                                        Log.Write(this.ToString(), string.Format("Service {0} will not run!! since it's scheduling exceed max MaxDeviation", Schedulingdata.Configuration.Name), new Exception("Service will not run!"), LogMessageType.Error);
-                                                        willNotRun.Add(Schedulingdata);
+                                                        Log.Write(this.ToString(), string.Format("Service {0} will not run!! since it's scheduling exceed max MaxDeviation", schedulingdata.Configuration.Name), new Exception("Service will not run!"), LogMessageType.Error);
+                                                        willNotRun.Add(schedulingdata);
                                                     }
 
                                                 }
@@ -419,10 +419,10 @@ namespace Edge.Core.Scheduling
                                             DateTime timeToRun = schedulingRule.SpecificDateTime;
                                             if (timeToRun >= _timeLineFrom && timeToRun <= _timeLineTo || timeToRun <= _timeLineFrom && timeToRun.Add(schedulingRule.MaxDeviationAfter) > DateTime.Now)
                                             {
-                                                Schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun, Guid = schedulingRule.GuidForUnplaned };
-                                                if (!CheckIfSpecificSchedulingRuleDidNotRunYet(Schedulingdata))
+                                                schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun, Guid = schedulingRule.GuidForUnplaned };
+                                                if (!CheckIfSpecificSchedulingRuleDidNotRunYet(schedulingdata))
                                                 {
-                                                    foundedSchedulingdata.Add(Schedulingdata);
+                                                    foundedSchedulingdata.Add(schedulingdata);
 
                                                 }
 
