@@ -467,7 +467,7 @@ namespace Edge.Data.Pipeline.AdMetrics
 				{Tables.Ad.Campaign_Channel, ad.Campaign.Channel.ID},
 				{Tables.Ad.Campaign_Name, ad.Campaign.Name},
 				{Tables.Ad.Campaign_OriginalID, ad.Campaign.OriginalID},
-				{Tables.Ad.Campaign_Status, ad.Campaign.Status},
+				{Tables.Ad.Campaign_Status, ad.Campaign.Status == ObjectStatus.Unknown ? (object) DBNull.Value : (object) ad.Campaign.Status},
 			};
 			foreach (KeyValuePair<ExtraField, object> extraField in ad.ExtraFields)
 				adRow[new ColumnDef(Tables.AdTarget.ExtraFieldX, extraField.Key.ColumnIndex)] = extraField.Value;
