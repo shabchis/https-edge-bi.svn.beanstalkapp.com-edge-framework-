@@ -177,7 +177,7 @@ namespace Edge.Data.Pipeline
 			_parentDelivery.DateCreated.ToString("dd")/*1*/,
 				_parentDelivery.DateCreated.ToString("HHmm")/*2*/,
 				this.Delivery.DeliveryID.ToString("N")/*3*/,
-				DateTime.Now.ToString("yyyyMMdd@HHmm")/*4*/,
+				this.Delivery.TargetPeriod.Start.ToDateTime().ToString("yyyyMMdd@HHmm")/*4*/,
 				this.FileID.ToString("N")/*5*/,
 				this.Name == null ? string.Empty : this.Name);
 
