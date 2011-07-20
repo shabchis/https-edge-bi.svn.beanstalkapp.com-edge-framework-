@@ -21,11 +21,17 @@ namespace Edge.Data.Pipeline
 
 		public AutoSegmentationUtility(AutoSegmentDefinitionCollection definitions)
 		{
-			this.Definitions = definitions;
+			if (!definitions.IsEnabled)
+				this.Definitions = null;
+			else
+				this.Definitions = definitions;
 		}
 
 		public SegmentValue ExtractSegmentValue(Segment segment, string source)
 		{
+			if (this.Definitions == null)
+				return null;
+
 			if (segment == null)
 				throw new ArgumentNullException("segment");
 

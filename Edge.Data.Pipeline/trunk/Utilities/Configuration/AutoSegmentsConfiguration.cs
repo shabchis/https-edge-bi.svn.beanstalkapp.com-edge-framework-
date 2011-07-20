@@ -37,6 +37,13 @@ namespace Edge.Data.Pipeline.Configuration
 		{
 			get { return (AutoSegmentDefinition)this.BaseGet(name); }
 		}
+		
+		[ConfigurationProperty("IsEnabled", DefaultValue=true, IsRequired=false)]
+		public bool IsEnabled
+		{
+			get { return (bool)base["IsEnabled"]; }
+			set { base["IsEnabled"] = value; }
+		}
 	}
 
 	public class AutoSegmentDefinition : ConfigurationElement
