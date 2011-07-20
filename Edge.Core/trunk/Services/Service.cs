@@ -836,6 +836,28 @@ namespace Edge.Core.Services
 		}
 
 		/// <summary>
+		/// Report progress of children
+		/// </summary>
+		void IServiceEngine.ChildServiceProgressReported(int stepNumber, double progress)
+		{
+			StepInfo currentStep = GetStepFromHistory(Instance.Configuration.Workflow[stepNumber]);
+			if (currentStep == null)
+				return;
+
+			currentStep.Progress = progress;
+
+			double total = 0;
+			foreach (StepInfo step in _stepHistory)
+			{
+				total += (step.ServiceState == ServiceState.Ended ? 1.0 : step.Progress) / _stepHistory.Count;
+			}
+			if (total > 1.0)
+				total = 1.0;
+
+			ReportProgress(total);
+		}
+
+		/// <summary>
 		/// 
 		/// </summary>
 		void RequestChildService(int stepNumber)
@@ -894,6 +916,7 @@ namespace Edge.Core.Services
 		public readonly AccountServiceSettingsElement AccountStepConfig;
 		public ServiceState ServiceState;
 		public ServiceOutcome ServiceOutcome;
+		public double Progress = 0;
 
 		/*=========================*/
 		#endregion

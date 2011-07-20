@@ -135,7 +135,7 @@ namespace Edge.Core
 			}
 		}
 
-		public void Merge(SettingsCollection otherCollection)
+		public void Merge(IDictionary<string,string> otherCollection)
 		{
 			foreach (KeyValuePair<string, string> entry in otherCollection)
 			{
