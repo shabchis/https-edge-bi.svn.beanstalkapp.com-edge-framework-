@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using Edge.Data.Pipeline;
 using Edge.Data.Objects;
 using System.IO;
 using System.Net;
 using System.Text;
-using Db4objects.Db4o.TA;
 
 namespace Edge.Data.Pipeline
 {
@@ -40,7 +37,7 @@ namespace Edge.Data.Pipeline
 			internal set { _fileID = value; }
 		}
 
-		public FileFormat FileFormat { get; set; }
+		public FileCompression FileFormat { get; set; }
 
 		/// <summary>
 		/// Gets or sets the name of the delivery file.
@@ -116,25 +113,31 @@ namespace Edge.Data.Pipeline
 			throw new NotImplementedException();
 		}
 
-		/// <summary>
-		/// Gets the full path of the file after it was saved by FileManager to the internal file storage.
-		/// </summary>
+		// <summary>
+		// Gets the full path of the file after it was saved by FileManager to the internal file storage.
+		// </summary>
 		//public FileInfo GetFileInfo()
 		//{
 		//	return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
 		//}
 
-		public Stream OpenContents(string subLocation = null, FileFormat fileFormat = FileFormat.Unspecified)
+		/// <summary>
+		/// Opens the file contents as a readable stream.
+		/// </summary>
+		/// <param name="subLocation"></param>
+		/// <param name="compression"></param>
+		/// <returns></returns>
+		public Stream OpenContents(string subLocation = null, FileCompression compression = FileCompression.None)
 		{
 			if (string.IsNullOrEmpty(this.Location))
 				throw new InvalidOperationException("The delivery file does not have a valid file location. Make sure it has been downloaded properly.");
-			if (this.Parameters.ContainsKey("InnerFileName") && !this.Location.Contains(this.Parameters["InnerFileName"].ToString()))
-			{
-				string fullLocation = string.Format("{0}{1}", this.Location, this.Parameters["InnerFileName"]);
-				return FileManager.Open(subLocation == null ? fullLocation : Path.Combine(fullLocation, subLocation), fileFormat);
-			}
-			else
-				return FileManager.Open(subLocation == null ? this.Location : Path.Combine(this.Location, subLocation), fileFormat);
+
+			return FileManager.Open(
+				location:
+					subLocation != null ? Path.Combine(this.Location, subLocation) : this.Location,
+				compression:
+					compression
+			);
 		}
 
 		void EnsureSaved()
@@ -248,12 +251,6 @@ namespace Edge.Data.Pipeline
 			this.DeliveryFile.Location = this.FileInfo.Location;
 		}
 
-	}
-
-	public enum FileFormat
-	{
-		Unspecified = 1,
-		GZip = 2
 	}
 
 }

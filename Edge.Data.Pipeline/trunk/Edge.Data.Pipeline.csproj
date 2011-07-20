@@ -107,20 +107,22 @@
   <ItemGroup>
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Implementations\AdMetrics\AdMetricsCommitService.cs" />
+    <Compile Include="Implementations\AdMetrics\Services\CommitService.cs" />
+    <Compile Include="Implementations\AdMetrics\AdMetricsImportManager.cs" />
+    <Compile Include="Implementations\AdMetrics\Services\ProcessorService.cs" />
+    <Compile Include="Implementations\AdMetrics\Const.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
-    <Compile Include="Services\Generic\Const.cs" />
-    <Compile Include="Services\Generic\InitializerService.cs" />
-    <Compile Include="Services\Generic\RetrieverService.cs" />
+    <Compile Include="Services\Const.cs" />
+    <Compile Include="Services\GenericInitializerService.cs" />
+    <Compile Include="Services\GenericRetrieverService.cs" />
     <Compile Include="Utilities\Configuration\AutoSegmentsConfiguration.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
-    <Compile Include="FileSystem\DeliveryDB.cs" />
+    <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
     <Compile Include="Deliveries\DeliveryHistory.cs" />
     <Compile Include="Deliveries\DeliveryImportManager.cs" />
-    <Compile Include="Implementations\AdMetrics\AdMetricsImportManager.cs" />
     <Compile Include="Objects\Account.cs" />
     <Compile Include="Objects\Ad.cs" />
     <Compile Include="Objects\AdMetricsUnit.cs" />
@@ -175,5 +177,6 @@
       <Name>Edge.Core</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -4,9 +4,12 @@ using System.Linq;
 using System.Text;
 using Edge.Data.Pipeline.Services;
 
-namespace Edge.Data.Pipeline.Services.Generic
+namespace Edge.Data.Pipeline.Services
 {
-	public class RetrieverService: PipelineService
+	/// <summary>
+	/// Retrieves all delivery files with a valid SourceUrl value.
+	/// </summary>
+	public class GenericRetrieverService: PipelineService
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
@@ -19,6 +22,9 @@ namespace Edge.Data.Pipeline.Services.Generic
 
 			foreach (DeliveryFile file in this.Delivery.Files)
 			{
+				if (String.IsNullOrWhiteSpace(file.SourceUrl))
+					continue;
+
 				DeliveryFileDownloadOperation download = file.Download();
 				download.Ended += new EventHandler(download_Ended);
 				batch.Add(download);
