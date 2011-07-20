@@ -21,6 +21,7 @@ namespace Edge.Data.Pipeline
 		// =========================================
 		public static string UserAgentString = String.Format("Edge File Manager (version {0})", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
 		public const int MaxPathLength = 259;
+		public const int MinValidFileSize = 1;
 
 
 		// Download operations
@@ -37,7 +38,7 @@ namespace Edge.Data.Pipeline
 			if (operation.Stream == null)
 			{
 				if (operation.Request == null)
-					throw new InvalidOperationException("A download operation needs either a stream or web request object to start.");
+					throw new InvalidOperationException("A download operation needs either a stream or web request to start.");
 
 				if (!String.IsNullOrEmpty(operation.RequestBody))
 				{
@@ -67,6 +68,9 @@ namespace Edge.Data.Pipeline
 				}
 
 				operation.Stream = response.GetResponseStream();
+				if (response.ContentLength < MinValidFileSize)
+					throw new FileDownloadException(String.Format("Response from {0} returned zero content-length.", operation.Request.RequestUri)); 
+
 				operation.TotalBytes = response.ContentLength;
 				operation.RaiseProgress();
 			}
@@ -93,6 +97,9 @@ namespace Edge.Data.Pipeline
 					System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
 					operation.FileInfo.TotalBytes = f.Length;
 					operation.FileInfo.FileCreated = f.CreationTime;
+
+					if (f.Length < MinValidFileSize)
+						throw new FileDownloadException(String.Format("Downloaded file ({0}) was 0 bytes.", operation.FileInfo.Location)); 
 
 					// Notify that we have succeeded
 					operation.Success = true;
@@ -143,7 +150,10 @@ namespace Edge.Data.Pipeline
 				else
 					throw new NotImplementedException("Only gzip compression supported at this time.");
 			}
-				
+			else
+			{
+				// Nothing to do here, since we already opened the file stream
+			}
 
 			return stream;
 		}
@@ -245,6 +255,18 @@ namespace Edge.Data.Pipeline
 		Zip,
 		TarUncompressed,
 		TarGzip
+	}
+
+	[Serializable]
+	public class FileDownloadException : Exception
+	{
+		public FileDownloadException() { }
+		public FileDownloadException(string message) : base(message) { }
+		public FileDownloadException(string message, Exception inner) : base(message, inner) { }
+		protected FileDownloadException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
 	}
 
 }
