@@ -36,6 +36,9 @@ namespace Edge.Core.Services
 	
 		[OperationContract(IsOneWay=true)]
 		void ChildServiceStateChanged(int stepNumber, ServiceState state);
+
+		[OperationContract(IsOneWay = true)]
+		void ChildServiceProgressReported(int stepNumber, double progress);
 	}
 
 	/// <summary>

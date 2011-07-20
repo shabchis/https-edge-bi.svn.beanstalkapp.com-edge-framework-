@@ -32,6 +32,7 @@ namespace Edge.Core.Services
 		
 		EventHandler<ServiceStateChangedEventArgs> _childStateHandler;
 		EventHandler _childOutcomeHandler;
+		EventHandler _childProgressHandler;
 
 		AppDomain _appDomain;
 		ServiceEngineCommChannel _commChannel;
@@ -69,6 +70,7 @@ namespace Edge.Core.Services
 
 			_childStateHandler = new EventHandler<ServiceStateChangedEventArgs>(ChildStateChanged);
 			_childOutcomeHandler = new EventHandler(ChildOutcomeReported);
+			_childProgressHandler = new EventHandler(ChildProgressReported);
 
 			Log = new Log(this);
 		}
@@ -702,6 +704,7 @@ namespace Edge.Core.Services
 
 			child.StateChanged += _childStateHandler;
 			child.OutcomeReported += _childOutcomeHandler;
+			child.ProgressReported += _childProgressHandler;
 			_childServices.Add(child, stepNumber);
 
 			if (ChildServiceRequested != null)
@@ -721,6 +724,17 @@ namespace Edge.Core.Services
 
 			if (ProgressReported != null)
 				ProgressReported(this, EventArgs.Empty);
+
+		
+		}
+
+		void ChildProgressReported(object sender, EventArgs e)
+		{
+			ServiceInstance child = (ServiceInstance) sender;
+			int stepNumer = _childServices[child];
+
+			if (_commChannel != null && _commChannel.State == CommunicationState.Opened)
+				_commChannel.Engine.ChildServiceProgressReported(stepNumer, child.Progress);
 		}
 
 		void ChildOutcomeReported(object sender, EventArgs e)
@@ -729,6 +743,8 @@ namespace Edge.Core.Services
 
 			child.StateChanged -= _childStateHandler;
 			child.OutcomeReported -= _childOutcomeHandler;
+			child.ProgressReported -= _childProgressHandler;
+
 			int stepNumer = _childServices[child];
 			_childServices.Remove(child);
 
