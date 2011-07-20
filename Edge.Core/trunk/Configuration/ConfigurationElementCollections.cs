@@ -39,13 +39,14 @@ namespace Edge.Core.Configuration
 			return -1;
 		}
 
-		protected override ConfigurationPropertyCollection Properties
-		{
-			get
-			{
-				return new ConfigurationPropertyCollection();
-			}
-		}
+
+		//protected override ConfigurationPropertyCollection Properties
+		//{
+		//    get
+		//    {
+		//        return new ConfigurationPropertyCollection();
+		//    }
+		//}
 
 		void ISerializableConfigurationElement.Deserialize(XmlReader reader)
 		{
