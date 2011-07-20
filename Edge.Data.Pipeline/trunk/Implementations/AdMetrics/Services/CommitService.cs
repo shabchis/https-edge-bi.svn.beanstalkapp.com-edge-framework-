@@ -8,7 +8,7 @@ using Edge.Data.Pipeline.Services;
 
 namespace Edge.Data.Pipeline.AdMetrics
 {
-	public class AdMetricsCommitService: PipelineService
+	public class CommitService: PipelineService
 	{
 		protected override ServiceOutcome DoPipelineWork()
 		{
