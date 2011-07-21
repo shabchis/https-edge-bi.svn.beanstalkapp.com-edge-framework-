@@ -116,7 +116,8 @@ namespace Edge.Data.Pipeline
 		/// <param name="location">Relative location of file in the FileManager system.</param>
 		public static Stream Open(string location, ArchiveType archiveType = ArchiveType.Zip, FileCompression compression = FileCompression.None)
 		{
-			return Open(GetInfo(location,archiveType));
+			
+			return Open(GetInfo(location,archiveType),compression);
 		}
 
 		/// <summary>
@@ -187,7 +188,7 @@ namespace Edge.Data.Pipeline
 			string file = string.Empty;
 			FileInfo fileInfo = new FileInfo() { Location = uri.ToString(), FullPath = fullPath };
 
-			if (fullPath.Length > FileManager.MaxPathLength || !File.Exists(fullPath))
+			if (fullPath.Length > FileManager.MaxPathLength || !File.Exists(fullPath) )
 			{
 				isArchive = true;
 				directory = Path.GetDirectoryName(fullPath);
