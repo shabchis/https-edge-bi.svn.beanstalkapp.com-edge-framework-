@@ -128,8 +128,8 @@ namespace Edge.Data.Pipeline
 	public struct DateTimeSpecification
 	{
 		public DateTimeSpecificationBounds Boundary;
-		public DateTime BaseDateTime;
-		public TimeSpan BaseTime;
+		public DateTime BaseDateTime; // date
+		public TimeSpan BaseTime; // time
 		public DayOfWeek FirstDayOfWeek;
 
 		public DateTimeTransformation Year;

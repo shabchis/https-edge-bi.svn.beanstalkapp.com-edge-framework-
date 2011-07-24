@@ -149,7 +149,7 @@ namespace Edge.Data.Pipeline.Services
 				int commitIndex = -1;
 				for (int i = 0; i < d.History.Count; i++)
 				{
-					if (d.History[i].Operation == DeliveryOperation.Comitted)
+					if (d.History[i].Operation == DeliveryOperation.Committed)
 						commitIndex = i;
 					else if (d.History[i].Operation == DeliveryOperation.RolledBack)
 						rollbackIndex = i;
