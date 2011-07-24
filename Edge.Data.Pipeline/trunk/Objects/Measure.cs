@@ -28,6 +28,7 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OltpName;
 		public string DisplayName;
+		public bool IntegrityCheckRequired;
 		public MeasureOptions Options;
 
 		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator)
