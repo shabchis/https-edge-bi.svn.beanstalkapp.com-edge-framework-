@@ -107,10 +107,6 @@
   <ItemGroup>
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Implementations\AdMetrics\Services\CommitService.cs" />
-    <Compile Include="Implementations\AdMetrics\AdMetricsImportManager.cs" />
-    <Compile Include="Implementations\AdMetrics\Services\ProcessorService.cs" />
-    <Compile Include="Implementations\AdMetrics\Const.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\GenericInitializerService.cs" />
@@ -150,6 +146,7 @@
     <Compile Include="Readers\XmlObjectReader.cs" />
     <Compile Include="Readers\Base\ReaderBase.cs" />
     <Compile Include="Utilities\Configuration\OptionsConfiguration.cs" />
+    <Compile Include="Services\Validation\ValidationService.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -177,6 +174,8 @@
       <Name>Edge.Core</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Implementations\AdMetrics\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

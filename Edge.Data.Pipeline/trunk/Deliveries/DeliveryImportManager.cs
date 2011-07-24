@@ -83,7 +83,7 @@ namespace Edge.Data.Pipeline
 				OnCommit,
 				OnDisposeCommit,
 				DeliveryImportManagerState.Comitting,
-				DeliveryOperation.Comitted);
+				DeliveryOperation.Committed);
 		}
 
 		public void Rollback(Delivery[] deliveries)

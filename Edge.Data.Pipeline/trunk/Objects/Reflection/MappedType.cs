@@ -11,7 +11,7 @@ namespace Edge.Data.Objects.Reflection
 	{
 		static Dictionary<Type, MappedTypeMetadata> _cache = new Dictionary<Type, MappedTypeMetadata>();
 
-		internal MappedTypeMetadata RegisterType(Type type)
+		public MappedTypeMetadata RegisterType(Type type)
 		{
 			MappedTypeMetadata metadata;
 			lock (_cache)
@@ -42,7 +42,7 @@ namespace Edge.Data.Objects.Reflection
 			return metadata;
 		}
 
-		internal int TypeID
+		public int TypeID
 		{
 			get
 			{
@@ -54,7 +54,7 @@ namespace Edge.Data.Objects.Reflection
 			}
 		}
 
-		internal Dictionary<MappedFieldMetadata, object> GetFieldValues()
+		public Dictionary<MappedFieldMetadata, object> GetFieldValues()
 		{
 			Type type = this.GetType();
 			MappedTypeMetadata metadata;
@@ -69,19 +69,19 @@ namespace Edge.Data.Objects.Reflection
 		}
 	}
 
-	class MappedTypeMetadata
+	public class MappedTypeMetadata
 	{
 		public int TypeID;
 		public MappedFieldMetadata[] Fields;
 	}
 
-	class MappedFieldMetadata
+	public class MappedFieldMetadata
 	{
 		public int ColumnIndex;
 		public FieldInfo FieldInfo;
 	}
 
-	class TypeIDAttribute : Attribute
+	public class TypeIDAttribute : Attribute
 	{
 		internal int TypeID;
 		public TypeIDAttribute(int typeID)
@@ -90,7 +90,7 @@ namespace Edge.Data.Objects.Reflection
 		}
 	}
 
-	class FieldIndexAttribute : Attribute
+	public class FieldIndexAttribute : Attribute
 	{
 		internal int ColumnIndex;
 		public FieldIndexAttribute(int columnIndex)

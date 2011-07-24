@@ -183,14 +183,4 @@ namespace Edge.Data.Pipeline
 			return DeliveryDB.Get(deliveryID);
 		}
 	}
-
-
-	public enum DeliveryOperation
-	{
-		Initialized = 1,
-		Retrieved = 2,
-		Imported = 3,
-		Comitted = 4,
-		RolledBack = 5
-	}
 }

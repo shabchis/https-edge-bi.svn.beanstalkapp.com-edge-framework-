@@ -23,7 +23,7 @@ namespace Edge.Data.Pipeline
 
 		#region IList<DeliveryHistoryEntry> Members
 		//===================================
-		int IList<DeliveryHistoryEntry>.IndexOf(DeliveryHistoryEntry item)
+		public int IndexOf(DeliveryHistoryEntry item)
 		{
 			return InnerList.IndexOf(item);
 		}
@@ -106,6 +106,16 @@ namespace Edge.Data.Pipeline
 
 		//===================================
 		#endregion
+	}
+
+	public enum DeliveryOperation
+	{
+		Initialized = 1,
+		Retrieved = 2,
+		Imported = 3,
+		Committed = 4,
+		RolledBack = 5,
+		Validated = 6
 	}
 
 	public class DeliveryHistoryEntry
