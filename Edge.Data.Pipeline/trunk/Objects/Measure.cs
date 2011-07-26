@@ -54,7 +54,9 @@ namespace Edge.Data.Objects
 						Name = (string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
 						OltpName = (string) reader["FieldName"],
-						Options = (MeasureOptions)reader["Flags"]
+						Options = (MeasureOptions)reader["Flags"],
+						IntegrityCheckRequired=bool.Parse(reader["IntegrityCheckRequired"].ToString())
+
 					};
 
 					measures.Add(m);

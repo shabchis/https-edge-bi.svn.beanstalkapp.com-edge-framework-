@@ -31,8 +31,8 @@ namespace Edge.Data.Pipeline
 
 			if (innerClient)
 				client = DeliveryDBClient.Connect();
-
-			previousActivationDepth = client.Ext().Configure().ActivationDepth();
+			previousActivationDepth=25;
+			client.Ext().Configure().ActivationDepth(25);
 			int resultCount = -1;
 
 			try
@@ -189,6 +189,7 @@ namespace Edge.Data.Pipeline
 			_server.Ext().Configure().ExceptionsOnNotStorable(true);
 			_server.Ext().Configure().MessageLevel(3);
 			_server.Ext().Configure().SetOut(writer);
+			_server.Ext().Configure().ActivationDepth(25);
 		}
 
 		public void Stop()
