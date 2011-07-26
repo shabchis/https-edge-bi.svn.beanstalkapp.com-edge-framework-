@@ -18,16 +18,17 @@ namespace Edge.Data.Pipeline.Services
 			}
 
 			public static class ConfigurationOptions
-			{
+			{ 
 				public const string ShouldFail = "ShouldFail";
+				public const string TableName = "TableName";
 			}
 		}
 
 		public ValidationService()
 		{
-			string shouldFail = this.Instance.Configuration.Options[Const.ConfigurationOptions.ShouldFail];
-			if (shouldFail != null)
-				bool.TryParse(shouldFail, out _shouldFail);
+			//string shouldFail = this.Instance.Configuration.Options[Const.ConfigurationOptions.ShouldFail];
+			//if (shouldFail != null)
+			//    bool.TryParse(shouldFail, out _shouldFail);
 		}
 
 		bool _shouldFail = false;
@@ -38,6 +39,11 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override sealed Core.Services.ServiceOutcome DoPipelineWork()
 		{
+
+			string shouldFail = this.Instance.Configuration.Options[Const.ConfigurationOptions.ShouldFail];
+			if (shouldFail != null)
+				bool.TryParse(shouldFail, out _shouldFail);
+
 			ValidationResult result = null;
 			Exception exception = null;
 
