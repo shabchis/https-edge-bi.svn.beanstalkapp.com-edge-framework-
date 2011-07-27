@@ -28,10 +28,9 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OltpName;
 		public string DisplayName;
-		public bool IntegrityCheckRequired;
 		public MeasureOptions Options;
 
-		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator)
+		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator = MeasureOptionsOperator.And)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure),"GetMeasures.SP"),
 				System.Data.CommandType.StoredProcedure);
@@ -54,9 +53,7 @@ namespace Edge.Data.Objects
 						Name = (string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
 						OltpName = (string) reader["FieldName"],
-						Options = (MeasureOptions)reader["Flags"],
-						IntegrityCheckRequired=bool.Parse(reader["IntegrityCheckRequired"].ToString())
-
+						Options = (MeasureOptions)reader["Flags"]
 					};
 
 					measures.Add(m);
@@ -75,6 +72,7 @@ namespace Edge.Data.Objects
 		IsBackOffice = 0x04,
 		IsTarget = 0x02,
 		IsCalculated = 0x10,
+		IntegrityCheckRequired = 0x80,
 		All = 0xff
 	}
 
