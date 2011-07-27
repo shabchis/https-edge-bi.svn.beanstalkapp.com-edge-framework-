@@ -8,7 +8,9 @@ using Edge.Core;
 namespace Edge.Data.Pipeline.Services
 {
 	public class PipelineWorkflowService: Service
-	{	
+	{
+		SettingsCollection _deliveryOptions;
+		
 		protected override void OnInit()
 		{
 			Guid deliveryID;
@@ -21,15 +23,18 @@ namespace Edge.Data.Pipeline.Services
 			else
 				deliveryID = Guid.NewGuid();
 
-			this.Instance.Configuration.Options.Add(PipelineService.ConfigurationOptionNames.DeliveryID, deliveryID.ToString());
+			_deliveryOptions = new SettingsCollection()
+			{
+				{PipelineService.ConfigurationOptionNames.DeliveryID, deliveryID.ToString()}
+			};
 		}
 
 		protected override void RequestChildService(int stepNumber, int attemptNumber, Core.SettingsCollection options = null)
 		{
 			if (options != null)
-				options.Merge(this.Instance.Configuration.Options);
+				options.Merge(_deliveryOptions);
 			else
-				options = this.Instance.Configuration.Options;
+				options = _deliveryOptions;
 
 			base.RequestChildService(stepNumber, attemptNumber, options);
 		}
