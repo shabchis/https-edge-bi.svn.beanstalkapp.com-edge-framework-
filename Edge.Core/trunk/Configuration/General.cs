@@ -108,6 +108,10 @@ namespace Edge.Core.Configuration
 	{
 		void Deserialize(XmlReader reader);
 		void Serialize(XmlWriter writer, string elementName);
+	}
+
+	public interface IServiceReferencingConfigurationElement
+	{
 		void ResolveReferences(ServiceElementCollection services, ServiceElement service);
 	}
 
