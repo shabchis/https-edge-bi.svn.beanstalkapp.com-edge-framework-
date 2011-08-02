@@ -45,7 +45,12 @@ namespace Edge.Data.Pipeline.Services
 					SettingsCollection options = new SettingsCollection();
 					options.Add(PipelineService.ConfigurationOptionNames.TargetPeriod, subRange.ToAbsolute().ToString());
 					options.Add(PipelineService.ConfigurationOptionNames.ConflictBehavior, DeliveryConflictBehavior.Ignore.ToString());
-
+					foreach (var option in Instance.Configuration.Options)
+					{
+						if (!options.ContainsKey(option.Key))
+							options.Add(option.Key, option.Value);
+						
+					}
 					//run the service
 					scheduleManager.Service.AddToSchedule(serviceName,this.Instance.AccountID,DateTime.Now, options);
 
