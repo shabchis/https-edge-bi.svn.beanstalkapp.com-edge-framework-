@@ -7,7 +7,7 @@ using System.Xml;
 
 namespace Edge.Core.Configuration
 {
-	public abstract class ConfigurationElementCollectionBase<ElementT>: ConfigurationElementCollection, ISerializableConfigurationElement
+	public abstract class ConfigurationElementCollectionBase<ElementT> : ConfigurationElementCollection, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 		where ElementT: ConfigurationElement
 	{
 		public ConfigurationElementCollectionBase()
@@ -39,15 +39,6 @@ namespace Edge.Core.Configuration
 			return -1;
 		}
 
-
-		//protected override ConfigurationPropertyCollection Properties
-		//{
-		//    get
-		//    {
-		//        return new ConfigurationPropertyCollection();
-		//    }
-		//}
-
 		void ISerializableConfigurationElement.Deserialize(XmlReader reader)
 		{
 			this.DeserializeElement(reader, false);
@@ -57,12 +48,12 @@ namespace Edge.Core.Configuration
 			this.SerializeToXmlElement(writer, elementName);
 		}
 
-		void ISerializableConfigurationElement.ResolveReferences(ServiceElementCollection services, ServiceElement service)
+		void IServiceReferencingConfigurationElement.ResolveReferences(ServiceElementCollection services, ServiceElement service)
 		{
 			for (int i = 0; i < this.Count; i++)
 			{
-				if (this[i] is ISerializableConfigurationElement)
-					(this[i] as ISerializableConfigurationElement).ResolveReferences(services, service);
+				if (this[i] is IServiceReferencingConfigurationElement)
+					(this[i] as IServiceReferencingConfigurationElement).ResolveReferences(services, service);
 			}
 		}
 	}

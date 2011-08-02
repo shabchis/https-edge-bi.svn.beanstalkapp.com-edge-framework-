@@ -15,7 +15,7 @@ namespace Edge.Core.Configuration
 	/// <summary>
 	/// Base class for elements that have properties referencing other elements within the services section.
 	/// </summary>
-	public abstract class ReferencingConfigurationElement: ConfigurationElement, ISerializableConfigurationElement
+	public abstract class ReferencingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 	{
 		#region Fields
 		protected internal ConfigurationPropertyCollection InnerProperties;
@@ -59,10 +59,10 @@ namespace Edge.Core.Configuration
 
 		internal virtual void ResolveReferences(ServiceElementCollection services, ServiceElement service)
 		{
-			((ISerializableConfigurationElement)this).ResolveReferences(services, service);
+			((IServiceReferencingConfigurationElement)this).ResolveReferences(services, service);
 		}
 
-		void ISerializableConfigurationElement.ResolveReferences(ServiceElementCollection services, ServiceElement service)
+		void IServiceReferencingConfigurationElement.ResolveReferences(ServiceElementCollection services, ServiceElement service)
 		{
 			foreach (ConfigurationProperty property in InnerProperties)
 			{
@@ -485,8 +485,8 @@ namespace Edge.Core.Configuration
 
 			foreach (ConfigurationElement element in this.Extensions.Values)
 			{
-				if (element is ISerializableConfigurationElement)
-					(element as ISerializableConfigurationElement).ResolveReferences(services, this);
+				if (element is IServiceReferencingConfigurationElement)
+					(element as IServiceReferencingConfigurationElement).ResolveReferences(services, this);
 			}
 		}
 
@@ -1378,6 +1378,10 @@ namespace Edge.Core.Configuration
 				WorkflowStepElement duplicatedStep = new WorkflowStepElement();
 				foreach (ConfigurationProperty property in duplicatedStep.InnerProperties)
 					duplicatedStep[property] = step[property];
+
+				foreach (var option in step.Options)
+					duplicatedStep.Options[option.Key] = option.Value;
+
 				this.Workflow.Add(duplicatedStep);
 			}
 
