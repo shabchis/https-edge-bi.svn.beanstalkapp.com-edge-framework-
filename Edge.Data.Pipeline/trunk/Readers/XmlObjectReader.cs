@@ -77,7 +77,7 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		protected XmlReader InnerReader
+		public XmlReader InnerReader
 		{
 			get { return _xmlReader; }
 		}

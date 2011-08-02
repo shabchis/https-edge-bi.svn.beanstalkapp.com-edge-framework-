@@ -51,15 +51,15 @@ namespace Edge.Data.Pipeline.Configuration
 		[ConfigurationProperty("Name", IsRequired = true)]
 		public string Name
 		{
-			get { return (string)this["Name"]; }
-			set { this["Name"] = value; }
+			get { return (string)base["Name"]; }
+			set { base["Name"] = value; }
 		}
 
 		[ConfigurationProperty("SegmentID", IsRequired = true)]
 		public int SegmentID
 		{
-			get { return (int)this["SegmentID"]; }
-			set { this["SegmentID"] = value; }
+			get { return (int)base["SegmentID"]; }
+			set { base["SegmentID"] = value; }
 		}
 
 		[ConfigurationProperty("", IsRequired = true, IsDefaultCollection = true)]
