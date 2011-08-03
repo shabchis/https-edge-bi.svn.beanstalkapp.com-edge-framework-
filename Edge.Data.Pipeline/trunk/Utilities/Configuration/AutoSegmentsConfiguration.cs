@@ -75,7 +75,14 @@ namespace Edge.Data.Pipeline.Configuration
 		{
 			get { return ConfigurationElementCollectionType.BasicMap; }
 		}
-
+		protected override void BaseAdd(ConfigurationElement element)
+		{
+			base.BaseAdd(element);
+		}
+		protected override void BaseAdd(int index, ConfigurationElement element)
+		{
+			base.BaseAdd(index, element);
+		}
 		protected override string ElementName
 		{
 			get { return "Pattern"; }
@@ -88,7 +95,7 @@ namespace Edge.Data.Pipeline.Configuration
 
 		protected override object GetElementKey(ConfigurationElement element)
 		{
-			return ((AutoSegmentPattern)element).Value;
+			return element.ElementInformation.LineNumber;
 		}
 	}
 

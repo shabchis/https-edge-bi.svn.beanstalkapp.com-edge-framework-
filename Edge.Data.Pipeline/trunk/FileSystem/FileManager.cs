@@ -11,6 +11,7 @@ using System.Collections;
 using Edge.Data.Pipeline;
 using System.Threading;
 using Edge.Core.Configuration;
+using Edge.Core.Utilities;
 
 
 namespace Edge.Data.Pipeline
@@ -64,12 +65,19 @@ namespace Edge.Data.Pipeline
 				{
 					operation.Success = false;
 					operation.Exception = ex;
-					return;
+
+					WebException webex;
+					if (ex is WebException && (webex = (WebException)ex).Status == WebExceptionStatus.ProtocolError)
+					{
+						response = webex.Response;
+					}
+					else
+						return;
 				}
 
 				operation.Stream = response.GetResponseStream();
-				if (response.ContentLength < MinValidFileSize)
-					throw new FileDownloadException(String.Format("Response from {0} returned zero content-length.", operation.Request.RequestUri)); 
+				if (operation.Exception == null && response.ContentLength < MinValidFileSize)
+					throw new FileDownloadException(String.Format("Response from {0} returned content-length less than {1}.", operation.Request.RequestUri, MinValidFileSize)); 
 
 				operation.TotalBytes = response.ContentLength;
 				operation.RaiseProgress();
@@ -102,7 +110,8 @@ namespace Edge.Data.Pipeline
 						throw new FileDownloadException(String.Format("Downloaded file ({0}) was 0 bytes.", operation.FileInfo.Location)); 
 
 					// Notify that we have succeeded
-					operation.Success = true;
+					if (operation.Exception == null)
+						operation.Success = true;
 				}
 			}
 		}
