@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.IO;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline
 {
@@ -230,8 +231,10 @@ namespace Edge.Data.Pipeline
 			foreach (Exception ex in this.InnerExceptions)
 			{
 				builder.Append(ex.ToString());
-				builder.Append("\n\n");
+				builder.Append("\n\n======================================\n\n");
 			}
+
+			builder.Append(base.ToString());
 			return builder.ToString();
 		}
 	}

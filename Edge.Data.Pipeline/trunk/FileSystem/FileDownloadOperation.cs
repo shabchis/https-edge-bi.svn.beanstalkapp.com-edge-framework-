@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading;
 using Edge.Core.Configuration;
 using System.Net;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline
 {
