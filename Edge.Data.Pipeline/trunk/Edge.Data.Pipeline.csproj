@@ -108,6 +108,7 @@
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
+    <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\GenericInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
@@ -176,4 +177,18 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+	<Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+
+	<Target Name="BeforeCompile">
+		<SvnVersion LocalPath=".">
+			<Output TaskParameter="Revision" PropertyName="SvnRevision" />
+		</SvnVersion>
+		<FormatVersion Version="2.9.0.%2a" Revision="$(SvnRevision)">
+			<Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
+		</FormatVersion>
+	</Target>
+	<PropertyGroup>
+		<PreBuildEvent>subwcrev.exe "$(ProjectDir)." "$(ProjectDir)Properties\AssemblyInfo.cs.template" "$(ProjectDir)Properties\AssemblyInfo.cs"</PreBuildEvent>
+		<PostBuildEvent></PostBuildEvent>
+	</PropertyGroup>
 </Project>
