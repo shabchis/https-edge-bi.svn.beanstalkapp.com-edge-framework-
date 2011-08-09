@@ -140,6 +140,18 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
+		internal static Delivery[] GetByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end)
+		{
+			using (var client = DeliveryDBClient.Connect())
+			{
+				var results = from Delivery d in client
+							  where d.Channel.ID == channelID
+							  select d;
+
+				return results.ToArray();
+			}
+		}
+
 		
 	}
 

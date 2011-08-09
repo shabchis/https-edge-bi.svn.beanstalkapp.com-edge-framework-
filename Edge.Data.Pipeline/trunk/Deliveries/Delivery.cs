@@ -196,5 +196,14 @@ namespace Edge.Data.Pipeline
 		{
 			return DeliveryDB.Get(deliveryID);
 		}
+
+		public static Delivery[] GetByTargetPeriod(DateTime start, DateTime end, Channel channel = null, Account account = null)
+		{
+			return DeliveryDB.GetByTargetPeriod(
+				channel == null ? -1 : channel.ID,
+				account == null ? -1 : account.ID,
+				start,
+				end);
+		}
 	}
 }
