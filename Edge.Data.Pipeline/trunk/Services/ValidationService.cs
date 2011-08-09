@@ -48,8 +48,10 @@ namespace Edge.Data.Pipeline.Services
 			}
 			catch (Exception ex)
 			{
-				entries.Add(new ValidationResult(ValidationResultType.Error, "Exception occured during validation.")
+				entries.Add(new ValidationResult()
 				{
+					ResultType = ValidationResultType.Error, 
+					Message = "Exception occured during validation.",
 					Exception = ex
 				});
 			}
@@ -57,7 +59,7 @@ namespace Edge.Data.Pipeline.Services
 			foreach (ValidationResult entry in entries)
 				entry.LogWrite();
 
-			if (maxLevel <= this.FailureLevel)
+			if (this.FailureLevel != ValidationResultType.None && maxLevel <= this.FailureLevel)
 				return Core.Services.ServiceOutcome.Failure;
 			else
 				return Core.Services.ServiceOutcome.Success;
@@ -69,12 +71,6 @@ namespace Edge.Data.Pipeline.Services
 
 	public class ValidationResult
 	{
-		public ValidationResult(ValidationResultType resultType, string message)
-		{
-			this.ResultType = resultType;
-			this.Message = message;
-		}
-
 		public ValidationResultType ResultType { get; set; }
 		public string Message { get; set; }
 		public int AccountID { get; set; }
@@ -96,11 +92,11 @@ namespace Edge.Data.Pipeline.Services
 				this.TargetPeriodStart == DateTime.MinValue && this.TargetPeriodEnd == DateTime.MinValue && this.DeliveryID == Guid.Empty ?
 					null :
 					String.Format("({0}{1})",
-				// {0}
+						// {0}
 						this.TargetPeriodStart != DateTime.MinValue || this.TargetPeriodEnd != DateTime.MinValue ?
 							String.Format("period: {0:yyyy-MM-dd}-{1:yyyy-MM-dd}", this.TargetPeriodStart, this.TargetPeriodEnd) :
 							null,
-				// {1}
+						// {1}
 						this.DeliveryID != Guid.Empty ?
 							String.Format("delivery: {0}", this.DeliveryID) :
 							null
@@ -114,6 +110,7 @@ namespace Edge.Data.Pipeline.Services
 
 	public enum ValidationResultType
 	{
+		None = 0,
 		Error = 1,
 		Warning = 2,
 		Information = 3
