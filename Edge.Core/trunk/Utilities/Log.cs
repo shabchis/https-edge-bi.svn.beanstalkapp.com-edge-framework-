@@ -199,7 +199,7 @@ namespace Edge.Core.Utilities
 			_source = source;
 		}
 
-		internal void InternalWrite(string message, Exception ex, LogMessageType messageType)
+		internal void InternalWrite(string message, Exception ex, LogMessageType messageType, int accountID=-1)
 		{
 			LogEntry entry = new LogEntry();
 			entry.Source = _source;
@@ -207,10 +207,9 @@ namespace Edge.Core.Utilities
 			entry.Message = message;
 
 			if (_instance != null)
-			{
-				entry.AccountID = _instance.AccountID;
 				entry.ServiceInstanceID = _instance.InstanceID;
-			}
+
+			entry.AccountID = accountID != -1 || _instance == null ? accountID  : _instance.AccountID;
 
 			if (ex != null)
 			{
@@ -221,12 +220,12 @@ namespace Edge.Core.Utilities
 			entry.Save();
 		}
 
-		public static void Write(string message, Exception ex, LogMessageType messageType)
+		public static void Write(string message, Exception ex, LogMessageType messageType, int accountID = -1)
 		{
 			if (Service.Current == null)
 				throw new InvalidOperationException("Source parameter must be specified when writing to the log outside of a service context.");
 
-			Service.Current.Log.InternalWrite(message, ex, messageType);
+			Service.Current.Log.InternalWrite(message, ex, messageType, accountID);
 		}
 
 		public static void Write(string message, LogMessageType messageType)
