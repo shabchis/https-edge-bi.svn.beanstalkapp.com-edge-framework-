@@ -120,7 +120,21 @@ namespace Edge.Data.Pipeline
 				//	throw new InvalidOperationException("This property can only be set before the first Save() is called.");
 
 				_targetPeriod = value;
+				this.TargetPeriodStart = _targetPeriod.Start.ToDateTime();
+				this.TargetPeriodEnd = _targetPeriod.End.ToDateTime();
 			}
+		}
+
+		public DateTime TargetPeriodStart
+		{
+			get;
+			private set;
+		}
+
+		public DateTime TargetPeriodEnd
+		{
+			get;
+			private set;
 		}
 
 		/// <summary>
