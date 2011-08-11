@@ -149,6 +149,7 @@ namespace Edge.Data.Pipeline
 				// Add history and save
 				for (int i = 0; i < deliveries.Length; i++)
 				{
+					
 					Delivery delivery = deliveries[i];
 					delivery.History.Add(historyOperation, this._serviceInstanceID, entryParams[i]);
 					delivery.Save();
@@ -156,7 +157,7 @@ namespace Edge.Data.Pipeline
 			}
 			else
 				// Throw exception
-				throw exception;
+				throw new Exception("InnerException:", exception);
 
 			this.State = DeliveryImportManagerState.Idle;
 
