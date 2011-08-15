@@ -35,6 +35,9 @@ namespace Edge.Data.Pipeline
 			if (segment == null)
 				throw new ArgumentNullException("segment");
 
+			if (source == null)
+				throw new ArgumentNullException("source", "Segments can only be extracted from a non-null source.");
+
 			AutoSegmentDefinition def = this.Definitions[segment.Name];
 			if (def == null)
 				throw new ArgumentException(String.Format("The segment '{0}' was not found in the {1} configuration.", segment.Name, AutoSegmentDefinitionCollection.ExtensionName), "segmentName");
