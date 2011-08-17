@@ -696,10 +696,12 @@ namespace Edge.Core.Scheduling
                 else
                 {
 
-                    using (DataManager.Current.OpenConnection())
+                    using (SqlConnection SqlConnection=new SqlConnection(AppSettings.GetConnectionString(this,"OLTP")))
                     {
+						SqlConnection.Open();
                         using (SqlCommand sqlCommand = DataManager.CreateCommand("ServiceConfiguration_GetExecutionTime(@ConfigName:NvarChar,@Percentile:Int,@ProfileID:Int)", System.Data.CommandType.StoredProcedure))
                         {
+							sqlCommand.Connection = SqlConnection;
                             sqlCommand.Parameters["@ConfigName"].Value = configurationName;
                             sqlCommand.Parameters["@Percentile"].Value = Percentile;
                             sqlCommand.Parameters["@ProfileID"].Value = AccountID;
