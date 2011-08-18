@@ -203,6 +203,9 @@ namespace Edge.Data.Pipeline.Services
 							guids.Append(", ");
 					}
 
+					this.Delivery.History.Add(DeliveryOperation.Aborted, this.Instance.InstanceID);
+					this.Delivery.Save();
+
 					throw new Exception("Conflicting deliveries found: " + guids.ToString());
 				}
 			}
