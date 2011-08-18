@@ -110,12 +110,40 @@ namespace Edge.Data.Pipeline
 
 	public enum DeliveryOperation
 	{
+		/// <summary>
+		/// Indicates the delivery has been created and initialized with signatures, file URLs, etc.
+		/// </summary>
 		Initialized = 1,
+
+		/// <summary>
+		/// Indicates that all delivery files have been downloaded and the delivery is ready for processing and importing.
+		/// </summary>
 		Retrieved = 2,
+
+		/// <summary>
+		/// Indicates that delivery files have been processed and data has been imported into the Deliveries SQL database.
+		/// </summary>
 		Imported = 3,
+
+		/// <summary>
+		/// Indicates that delivery data has been comitted into the target database.
+		/// </summary>
 		Committed = 4,
+
+		/// <summary>
+		/// Indicates the delivery data has been removed from the target database.
+		/// </summary>
 		RolledBack = 5,
-		Validated = 6
+
+		/// <summary>
+		/// Indicates the delivery's data has been validated.
+		/// </summary>
+		Validated = 6,
+
+		/// <summary>
+		/// Indicates the delivery's pipeline process has been aborted because it was found to be conflicting with other deliveries.
+		/// </summary>
+		Aborted = 7
 	}
 
 	public class DeliveryHistoryEntry
