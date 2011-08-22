@@ -138,12 +138,7 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Indicates the delivery's data has been validated.
 		/// </summary>
-		Validated = 6,
-
-		/// <summary>
-		/// Indicates the delivery's pipeline process has been aborted because it was found to be conflicting with other deliveries.
-		/// </summary>
-		Aborted = 7
+		Validated = 6
 	}
 
 	public class DeliveryHistoryEntry

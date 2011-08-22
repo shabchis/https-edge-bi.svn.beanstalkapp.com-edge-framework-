@@ -142,49 +142,27 @@ namespace Edge.Data.Pipeline.Services
 			conflicting.CopyTo(toCheck, 1);
 
 			// Check whether the last commit was not rolled back for each conflicting delivery
-			bool conflictsFound = false;
-			List<Delivery> inProcess = new List<Delivery>();
 			List<Delivery> toRollback = new List<Delivery>();
-
 			foreach (Delivery d in toCheck)
 			{
 				int rollbackIndex = -1;
 				int commitIndex = -1;
-				int abortedIndex = -1;
-				int otherIndex = -1;
-
 				for (int i = 0; i < d.History.Count; i++)
 				{
 					if (d.History[i].Operation == DeliveryOperation.Committed)
 						commitIndex = i;
 					else if (d.History[i].Operation == DeliveryOperation.RolledBack)
 						rollbackIndex = i;
-					else if (d.History[i].Operation == DeliveryOperation.Aborted)
-						abortedIndex = i;
-					else
-						otherIndex = i;
 				}
-
-				// Conflicts means either an unrolled back commit or the last operation not being an abort
-
 
 				if (commitIndex > rollbackIndex)
-				{
 					toRollback.Add(d);
-					conflictsFound = true;
-				}
-
-				if (otherIndex > abortedIndex && otherIndex > commitIndex)
-				{
-					inProcess.Add(d);
-					conflictsFound = true;
-				}
 			}
 
 			DeliveryRollbackOperation operation = null;
-			if (conflictsFound)
+			if (toRollback.Count > 0)
 			{
-				if (behavior == DeliveryConflictBehavior.Rollback && inProcess.Count == 0)
+				if (behavior == DeliveryConflictBehavior.Rollback)
 				{
 					operation = new DeliveryRollbackOperation();
 					operation.AsyncDelegate = new Action<Delivery[]>(importManager.Rollback);
@@ -192,27 +170,19 @@ namespace Edge.Data.Pipeline.Services
 				}
 				else
 				{
-					var guidOutputList = new List<Delivery>(inProcess);
-					guidOutputList.AddRange(toRollback);
-
 					StringBuilder guids = new StringBuilder();
-					for (int i = 0; i < guidOutputList.Count; i++)
+					for (int i = 0; i < toRollback.Count; i++)
 					{
-						guids.Append(guidOutputList[i].DeliveryID.ToString("N"));
-						if (i < guidOutputList.Count - 1)
+						guids.Append(toRollback[i].DeliveryID.ToString("N"));
+						if (i < toRollback.Count - 1)
 							guids.Append(", ");
 					}
-
-					this.Delivery.History.Add(DeliveryOperation.Aborted, this.Instance.InstanceID);
-					this.Delivery.Save();
-
 					throw new Exception("Conflicting deliveries found: " + guids.ToString());
 				}
 			}
 
 			return operation;
 		}
-
 
 		// ==============================
 		#endregion
