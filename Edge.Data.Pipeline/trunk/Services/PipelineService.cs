@@ -9,6 +9,8 @@ using System.Text.RegularExpressions;
 using System.Configuration;
 using Edge.Core.Configuration;
 using System.Threading;
+using System.Data.SqlClient;
+using EdgeConfiguration = Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -122,6 +124,23 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
 		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
+			//prevent duplicate data in case two services runing on the same time
+			using (SqlConnection sqlConnection=new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services","SystemDatabase")))
+			{
+				using (SqlCommand command =EdgeConfiguration.DataManager.CreateCommand(@"SP_Check_Get_Delivery_Ticket(@DeliverySignature:Nvarchar,
+																		 @DeliveryID:Nvarchar,
+																		 @WorkflowInstanceID:int)", System.Data.CommandType.StoredProcedure))
+				{
+					sqlConnection.Open();
+					command.Connection = sqlConnection;
+					command.ExecuteNonQuery();
+				}
+	
+
+				
+			}
+
+
 			DeliveryConflictBehavior behavior = defaultConflictBehavior;
 			if (getBehaviorFromConfiguration)
 			{
