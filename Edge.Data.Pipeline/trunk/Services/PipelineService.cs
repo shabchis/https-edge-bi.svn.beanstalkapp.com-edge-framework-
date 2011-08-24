@@ -124,21 +124,7 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
 		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
-			//prevent duplicate data in case two services runing on the same time
-			using (SqlConnection sqlConnection=new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services","SystemDatabase")))
-			{
-				using (SqlCommand command =EdgeConfiguration.DataManager.CreateCommand(@"SP_Check_Get_Delivery_Ticket(@DeliverySignature:Nvarchar,
-																		 @DeliveryID:Nvarchar,
-																		 @WorkflowInstanceID:int)", System.Data.CommandType.StoredProcedure))
-				{
-					sqlConnection.Open();
-					command.Connection = sqlConnection;
-					command.ExecuteNonQuery();
-				}
-	
-
-				
-			}
+			
 
 
 			DeliveryConflictBehavior behavior = defaultConflictBehavior;
@@ -149,11 +135,42 @@ namespace Edge.Data.Pipeline.Services
 					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
 			}
 
+			if (this.Delivery.Signature == null)
+				throw new InvalidOperationException("Cannot handle conflicts before a valid signature is given to the delivery.");
+
+			//prevent duplicate data in case two services runing on the same time
+			using (SqlConnection sqlConnection=new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services","SystemDatabase")))
+			{
+				using (SqlCommand command = EdgeConfiguration.DataManager.CreateCommand(@"DeliveryTicket_Get(@DeliverySignature:Nvarchar,
+																		 @DeliveryID:Nvarchar,
+																		 @WorkflowInstanceID:bigint)", System.Data.CommandType.StoredProcedure))
+				{
+					command.Parameters["@DeliverySignature"].Value = Delivery.Signature;
+					command.Parameters["@DeliveryID"].Value = Delivery.DeliveryID.ToString("N");
+					command.Parameters["@WorkflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
+
+					sqlConnection.Open();
+					command.Connection = sqlConnection;
+					if (Convert.ToInt32(command.ExecuteScalar()) == 0)
+						throw new InvalidOperationException("can't resume service since other service with the same signature is runing right now!");
+					
+				}
+	
+
+				
+			}
+
 			if (behavior == DeliveryConflictBehavior.Ignore)
 				return null;
 
-			if (this.Delivery.Signature == null)
-				throw new InvalidOperationException("Cannot handle conflicts before a valid signature is given to the delivery.");
+			
+
+
+			
+
+
+
+
 
 			Delivery[] conflicting = this.Delivery.GetConflicting();
 			Delivery[] toCheck = new Delivery[conflicting.Length + 1];
