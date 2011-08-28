@@ -124,8 +124,38 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
 		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
-			
+			if (this.Delivery.Signature == null)
+				throw new InvalidOperationException("Cannot handle conflicts before a valid signature is given to the delivery.");
 
+			// ================================
+			// Ticket behavior
+			DeliveryTicketBehavior ticketBehavior = defaultConflictBehavior;
+			if (getBehaviorFromConfiguration)
+			{
+				string configuredBehavior;
+				if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
+					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
+			}
+
+
+
+			//prevent duplicate data in case two services runing on the same time
+			using (SqlConnection sqlConnection=new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services",  "SystemDatabase")))
+			{
+				// @"DeliveryTicket_Get(@deliverySignature:Nvarchar, @deliveryID:Nvarchar, $workflowInstanceID:bigint)"
+				SqlCommand command = EdgeConfiguration.DataManager.CreateCommand(AppSettings.Get(this.GetType(), "DeliveryTicket.SP"), System.Data.CommandType.StoredProcedure);
+				command.Parameters["@deliverySignature"].Value = Delivery.Signature;
+				command.Parameters["@deliveryID"].Value = Delivery.DeliveryID.ToString("N");
+				command.Parameters["@workflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
+
+				sqlConnection.Open();
+				command.Connection = sqlConnection;
+				if (((DeliveryTicketStatus)command.ExecuteScalar()) == DeliveryTicketStatus.ClaimedByOther)
+					throw new Exception(String.Format("The current delivery signature is currently claimed by service instance ID {0}.", command.Parameters["@workflowInstanceID"].Value));
+			}
+
+			// ================================
+			// Conflict behavior
 
 			DeliveryConflictBehavior behavior = defaultConflictBehavior;
 			if (getBehaviorFromConfiguration)
@@ -135,42 +165,8 @@ namespace Edge.Data.Pipeline.Services
 					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
 			}
 
-			if (this.Delivery.Signature == null)
-				throw new InvalidOperationException("Cannot handle conflicts before a valid signature is given to the delivery.");
-
-			//prevent duplicate data in case two services runing on the same time
-			using (SqlConnection sqlConnection=new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services","SystemDatabase")))
-			{
-				using (SqlCommand command = EdgeConfiguration.DataManager.CreateCommand(@"DeliveryTicket_Get(@DeliverySignature:Nvarchar,
-																		 @DeliveryID:Nvarchar,
-																		 @WorkflowInstanceID:bigint)", System.Data.CommandType.StoredProcedure))
-				{
-					command.Parameters["@DeliverySignature"].Value = Delivery.Signature;
-					command.Parameters["@DeliveryID"].Value = Delivery.DeliveryID.ToString("N");
-					command.Parameters["@WorkflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
-
-					sqlConnection.Open();
-					command.Connection = sqlConnection;
-					if (Convert.ToInt32(command.ExecuteScalar()) == 0)
-						throw new InvalidOperationException("can't resume service since other service with the same signature is runing right now!");
-					
-				}
-	
-
-				
-			}
-
 			if (behavior == DeliveryConflictBehavior.Ignore)
 				return null;
-
-			
-
-
-			
-
-
-
-
 
 			Delivery[] conflicting = this.Delivery.GetConflicting();
 			Delivery[] toCheck = new Delivery[conflicting.Length + 1];
@@ -257,6 +253,20 @@ namespace Edge.Data.Pipeline.Services
 		Ignore,
 		Abort,
 		Rollback
+	}
+
+	public enum DeliveryTicketBehavior
+	{
+		Ignore,
+		Abort
+	}
+
+
+	public enum DeliveryTicketStatus
+	{
+		ClaimedByOther = 0,
+		AlreadyClaimed = 1,
+		Claimed = 2
 	}
 
 	public class DeliveryRollbackOperation
