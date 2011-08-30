@@ -129,29 +129,32 @@ namespace Edge.Data.Pipeline.Services
 
 			// ================================
 			// Ticket behavior
-			DeliveryTicketBehavior ticketBehavior = defaultConflictBehavior;
+			DeliveryTicketBehavior ticketBehavior=DeliveryTicketBehavior.Abort;
 			if (getBehaviorFromConfiguration)
 			{
-				string configuredBehavior;
-				if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
-					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
+				string configuredTicketBehavior;
+				if (Instance.Configuration.Options.TryGetValue("TicketBehavior", out configuredTicketBehavior))
+					ticketBehavior = (DeliveryTicketBehavior)Enum.Parse(typeof(DeliveryTicketBehavior), configuredTicketBehavior);
 			}
 
 
 
 			//prevent duplicate data in case two services runing on the same time
-			using (SqlConnection sqlConnection=new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services",  "SystemDatabase")))
+			if (ticketBehavior==DeliveryTicketBehavior.Abort)
 			{
-				// @"DeliveryTicket_Get(@deliverySignature:Nvarchar, @deliveryID:Nvarchar, $workflowInstanceID:bigint)"
-				SqlCommand command = EdgeConfiguration.DataManager.CreateCommand(AppSettings.Get(this.GetType(), "DeliveryTicket.SP"), System.Data.CommandType.StoredProcedure);
-				command.Parameters["@deliverySignature"].Value = Delivery.Signature;
-				command.Parameters["@deliveryID"].Value = Delivery.DeliveryID.ToString("N");
-				command.Parameters["@workflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
+				using (SqlConnection sqlConnection = new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase")))
+				{
+					// @"DeliveryTicket_Get(@deliverySignature:Nvarchar, @deliveryID:Nvarchar, $workflowInstanceID:bigint)"
+					SqlCommand command = EdgeConfiguration.DataManager.CreateCommand(string.Format("{0}({1})", AppSettings.Get(this.GetType(), "DeliveryTicket.SP"), "@deliverySignature:NvarChar,@deliveryID:NvarChar,@workflowInstanceID:bigint"), System.Data.CommandType.StoredProcedure);
+					command.Parameters["@deliverySignature"].Value = Delivery.Signature;
+					command.Parameters["@deliveryID"].Value = Delivery.DeliveryID.ToString("N");
+					command.Parameters["@workflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
 
-				sqlConnection.Open();
-				command.Connection = sqlConnection;
-				if (((DeliveryTicketStatus)command.ExecuteScalar()) == DeliveryTicketStatus.ClaimedByOther)
-					throw new Exception(String.Format("The current delivery signature is currently claimed by service instance ID {0}.", command.Parameters["@workflowInstanceID"].Value));
+					sqlConnection.Open();
+					command.Connection = sqlConnection;
+					if (((DeliveryTicketStatus)command.ExecuteScalar()) == DeliveryTicketStatus.ClaimedByOther)
+						throw new Exception(String.Format("The current delivery signature is currently claimed by service instance ID {0}.", command.Parameters["@workflowInstanceID"].Value));
+				} 
 			}
 
 			// ================================
