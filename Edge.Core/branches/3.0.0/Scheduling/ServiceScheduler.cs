@@ -233,6 +233,7 @@ namespace Edge.Core.Services2.Scheduling
 						{
 
 							//GetNewStartEndTime
+							//TODO: LINE 236 WILL NOT WORK SINCE WE DON'T NOW IF TO USE SERVICEWITHSAMEPROFILE OR SERVICESWITHSAMECONFIGURATION IT DEPENDS ON THE IF
 							calculatedStartTime = servicesWithSameProfile.Where(s => s.Value.SchedulingInfo.EstimateTimeEnd >= calculatedStartTime).Min(s => s.Value.SchedulingInfo.EstimateTimeEnd);
 							if (calculatedStartTime < DateTime.Now)
 								calculatedStartTime = DateTime.Now;
