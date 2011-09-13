@@ -1033,4 +1033,23 @@ namespace Edge.Core.Data
 	//    {
 	//    }
 	//}
+
+	public static class SqlDataReaderExtensions
+	{
+		public static T Get<T>(this SqlDataReader reader, string field, T nullVal = default(T))
+		{
+			var val = reader[field];
+			if (val is DBNull)
+				return nullVal;
+			else
+				return (T)val;
+		}
+
+		public static ConvertT Convert<SourceT, ConvertT>(this SqlDataReader reader, string field, Func<SourceT, ConvertT> convertFunc, SourceT nullVal = default(SourceT))
+		{
+			SourceT val = reader.Get<SourceT>(field, nullVal);
+			return convertFunc(val);
+		}
+	}
+
 }
