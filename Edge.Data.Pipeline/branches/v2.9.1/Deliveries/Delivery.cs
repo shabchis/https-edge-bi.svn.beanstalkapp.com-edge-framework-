@@ -31,10 +31,9 @@ namespace Edge.Data.Pipeline
 		DeliveryHistory _history;
 
 		/// <summary>
-		/// Creates a new delivery and sets the specified instance ID as the creator.
+		/// Creates a new delivery with the specified ID.
 		/// </summary>
-		/// <param name="instanceID">ID of the service that is initializing the delivery. Equivalent to delivery.History.Add(DeliveryOperation.Created, serviceInstance.InstanceID)</param>
-		internal Delivery(long instanceID, Guid specifiedDeliveryID)
+		internal Delivery(Guid specifiedDeliveryID)
 		{
 			if (specifiedDeliveryID == Guid.Empty)
 				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. "+
@@ -46,8 +45,6 @@ namespace Edge.Data.Pipeline
 			_parameters = new Dictionary<string, object>();
 			
 			this.DeliveryID = specifiedDeliveryID;
-
-			this.History.Add(DeliveryOperation.Initialized, instanceID);
 		}
 
 		/// <summary>
