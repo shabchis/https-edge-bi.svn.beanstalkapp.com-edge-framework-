@@ -16,6 +16,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using Edge.Core.Services;
 using Edge.Core.Data;
+using Edge.Data.Objects;
 
 
 
@@ -23,38 +24,64 @@ namespace Edge.Data.Pipeline
 {
 	internal class DeliveryDB
 	{
-		internal static Delivery Get(Guid deliveryID, bool activate = true, IObjectContainer client = null)
+		private static class ResultSetIndex
+		{
+			public const int Delivery = 0;
+			public const int DeliveryParameters = 1;
+			public const int DeliveryHistory = 2;
+			public const int DeliveryHistoryParameters = 3;
+			public const int DeliveryFile = 4;
+			public const int DeliveryFileParameters = 5;
+		}
+
+		internal static Delivery Get(Guid deliveryID, bool deep = true, SqlConnection connection = null)
 		{
 			Delivery delivery;
-			bool innerClient = client == null;
-			int previousActivationDepth = -1;
+			bool innerConnection = connection == null;
 
-			if (innerClient)
-				client = DeliveryDBClient.Connect();
-			previousActivationDepth=25;
-			client.Ext().Configure().ActivationDepth(25);
-			int resultCount = -1;
+			if (innerConnection)
+				connection = DeliveryDBClient.Connect();
 
 			try
 			{
-				// set activation depth to 0 so that only an object reference is retrieved, this can then be used to swap the object
-				if (!activate)
-					client.Ext().Configure().ActivationDepth(0);
+				SqlCommand cmd = DataManager.CreateCommand("Delivery_Get(@deliveryID:Char, @deep:bit)", System.Data.CommandType.StoredProcedure);
+				cmd.Parameters["@deliveryID"].Value = deliveryID.ToString("N");
+				cmd.Parameters["@deep"].Value = deep;
 
-				var results = (from Delivery d in client where d.DeliveryID == deliveryID select d);
-				resultCount = results.Count();
-				delivery = resultCount > 0 ? results.First() : null;
+				using (SqlDataReader reader = cmd.ExecuteReader())
+				{
+					int resultSetCount=0;
+					while (reader.NextResult())
+					{
+						resultSetCount++;
+						switch (resultSetCount)
+						{
+							case ResultSetIndex.Delivery:
+								delivery = new Delivery(reader.Convert<string,Guid>("DeliveryID", s => Guid.Parse(s)))
+								{
+									Account = reader.Convert<int?,Account>("AccountID", id => id.HasValue ? new Account(){ID = id.Value} : null),
+									Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
+								};
+								break;
+							case ResultSetIndex.DeliveryParameters:
+								break;
+							case ResultSetIndex.DeliveryHistory:
+								break;
+							case ResultSetIndex.DeliveryHistoryParameters:
+								break;
+							case ResultSetIndex.DeliveryFile:
+								break;
+							case ResultSetIndex.DeliveryFileParameters:
+								break;
+						}
+					}
+				}
 			}
 			finally
 			{
-				if (innerClient)
+				if (innerConnection)
 				{
-					client.Dispose();
-				}
-				else
-				{
-					// reset activation depth
-					client.Ext().Configure().ActivationDepth(previousActivationDepth);
+					connection.Dispose();
 				}
 			}
 /*
@@ -180,9 +207,10 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		public static IObjectContainer Connect()
+		public static SqlConnection Connect()
 		{
-			return Db4oClientServer.OpenClient(Host, Port, User, Password);
+			throw new NotImplementedException();
+			//return Db4oClientServer.OpenClient(Host, Port, User, Password);
 		}
 	}
 
