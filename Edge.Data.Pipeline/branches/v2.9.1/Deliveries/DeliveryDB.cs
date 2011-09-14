@@ -17,6 +17,8 @@ using System.Data.SqlClient;
 using Edge.Core.Services;
 using Edge.Core.Data;
 using Edge.Data.Objects;
+using System.Xml.Serialization;
+using System.Xml;
 
 
 
@@ -36,7 +38,7 @@ namespace Edge.Data.Pipeline
 
 		internal static Delivery Get(Guid deliveryID, bool deep = true, SqlConnection connection = null)
 		{
-			Delivery delivery=null;
+			Delivery delivery = null;
 			bool innerConnection = connection == null;
 
 			if (innerConnection)
@@ -45,6 +47,7 @@ namespace Edge.Data.Pipeline
 			try
 			{
 				SqlCommand cmd = DataManager.CreateCommand("Delivery_Get(@deliveryID:Char, @deep:bit)", System.Data.CommandType.StoredProcedure);
+				cmd.Connection = connection;
 				cmd.Parameters["@deliveryID"].Value = deliveryID.ToString("N");
 				cmd.Parameters["@deep"].Value = deep;
 
@@ -79,7 +82,7 @@ namespace Edge.Data.Pipeline
 						if (reader.NextResult())
 						{
 							while (reader.Read())
-								delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));							
+								delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
 						}
 
 						//*******************DeliveryHistoryParameters***********************
@@ -109,10 +112,10 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								DeliveryFile deliveryFile=delivery.Files[reader["FileID"].ToString()];
+								DeliveryFile deliveryFile = delivery.Files[reader["FileID"].ToString()];
 								deliveryFile.Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
-								
-								
+
+
 							}
 
 						}
@@ -122,7 +125,7 @@ namespace Edge.Data.Pipeline
 							while (reader.Read())
 							{
 								DeliveryFile deliveryFile = delivery.Files[reader["FileID"].ToString()];
-								deliveryFile.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));	
+								deliveryFile.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
 							}
 
 
@@ -141,8 +144,8 @@ namespace Edge.Data.Pipeline
 
 
 
-						
-						
+
+
 					}
 				}
 
@@ -168,19 +171,122 @@ namespace Edge.Data.Pipeline
 
 			using (var client = DeliveryDBClient.Connect())
 			{
+				SqlTransaction transaction = client.BeginTransaction();
 				Guid guid = delivery.DeliveryID;
 
 				if (guid != Guid.Empty)
 				{
-					Delivery inactiveReference = DeliveryDB.Get(delivery.DeliveryID, false, client);
-					if (inactiveReference != null)
+					SqlCommand cmd = new SqlCommand("Delivery_Delete");
+
+					cmd.Connection = client;
+					cmd.Transaction = transaction;
+					cmd.CommandType = System.Data.CommandType.StoredProcedure;
+					cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+					cmd.ExecuteNonQuery();
+
+
+					//**********************Delivery*********************************
+					cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[Delivery]
+	       ([DeliveryID]
+	       ,[AccountID]
+	       ,[ChannelID]
+	       ,[DateCreated]
+	       ,[DateModified]
+	       ,[Signature]
+	       ,[Description]
+	       ,[TargetLocationDirectory]
+	       ,[TargetPeriodDefinition]
+	       ,[TargetPeriodStart]
+	       ,[TargetPeriodEnd])
+	 VALUES
+	       (@deliveryID,
+	        @accountID,
+	        @channelID,
+	        @dateCreated,
+	        @dateModified,
+	        @signature,
+	        @description,
+	        @targetLocationDirectory,
+	        @targetPeriodDefinition,
+	        @targetPeriodStart,
+	        @targetPeriodEnd)", client, transaction);
+
+					cmd.Connection = client;
+					cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+					cmd.Parameters.Add("@accountID", System.Data.SqlDbType.Int);
+					cmd.Parameters.Add("@channelID", System.Data.SqlDbType.Int);
+					cmd.Parameters.Add("@dateCreated", System.Data.SqlDbType.DateTime);
+					cmd.Parameters.Add("@dateModified", System.Data.SqlDbType.DateTime);
+					cmd.Parameters.Add("@signature", System.Data.SqlDbType.NVarChar);
+					cmd.Parameters.Add("@description", System.Data.SqlDbType.NVarChar);
+					cmd.Parameters.Add("@targetLocationDirectory", System.Data.SqlDbType.NVarChar);
+					cmd.Parameters.Add("@targetPeriodDefinition", System.Data.SqlDbType.NVarChar);
+					cmd.Parameters.Add("@targetPeriodStart", System.Data.SqlDbType.DateTime);
+					cmd.Parameters.Add("@targetPeriodEnd", System.Data.SqlDbType.DateTime);
+
+					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+					cmd.Parameters["@accountID"].Value = delivery.Account.ID;
+					cmd.Parameters["@channelID"].Value = delivery.Channel.ID;
+					cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
+					cmd.Parameters["@dateModified"].Value = delivery.DateModified;
+					cmd.Parameters["@signature"].Value = delivery.Signature;
+					cmd.Parameters["@description"].Value = delivery.Description == null ? (object)DBNull.Value : delivery.Description;
+					cmd.Parameters["@targetLocationDirectory"].Value = delivery.TargetLocationDirectory;
+					cmd.Parameters["@targetPeriodDefinition"].Value = delivery.TargetPeriod.ToString();
+					cmd.Parameters["@targetPeriodStart"].Value = delivery.TargetPeriodStart;
+					cmd.Parameters["@targetPeriodEnd"].Value = delivery.TargetPeriodEnd;
+
+					cmd.ExecuteNonQuery();
+
+					//*******************DeliveryParameters***********************
+					
+					foreach (KeyValuePair<string, object> param in delivery.Parameters)
 					{
-						// refer here for an explanation on what's going on:
-						// http://stackoverflow.com/questions/5848990/retrieve-an-object-in-one-db4o-session-store-in-another-disconnected-scenario
-						//long tempDb4oID = client.Ext().GetID(inactiveReference);
-						//client.Ext().Bind(delivery, tempDb4oID);
-						//Log.Write(String.Format("Delivery - overwrite (db4o id {0})", tempDb4oID), LogMessageType.Information);
+						
+						cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryParameters]
+										([DeliveryID]
+										,[Key]
+										,[Value])
+										 VALUES
+									    (@deliveryID
+									    ,@key
+										,@value)");
+						cmd.Connection = client;
+						cmd.Transaction = transaction;
+						cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+						cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
+						cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+						cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+						cmd.Parameters["@key"].Value = param.Key;
+						XmlSerializer x =new  XmlSerializer(param.Value.GetType());
+						MemoryStream s = new MemoryStream();
+						x.Serialize(s,param.Value);
+						cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+						cmd.ExecuteNonQuery();
+
 					}
+					//*******************DeliveryHistory***********************
+					foreach (DeliveryHistoryEntry historyEntry in delivery.History)
+					{
+						cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryParameters]
+										([DeliveryID]
+										,[Key]
+										,[Value])
+										 VALUES
+									    (@deliveryID
+									    ,@key
+										,@value)");
+						cmd.Connection = client;
+						cmd.Transaction = transaction;
+						
+					}
+					                      
+
+					transaction.Commit();
+
+
+
 				}
 				else
 				{
@@ -200,9 +306,20 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		internal static void Delete(Delivery delivery, IObjectContainer client = null)
+		internal static void Delete(Delivery delivery)
 		{
-			throw new NotImplementedException();
+			using (SqlConnection connection = DeliveryDBClient.Connect())
+			{
+				using (SqlCommand cmd = new SqlCommand("Delivery_Delete"))
+				{
+					cmd.Connection = connection;
+					cmd.CommandType = System.Data.CommandType.StoredProcedure;
+					cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+					cmd.ExecuteNonQuery();
+
+				}
+			}
 		}
 
 		internal static Delivery[] GetBySignature(string signature, Guid[] exclude)
@@ -211,14 +328,14 @@ namespace Edge.Data.Pipeline
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
-				using (SqlCommand cmd=DataManager.CreateCommand("Delivery_GetBySignature(@signature:NvarChar,@exclude:NvarChar)",System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetBySignature(@signature:NvarChar,@exclude:NvarChar)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
-					cmd.Parameters["@signature"].Value = signature;
-					cmd.Parameters["@exclude"].Value = GetGuidStringArray(exclude);
-					using (SqlDataReader reader=cmd.ExecuteReader())
-					{						
-						while (reader.Read())						
+					cmd.Parameters["@signature"].Value = "'" + signature + "'";
+					cmd.Parameters["@exclude"].Value = GetGuidStringArray(exclude); //TODO: Talk with doron it's not the way to do it
+					using (SqlDataReader reader = cmd.ExecuteReader())//TODO: Talk with doron it's not the way to do it
+					{
+						while (reader.Read())
 							deliveries.Add(Get(Guid.Parse(reader.GetString(0))));
 					}
 				}
@@ -228,9 +345,9 @@ namespace Edge.Data.Pipeline
 
 		private static string GetGuidStringArray(Guid[] exclude)
 		{
-			StringBuilder guidArray=new StringBuilder();
+			StringBuilder guidArray = new StringBuilder();
 			foreach (Guid guid in exclude)
-				guidArray.AppendFormat(guidArray.Length == 0 ? "{0}" : ",{0}", guid.ToString("N"));
+				guidArray.AppendFormat(guidArray.Length == 0 ? "'{0}'" : ",'{0}'", guid.ToString("N"));
 
 			return guidArray.ToString();
 		}
@@ -262,73 +379,16 @@ namespace Edge.Data.Pipeline
 
 	internal static class DeliveryDBClient
 	{
-		static readonly string Host;
-		static readonly string User;
-		static readonly string Password;
-		static readonly int Port;
-
-		static DeliveryDBClient()
-		{
-			try
-			{
-				var details = new DbConnectionStringBuilder();
-				details.ConnectionString = AppSettings.GetConnectionString(typeof(Delivery), "DB");
-
-				Host = (string)details["Host"];
-				User = (string)details["User"];
-				Password = (string)details["Password"];
-				Port = Int32.Parse((string)details["Port"]);
-			}
-			catch (Exception ex)
-			{
-				throw new ArgumentException("The supplied connection string is not in the correct format or is missing some parameters (required: Host, User, Password and Port).", ex);
-			}
-		}
-
 		public static SqlConnection Connect()
 		{
-			throw new NotImplementedException();
-			//return Db4oClientServer.OpenClient(Host, Port, User, Password);
+			SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), "DB"));
+			connection.Open();
+			return connection;
 		}
 	}
 
-	public class DeliveryDBServer : IDisposable
-	{
-		IObjectServer _server;
-		static readonly string File = AppSettings.Get(typeof(Delivery), "Db4o.FileName");
-		static readonly string User = AppSettings.Get(typeof(Delivery), "Db4o.User");
-		static readonly string Password = AppSettings.Get(typeof(Delivery), "Db4o.Password");
-		static readonly int Port = Int32.Parse(AppSettings.Get(typeof(Delivery), "Db4o.Port"));
-
-		public void Start(TextWriter writer)
-		{
-			_server = Db4oClientServer.OpenServer(File, Port);
-			_server.GrantAccess(User, Password);
-			_server.Ext().Configure().ExceptionsOnNotStorable(true);
-			_server.Ext().Configure().MessageLevel(3);
-			_server.Ext().Configure().SetOut(writer);
-			_server.Ext().Configure().ActivationDepth(25);
-		}
-
-		public void Stop()
-		{
-			if (_server != null)
-				_server.Close();
-		}
-
-		#region IDisposable Members
-
-		void IDisposable.Dispose()
-		{
-			Stop();
-		}
-
-		#endregion
-	}
 
 
-	public class DeliveryStore
-	{
-		internal IObjectContainer Connection;
-	}
+
+
 }
