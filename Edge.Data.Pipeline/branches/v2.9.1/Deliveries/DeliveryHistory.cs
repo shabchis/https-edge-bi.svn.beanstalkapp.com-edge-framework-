@@ -51,6 +51,8 @@ namespace Edge.Data.Pipeline
 
 		public void Add(DeliveryHistoryEntry item)
 		{
+			if (_list == null)
+				_list = new List<DeliveryHistoryEntry>(); //TODO: talk with doron what for is the _innerlist?
 			_list.Add(item);
 		}
 

@@ -56,8 +56,8 @@ namespace Edge.Data.Pipeline
 
 					while (reader.Read())
 					{
+						#region Delivery
 
-						//**********************Delivery*********************************
 						delivery = new Delivery(reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)));
 
 						delivery.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
@@ -70,28 +70,34 @@ namespace Edge.Data.Pipeline
 						delivery.TargetPeriod = DateTimeRange.Parse(reader["TargetPeriodDefinition"].ToString());
 						//delivery.TargetPeriodStart=DateTime.Parse(reader["TargetPeriodStart"].ToString());
 						//delivery.TargetPeriodEnd=DateTime.Parse(reader["TargetPeriodEnd"].ToString());
+						#endregion
+						#region DeliveryParameters
 
-						//*******************DeliveryParameters***********************
 
 						if (reader.NextResult())
 						{
 							while (reader.Read())
 								delivery.Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
 						}
-						//*******************DeliveryHistory***********************
+						#endregion
+						#region DeliveryHistory
+
 						if (reader.NextResult())
 						{
-							while (reader.Read())
-								delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
+							while (reader.Read())																
+									delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
+							
 						}
-
-						//*******************DeliveryHistoryParameters***********************
+						#endregion
+						#region DeliveryHistoryParameters
 						if (reader.NextResult())
 						{
 							while (reader.Read())
 								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
 						}
-						//*******************DeliveryFile***********************
+						#endregion
+						#region DeliveryFile
+
 						if (reader.NextResult())
 						{
 							while (reader.Read())
@@ -107,19 +113,23 @@ namespace Edge.Data.Pipeline
 							}
 
 						}
-						//*******************DeliveryFileParameters***********************
+						#endregion
+						#region DeliveryFileParameters
+
 						if (reader.NextResult())
 						{
 							while (reader.Read())
 							{
-								DeliveryFile deliveryFile = delivery.Files[reader["FileID"].ToString()];
+								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
 								deliveryFile.Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
 
 
 							}
 
 						}
-						//*******************DeliveryFileHistory***********************
+						#endregion
+						#region DeliveryFileHistory
+
 						if (reader.NextResult())
 						{
 							while (reader.Read())
@@ -130,7 +140,9 @@ namespace Edge.Data.Pipeline
 
 
 						}
-						//*******************DeliveryFileHistoryParameters***********************
+						#endregion
+						#region DeliveryFileHistoryParameters
+
 						if (reader.NextResult())
 						{
 							while (reader.Read())
@@ -141,6 +153,7 @@ namespace Edge.Data.Pipeline
 
 
 						}
+						#endregion
 
 
 
@@ -176,6 +189,7 @@ namespace Edge.Data.Pipeline
 
 				if (guid != Guid.Empty)
 				{
+					#region Delete all Delivery
 					SqlCommand cmd = new SqlCommand("Delivery_Delete");
 
 					cmd.Connection = client;
@@ -184,9 +198,9 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.ExecuteNonQuery();
+					#endregion
 
-
-					//**********************Delivery*********************************
+					#region Delivery
 					cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[Delivery]
 	       ([DeliveryID]
 	       ,[AccountID]
@@ -238,12 +252,13 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters["@targetPeriodEnd"].Value = delivery.TargetPeriodEnd;
 
 					cmd.ExecuteNonQuery();
+					#endregion
 
-					//*******************DeliveryParameters***********************
-					
+					#region DeliveryParameters
+
 					foreach (KeyValuePair<string, object> param in delivery.Parameters)
 					{
-						
+
 						cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryParameters]
 										([DeliveryID]
 										,[Key]
@@ -259,29 +274,300 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
 						cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@key"].Value = param.Key;
-						XmlSerializer x =new  XmlSerializer(param.Value.GetType());
+						XmlSerializer x = new XmlSerializer(param.Value.GetType());
 						MemoryStream s = new MemoryStream();
-						x.Serialize(s,param.Value);
+						x.Serialize(s, param.Value);
 						cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
 						cmd.ExecuteNonQuery();
 
 					}
-					//*******************DeliveryHistory***********************
+					#endregion
+
+					#region DeliveryHistory
+
+					int index = 0;
 					foreach (DeliveryHistoryEntry historyEntry in delivery.History)
 					{
-						cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryParameters]
-										([DeliveryID]
-										,[Key]
-										,[Value])
-										 VALUES
-									    (@deliveryID
-									    ,@key
-										,@value)");
+						cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryHistory]
+											   ([DeliveryID]
+											   ,[ServiceInstanceID]
+											   ,[Index]
+											   ,[Operation]
+											   ,[DateRecorded])
+												 VALUES
+											   (@deliveryID
+											   ,@serviceInstanceID
+											   ,@index
+											   ,@operation
+											   ,@dateRecorded)");
 						cmd.Connection = client;
 						cmd.Transaction = transaction;
-						
+						cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+						cmd.Parameters.Add("@serviceInstanceID", System.Data.SqlDbType.BigInt);
+						cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
+						cmd.Parameters.Add("@operation", System.Data.SqlDbType.Int);
+						cmd.Parameters.Add("@dateRecorded", System.Data.SqlDbType.DateTime);
+
+
+						cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+						cmd.Parameters["@index"].Value = index;
+						cmd.Parameters["@operation"].Value = historyEntry.Operation;
+						cmd.Parameters["@dateRecorded"].Value = historyEntry.DateRecorded;
+						cmd.Parameters["@serviceInstanceID"].Value = historyEntry.ServiceInstanceID;
+						cmd.ExecuteNonQuery();
+
+						index++;
+
+
 					}
-					                      
+					#endregion
+
+					#region DeliveryHistoryParameters
+					index = 0;
+					if (delivery.History!=null)
+					{
+						foreach (DeliveryHistoryEntry historyEntry in delivery.History)
+						{
+							if (historyEntry.Parameters!=null)
+							{
+								foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
+								{
+
+									cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryHistoryParameters]
+											   ([DeliveryID]
+											   ,[Index]
+											   ,[Key]
+											   ,[Value])
+											  VALUES
+											   (@deliveryID
+											   ,@index
+											   ,@key
+											   ,@value)");
+									cmd.Connection = client;
+									cmd.Transaction = transaction;
+									cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+									cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
+									cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
+									cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+
+									cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+									cmd.Parameters["@index"].Value = index;
+									cmd.Parameters["@key"].Value = param.Key;
+									XmlSerializer x = new XmlSerializer(param.Value.GetType());
+									MemoryStream s = new MemoryStream();
+									x.Serialize(s, param.Value);
+									cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+									cmd.ExecuteNonQuery();
+
+								} 
+							}
+							index++;
+						} 
+					}
+					#endregion
+
+					#region DeliveryFile
+					foreach (DeliveryFile file in delivery.Files)
+					{
+						if (file.FileID == Guid.Empty)
+							file.FileID = Guid.NewGuid();
+						cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFile]
+											   ([DeliveryID]
+											   ,[FileID]
+											   ,[Name]
+											   ,[AccountID]
+											   ,[ChannelID]
+											   ,[DateCreated]
+											   ,[DateModified]
+											   ,[FileCompression]
+											   ,[SourceUrl]
+											   ,[Location])
+										 VALUES
+											   (@deliveryID
+											   ,@fileID
+											   ,@name
+											   ,@accountID
+											   ,@channelID
+											   ,@dateCreated
+											   ,@dateModified
+											   ,@fileCompression
+											   ,@sourceUrl
+											   ,@location)");
+						cmd.Connection = client;
+						cmd.Transaction = transaction;
+						cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+						cmd.Parameters.Add("@fileID", System.Data.SqlDbType.Char);
+						cmd.Parameters.Add("@name", System.Data.SqlDbType.NVarChar);
+						cmd.Parameters.Add("@accountID", System.Data.SqlDbType.Int);
+						cmd.Parameters.Add("@channelID", System.Data.SqlDbType.Int);
+						cmd.Parameters.Add("@dateCreated", System.Data.SqlDbType.DateTime);
+						cmd.Parameters.Add("@dateModified", System.Data.SqlDbType.DateTime);
+						cmd.Parameters.Add("@fileCompression", System.Data.SqlDbType.Int);
+						cmd.Parameters.Add("@sourceUrl", System.Data.SqlDbType.NVarChar);
+						cmd.Parameters.Add("@location", System.Data.SqlDbType.NVarChar);
+
+
+						cmd.Parameters["@deliveryID"].Value = file.Delivery.DeliveryID.ToString("N");
+						cmd.Parameters["@fileID"].Value = file.FileID.ToString("N");
+						cmd.Parameters["@name"].Value = file.Name;
+						cmd.Parameters["@accountID"].Value = delivery.Account.ID;
+						cmd.Parameters["@channelID"].Value = delivery.Channel.ID;
+						cmd.Parameters["@dateCreated"].Value = file.DateCreated;
+						cmd.Parameters["@dateModified"].Value = file.DateModified;
+						cmd.Parameters["@fileCompression"].Value = file.FileFormat;
+						cmd.Parameters["@sourceUrl"].Value = file.SourceUrl == null ? (object)DBNull.Value : file.SourceUrl;
+						cmd.Parameters["@location"].Value = file.Location == null ? (object)DBNull.Value : file.Location;
+
+						cmd.ExecuteNonQuery();
+
+
+
+					}
+
+					#endregion
+
+					#region DeliveryFileParameters
+					foreach (DeliveryFile file in delivery.Files)
+					{
+						foreach (KeyValuePair<string, object> param in file.Parameters)
+						{
+							cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileParameters]
+												   ([DeliveryID]
+												   ,[Name]
+												   ,[Key]
+												   ,[Value])
+											 VALUES
+												   (@deliveryID
+												   ,@name
+												   ,@key
+												   ,@value)");
+							cmd.Connection = client;
+							cmd.Transaction = transaction;
+							cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+							cmd.Parameters.Add("@name", System.Data.SqlDbType.NVarChar);
+							cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
+							cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+
+							cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+							cmd.Parameters["@name"].Value = file.Name;
+							cmd.Parameters["@key"].Value = param.Key;
+							XmlSerializer x = new XmlSerializer(param.Value.GetType());
+							MemoryStream s = new MemoryStream();
+							x.Serialize(s, param.Value);
+							cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+							cmd.ExecuteNonQuery();
+
+
+						}
+					}
+
+
+					#endregion
+
+					#region DeliveryFileHistory
+
+					foreach (DeliveryFile file in delivery.Files)
+					{
+						index = 0;
+						if (file.History!=null)
+						{
+							foreach (DeliveryHistoryEntry historyEntry in file.History)
+							{
+								cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistory]
+											   ([DeliveryID]
+											   ,[FileID]
+											   ,[ServiceInstanceID]
+											   ,[Index]
+											   ,[Operation]
+											   ,[DateRecorded])
+										 VALUES
+											   (@deliveryID
+											   ,@fileID
+											   ,@serviceInstanceID
+											   ,@index
+											   ,@operation
+											   ,@dateRecorded)");
+								cmd.Connection = client;
+								cmd.Transaction = transaction;
+								cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+								cmd.Parameters.Add("@fileID", System.Data.SqlDbType.Char);
+								cmd.Parameters.Add("@serviceInstanceID", System.Data.SqlDbType.BigInt);
+								cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
+								cmd.Parameters.Add("@operation", System.Data.SqlDbType.Int);
+								cmd.Parameters.Add("@dateRecorded", System.Data.SqlDbType.DateTime);
+
+
+								cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+								cmd.Parameters["@fileID"].Value = file.FileID.ToString("N");
+								cmd.Parameters["@serviceInstanceID"].Value = historyEntry.ServiceInstanceID;
+								cmd.Parameters["@index"].Value = index;
+								cmd.Parameters["@operation"].Value = historyEntry.Operation;
+								cmd.Parameters["@dateRecorded"].Value = historyEntry.DateRecorded;
+
+								cmd.ExecuteNonQuery();
+
+
+
+
+								index++;
+
+							} 
+						}
+
+					}
+
+					#endregion
+
+					#region DeliveryFileHistoryParameters
+					foreach (DeliveryFile file in delivery.Files)
+					{
+						index = 0;
+						if (file.History!=null)
+						{
+							foreach (DeliveryHistoryEntry historyEntry in file.History)
+							{
+								foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
+								{
+
+									cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistoryParameters]
+													   ([DeliveryID]
+													   ,[FileID]
+													   ,[Index]
+													   ,[Key]
+													   ,[Value])
+												 VALUES
+													   (@deliveryID
+													   ,@fileID
+													   ,@index
+													   ,@key
+													   ,@value)");
+									cmd.Connection = client;
+									cmd.Transaction = transaction;
+									cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+									cmd.Parameters.Add("@fileID", System.Data.SqlDbType.Char);
+									cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
+									cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
+									cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+
+									cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+									cmd.Parameters["@fileID"].Value = file.FileID.ToString("N");
+									cmd.Parameters["@index"].Value = index;
+									cmd.Parameters["@key"].Value = param.Key;
+									XmlSerializer x = new XmlSerializer(param.Value.GetType());
+									MemoryStream s = new MemoryStream();
+									x.Serialize(s, param.Value);
+									cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+									cmd.ExecuteNonQuery();
+								}
+								index++;
+
+							} 
+						}
+					}
+
+					#endregion
+
+
 
 					transaction.Commit();
 
@@ -294,14 +580,8 @@ namespace Edge.Data.Pipeline
 					throw new NotSupportedException("In Pipeline 2.9, you cannot save a Delivery without first giving it a GUID.");
 				}
 
-				// Give GUIDs to delivery files
-				foreach (DeliveryFile file in delivery.Files)
-					if (file.FileID == Guid.Empty)
-						file.FileID = Guid.NewGuid();
+			
 
-				// Try to store, and return new guid on success
-
-				//client.Store(delivery);
 				return guid;
 			}
 		}
