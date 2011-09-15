@@ -22,6 +22,7 @@ using System.Xml;
 using System.Data.SqlTypes;
 using System.Runtime.Serialization;
 using System.Collections;
+using Newtonsoft.Json;
 
 
 
@@ -83,8 +84,8 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								SqlXml newxml = reader.GetSqlXml(2);
-								delivery.Parameters.Add(reader["Key"].ToString(), DeSerialize(newxml));
+								
+								delivery.Parameters.Add(reader["Key"].ToString(),DeSerialize( reader["Value"].ToString()));
 							}
 						}
 						#endregion
@@ -102,8 +103,8 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								SqlXml newxml = reader.GetSqlXml(3);
-								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), DeSerialize(newxml));
+								
+								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(),DeSerialize(reader["Value"].ToString()));
 
 							}
 						}
@@ -132,9 +133,9 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								SqlXml newxml = reader.GetSqlXml(3);
+								
 								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-								deliveryFile.Parameters.Add(reader["Key"].ToString(), DeSerialize(newxml));
+								deliveryFile.Parameters.Add(reader["Key"].ToString(),DeSerialize( reader["Value"].ToString()));
 							}
 
 						}
@@ -159,7 +160,7 @@ namespace Edge.Data.Pipeline
 							while (reader.Read())
 							{
 								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-								SqlXml newxml = reader.GetSqlXml(4);
+								
 								deliveryFile.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
 							}
 
@@ -191,53 +192,9 @@ namespace Edge.Data.Pipeline
 			return delivery;
 		}
 
-		private static object DeSerialize(SqlXml newxml)
+		private static object DeSerialize(string json)
 		{
-
-			object returnObject = null;
-			if (!string.IsNullOrEmpty(newxml.Value))
-			{
-				XmlReader reader = newxml.CreateReader();
-				reader.MoveToElement();
-				if (reader.Read())
-				{
-					string elementTypeName = reader.LocalName;
-					Type t;
-					try
-					{
-						t = Type.GetType(elementTypeName, true, true);
-					}
-					catch (Exception)
-					{
-						t = Type.GetType(string.Format("System.{0}", elementTypeName), false, true);
-						if (t == null)
-						{
-							t = typeof(List<DataItem>);
-
-						}
-					}
-					DataContractSerializer ser = new DataContractSerializer(t);
-					if (t.GetType().IsGenericType)
-					{
-						Dictionary<string, object> myDictionary = new Dictionary<string, object>();
-						List<DataItem> tempDataItemList = (List<DataItem>)ser.ReadObject(reader);
-						foreach (var item in tempDataItemList)
-						{
-							myDictionary.Add(item.Key, item.Value);
-						}
-						returnObject = myDictionary;
-
-					}
-					else
-						returnObject = ser.ReadObject(reader);
-				}
-			}
-			else
-				returnObject = string.Empty;
-
-
-			return returnObject;
-
+			return JsonConvert.DeserializeObject(json);
 		}
 
 		internal static Guid Save(Delivery delivery)
@@ -336,11 +293,11 @@ namespace Edge.Data.Pipeline
 						cmd.Transaction = transaction;
 						cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
 						cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
-						cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+						cmd.Parameters.Add("@value", System.Data.SqlDbType.NVarChar);
 						cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@key"].Value = param.Key;
 
-						cmd.Parameters["@value"].Value = SerializeJson(param.Value);
+						cmd.Parameters["@value"].Value = Serialize(param.Value);
 						cmd.ExecuteNonQuery();
 
 					}
@@ -411,12 +368,12 @@ namespace Edge.Data.Pipeline
 									cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
 									cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
 									cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
-									cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+									cmd.Parameters.Add("@value", System.Data.SqlDbType.NVarChar);
 
 									cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 									cmd.Parameters["@index"].Value = index;
 									cmd.Parameters["@key"].Value = param.Key;
-									cmd.Parameters["@value"].Value = SerializeJson(param.Value); //new System.Data.SqlTypes.SqlXml(s);
+									cmd.Parameters["@value"].Value = Serialize(param.Value); //new System.Data.SqlTypes.SqlXml(s);
 									cmd.ExecuteNonQuery();
 
 								}
@@ -506,13 +463,13 @@ namespace Edge.Data.Pipeline
 							cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
 							cmd.Parameters.Add("@name", System.Data.SqlDbType.NVarChar);
 							cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
-							cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+							cmd.Parameters.Add("@value", System.Data.SqlDbType.NVarChar);
 
 							cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 							cmd.Parameters["@name"].Value = file.Name;
 							cmd.Parameters["@key"].Value = param.Key;
 
-							cmd.Parameters["@value"].Value = SerializeJson(param.Value);
+							cmd.Parameters["@value"].Value = Serialize(param.Value);
 							cmd.ExecuteNonQuery();
 
 
@@ -607,14 +564,14 @@ namespace Edge.Data.Pipeline
 										cmd.Parameters.Add("@name", System.Data.SqlDbType.NVarChar);
 										cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
 										cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
-										cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+										cmd.Parameters.Add("@value", System.Data.SqlDbType.NVarChar);
 
 										cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 										cmd.Parameters["@name"].Value = file.Name;
 										cmd.Parameters["@index"].Value = index;
 										cmd.Parameters["@key"].Value = param.Key;
 
-										cmd.Parameters["@value"].Value = SerializeJson(param.Value);
+										cmd.Parameters["@value"].Value = Serialize(param.Value);
 										cmd.ExecuteNonQuery();
 									}
 								}
@@ -645,30 +602,9 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		private static object SerializeJson(object param)
+		private static string Serialize(object param)
 		{
-			object tempObject;
-			DataContractSerializer ser;
-			if (param.GetType().IsGenericType && param.GetType().GetGenericArguments().Count() == 2)
-			{
-				List<DataItem> tempDateItems = new List<DataItem>();
-
-				foreach (string key in ((IDictionary)param).Keys)
-					tempDateItems.Add(new DataItem(key, ((IDictionary)param)[key]));
-
-				ser = new DataContractSerializer(tempDateItems.GetType());
-				tempObject = tempDateItems;
-
-			}
-			else
-			{
-				ser = new DataContractSerializer(param.GetType());
-				tempObject = param;
-			}
-
-			MemoryStream s = new MemoryStream();
-			ser.WriteObject(s, tempObject);
-			return new SqlXml(s);
+			return JsonConvert.SerializeObject(param);			
 		}
 
 		internal static void Delete(Delivery delivery)
