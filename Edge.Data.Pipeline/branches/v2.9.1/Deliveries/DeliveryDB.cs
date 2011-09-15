@@ -19,6 +19,10 @@ using Edge.Core.Data;
 using Edge.Data.Objects;
 using System.Xml.Serialization;
 using System.Xml;
+using System.Data.SqlTypes;
+using System.Runtime.Serialization;
+using System.Collections;
+
 
 
 
@@ -62,6 +66,7 @@ namespace Edge.Data.Pipeline
 
 						delivery.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
 						delivery.Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null);
+						delivery.Account.OriginalID = reader["OriginalID"].ToString();
 						//delivery.DateCreated=DateTime.Parse(reader["DateCreated"].ToString());
 						//delivery.DateModified=DateTime.Parse(reader["DateModified"].ToString());
 						delivery.Signature = reader["Signature"].ToString();
@@ -77,23 +82,30 @@ namespace Edge.Data.Pipeline
 						if (reader.NextResult())
 						{
 							while (reader.Read())
-								delivery.Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
+							{
+								SqlXml newxml = reader.GetSqlXml(2);
+								delivery.Parameters.Add(reader["Key"].ToString(), DeSerialize(newxml));
+							}
 						}
 						#endregion
 						#region DeliveryHistory
 
 						if (reader.NextResult())
 						{
-							while (reader.Read())																
-									delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
-							
+							while (reader.Read())
+								delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"]), new Dictionary<string, object>()));
+
 						}
 						#endregion
 						#region DeliveryHistoryParameters
 						if (reader.NextResult())
 						{
 							while (reader.Read())
-								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
+							{
+								SqlXml newxml = reader.GetSqlXml(3);
+								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), DeSerialize(newxml));
+
+							}
 						}
 						#endregion
 						#region DeliveryFile
@@ -120,10 +132,9 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
+								SqlXml newxml = reader.GetSqlXml(3);
 								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-								deliveryFile.Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
-
-
+								deliveryFile.Parameters.Add(reader["Key"].ToString(), DeSerialize(newxml));
 							}
 
 						}
@@ -134,7 +145,7 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								DeliveryFile deliveryFile = delivery.Files[reader["FileID"].ToString()];
+								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
 								deliveryFile.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
 							}
 
@@ -147,7 +158,8 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								DeliveryFile deliveryFile = delivery.Files[reader["FileID"].ToString()];
+								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
+								SqlXml newxml = reader.GetSqlXml(4);
 								deliveryFile.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
 							}
 
@@ -179,6 +191,55 @@ namespace Edge.Data.Pipeline
 			return delivery;
 		}
 
+		private static object DeSerialize(SqlXml newxml)
+		{
+
+			object returnObject = null;
+			if (!string.IsNullOrEmpty(newxml.Value))
+			{
+				XmlReader reader = newxml.CreateReader();
+				reader.MoveToElement();
+				if (reader.Read())
+				{
+					string elementTypeName = reader.LocalName;
+					Type t;
+					try
+					{
+						t = Type.GetType(elementTypeName, true, true);
+					}
+					catch (Exception)
+					{
+						t = Type.GetType(string.Format("System.{0}", elementTypeName), false, true);
+						if (t == null)
+						{
+							t = typeof(List<DataItem>);
+
+						}
+					}
+					DataContractSerializer ser = new DataContractSerializer(t);
+					if (t.GetType().IsGenericType)
+					{
+						Dictionary<string, object> myDictionary = new Dictionary<string, object>();
+						List<DataItem> tempDataItemList = (List<DataItem>)ser.ReadObject(reader);
+						foreach (var item in tempDataItemList)
+						{
+							myDictionary.Add(item.Key, item.Value);
+						}
+						returnObject = myDictionary;
+
+					}
+					else
+						returnObject = ser.ReadObject(reader);
+				}
+			}
+			else
+				returnObject = string.Empty;
+
+
+			return returnObject;
+
+		}
+
 		internal static Guid Save(Delivery delivery)
 		{
 
@@ -205,6 +266,7 @@ namespace Edge.Data.Pipeline
 	       ([DeliveryID]
 	       ,[AccountID]
 	       ,[ChannelID]
+		   ,[OriginalID]
 	       ,[DateCreated]
 	       ,[DateModified]
 	       ,[Signature]
@@ -217,6 +279,7 @@ namespace Edge.Data.Pipeline
 	       (@deliveryID,
 	        @accountID,
 	        @channelID,
+		    @originalID,
 	        @dateCreated,
 	        @dateModified,
 	        @signature,
@@ -230,6 +293,7 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
 					cmd.Parameters.Add("@accountID", System.Data.SqlDbType.Int);
 					cmd.Parameters.Add("@channelID", System.Data.SqlDbType.Int);
+					cmd.Parameters.Add("@originalID", System.Data.SqlDbType.NVarChar);
 					cmd.Parameters.Add("@dateCreated", System.Data.SqlDbType.DateTime);
 					cmd.Parameters.Add("@dateModified", System.Data.SqlDbType.DateTime);
 					cmd.Parameters.Add("@signature", System.Data.SqlDbType.NVarChar);
@@ -242,6 +306,7 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.Parameters["@accountID"].Value = delivery.Account.ID;
 					cmd.Parameters["@channelID"].Value = delivery.Channel.ID;
+					cmd.Parameters["@originalID"].Value = delivery.Account.OriginalID;
 					cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
 					cmd.Parameters["@dateModified"].Value = delivery.DateModified;
 					cmd.Parameters["@signature"].Value = delivery.Signature;
@@ -274,10 +339,8 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
 						cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@key"].Value = param.Key;
-						XmlSerializer x = new XmlSerializer(param.Value.GetType());
-						MemoryStream s = new MemoryStream();
-						x.Serialize(s, param.Value);
-						cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+
+						cmd.Parameters["@value"].Value = SerializeJson(param.Value);
 						cmd.ExecuteNonQuery();
 
 					}
@@ -324,11 +387,11 @@ namespace Edge.Data.Pipeline
 
 					#region DeliveryHistoryParameters
 					index = 0;
-					if (delivery.History!=null)
+					if (delivery.History != null)
 					{
 						foreach (DeliveryHistoryEntry historyEntry in delivery.History)
 						{
-							if (historyEntry.Parameters!=null)
+							if (historyEntry.Parameters != null)
 							{
 								foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
 								{
@@ -353,16 +416,13 @@ namespace Edge.Data.Pipeline
 									cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 									cmd.Parameters["@index"].Value = index;
 									cmd.Parameters["@key"].Value = param.Key;
-									XmlSerializer x = new XmlSerializer(param.Value.GetType());
-									MemoryStream s = new MemoryStream();
-									x.Serialize(s, param.Value);
-									cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+									cmd.Parameters["@value"].Value = SerializeJson(param.Value); //new System.Data.SqlTypes.SqlXml(s);
 									cmd.ExecuteNonQuery();
 
-								} 
+								}
 							}
 							index++;
-						} 
+						}
 					}
 					#endregion
 
@@ -451,10 +511,8 @@ namespace Edge.Data.Pipeline
 							cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 							cmd.Parameters["@name"].Value = file.Name;
 							cmd.Parameters["@key"].Value = param.Key;
-							XmlSerializer x = new XmlSerializer(param.Value.GetType());
-							MemoryStream s = new MemoryStream();
-							x.Serialize(s, param.Value);
-							cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
+
+							cmd.Parameters["@value"].Value = SerializeJson(param.Value);
 							cmd.ExecuteNonQuery();
 
 
@@ -469,20 +527,20 @@ namespace Edge.Data.Pipeline
 					foreach (DeliveryFile file in delivery.Files)
 					{
 						index = 0;
-						if (file.History!=null)
+						if (file.History != null)
 						{
 							foreach (DeliveryHistoryEntry historyEntry in file.History)
 							{
 								cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistory]
 											   ([DeliveryID]
-											   ,[FileID]
+											   ,[Name]
 											   ,[ServiceInstanceID]
 											   ,[Index]
 											   ,[Operation]
 											   ,[DateRecorded])
 										 VALUES
 											   (@deliveryID
-											   ,@fileID
+											   ,@name
 											   ,@serviceInstanceID
 											   ,@index
 											   ,@operation
@@ -490,7 +548,7 @@ namespace Edge.Data.Pipeline
 								cmd.Connection = client;
 								cmd.Transaction = transaction;
 								cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
-								cmd.Parameters.Add("@fileID", System.Data.SqlDbType.Char);
+								cmd.Parameters.Add("@name", System.Data.SqlDbType.NVarChar);
 								cmd.Parameters.Add("@serviceInstanceID", System.Data.SqlDbType.BigInt);
 								cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
 								cmd.Parameters.Add("@operation", System.Data.SqlDbType.Int);
@@ -498,7 +556,7 @@ namespace Edge.Data.Pipeline
 
 
 								cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
-								cmd.Parameters["@fileID"].Value = file.FileID.ToString("N");
+								cmd.Parameters["@name"].Value = file.Name;
 								cmd.Parameters["@serviceInstanceID"].Value = historyEntry.ServiceInstanceID;
 								cmd.Parameters["@index"].Value = index;
 								cmd.Parameters["@operation"].Value = historyEntry.Operation;
@@ -511,7 +569,7 @@ namespace Edge.Data.Pipeline
 
 								index++;
 
-							} 
+							}
 						}
 
 					}
@@ -522,46 +580,47 @@ namespace Edge.Data.Pipeline
 					foreach (DeliveryFile file in delivery.Files)
 					{
 						index = 0;
-						if (file.History!=null)
+						if (file.History != null)
 						{
 							foreach (DeliveryHistoryEntry historyEntry in file.History)
 							{
-								foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
+								if (historyEntry.Parameters != null)
 								{
+									foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
+									{
 
-									cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistoryParameters]
+										cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistoryParameters]
 													   ([DeliveryID]
-													   ,[FileID]
+													   ,[Name]
 													   ,[Index]
 													   ,[Key]
 													   ,[Value])
 												 VALUES
 													   (@deliveryID
-													   ,@fileID
+													   ,@name
 													   ,@index
 													   ,@key
 													   ,@value)");
-									cmd.Connection = client;
-									cmd.Transaction = transaction;
-									cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
-									cmd.Parameters.Add("@fileID", System.Data.SqlDbType.Char);
-									cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
-									cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
-									cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
+										cmd.Connection = client;
+										cmd.Transaction = transaction;
+										cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
+										cmd.Parameters.Add("@name", System.Data.SqlDbType.NVarChar);
+										cmd.Parameters.Add("@index", System.Data.SqlDbType.Int);
+										cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
+										cmd.Parameters.Add("@value", System.Data.SqlDbType.Xml);
 
-									cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
-									cmd.Parameters["@fileID"].Value = file.FileID.ToString("N");
-									cmd.Parameters["@index"].Value = index;
-									cmd.Parameters["@key"].Value = param.Key;
-									XmlSerializer x = new XmlSerializer(param.Value.GetType());
-									MemoryStream s = new MemoryStream();
-									x.Serialize(s, param.Value);
-									cmd.Parameters["@value"].Value = new System.Data.SqlTypes.SqlXml(s);
-									cmd.ExecuteNonQuery();
+										cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+										cmd.Parameters["@name"].Value = file.Name;
+										cmd.Parameters["@index"].Value = index;
+										cmd.Parameters["@key"].Value = param.Key;
+
+										cmd.Parameters["@value"].Value = SerializeJson(param.Value);
+										cmd.ExecuteNonQuery();
+									}
 								}
 								index++;
 
-							} 
+							}
 						}
 					}
 
@@ -580,10 +639,36 @@ namespace Edge.Data.Pipeline
 					throw new NotSupportedException("In Pipeline 2.9, you cannot save a Delivery without first giving it a GUID.");
 				}
 
-			
+
 
 				return guid;
 			}
+		}
+
+		private static object SerializeJson(object param)
+		{
+			object tempObject;
+			DataContractSerializer ser;
+			if (param.GetType().IsGenericType && param.GetType().GetGenericArguments().Count() == 2)
+			{
+				List<DataItem> tempDateItems = new List<DataItem>();
+
+				foreach (string key in ((IDictionary)param).Keys)
+					tempDateItems.Add(new DataItem(key, ((IDictionary)param)[key]));
+
+				ser = new DataContractSerializer(tempDateItems.GetType());
+				tempObject = tempDateItems;
+
+			}
+			else
+			{
+				ser = new DataContractSerializer(param.GetType());
+				tempObject = param;
+			}
+
+			MemoryStream s = new MemoryStream();
+			ser.WriteObject(s, tempObject);
+			return new SqlXml(s);
 		}
 
 		internal static void Delete(Delivery delivery)
@@ -664,6 +749,27 @@ namespace Edge.Data.Pipeline
 			SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), "DB"));
 			connection.Open();
 			return connection;
+		}
+	}
+	[DataContract()]
+	public class DataItem
+	{
+		[DataMember]
+		public string Key;
+
+
+		[DataMember]
+		public object Value;
+
+
+
+		public DataItem(string key, object value)
+		{
+
+			Key = key;
+
+			Value = value;
+
 		}
 	}
 
