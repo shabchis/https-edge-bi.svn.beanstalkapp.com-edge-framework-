@@ -84,8 +84,8 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								
-								delivery.Parameters.Add(reader["Key"].ToString(),DeSerialize( reader["Value"].ToString()));
+
+								delivery.Parameters.Add(reader["Key"].ToString(), DeSerialize(reader["Value"].ToString()));
 							}
 						}
 						#endregion
@@ -103,8 +103,8 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								
-								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(),DeSerialize(reader["Value"].ToString()));
+
+								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), DeSerialize(reader["Value"].ToString()));
 
 							}
 						}
@@ -133,9 +133,9 @@ namespace Edge.Data.Pipeline
 						{
 							while (reader.Read())
 							{
-								
+
 								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-								deliveryFile.Parameters.Add(reader["Key"].ToString(),DeSerialize( reader["Value"].ToString()));
+								deliveryFile.Parameters.Add(reader["Key"].ToString(), DeSerialize(reader["Value"].ToString()));
 							}
 
 						}
@@ -160,7 +160,7 @@ namespace Edge.Data.Pipeline
 							while (reader.Read())
 							{
 								DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-								
+
 								deliveryFile.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
 							}
 
@@ -194,7 +194,19 @@ namespace Edge.Data.Pipeline
 
 		private static object DeSerialize(string json)
 		{
-			return JsonConvert.DeserializeObject(json);
+			object toReturn = null;
+
+			toReturn = JsonConvert.DeserializeObject(json);
+			if (toReturn is Newtonsoft.Json.Linq.JObject)
+			{
+				toReturn = JsonConvert.DeserializeObject < Dictionary<string, double>>(json);
+			}
+
+
+
+			return toReturn;
+
+
 		}
 
 		internal static Guid Save(Delivery delivery)
@@ -370,10 +382,13 @@ namespace Edge.Data.Pipeline
 									cmd.Parameters.Add("@key", System.Data.SqlDbType.NVarChar);
 									cmd.Parameters.Add("@value", System.Data.SqlDbType.NVarChar);
 
+
 									cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 									cmd.Parameters["@index"].Value = index;
 									cmd.Parameters["@key"].Value = param.Key;
-									cmd.Parameters["@value"].Value = Serialize(param.Value); //new System.Data.SqlTypes.SqlXml(s);
+									cmd.Parameters["@value"].Value = Serialize(param.Value);
+
+
 									cmd.ExecuteNonQuery();
 
 								}
@@ -604,7 +619,7 @@ namespace Edge.Data.Pipeline
 
 		private static string Serialize(object param)
 		{
-			return JsonConvert.SerializeObject(param);			
+			return JsonConvert.SerializeObject(param);
 		}
 
 		internal static void Delete(Delivery delivery)
