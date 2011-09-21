@@ -675,9 +675,11 @@ namespace Edge.Data.Pipeline
 		internal static Delivery[] GetByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end)
 		{
 			List<Delivery> deliveries = new List<Delivery>();
+            List<string> deliveriesId = new List<string>();
+
 			using (var client = DeliveryDBClient.Connect())
 			{
-				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime,@targetPeriodEnd:DateTime)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
 					cmd.Parameters["@channelID"].Value = channelID;
@@ -686,11 +688,15 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters["@targetPeriodEnd"].Value = end;
 					using (SqlDataReader reader = cmd.ExecuteReader())
 					{
-						while (reader.Read())
-							deliveries.Add(Get(Guid.Parse(reader.GetString(0))));
+                        while (reader.Read())
+                            //deliveriesId.Add(Get(Guid.Parse(reader.GetString(0))));
+                            deliveriesId.Add(reader.GetString(0));
 					}
 				}
-			}
+                foreach (string id in deliveriesId)
+                {
+                    deliveries.Add(Get(Guid.Parse(id)));
+                }
 			return deliveries.ToArray();
 		}
 
