@@ -275,7 +275,7 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.Parameters["@accountID"].Value = delivery.Account.ID;
 					cmd.Parameters["@channelID"].Value = delivery.Channel.ID;
-					cmd.Parameters["@originalID"].Value = delivery.Account.OriginalID;
+                    cmd.Parameters["@originalID"].Value = delivery.Account.OriginalID == null ? (object)DBNull.Value : delivery.Account.OriginalID;
 					cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
 					cmd.Parameters["@dateModified"].Value = delivery.DateModified;
 					cmd.Parameters["@signature"].Value = delivery.Signature;
@@ -671,6 +671,8 @@ namespace Edge.Data.Pipeline
 		internal static Delivery[] GetByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end)
 		{
 			List<Delivery> deliveries = new List<Delivery>();
+            List<Guid> deliveriesId = new List<Guid>();
+
 			using (var client = DeliveryDBClient.Connect())
 			{
 				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime,@targetPeriodEnd:DateTime)", System.Data.CommandType.StoredProcedure))
@@ -682,10 +684,15 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters["@targetPeriodEnd"].Value = end;
 					using (SqlDataReader reader = cmd.ExecuteReader())
 					{
-						while (reader.Read())
-							deliveries.Add(Get(Guid.Parse(reader.GetString(0))));
+                        while (reader.Read())
+                            //deliveriesId.Add(Get(Guid.Parse(reader.GetString(0))));
+                            deliveriesId.Add(Guid.Parse(reader.GetString(0)));
 					}
 				}
+                foreach (Guid id in deliveriesId)
+                {
+                    deliveries.Add(Get(id));
+                }
 			}
 			return deliveries.ToArray();
 		}
