@@ -113,7 +113,9 @@ namespace Edge.Data.Pipeline.Services
 
 		public Delivery NewDelivery()
 		{
-			return new Delivery(this.Instance.InstanceID, this.TargetDeliveryID);
+			var d = new Delivery(this.TargetDeliveryID);
+			d.History.Add(DeliveryOperation.Initialized, this.Instance.InstanceID);
+			return d;
 		}
 
 		/// <summary>
