@@ -81,12 +81,12 @@ namespace Edge.Data.Pipeline.Services
 
 		internal void LogWrite()
 		{
-			string message = String.Format("Validation result: {0}{1}",
+			string message = String.Format("Validation result: {0} {1} {2}",
 
 				// {0}
 				this.Message == null ?
 					null :
-					this.Message + string.Empty,
+					this.Message + "#",
 
 				// {1}
 				this.TargetPeriodStart == DateTime.MinValue && this.TargetPeriodEnd == DateTime.MinValue && this.DeliveryID == Guid.Empty ?
@@ -100,7 +100,13 @@ namespace Edge.Data.Pipeline.Services
 						this.DeliveryID != Guid.Empty ?
 							String.Format("delivery: {0}", this.DeliveryID) :
 							null
-					)
+					),
+                
+                 // {2}
+                 this.AccountID == null ?
+					null :
+					this.AccountID + "#"
+
 			);
 
 			Log.Write(message, this.Exception, (LogMessageType)(int)this.ResultType);
