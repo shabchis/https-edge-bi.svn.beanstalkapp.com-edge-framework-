@@ -86,7 +86,7 @@ namespace Edge.Data.Pipeline.Services
 				// {0}
 				this.Message == null ?
 					null :
-					this.Message + "#",
+					this.Message + String.Empty,
 
 				// {1}
 				this.TargetPeriodStart == DateTime.MinValue && this.TargetPeriodEnd == DateTime.MinValue && this.DeliveryID == Guid.Empty ?
@@ -105,7 +105,7 @@ namespace Edge.Data.Pipeline.Services
                  // {2}
                  this.AccountID == null ?
 					null :
-					this.AccountID + "#"
+					String.Format("Account ID:{0}",this.AccountID)
 
 			);
 
