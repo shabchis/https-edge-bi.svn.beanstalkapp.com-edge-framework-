@@ -197,6 +197,7 @@ namespace Edge.Data.Pipeline
             object toReturn = null;
             JsonSerializerSettings s = new JsonSerializerSettings();
             s.TypeNameHandling = TypeNameHandling.All;
+            
             toReturn = JsonConvert.DeserializeObject(json, s);
             //if (toReturn is Newtonsoft.Json.Linq.JObject)
             //{
