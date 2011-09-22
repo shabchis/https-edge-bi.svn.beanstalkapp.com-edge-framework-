@@ -31,23 +31,20 @@ namespace Edge.Data.Pipeline
 		DeliveryHistory _history;
 
 		/// <summary>
-		/// Creates a new delivery and sets the specified instance ID as the creator.
+		/// Creates a new delivery with the specified ID.
 		/// </summary>
-		/// <param name="instanceID">ID of the service that is initializing the delivery. Equivalent to delivery.History.Add(DeliveryOperation.Created, serviceInstance.InstanceID)</param>
-		internal Delivery(long instanceID, Guid specifiedDeliveryID)
+		internal Delivery(Guid specifiedDeliveryID)
 		{
 			if (specifiedDeliveryID == Guid.Empty)
-				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. "+
+				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. " +
 					"If in an initializer service, check that the workflow service is defined as Edge.Data.Pipeline.Services.PipelineWorkflowService.");
 
 			// fuck db4o
 			_files = new DeliveryFileList(this);
 			_history = new DeliveryHistory();
 			_parameters = new Dictionary<string, object>();
-			
-			this.DeliveryID = specifiedDeliveryID;
 
-			this.History.Add(DeliveryOperation.Initialized, instanceID);
+			this.DeliveryID = specifiedDeliveryID;
 		}
 
 		/// <summary>
