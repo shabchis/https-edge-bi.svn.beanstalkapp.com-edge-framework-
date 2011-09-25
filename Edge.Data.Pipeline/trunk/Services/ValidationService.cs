@@ -6,6 +6,8 @@ using Edge.Data.Pipeline.Services;
 using Edge.Data.Pipeline;
 using Edge.Data.Objects;
 using Edge.Core.Utilities;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -81,6 +83,13 @@ namespace Edge.Data.Pipeline.Services
 
 		internal void LogWrite()
 		{
+
+          // Dictionary<string,string> result = new Dictionary<string,string>
+            //TO DO : write message to log as Json Object
+           
+            string jsonMessage = JsonConvert.SerializeObject(this);
+
+          /*  
 			string message = String.Format("Validation result: {0} {1} {2}",
 
 				// {0}
@@ -107,9 +116,9 @@ namespace Edge.Data.Pipeline.Services
 					null :
 					String.Format("Account ID:{0}",this.AccountID)
 
-			);
+			);*/
 
-			Log.Write(message, this.Exception, (LogMessageType)(int)this.ResultType);
+            Log.Write(jsonMessage, this.Exception, (LogMessageType)(int)this.ResultType);
 
 		}
 	}
