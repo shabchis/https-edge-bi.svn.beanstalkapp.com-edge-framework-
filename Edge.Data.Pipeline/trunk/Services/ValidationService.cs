@@ -75,7 +75,9 @@ namespace Edge.Data.Pipeline.Services
 	{
 		public ValidationResultType ResultType { get; set; }
 		public string Message { get; set; }
-		public int AccountID { get; set; }
+        public int AccountID { get; set; }
+        public int ChannelID { get; set; }
+        public ValidationCheckType CheckType { get; set; }
 		public Guid DeliveryID { get; set; }
 		public DateTime TargetPeriodStart { get; set; }
 		public DateTime TargetPeriodEnd { get; set; }
@@ -83,43 +85,8 @@ namespace Edge.Data.Pipeline.Services
 
 		internal void LogWrite()
 		{
-
-          // Dictionary<string,string> result = new Dictionary<string,string>
-            //TO DO : write message to log as Json Object
-           
             string jsonMessage = JsonConvert.SerializeObject(this);
-
-          /*  
-			string message = String.Format("Validation result: {0} {1} {2}",
-
-				// {0}
-				this.Message == null ?
-					null :
-					this.Message + String.Empty,
-
-				// {1}
-				this.TargetPeriodStart == DateTime.MinValue && this.TargetPeriodEnd == DateTime.MinValue && this.DeliveryID == Guid.Empty ?
-					null :
-					String.Format("({0}{1})",
-						// {0}
-						this.TargetPeriodStart != DateTime.MinValue || this.TargetPeriodEnd != DateTime.MinValue ?
-							String.Format("period: {0:yyyy-MM-dd}-{1:yyyy-MM-dd}", this.TargetPeriodStart, this.TargetPeriodEnd) :
-							null,
-						// {1}
-						this.DeliveryID != Guid.Empty ?
-							String.Format("delivery: {0}", this.DeliveryID) :
-							null
-					),
-                
-                 // {2}
-                 this.AccountID == null ?
-					null :
-					String.Format("Account ID:{0}",this.AccountID)
-
-			);*/
-
             Log.Write(jsonMessage, this.Exception, (LogMessageType)(int)this.ResultType);
-
 		}
 	}
 
@@ -130,4 +97,11 @@ namespace Edge.Data.Pipeline.Services
 		Warning = 2,
 		Information = 3
 	}
+    public enum ValidationCheckType
+    {
+        DeliveryOltp = 0,
+        OltpDwh = 1,
+        DwhMdx = 2,
+        
+    }
 }
