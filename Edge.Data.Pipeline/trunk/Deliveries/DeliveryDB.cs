@@ -76,6 +76,7 @@ namespace Edge.Data.Pipeline
                         delivery.TargetPeriod = DateTimeRange.Parse(reader["TargetPeriodDefinition"].ToString());
                         //delivery.TargetPeriodStart=DateTime.Parse(reader["TargetPeriodStart"].ToString());
                         //delivery.TargetPeriodEnd=DateTime.Parse(reader["TargetPeriodEnd"].ToString());
+						delivery.IsCommited = Convert.ToBoolean(reader["Committed"]);
                         #endregion
                         #region DeliveryParameters
 
@@ -231,7 +232,7 @@ namespace Edge.Data.Pipeline
                     #endregion
 
                     #region Delivery
-                    cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[Delivery]
+                    cmd = new SqlCommand(@"INSERT INTO [Delivery]
 	       ([DeliveryID]
 	       ,[AccountID]
 	       ,[ChannelID]
@@ -243,7 +244,8 @@ namespace Edge.Data.Pipeline
 	       ,[TargetLocationDirectory]
 	       ,[TargetPeriodDefinition]
 	       ,[TargetPeriodStart]
-	       ,[TargetPeriodEnd])
+	       ,[TargetPeriodEnd]
+		   ,[Committed])
 	 VALUES
 	       (@deliveryID,
 	        @accountID,
@@ -256,7 +258,8 @@ namespace Edge.Data.Pipeline
 	        @targetLocationDirectory,
 	        @targetPeriodDefinition,
 	        @targetPeriodStart,
-	        @targetPeriodEnd)", client, transaction);
+	        @targetPeriodEnd,
+			@committed)", client, transaction);
 
                     cmd.Connection = client;
                     cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
@@ -271,6 +274,7 @@ namespace Edge.Data.Pipeline
                     cmd.Parameters.Add("@targetPeriodDefinition", System.Data.SqlDbType.NVarChar);
                     cmd.Parameters.Add("@targetPeriodStart", System.Data.SqlDbType.DateTime2); //must be date time since sql round or somthing, leave it!!
                     cmd.Parameters.Add("@targetPeriodEnd", System.Data.SqlDbType.DateTime2);//must be date time since sql round or somthing, leave it!!
+					cmd.Parameters.Add("@committed", System.Data.SqlDbType.Bit);
 
                     cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
                     cmd.Parameters["@accountID"].Value = delivery.Account.ID;
@@ -284,7 +288,7 @@ namespace Edge.Data.Pipeline
                     cmd.Parameters["@targetPeriodDefinition"].Value = delivery.TargetPeriod.ToString();
                     cmd.Parameters["@targetPeriodStart"].Value = delivery.TargetPeriodStart;
                     cmd.Parameters["@targetPeriodEnd"].Value = delivery.TargetPeriodEnd;
-
+					cmd.Parameters["@committed"].Value = delivery.IsCommited;
                     cmd.ExecuteNonQuery();
                     #endregion
 
@@ -293,7 +297,7 @@ namespace Edge.Data.Pipeline
                     foreach (KeyValuePair<string, object> param in delivery.Parameters)
                     {
 
-                        cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryParameters]
+                        cmd = new SqlCommand(@"INSERT INTO [DeliveryParameters]
 										([DeliveryID]
 										,[Key]
 										,[Value])
@@ -320,7 +324,7 @@ namespace Edge.Data.Pipeline
                     int index = 0;
                     foreach (DeliveryHistoryEntry historyEntry in delivery.History)
                     {
-                        cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryHistory]
+                        cmd = new SqlCommand(@"INSERT INTO [DeliveryHistory]
 											   ([DeliveryID]
 											   ,[ServiceInstanceID]
 											   ,[Index]
@@ -365,7 +369,7 @@ namespace Edge.Data.Pipeline
                                 foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
                                 {
 
-                                    cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryHistoryParameters]
+                                    cmd = new SqlCommand(@"INSERT INTO [DeliveryHistoryParameters]
 											   ([DeliveryID]
 											   ,[Index]
 											   ,[Key]
@@ -403,7 +407,7 @@ namespace Edge.Data.Pipeline
                     {
                         if (file.FileID == Guid.Empty)
                             file.FileID = Guid.NewGuid();
-                        cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFile]
+                        cmd = new SqlCommand(@"INSERT INTO [DeliveryFile]
 											   ([DeliveryID]
 											   ,[FileID]
 											   ,[Name]
@@ -463,7 +467,7 @@ namespace Edge.Data.Pipeline
                     {
                         foreach (KeyValuePair<string, object> param in file.Parameters)
                         {
-                            cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileParameters]
+                            cmd = new SqlCommand(@"INSERT INTO [DeliveryFileParameters]
 												   ([DeliveryID]
 												   ,[Name]
 												   ,[Key]
@@ -503,7 +507,7 @@ namespace Edge.Data.Pipeline
                         {
                             foreach (DeliveryHistoryEntry historyEntry in file.History)
                             {
-                                cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistory]
+                                cmd = new SqlCommand(@"INSERT INTO [DeliveryFileHistory]
 											   ([DeliveryID]
 											   ,[Name]
 											   ,[ServiceInstanceID]
@@ -561,7 +565,7 @@ namespace Edge.Data.Pipeline
                                     foreach (KeyValuePair<string, object> param in historyEntry.Parameters)
                                     {
 
-                                        cmd = new SqlCommand(@"INSERT INTO [Edge_System].[dbo].[DeliveryFileHistoryParameters]
+                                        cmd = new SqlCommand(@"INSERT INTO [DeliveryFileHistoryParameters]
 													   ([DeliveryID]
 													   ,[Name]
 													   ,[Index]

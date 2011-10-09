@@ -112,6 +112,7 @@
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
+    <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
     <Compile Include="Services\Const.cs" />
