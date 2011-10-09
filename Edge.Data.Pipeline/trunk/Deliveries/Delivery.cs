@@ -30,6 +30,10 @@ namespace Edge.Data.Pipeline
 		Dictionary<string, object> _parameters;
 		DeliveryHistory _history;
 
+		public bool IsCommited { get; set; }
+
+		
+
 		/// <summary>
 		/// Creates a new delivery with the specified ID.
 		/// </summary>
