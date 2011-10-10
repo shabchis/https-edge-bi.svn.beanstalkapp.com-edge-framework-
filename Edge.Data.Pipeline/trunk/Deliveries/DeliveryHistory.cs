@@ -128,6 +128,11 @@ namespace Edge.Data.Pipeline
 		Imported = 3,
 
 		/// <summary>
+		/// Indicates that the imported data has been prepared and is ready to be committed.
+		/// </summary>		
+		Prepared = 7,
+
+		/// <summary>
 		/// Indicates that delivery data has been comitted into the target database.
 		/// </summary>
 		Committed = 4,

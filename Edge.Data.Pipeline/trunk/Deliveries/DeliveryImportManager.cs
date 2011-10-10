@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline
 		public DeliveryImportManagerState State
 		{
 			get;
-			private set;
+			protected set;
 		}
 
 		public Delivery CurrentDelivery
@@ -34,6 +34,10 @@ namespace Edge.Data.Pipeline
 			private set;
 		}
 
+		protected virtual int PreparePassCount
+		{
+			get { return 1; }
+		}
 		protected virtual int CommitPassCount
 		{
 			get { return 1; }
@@ -70,6 +74,20 @@ namespace Edge.Data.Pipeline
 
 			OnDisposeImport();
 			OnDispose();
+		}
+
+		public void Prepare(Delivery[] deliveries)
+		{
+			this.Batch(deliveries,
+				this.PreparePassCount,
+				OnBeginPrepare,
+				OnEndPrepare,
+				OnBeginPreparePass,
+				OnEndPreparePass,
+				OnPrepare,
+				OnDisposePrepare,
+				DeliveryImportManagerState.Preparing,
+				DeliveryOperation.Prepared);
 		}
 
 		public void Commit(Delivery[] deliveries)
@@ -134,6 +152,10 @@ namespace Edge.Data.Pipeline
 					onEndPass(pass);
 				}
 			}
+			catch (DeliveryConflictException dceex)
+			{
+				throw dceex;
+			}
 			catch (Exception ex)
 			{
 				exception = ex;
@@ -182,18 +204,28 @@ namespace Edge.Data.Pipeline
 		protected virtual void OnBeginImport() {}
 		protected virtual void OnEndImport() { }
 		protected virtual void OnDisposeImport() { }
+	
+		protected virtual void OnBeginPrepare() { }
+		protected virtual void OnBeginPreparePass(int pass) { }
+		protected abstract void OnPrepare(int pass);
+		protected virtual void OnEndPreparePass(int pass) { }
+		protected virtual void OnEndPrepare(Exception ex) { }
+		protected virtual void OnDisposePrepare() { }
+
 		protected virtual void OnBeginCommit() { }
 		protected virtual void OnBeginCommitPass(int pass) { }
 		protected abstract void OnCommit(int pass);
 		protected virtual void OnEndCommitPass(int pass) { }
 		protected virtual void OnEndCommit(Exception ex) { }
 		protected virtual void OnDisposeCommit() { }
+
 		protected virtual void OnBeginRollback() { }
 		protected virtual void OnBeginRollbackPass(int pass) { }
 		protected abstract void OnRollback(int pass);
 		protected virtual void OnEndRollbackPass(int pass) { }
 		protected virtual void OnEndRollback(Exception ex) { }
 		protected virtual void OnDisposeRollback() { }
+
 		protected virtual void OnDispose() { }
 	}
 
@@ -201,6 +233,7 @@ namespace Edge.Data.Pipeline
 	{
 		Idle,
 		Importing,
+		Preparing,
 		Comitting,
 		RollingBack
 	}
