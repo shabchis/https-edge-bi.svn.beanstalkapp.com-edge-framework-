@@ -15,11 +15,21 @@ namespace Edge.Data.Pipeline
 	[JsonObject(MemberSerialization.OptIn)]
 	public struct DateTimeRange
 	{
-		[JsonProperty(PropertyName="start")]
-		public DateTimeSpecification Start;
-
+		[JsonProperty(PropertyName = "start")]
+		DateTimeSpecification _start;
 		[JsonProperty(PropertyName = "end")]
-		public DateTimeSpecification End;
+		DateTimeSpecification _end;
+
+		public DateTimeSpecification Start
+		{
+			get { return _start; }
+			set { _start = value; _start.Alignment = DateTimeSpecificationAlignment.Start; }
+		}
+		public DateTimeSpecification End
+		{
+			get { return _end; }
+			set { _end = value; _end.Alignment = DateTimeSpecificationAlignment.End; }
+		}
 
 		/// <summary>
 		/// Converts the transformations of the range into absolute base date/time values.
@@ -57,7 +67,8 @@ namespace Edge.Data.Pipeline
 			using (var reader = new JsonTextReader(new StringReader(json)))
 			{
 				DateTimeRange range = serializer.Deserialize<DateTimeRange>(reader);
-				range.End.Alignment = DateTimeSpecificationAlignment.End;
+				range._start.Alignment = DateTimeSpecificationAlignment.Start;
+				range._end.Alignment = DateTimeSpecificationAlignment.End;
 				return range;
 			}
 		}
