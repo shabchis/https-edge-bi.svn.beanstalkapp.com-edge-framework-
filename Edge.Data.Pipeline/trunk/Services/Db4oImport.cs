@@ -21,8 +21,12 @@ namespace Edge.Data.Pipeline.Services
 			{
 				using (SqlConnection sqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "OLTP")))
 				{
-					using (SqlCommand cmd = new SqlCommand(@"SELECT DISTINCT DeliveryID FROM Paid_API_AllColumns_v29"))
+					using (SqlCommand cmd = new SqlCommand(@"select distinct  deliveryID FROM dbo.Paid_API_AllColumns_v29
+															 where day_code between @from and @to "))
 					{
+						cmd.Parameters.AddWithValue("@from",int.Parse(this.Instance.Configuration.Options["From"]));
+						cmd.Parameters.AddWithValue("@from",int.Parse(this.Instance.Configuration.Options["Value"]));
+						cmd.CommandTimeout = 0;
 						sqlConnection.Open();
 						cmd.Connection = sqlConnection;
 						using (SqlDataReader reader = cmd.ExecuteReader())
