@@ -1127,6 +1127,7 @@ namespace Edge.Core.Configuration
 	public class AccountServiceElement: EnabledConfigurationElement
 	{
 		#region Members
+		private ConfigurationProperty s_name;
 		private ConfigurationProperty s_uses;
 		private ConfigurationProperty s_settings;
 		private ConfigurationProperty s_schedulingRules;
@@ -1135,6 +1136,10 @@ namespace Edge.Core.Configuration
 		#region Constructor
 		public AccountServiceElement()
 		{
+			s_name = new ConfigurationProperty(
+				 "Name",
+				 typeof(string));
+
 			s_uses = new ConfigurationProperty(
 				"Uses",
 				typeof(ElementReference<ServiceElement>),
@@ -1163,6 +1168,19 @@ namespace Edge.Core.Configuration
 		#endregion
 
 		#region Properties
+		
+		public string Name
+		{
+			get
+			{
+				return (string)base[s_name];
+			}
+			set
+			{
+				base[s_name] = value;
+			}
+		}
+		
 		public SchedulingRuleElementCollection SchedulingRules
 		{
 			get
