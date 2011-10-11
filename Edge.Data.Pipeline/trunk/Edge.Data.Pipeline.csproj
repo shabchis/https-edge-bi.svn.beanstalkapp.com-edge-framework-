@@ -117,6 +117,7 @@
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
     <Compile Include="Services\Const.cs" />
+    <Compile Include="Services\Db4oImport.cs" />
     <Compile Include="Services\GenericInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
