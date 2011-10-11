@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline.Services
 															 where day_code between @from and @to "))
 					{
 						cmd.Parameters.AddWithValue("@from",int.Parse(this.Instance.Configuration.Options["From"]));
-						cmd.Parameters.AddWithValue("@from",int.Parse(this.Instance.Configuration.Options["Value"]));
+						cmd.Parameters.AddWithValue("@from",int.Parse(this.Instance.Configuration.Options["To"]));
 						cmd.CommandTimeout = 0;
 						sqlConnection.Open();
 						cmd.Connection = sqlConnection;
