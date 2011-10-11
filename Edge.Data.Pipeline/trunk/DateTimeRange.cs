@@ -133,10 +133,10 @@ namespace Edge.Data.Pipeline
 		[JsonProperty(PropertyName="align"), JsonConverter(typeof(StringEnumConverter))]
 		public DateTimeSpecificationAlignment Alignment;
 
-		[JsonProperty(PropertyName = "basedate"), JsonConverter(typeof(IsoDateTimeConverter)), StructDefaultValue(typeof(DateTime))]
+		[JsonProperty(PropertyName = "date"), JsonConverter(typeof(IsoDateTimeConverter)), StructDefaultValue(typeof(DateTime))]
 		public DateTime BaseDateTime; // date
 
-		[JsonProperty(PropertyName = "basetime"), StructDefaultValue(typeof(TimeSpan))]
+		[JsonProperty(PropertyName = "time"), StructDefaultValue(typeof(TimeSpan))]
 		public TimeSpan BaseTime; // time
 
 		[JsonIgnore]
