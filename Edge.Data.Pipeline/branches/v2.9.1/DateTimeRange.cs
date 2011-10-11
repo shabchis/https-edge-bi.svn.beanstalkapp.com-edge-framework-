@@ -7,53 +7,19 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Dynamic;
 using Newtonsoft.Json.Linq;
+using System.IO;
+using System.ComponentModel;
 
 namespace Edge.Data.Pipeline
 {
+	[JsonObject(MemberSerialization.OptIn)]
 	public struct DateTimeRange
 	{
+		[JsonProperty(PropertyName="start")]
 		public DateTimeSpecification Start;
+
+		[JsonProperty(PropertyName = "end")]
 		public DateTimeSpecification End;
-
-		/*
-		public DateTimeRange(DateTimeSpecification singleUnit)
-		{
-			Start = singleUnit; Start.Boundary = DateTimeSpecificationBounds.Lower;
-			End = singleUnit; End.Boundary = DateTimeSpecificationBounds.Upper;
-		}
-		*/
-
-		public static DateTimeRange Parse(string json)
-		{
-			//reformat the json in order to be able to Deserialize
-			if (json.Contains("\""))			
-				json=json.Replace("\"", string.Empty);			
-			if (json.Contains("\\"))
-				json=json.Replace("\\","'");
-
-			JObject jObjecttimeRange = JObject.Parse(json);
-			DateTimeRange dateTimeRange=new DateTimeRange();
-			JsonSerializerSettings settings=new JsonSerializerSettings();
-
-
-			dateTimeRange.Start.BaseDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["start"].ToString());
-			dateTimeRange.End.BaseDateTime = (DateTime)JsonConvert.DeserializeObject<DateTime>(jObjecttimeRange["end"].ToString());
-			return dateTimeRange;
-		}
-		/// <summary>
-		/// Return Start End time as string isonDateTimejson
-		/// </summary>
-		/// <returns>DateTime as string json</returns>
-		// {start: '2009-01-01 23:00:00.00', end: 'iso date'}
-		public override string ToString()
-		{
-			dynamic timeRange = new ExpandoObject();
-			timeRange.start=JsonConvert.SerializeObject(Start.ToDateTime(), new IsoDateTimeConverter());
-			timeRange.end= JsonConvert.SerializeObject(End.ToDateTime(), new IsoDateTimeConverter());
-
-
-			 return JsonConvert.SerializeObject(timeRange);
-		}
 
 		/// <summary>
 		/// Converts the transformations of the range into absolute base date/time values.
@@ -66,28 +32,61 @@ namespace Edge.Data.Pipeline
 				Start = new DateTimeSpecification()
 				{
 					BaseDateTime = this.Start.ToDateTime(),
-					Boundary = DateTimeSpecificationBounds.Lower
+					Alignment = DateTimeSpecificationAlignment.Start
 				},
 				End = new DateTimeSpecification()
 				{
 					BaseDateTime = this.End.ToDateTime(),
-					Boundary = DateTimeSpecificationBounds.Upper
+					Alignment = DateTimeSpecificationAlignment.End
 				}
 			};
 		}
+
+		#region Serialization
+		//----------------------
+
+		public static DateTimeRange Parse(string json)
+		{
+			
+			var serializer = new JsonSerializer()
+			{
+				DefaultValueHandling = DefaultValueHandling.Ignore,
+				NullValueHandling = NullValueHandling.Ignore
+			};
+
+			using (var reader = new JsonTextReader(new StringReader(json)))
+			{
+				DateTimeRange range = serializer.Deserialize<DateTimeRange>(reader);
+				range.End.Alignment = DateTimeSpecificationAlignment.End;
+				return range;
+			}
+		}
+
+		public override string ToString()
+		{
+			return ToString(false);
+		}
+
+		public string ToString(bool indented)
+		{
+			return JsonHelper.Serialize(this, indented);
+		}
+
+		//----------------------
+		#endregion
 
 		#region Default values
 		//----------------------
 
 		/// <summary>
 		/// {start: {d:-1, h:0}, end: {d:-1, h:'*'}},
-		/// {start: '2009-01-01 00:00:00.00', end: '2009-01-01 23:59:59.99999'}
+		/// {start: '2009-01-01T00:00:00.00000Z', end: '2009-01-01T23:59:59.99999Z'}
 		/// </summary>
 		public readonly static DateTimeRange AllOfYesterday = new DateTimeRange()
 		{
 			Start = new DateTimeSpecification()
 			{
-				Boundary = DateTimeSpecificationBounds.Lower,
+				Alignment = DateTimeSpecificationAlignment.Start,
 				Day = new DateTimeTransformation()
 				{
 					Type = DateTimeTransformationType.Relative,
@@ -101,7 +100,7 @@ namespace Edge.Data.Pipeline
 			},
 			End = new DateTimeSpecification()
 			{
-				Boundary = DateTimeSpecificationBounds.Upper,
+				Alignment = DateTimeSpecificationAlignment.End,
 				Day = new DateTimeTransformation()
 				{
 					Type = DateTimeTransformationType.Relative,
@@ -119,26 +118,53 @@ namespace Edge.Data.Pipeline
 		#endregion
 	}
 
-	public enum DateTimeSpecificationBounds
+	public enum DateTimeSpecificationAlignment
 	{
-		Lower,
-		Upper
+		Start,
+		End
 	}
 
+	[JsonObject(MemberSerialization.OptIn)]
 	public struct DateTimeSpecification
 	{
-		public DateTimeSpecificationBounds Boundary;
+		#region Fields
+		/*=========================*/
+
+		[JsonProperty(PropertyName="align"), JsonConverter(typeof(StringEnumConverter))]
+		public DateTimeSpecificationAlignment Alignment;
+
+		[JsonProperty(PropertyName = "basedate"), JsonConverter(typeof(IsoDateTimeConverter)), StructDefaultValue(typeof(DateTime))]
 		public DateTime BaseDateTime; // date
+
+		[JsonProperty(PropertyName = "basetime"), StructDefaultValue(typeof(TimeSpan))]
 		public TimeSpan BaseTime; // time
+
+		[JsonIgnore]
 		public DayOfWeek FirstDayOfWeek;
 
+		[JsonProperty(PropertyName = "y"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Year;
+
+		[JsonProperty(PropertyName = "m"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Month;
+
+		[JsonProperty(PropertyName = "w"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Week;
+
+		[JsonProperty(PropertyName = "d"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Day;
+
+		[JsonProperty(PropertyName = "h"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Hour;
+
+		[JsonProperty(PropertyName = "mm"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Minute;
+
+		[JsonProperty(PropertyName = "s"), StructDefaultValue(typeof(DateTimeTransformation))]
 		public DateTimeTransformation Second;
+
+		/*=========================*/
+		#endregion
 
 		public DateTime ToDateTime()
 		{
@@ -149,7 +175,7 @@ namespace Edge.Data.Pipeline
 
 			result = result.Transform(
 				Year,
-				this.Boundary,
+				this.Alignment,
 				(d, v) => d.AddYears(v),
 				(d, v) => new DateTime(v, 1, 1),
 				(d) => { throw new InvalidOperationException("Year cannot be set to max (*).");  }
@@ -160,7 +186,7 @@ namespace Edge.Data.Pipeline
 
 			result = result.Transform(
 				Month,
-				this.Boundary,
+				this.Alignment,
 				(d, v) => d.AddMonths(v),
 				(d, v) => new DateTime(d.Year, v, 1),
 				(d) => new DateTime(d.Year, 1, 1).AddYears(1).AddMonths(-1)
@@ -195,7 +221,7 @@ namespace Edge.Data.Pipeline
 				// treat days as day of month
 				result = result.Transform(
 					Day,
-					this.Boundary,
+					this.Alignment,
 					(d, v) => d.AddDays(v),
 					(d, v) => new DateTime(d.Year, d.Month, v),
 					(d) => new DateTime(d.Year, d.Month, 1).AddMonths(1).AddDays(-1)
@@ -213,7 +239,7 @@ namespace Edge.Data.Pipeline
 			// Hour
 			result = result.Transform(
 					Hour,
-					this.Boundary,
+					this.Alignment,
 					(d, v) => d.AddHours(v),
 					(d, v) => new DateTime(d.Year, d.Month, d.Day, v, 0, 0),
 					(d) => new DateTime(d.Year, d.Month, d.Day, 0, 0, 0).AddDays(1).AddHours(-1)
@@ -223,7 +249,7 @@ namespace Edge.Data.Pipeline
 			// Minute
 			result = result.Transform(
 					Minute,
-					this.Boundary,
+					this.Alignment,
 					(d, v) => d.AddMinutes(v),
 					(d, v) => new DateTime(d.Year, d.Month, d.Day, d.Hour, v, 0),
 					(d) => new DateTime(d.Year, d.Month, d.Day, d.Hour, 0, 0).AddHours(1).AddMinutes(-1)
@@ -233,7 +259,7 @@ namespace Edge.Data.Pipeline
 			// Second
 			result = result.Transform(
 					Second,
-					this.Boundary,
+					this.Alignment,
 					(d, v) => d.AddSeconds(v),
 					(d, v) => new DateTime(d.Year, d.Month, d.Day, d.Hour, d.Minute, v),
 					(d) => new DateTime(d.Year, d.Month, d.Day, d.Hour, d.Minute, 0).AddMinutes(1).AddSeconds(-1)
@@ -242,10 +268,31 @@ namespace Edge.Data.Pipeline
 			return result;
 		}
 
-		public static DateTimeRange Parse(string json)
+		public static DateTimeSpecification Parse(string json)
 		{
-			throw new NotImplementedException();
+			var serializer = new JsonSerializer()
+			{
+				DefaultValueHandling = DefaultValueHandling.Ignore,
+				NullValueHandling = NullValueHandling.Ignore
+			};
+
+			using (var reader = new JsonTextReader(new StringReader(json)))
+			{
+				DateTimeSpecification spec = serializer.Deserialize<DateTimeSpecification>(reader);
+				return spec;
+			}
 		}
+
+		public override string ToString()
+		{
+			return ToString(false);
+		}
+
+		public string ToString(bool indented)
+		{
+			return JsonHelper.Serialize(this, indented);
+		}
+
 	}
 
 	public enum DateTimeLimit
@@ -254,6 +301,7 @@ namespace Edge.Data.Pipeline
 		Upper
 	}
 
+	[JsonConverter(typeof(DateTimeTransformation.Converter))]
 	public struct DateTimeTransformation
 	{
 		public DateTimeTransformationType Type;
@@ -275,12 +323,20 @@ namespace Edge.Data.Pipeline
 
 		public override bool Equals(object obj)
 		{
-			if (!(obj is DateTimeTransformation))
-				return false;
-
-			var tf = (DateTimeTransformation)obj;
-			return tf.Type == this.Type && tf.Value == this.Value;
+			if (obj is string)
+				return this.ToString() == obj.ToString();
+			else
+				return base.Equals(obj);
 		}
+
+		//public override bool Equals(object obj)
+		//{
+		//    if (!(obj is DateTimeTransformation))
+		//        return false;
+
+		//    var tf = (DateTimeTransformation)obj;
+		//    return tf.Type == this.Type && tf.Value == this.Value;
+		//}
 
 		public override string ToString()
 		{
@@ -290,13 +346,17 @@ namespace Edge.Data.Pipeline
 			{
 				val = "*";
 			}
-			else if (this.Type == DateTimeTransformationType.Relative && this.Value != 0)
+			else if (this.Type == DateTimeTransformationType.Relative)
 			{
-				val = (Value > 0 ? "+=" : "-=") + this.Value.ToString();
+				val = (Value == 0 ? "" : Value > 0 ? "+=" : "-=") + Math.Abs(this.Value).ToString();
+			}
+			else if (this.Type == DateTimeTransformationType.Exact)
+			{
+				val = Math.Abs(this.Value).ToString();
 			}
 			else
 			{
-				val = Math.Abs(this.Value).ToString();
+				val = string.Empty;
 			}
 
 			return val;
@@ -306,6 +366,64 @@ namespace Edge.Data.Pipeline
 		{
 			throw new NotImplementedException();
 		}
+
+		class Converter : JsonConverter
+		{
+			public override bool CanConvert(Type objectType)
+			{
+				return objectType == typeof(DateTimeTransformation);
+			}
+
+			public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+			{
+				DateTimeTransformation trans = new DateTimeTransformation();
+				if (reader.TokenType == JsonToken.Integer)
+				{
+					int val = Convert.ToInt32(reader.Value);
+					trans.Type = val <= 0 ? DateTimeTransformationType.Relative : DateTimeTransformationType.Exact;
+					trans.Value = val;
+				}
+				else
+				{
+					string val = (string)reader.Value;
+					if (val == "*")
+					{
+						trans.Type = DateTimeTransformationType.Max;
+					}
+					else if (val.StartsWith("-") || val.StartsWith("+"))
+					{
+						trans.Type = DateTimeTransformationType.Relative;
+						string num = val.Replace("-", "").Replace("+", "").Replace("=", "");
+						trans.Value = Int32.Parse(num) * (val.StartsWith("-") ? -1 : 1);
+					}
+					else if (val == string.Empty)
+					{
+						trans.Type = DateTimeTransformationType.None;
+					}
+					else
+						throw new FormatException(String.Format("'{0}' is not a valid value for DateTimeTransformation.", val));
+
+				}
+
+				return trans;
+			}
+
+			public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+			{
+				var transformation = (DateTimeTransformation) value;
+				bool stringify =
+					transformation.Type == DateTimeTransformationType.Max ||
+					transformation.Type == DateTimeTransformationType.None ||
+					(transformation.Type == DateTimeTransformationType.Relative && transformation.Value != 0);
+				
+				writer.WriteValue(
+					stringify ?
+						(object) transformation.ToString():
+						(object) transformation.Value
+					);
+			}
+		}
+
 	}
 
 	public enum DateTimeTransformationType
@@ -318,7 +436,7 @@ namespace Edge.Data.Pipeline
 
 	public static class DateTimeExtensions
 	{
-		internal static DateTime Transform(this DateTime dateTime, DateTimeTransformation transform, DateTimeSpecificationBounds boundary, Func<DateTime, int, DateTime> relative, Func<DateTime, int, DateTime> exact, Func<DateTime, DateTime> max)
+		internal static DateTime Transform(this DateTime dateTime, DateTimeTransformation transform, DateTimeSpecificationAlignment alignment, Func<DateTime, int, DateTime> relative, Func<DateTime, int, DateTime> exact, Func<DateTime, DateTime> max)
 		{
 			if (transform.IsEmpty)
 				return dateTime;
@@ -335,7 +453,7 @@ namespace Edge.Data.Pipeline
 				else if (transform.Type == DateTimeTransformationType.Max)
 					result = max(result);
 
-				if (boundary == DateTimeSpecificationBounds.Upper)
+				if (alignment == DateTimeSpecificationAlignment.End)
 					result = relative(result,1).AddTicks(-1);
 			}
 
@@ -398,6 +516,44 @@ namespace Edge.Data.Pipeline
 		Third = 3,
 		Fourth = 4,
 		Fifth = 5
+	}
+
+	public class StructDefaultValueAttribute : DefaultValueAttribute
+	{
+		public StructDefaultValueAttribute(Type type) : base(GetStructDefault(type)) { }
+
+		private static object GetStructDefault(Type type)
+		{
+			return type.IsValueType ? Activator.CreateInstance(type) : null;
+		}
+	}
+
+	static class JsonHelper
+	{
+		public static string Serialize(object obj, bool indented)
+		{
+			var serializer = new JsonSerializer()
+			{
+				DefaultValueHandling = DefaultValueHandling.Ignore,
+				NullValueHandling = NullValueHandling.Ignore
+			};
+
+			var stringWriter = new StringWriter();
+			using (var writer = new JsonTextWriter(stringWriter)
+			{
+				QuoteName = false,
+				QuoteChar = '\''
+			})
+			{
+				if (indented)
+					writer.Formatting = Formatting.Indented;
+
+				serializer.Serialize(writer, obj);
+				writer.Close();
+				var json = stringWriter.ToString();
+				return json;
+			}
+		}
 	}
 
 }

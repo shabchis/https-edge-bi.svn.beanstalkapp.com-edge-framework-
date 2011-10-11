@@ -32,13 +32,13 @@ namespace Edge.Data.Pipeline.Services
 						{
 							BaseDateTime = fromDate,
 							Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Exact, Value = 0 },
-							Boundary=DateTimeSpecificationBounds.Lower
+							Alignment=DateTimeSpecificationAlignment.Start
 						},
 						End = new DateTimeSpecification()
 						{
 							BaseDateTime = fromDate,
 							Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Max },
-							Boundary = DateTimeSpecificationBounds.Upper
+							Alignment = DateTimeSpecificationAlignment.End
 						}
 					};
 
