@@ -9,6 +9,7 @@ using Edge.Core;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System.Configuration;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -16,12 +17,16 @@ namespace Edge.Data.Pipeline.Services
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
+			string serviceName = Instance.Configuration.Options["ServiceToRun"];
+			if (String.IsNullOrWhiteSpace(serviceName))
+				throw new ConfigurationErrorsException("ServiceToRun parameter is not defined on Rerun service.", Instance.Configuration.ElementInformation.Source, Instance.Configuration.ElementInformation.LineNumber);
 
 			using (ServiceClient<IScheduleManager> scheduleManager = new ServiceClient<IScheduleManager>())
 			{
 				DateTime fromDate = this.TargetPeriod.Start.ToDateTime();
 				DateTime toDate = this.TargetPeriod.End.ToDateTime();
-				string serviceName=Instance.Configuration.Options["ServiceToRun"];
+				
+
 				
 				while (fromDate<=toDate)
 				{
