@@ -32,7 +32,17 @@ namespace Edge.Data.Pipeline
 
 		public bool IsCommited { get; set; }
 
-		
+		public static string CreateSignature(string value)
+		{
+			byte[] toEncodeAsBytes
+
+			= System.Text.UTF8Encoding.UTF8.GetBytes(value);
+
+			string returnValue = System.Convert.ToBase64String(toEncodeAsBytes);
+
+			return returnValue;
+
+		}
 
 		/// <summary>
 		/// Creates a new delivery with the specified ID.
@@ -187,7 +197,7 @@ namespace Edge.Data.Pipeline
 			if (this.Signature == null)
 				throw new InvalidOperationException("The delivery does not have a signature - cannot search for conflicts.");
 
-			return DeliveryDB.GetBySignature(this.Signature, new Guid[] {this.DeliveryID});
+			return DeliveryDB.GetBySignature(this.Signature, exclude: this.DeliveryID);
 		}
 
 		// Statics

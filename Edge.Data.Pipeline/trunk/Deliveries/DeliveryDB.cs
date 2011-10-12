@@ -646,7 +646,7 @@ namespace Edge.Data.Pipeline
             }
         }
 
-        internal static Delivery[] GetBySignature(string signature, Guid[] exclude)
+        internal static Delivery[] GetBySignature(string signature, Guid exclude)
         {
             List<Delivery> deliveries = new List<Delivery>();
             using (var client = DeliveryDBClient.Connect())
@@ -655,9 +655,9 @@ namespace Edge.Data.Pipeline
                 using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetBySignature(@signature:NvarChar,@exclude:NvarChar)", System.Data.CommandType.StoredProcedure))
                 {
                     cmd.Connection = client;
-                    cmd.Parameters["@signature"].Value = "'" + signature + "'";
-                    cmd.Parameters["@exclude"].Value = GetGuidStringArray(exclude); //TODO: Talk with doron it's not the way to do it
-                    using (SqlDataReader reader = cmd.ExecuteReader())//TODO: Talk with doron it's not the way to do it
+					cmd.Parameters["@signature"].Value = signature;
+                    cmd.Parameters["@exclude"].Value = exclude.ToString("N");
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                             deliveries.Add(Get(Guid.Parse(reader.GetString(0))));
