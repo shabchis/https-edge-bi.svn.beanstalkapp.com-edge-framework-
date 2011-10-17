@@ -123,7 +123,7 @@ namespace Edge.Data.Pipeline
 		/// Opens a file from the specified location.
 		/// </summary>
 		/// <param name="location">Relative location of file in the FileManager system.</param>
-		public static Stream Open(string location, ArchiveType archiveType = ArchiveType.Zip, FileCompression compression = FileCompression.None)
+		public static Stream Open(string location, ArchiveType archiveType = ArchiveType.None, FileCompression compression = FileCompression.None)
 		{
 			
 			return Open(GetInfo(location,archiveType),compression);
@@ -185,40 +185,44 @@ namespace Edge.Data.Pipeline
 			return uri;
 
 		}
-		public static FileInfo GetInfo(string location, ArchiveType archiveType = ArchiveType.Zip)
+		public static FileInfo GetInfo(string location, ArchiveType archiveType = ArchiveType.None)
 		{
 			Uri uri = GetRelativeUri(location);
 
 			// Get full path
 			string fullPath = Path.Combine(AppSettings.Get(typeof(FileManager), "RootPath"), uri.ToString());
 
-			bool isArchive = false;
-			string directory = string.Empty;
-			string file = string.Empty;
+			string container = fullPath;
+			string innerFile = string.Empty;
 			FileInfo fileInfo = new FileInfo() { Location = uri.ToString(), FullPath = fullPath };
 
 			if (fullPath.Length > FileManager.MaxPathLength || !File.Exists(fullPath) )
 			{
-				isArchive = true;
-				directory = Path.GetDirectoryName(fullPath);
-				while (directory.Length > FileManager.MaxPathLength || !Directory.Exists(directory)) 
+				if (archiveType == ArchiveType.None)
+					throw new ArgumentException("Specified file path does not exist. If it is an archive, set archiveType parameter.", "location");
+
+				container = Path.GetDirectoryName(fullPath);
+				while (container.Length > 0 && (container.Length > FileManager.MaxPathLength || !File.Exists(container)))
 				{
-					directory = Path.GetDirectoryName(directory);
+					container = Path.GetDirectoryName(container);
 				}
 
-				file = fullPath.Replace(directory + Path.DirectorySeparatorChar, string.Empty);
+				innerFile = fullPath.Replace(container + Path.DirectorySeparatorChar, string.Empty);
 			}
 
-			if (isArchive)
+			if (archiveType != ArchiveType.None)
 			{
-				fileInfo.ArchiveLocation = directory;
+				fileInfo.ArchiveLocation = container;
 				fileInfo.ArchiveType = archiveType;
+			}
 
+			if (!String.IsNullOrEmpty(innerFile))
+			{
 				if (archiveType == ArchiveType.Zip)
 				{
 					using (ZipFile zipFile = new ZipFile(fileInfo.ArchiveLocation))
 					{
-						ZipEntry zipEntry = zipFile.GetEntry(file);
+						ZipEntry zipEntry = zipFile.GetEntry(innerFile);
 						fileInfo.TotalBytes = zipEntry.Size;
 						fileInfo.FileCreated = zipEntry.DateTime;
 					}
@@ -236,6 +240,32 @@ namespace Edge.Data.Pipeline
 
 			return fileInfo;
 		}
+
+		internal static string[] GetSubFiles(FileInfo fileInfo)
+		{
+			List<string> subFiles = new List<string>();
+			if (fileInfo.ArchiveType == ArchiveType.None)
+				throw new InvalidOperationException("Cannot get sub files for a non-archive path.");
+
+			if (fileInfo.ArchiveType == ArchiveType.Zip)
+			{
+				using (ZipFile zipFile = new ZipFile(fileInfo.ArchiveLocation))
+				{
+					foreach (ZipEntry zipEntry in zipFile)
+					{
+						subFiles.Add(zipEntry.Name);
+
+						
+					}
+				
+				}
+			}
+			else
+			{
+				throw new NotSupportedException();
+			}
+			return subFiles.ToArray();
+		}
 	}
 
 	public class FileInfo
@@ -250,6 +280,16 @@ namespace Edge.Data.Pipeline
 		public DateTime FileModified { get; internal set; }
 		public ArchiveType ArchiveType { get; internal set; }
 
+		public string[] GetSubFiles()
+		{
+			return FileManager.GetSubFiles(this);
+		}
+
+		//public FileInfo GetSubFileInfo(string subFileName, ArchiveType subFileArchiveType = Pipeline.ArchiveType.None)
+		//{
+		//    return FileManager.GetInfo(Path.Combine(this.Location, subFileName), subFileArchiveType);
+		//}
+
 	}
 
 
@@ -262,6 +302,7 @@ namespace Edge.Data.Pipeline
 
 	public enum ArchiveType
 	{
+		None,
 		Zip,
 		TarUncompressed,
 		TarGzip
