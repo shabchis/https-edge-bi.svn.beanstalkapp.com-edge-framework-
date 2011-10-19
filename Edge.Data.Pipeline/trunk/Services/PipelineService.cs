@@ -151,6 +151,7 @@ namespace Edge.Data.Pipeline.Services
 					command.Parameters["@deliverySignature"].Value = Delivery.Signature;
 					command.Parameters["@deliveryID"].Value = Delivery.DeliveryID.ToString("N");
 					command.Parameters["@workflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
+					command.Parameters["@workflowInstanceID"].Direction = System.Data.ParameterDirection.InputOutput;
 
 					sqlConnection.Open();
 					command.Connection = sqlConnection;
