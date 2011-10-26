@@ -373,9 +373,12 @@ namespace Edge.Data.Pipeline
 			return val;
 		}
 
-		public static DateTimeRange Parse(string json)
+		public static DateTimeTransformation Parse(string source)
 		{
-			throw new NotImplementedException();
+			using (var reader = new JsonTextReader(new StringReader(source)))
+			{
+				return (DateTimeTransformation) new Converter().ReadJson(reader, typeof(DateTimeTransformation), null, null);
+			}
 		}
 
 		class Converter : JsonConverter
@@ -391,7 +394,7 @@ namespace Edge.Data.Pipeline
 				if (reader.TokenType == JsonToken.Integer)
 				{
 					int val = Convert.ToInt32(reader.Value);
-					trans.Type = val <= 0 ? DateTimeTransformationType.Relative : DateTimeTransformationType.Exact;
+					trans.Type = val < 0 ? DateTimeTransformationType.Relative : DateTimeTransformationType.Exact;
 					trans.Value = val;
 				}
 				else
@@ -412,7 +415,17 @@ namespace Edge.Data.Pipeline
 						trans.Type = DateTimeTransformationType.None;
 					}
 					else
-						throw new FormatException(String.Format("'{0}' is not a valid value for DateTimeTransformation.", val));
+					{
+						int numval;
+						if (Int32.TryParse(val, out numval))
+						{
+							// number as string
+							trans.Type = DateTimeTransformationType.Exact;
+							trans.Value = numval;
+						}
+						else
+							throw new FormatException(String.Format("'{0}' is not a valid value for DateTimeTransformation.", val));
+					}
 
 				}
 

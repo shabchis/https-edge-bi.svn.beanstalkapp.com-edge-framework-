@@ -68,15 +68,18 @@ namespace Edge.Data.Pipeline
                         delivery.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
                         delivery.Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null);
                         delivery.Account.OriginalID = reader["OriginalID"].ToString();
-                        //delivery.DateCreated=DateTime.Parse(reader["DateCreated"].ToString());
-                        //delivery.DateModified=DateTime.Parse(reader["DateModified"].ToString());
-                        delivery.Signature = reader["Signature"].ToString();
-                        delivery.Description = reader["Description"].ToString();
-                        delivery.TargetLocationDirectory = reader["TargetLocationDirectory"].ToString();
-                        delivery.TargetPeriod = DateTimeRange.Parse(reader["TargetPeriodDefinition"].ToString());
-                        //delivery.TargetPeriodStart=DateTime.Parse(reader["TargetPeriodStart"].ToString());
-                        //delivery.TargetPeriodEnd=DateTime.Parse(reader["TargetPeriodEnd"].ToString());
+                        delivery.DateCreated= (DateTime) reader["DateCreated"];
+                        delivery.DateModified=(DateTime) reader["DateModified"];
+                        delivery.Signature = (string) reader["Signature"];
+                        delivery.Description = (string) reader["Description"];
+                        delivery.TargetLocationDirectory = (string) reader["TargetLocationDirectory"];
+						delivery.InternalSetTargetPeriod(
+							DateTimeRange.Parse((string)reader["TargetPeriodDefinition"]),
+							(DateTime)reader["TargetPeriodStart"],
+							(DateTime)reader["TargetPeriodEnd"]
+						);
 						delivery.IsCommited = Convert.ToBoolean(reader["Committed"]);
+
                         #endregion
                         #region DeliveryParameters
 
@@ -676,20 +679,22 @@ namespace Edge.Data.Pipeline
             return guidArray.ToString();
         }
 
-        internal static Delivery[] GetByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end)
+        internal static Delivery[] GetByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end, bool exact)
         {
             List<Delivery> deliveries = new List<Delivery>();
             List<string> deliveriesId = new List<string>();
 
             using (var client = DeliveryDBClient.Connect())
             {
-                using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2)", System.Data.CommandType.StoredProcedure))
+                using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
                 {
                     cmd.Connection = client;
                     cmd.Parameters["@channelID"].Value = channelID;
                     cmd.Parameters["@accountID"].Value = accountID;
                     cmd.Parameters["@targetPeriodStart"].Value = start;
                     cmd.Parameters["@targetPeriodEnd"].Value = end;
+					cmd.Parameters["@exact"].Value = exact;
+
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())

@@ -72,7 +72,7 @@ namespace Edge.Data.Objects
 		IsBackOffice = 0x04,
 		IsTarget = 0x02,
 		IsCalculated = 0x10,
-		IntegrityCheckRequired = 0x80,
+		ValidationRequired = 0x80,
 		All = 0xff
 	}
 
