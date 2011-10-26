@@ -47,11 +47,11 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Creates a new delivery with the specified ID.
 		/// </summary>
-		internal Delivery(Guid specifiedDeliveryID)
+		public Delivery(Guid specifiedDeliveryID)
 		{
 			if (specifiedDeliveryID == Guid.Empty)
 				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. " +
-					"If in an initializer service, check that the workflow service is defined as Edge.Data.Pipeline.Services.PipelineWorkflowService.");
+					"If this exception occured in an initializer service, check that the workflow service is defined as Edge.Data.Pipeline.Services.PipelineWorkflowService.");
 
 			// fuck db4o
 			_files = new DeliveryFileList(this);
@@ -108,6 +108,7 @@ namespace Edge.Data.Pipeline
 		public DateTime DateCreated
 		{
 			get { return _dateCreated; }
+			internal set { _dateCreated = value; }
 		}
 
 		/// <summary>
@@ -116,6 +117,7 @@ namespace Edge.Data.Pipeline
 		public DateTime DateModified
 		{
 			get { return _dateModified; }
+			internal set { _dateModified = value; }
 		}
 
 		/// <summary>
@@ -124,16 +126,7 @@ namespace Edge.Data.Pipeline
 		public DateTimeRange TargetPeriod
 		{
 			get { return _targetPeriod; }
-
-			set
-			{
-				//if (this.DeliveryID > 0)
-				//	throw new InvalidOperationException("This property can only be set before the first Save() is called.");
-
-				_targetPeriod = value;
-				this.TargetPeriodStart = _targetPeriod.Start.ToDateTime();
-				this.TargetPeriodEnd = _targetPeriod.End.ToDateTime();
-			}
+			set { InternalSetTargetPeriod(value, value.Start.ToDateTime(), value.End.ToDateTime()); }
 		}
 
 		public DateTime TargetPeriodStart
@@ -146,6 +139,13 @@ namespace Edge.Data.Pipeline
 		{
 			get;
 			private set;
+		}
+
+		internal void InternalSetTargetPeriod(DateTimeRange range, DateTime calculatedStart, DateTime calculatedEnd)
+		{
+			_targetPeriod = range;
+			this.TargetPeriodStart = calculatedStart;
+			this.TargetPeriodEnd = calculatedEnd;
 		}
 
 		/// <summary>
@@ -208,13 +208,14 @@ namespace Edge.Data.Pipeline
 			return DeliveryDB.Get(deliveryID);
 		}
 
-		public static Delivery[] GetByTargetPeriod(DateTime start, DateTime end, Channel channel = null, Account account = null)
+		public static Delivery[] GetByTargetPeriod(DateTime start, DateTime end, Channel channel = null, Account account = null, bool exact = false)
 		{
 			return DeliveryDB.GetByTargetPeriod(
 				channel == null ? -1 : channel.ID,
 				account == null ? -1 : account.ID,
 				start,
-				end);
+				end,
+				exact);
 		}
 	}
 }

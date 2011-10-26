@@ -66,10 +66,33 @@ namespace Edge.Data.Pipeline.Services
 					{
 						_range = DateTimeRange.AllOfYesterday; 
 					}
+
+					// enforce limitation
+					if (this.TargetPeriodLimitation != DateTimeRangeLimitation.None)
+					{
+						DateTime start = this.TargetPeriod.Start.ToDateTime();
+						DateTime end = this.TargetPeriod.End.ToDateTime();
+						switch (this.TargetPeriodLimitation)
+						{
+							case DateTimeRangeLimitation.SameDay:
+								if (end.Date != start.Date)
+									throw new Exception("The specified range must be within the same day.");
+								break;
+							case DateTimeRangeLimitation.SameMonth:
+								if (end.Month != start.Month || end.Year != start.Year)
+									throw new Exception("The specified range must be within the same month.");
+								break;
+						}
+					}
 				}
 
 				return _range.Value;
 			}
+		}
+
+		protected virtual DateTimeRangeLimitation TargetPeriodLimitation
+		{
+			get { return DateTimeRangeLimitation.SameDay; }
 		}
 
 		Delivery _delivery = null;
@@ -273,6 +296,13 @@ namespace Edge.Data.Pipeline.Services
 		ClaimedByOther = 0,
 		AlreadyClaimed = 1,
 		Claimed = 2
+	}
+
+	public enum DateTimeRangeLimitation
+	{
+		None,
+		SameDay,
+		SameMonth
 	}
 
 	public class DeliveryRollbackOperation

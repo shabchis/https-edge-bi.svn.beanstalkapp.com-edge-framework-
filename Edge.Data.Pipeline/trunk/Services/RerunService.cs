@@ -15,6 +15,11 @@ namespace Edge.Data.Pipeline.Services
 {
 	class RerunService : PipelineService	
 	{
+		protected override DateTimeRangeLimitation TargetPeriodLimitation
+		{
+			get { return DateTimeRangeLimitation.None; }
+		}
+
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
 			string serviceName = Instance.Configuration.Options["ServiceToRun"];
