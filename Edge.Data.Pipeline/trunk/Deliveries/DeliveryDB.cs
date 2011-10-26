@@ -67,16 +67,16 @@ namespace Edge.Data.Pipeline
 
                         delivery.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
                         delivery.Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null);
-                        delivery.Account.OriginalID = reader["OriginalID"].ToString();
-                        delivery.DateCreated= (DateTime) reader["DateCreated"];
-                        delivery.DateModified=(DateTime) reader["DateModified"];
-                        delivery.Signature = (string) reader["Signature"];
-                        delivery.Description = (string) reader["Description"];
-                        delivery.TargetLocationDirectory = (string) reader["TargetLocationDirectory"];
+						delivery.Account.OriginalID = reader.Get<string>("OriginalID");
+                        delivery.DateCreated= reader.Get<DateTime>("DateCreated");
+                        delivery.DateModified=reader.Get<DateTime>("DateModified");
+                        delivery.Signature = reader.Get<string>("Signature");
+                        delivery.Description = reader.Get<string>("Description");
+                        delivery.TargetLocationDirectory = reader.Get<string>("TargetLocationDirectory");
 						delivery.InternalSetTargetPeriod(
-							DateTimeRange.Parse((string)reader["TargetPeriodDefinition"]),
-							(DateTime)reader["TargetPeriodStart"],
-							(DateTime)reader["TargetPeriodEnd"]
+							DateTimeRange.Parse(reader.Get<string>("TargetPeriodDefinition")),
+							reader.Get<DateTime>("TargetPeriodStart"),
+							reader.Get<DateTime>("TargetPeriodEnd")
 						);
 						delivery.IsCommited = Convert.ToBoolean(reader["Committed"]);
 
