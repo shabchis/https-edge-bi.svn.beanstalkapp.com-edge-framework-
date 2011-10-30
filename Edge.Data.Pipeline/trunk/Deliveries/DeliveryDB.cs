@@ -89,7 +89,7 @@ namespace Edge.Data.Pipeline
                             while (reader.Read())
                             {
 
-                                delivery.Parameters.Add(reader["Key"].ToString(), DeSerialize(reader["Value"].ToString()));
+                                delivery.Parameters.Add(reader.Get<string>("Key"), DeSerialize(reader.Get<string>("Value")));
                             }
                         }
                         #endregion
@@ -98,7 +98,7 @@ namespace Edge.Data.Pipeline
                         if (reader.NextResult())
                         {
                             while (reader.Read())
-                                delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"]), new Dictionary<string, object>()));
+                                delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], reader.Get<long>("ServiceInstanceID"), new Dictionary<string, object>()));
 
                         }
                         #endregion
@@ -108,7 +108,7 @@ namespace Edge.Data.Pipeline
                             while (reader.Read())
                             {
 
-                                delivery.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), DeSerialize(reader["Value"].ToString()));
+								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader.Get<string>("Key"), DeSerialize(reader.Get<string>("Value")));
 
                             }
                         }
@@ -123,9 +123,9 @@ namespace Edge.Data.Pipeline
                                 deliveryFile.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
                                 deliveryFile.FileID = reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s));
                                 deliveryFile.FileFormat = (FileCompression)reader["FileCompression"];
-                                deliveryFile.SourceUrl = reader["SourceUrl"].ToString();
-                                deliveryFile.Name = reader["Name"].ToString();
-                                deliveryFile.Location = reader["Location"].ToString();
+                                deliveryFile.SourceUrl = reader.Get<string>("SourceUrl");
+                                deliveryFile.Name = reader.Get<string>("Name");
+                                deliveryFile.Location = reader.Get<string>("Location");
                                 delivery.Files.Add(deliveryFile);
                             }
 
@@ -138,8 +138,8 @@ namespace Edge.Data.Pipeline
                             while (reader.Read())
                             {
 
-                                DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-                                deliveryFile.Parameters.Add(reader["Key"].ToString(), DeSerialize(reader["Value"].ToString()));
+                                DeliveryFile deliveryFile = delivery.Files[reader.Get<string>("Name")];
+                                deliveryFile.Parameters.Add(reader.Get<string>("Key"), DeSerialize(reader.Get<string>("Value")));
                             }
 
                         }
@@ -196,17 +196,48 @@ namespace Edge.Data.Pipeline
             return delivery;
         }
 
+		static bool? _ignoreJsonErrors = null;
+		public static bool IgnoreJsonErrors
+		{
+			get
+			{
+				if (_ignoreJsonErrors == null || !_ignoreJsonErrors.HasValue)
+				{
+					string ignore;
+					if (Service.Current != null && Service.Current.Instance.Configuration.Options.TryGetValue("IgnoreDeliveryJsonErrors", out ignore))
+					{
+						bool val = false;
+						Boolean.TryParse(ignore, out val);
+						_ignoreJsonErrors = val;
+					}
+					else
+						_ignoreJsonErrors = false;
+				}
+				return _ignoreJsonErrors.Value;
+			}
+		}
+
         private static object DeSerialize(string json)
         {
             object toReturn = null;
             JsonSerializerSettings s = new JsonSerializerSettings();
             s.TypeNameHandling = TypeNameHandling.All;
 			s.TypeNameAssemblyFormat = System.Runtime.Serialization.Formatters.FormatterAssemblyStyle.Full;
-			
-            toReturn = JsonConvert.DeserializeObject(json, s);
-         
 
 
+			if (!IgnoreJsonErrors)
+			{
+				toReturn = JsonConvert.DeserializeObject(json, s);
+			}
+			else
+			{
+				try { toReturn = JsonConvert.DeserializeObject(json, s);}
+				catch(Exception ex)
+				{
+					Log.Write("Error while deserializing delivery parameter JSON.", ex);
+					toReturn = null;
+				}
+			}
 
             return toReturn;
 
