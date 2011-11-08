@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline
 
 		public double Progress
 		{
-			get { return DownloadedBytes / TotalBytes; }
+			get { return TotalBytes < 1 ? 0 : DownloadedBytes / TotalBytes; }
 		}
 
 		#region Constructors
@@ -42,6 +42,8 @@ namespace Edge.Data.Pipeline
 
 		protected FileDownloadOperation()
 		{
+			TotalBytes = -1;
+			DownloadedBytes = 0;
 		}
 
 		protected void SetTargetLocation(string targetLocation)
@@ -86,7 +88,7 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Downloads a file using the a web request.
 		/// </summary>
-		public FileDownloadOperation(WebRequest request, string targetLocation)
+		public FileDownloadOperation(WebRequest request, string targetLocation, long length = -1)
 		{
 			SetTargetLocation(targetLocation);
 
@@ -97,6 +99,9 @@ namespace Edge.Data.Pipeline
 				if (String.IsNullOrEmpty(httpRequest.UserAgent))
 					httpRequest.UserAgent = FileManager.UserAgentString;
 			}
+
+            if (length > 0)
+                this.TotalBytes = length;
 
 			this.Request = request;
 		}
@@ -113,7 +118,7 @@ namespace Edge.Data.Pipeline
 				length = sourceStream.Length;
 
 			this.Stream = sourceStream;
-			this.TotalBytes = sourceStream.Length;
+            this.TotalBytes = length;
 		}
 
 

@@ -76,10 +76,13 @@ namespace Edge.Data.Pipeline
 				}
 
 				operation.Stream = response.GetResponseStream();
-				if (operation.Exception == null && response.ContentLength < MinValidFileSize)
+				
+				if (operation.Exception == null && response.ContentLength >= 0 && response.ContentLength < MinValidFileSize)
 					throw new FileDownloadException(String.Format("Response from {0} returned content-length less than {1}.", operation.Request.RequestUri, MinValidFileSize)); 
+				
+				if(operation.TotalBytes == -1)
+					operation.TotalBytes = response.ContentLength;
 
-				operation.TotalBytes = response.ContentLength;
 				operation.RaiseProgress();
 			}
 
