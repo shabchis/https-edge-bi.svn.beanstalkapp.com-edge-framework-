@@ -55,10 +55,12 @@ namespace Edge.Core.Utilities
 			{
 				
 				IDictionary smtpCon = GetConfigurationSection("SmtpConnection");
-				SmtpClient smtp = new SmtpClient(smtpCon["server"].ToString(), Int32.Parse((smtpCon["port"].ToString())));
+				SmtpClient smtp = new SmtpClient();
+				smtp.Host = smtpCon["server"].ToString();
+				smtp.Port = Convert.ToInt32(smtpCon["port"].ToString());
 				smtp.Credentials = new NetworkCredential(smtpCon["user"].ToString(), Core.Utilities.Encryptor.Dec(smtpCon["pass"].ToString()));
-				smtp.UseDefaultCredentials = Boolean.Parse(smtpCon["UseDefaultCredentials"].ToString());
-				smtp.EnableSsl = Boolean.Parse(smtpCon["EnableSsl"].ToString());
+				//smtp.UseDefaultCredentials = Boolean.Parse(smtpCon["UseDefaultCredentials"].ToString());
+				//smtp.EnableSsl = Boolean.Parse(smtpCon["EnableSsl"].ToString());
 
 				return smtp;
 			}
