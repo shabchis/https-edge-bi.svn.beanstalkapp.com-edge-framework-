@@ -717,7 +717,7 @@ namespace Edge.Data.Pipeline
 
             using (var client = DeliveryDBClient.Connect())
             {
-                using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
                 {
                     cmd.Connection = client;
                     cmd.Parameters["@channelID"].Value = channelID;
