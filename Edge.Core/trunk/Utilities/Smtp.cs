@@ -74,10 +74,11 @@ namespace Edge.Core.Utilities
 				val = (IDictionary)(ConfigurationManager.GetSection(sectionName));
 				return val;
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
-				return null;
+				throw new Exception("Configuration Error", e);
 			}
+			//if (val == null) throw new Exception(string.Format("Configuration Error: {0} cannot be null",sectionName) ;
 
 		}
 	}
