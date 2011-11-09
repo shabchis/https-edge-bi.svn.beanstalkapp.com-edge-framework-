@@ -24,18 +24,20 @@ namespace Edge.Core.Utilities
 		{
 			if (string.IsNullOrEmpty(ToAddress) || string.IsNullOrEmpty(FromAddress))
 				throw new ArgumentNullException("Address cannot be empty");
-			System.Net.Mail.MailMessage msg = new MailMessage();
-			msg.Subject = subject;
-			if (highPriority)
-				msg.Priority = MailPriority.High;
+			
 			try
 			{
+				SmtpClient smtp = Smtp.GetSmtpConnection();
+				MailAddress from = new MailAddress(FromAddress);
+				MailAddress to = new MailAddress(ToAddress);
+				MailMessage msg = new MailMessage(from, to);
+				msg.Subject = subject;
+				if (highPriority)
+					msg.Priority = MailPriority.High;
 				if (!String.IsNullOrEmpty(body)) msg.Body = body;
 				if (IsBodyHtml) msg.IsBodyHtml = true;
 				else msg.IsBodyHtml = false;
-				SmtpClient smtp = Smtp.GetSmtpConnection();
-				msg.To.Add(ToAddress);
-				msg.From = new MailAddress(FromAddress);
+				
 				if (!String.IsNullOrEmpty(attachmentPath))
 				{
 					msg.Attachments.Add(new Attachment(attachmentPath));
@@ -51,6 +53,7 @@ namespace Edge.Core.Utilities
 		{
 			try
 			{
+				
 				IDictionary smtpCon = GetConfigurationSection("SmtpConnection");
 				SmtpClient smtp = new SmtpClient(smtpCon["server"].ToString(), Int32.Parse((smtpCon["port"].ToString())));
 				smtp.Credentials = new NetworkCredential(smtpCon["user"].ToString(), Core.Utilities.Encryptor.Dec(smtpCon["pass"].ToString()));
