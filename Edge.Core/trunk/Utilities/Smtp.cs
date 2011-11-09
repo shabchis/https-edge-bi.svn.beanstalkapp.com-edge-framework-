@@ -12,6 +12,7 @@ namespace Edge.Core.Utilities
 	public class Smtp
 	{
 		private static string ToAddress { set; get; }
+		private static string Cc { set; get; }
 		private static string FromAddress { set; get; }
 
 		public static void SetFromTo(string from, string to)
@@ -29,8 +30,19 @@ namespace Edge.Core.Utilities
 			{
 				SmtpClient smtp = Smtp.GetSmtpConnection();
 				MailAddress from = new MailAddress(FromAddress);
+				
 				MailAddress to = new MailAddress(ToAddress);
 				MailMessage msg = new MailMessage(from, to);
+				
+				if (! string.IsNullOrEmpty(Cc) )
+				{
+					string[] cc = Cc.Split(',');
+					foreach (string email in cc)
+					{
+						msg.CC.Add(new MailAddress(email));
+					}
+				}
+				
 				msg.Subject = subject;
 				if (highPriority)
 					msg.Priority = MailPriority.High;
@@ -85,6 +97,11 @@ namespace Edge.Core.Utilities
 			}
 			//if (val == null) throw new Exception(string.Format("Configuration Error: {0} cannot be null",sectionName) ;
 
+		}
+
+		public static void SetCc(string emails)
+		{
+			Smtp.Cc = emails;
 		}
 	}
 }
