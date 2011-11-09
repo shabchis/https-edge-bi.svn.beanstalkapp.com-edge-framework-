@@ -82,9 +82,15 @@ namespace Edge.Data.Pipeline
 		protected override void Open()
 		{
 			if (string.IsNullOrEmpty(_url))
+			{
 				_csvReader = new CsvReader(_csvStream, _delimeter, _encoding);
+				_csvReader.Settings.SkipEmptyRecords = false;
+			}
 			else
+			{
 				_csvReader = new CsvReader(_url, _delimeter, _encoding);
+				_csvReader.Settings.SkipEmptyRecords = false;
+			}
 		}
 
 		protected override bool Next(ref T next)
