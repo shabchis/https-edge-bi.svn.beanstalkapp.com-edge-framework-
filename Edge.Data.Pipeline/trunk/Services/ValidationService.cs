@@ -61,9 +61,12 @@ namespace Edge.Data.Pipeline.Services
 			foreach (ValidationResult entry in entries)
 				entry.LogWrite();
 
-			if (this.FailureLevel != ValidationResultType.None && maxLevel <= this.FailureLevel)
-				return Core.Services.ServiceOutcome.Failure;
-			else
+			//if (this.FailureLevel != ValidationResultType.None && maxLevel <= this.FailureLevel)
+			//    return Core.Services.ServiceOutcome.Failure;
+			//else
+			// Removed by Shay 09.11.11 ( Error is not Failure )
+
+
 				return Core.Services.ServiceOutcome.Success;
 		}
 
