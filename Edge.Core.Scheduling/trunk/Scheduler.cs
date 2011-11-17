@@ -687,6 +687,7 @@ namespace Edge.Core.Scheduling
 
 				_newSchedulethread = new Thread(new ThreadStart(delegate()
 				{
+					
 					while (true)
 					{
 						Thread.Sleep(_intervalBetweenNewSchedule);
@@ -703,8 +704,9 @@ namespace Edge.Core.Scheduling
 						NotifyServicesToRun();
 					}
 				}));
-
+				_newSchedulethread.IsBackground = true;
 				_newSchedulethread.Start();
+				_findRequiredServicesthread.IsBackground = true;
 				_findRequiredServicesthread.Start();
 			}
 
