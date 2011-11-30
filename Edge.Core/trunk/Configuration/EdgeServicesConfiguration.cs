@@ -74,6 +74,8 @@ namespace Edge.Core.Configuration
 		/// <param name="sectionName">The name of the section to load, default (if null) is 'edge.services'.</param>
 		public static void Load(string configFileName, string sectionName = null, bool readOnly = true)
 		{
+			_extensions.Clear();
+
 			if (sectionName == null)
 				sectionName = DefaultSectionName;
 
