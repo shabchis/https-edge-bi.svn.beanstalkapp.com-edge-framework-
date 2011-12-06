@@ -49,7 +49,7 @@ namespace Edge.Core.Scheduling.Objects
             s1.GetHashCode() == s2.GetHashCode(); // this is true!!
             */
             if (Rule.Scope != SchedulingScope.UnPlanned)
-                uniqueKey = String.Format("ConfigurationName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID);
+                uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID,Configuration.Name);
             else
             {               
                 //uniqueKey = String.Format("ConfigurationName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Guid);
