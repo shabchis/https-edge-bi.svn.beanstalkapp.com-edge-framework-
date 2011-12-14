@@ -515,6 +515,7 @@ namespace Edge.Core.Scheduling
 											if (timeToRun >= _timeLineFrom && timeToRun <= _timeLineTo || timeToRun <= _timeLineFrom && timeToRun.Add(schedulingRule.MaxDeviationAfter) > DateTime.Now)
 											{
 												schedulingdata = new SchedulingData() { Configuration = service, profileID = service.SchedulingProfile.ID, Rule = schedulingRule, SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1, SelectedHour = hour, Priority = service.priority, LegacyConfiguration = service.LegacyConfiguration, TimeToRun = timeToRun, Guid = schedulingRule.GuidForUnplaned };
+												schedulingdata.Rule.MaxDeviationAfter = new TimeSpan(8, 0, 0);
 												foundedSchedulingdata.Add(schedulingdata);
 											}
 											break;
