@@ -113,6 +113,7 @@
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
+    <Compile Include="Objects\BoMetricsUnit.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="Readers\JsonHelper.cs" />
