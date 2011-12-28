@@ -13,5 +13,7 @@ namespace Edge.Data.Pipeline.Services
 			public const string SourceUrl = "SourceUrl";
 			public const string TargetLocationDirectory = "TargetLocationDirectory";
 		}
+
+		
 	}
 }
