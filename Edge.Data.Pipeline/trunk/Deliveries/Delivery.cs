@@ -7,7 +7,6 @@ using Edge.Data.Pipeline;
 using Edge.Core.Data;
 using System.Data;
 using Edge.Data.Objects;
-using Db4objects.Db4o;
 
 namespace Edge.Data.Pipeline
 {

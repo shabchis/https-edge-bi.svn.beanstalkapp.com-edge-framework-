@@ -6,7 +6,7 @@ using Edge.Data.Pipeline;
 
 namespace Edge.Data.Objects
 {
-	public class BoMetricsUnit
+	public class SegmentMetricsUnit
 	{
 		public readonly Guid Guid = Guid.NewGuid();
 

@@ -2,11 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Db4objects.Db4o;
-using Db4objects.Db4o.CS;
-using Db4objects.Db4o.Config;
-using Db4objects.Db4o.Ext;
-using Db4objects.Db4o.Linq;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Core;
