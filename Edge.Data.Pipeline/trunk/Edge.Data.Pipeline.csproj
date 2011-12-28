@@ -63,21 +63,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\(third party)\CsvReader.com\DotNet 4.0\DataStreams.dll</HintPath>
     </Reference>
-    <Reference Include="Db4objects.Db4o, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\db4o\Db4objects.Db4o.dll</HintPath>
-    </Reference>
-    <Reference Include="Db4objects.Db4o.CS, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\db4o\Db4objects.Db4o.CS.dll</HintPath>
-    </Reference>
-    <Reference Include="Db4objects.Db4o.Linq, Version=8.0.184.15484, Culture=neutral, PublicKeyToken=6199cd4f203aa8eb, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\db4o\Db4objects.Db4o.Linq.dll</HintPath>
-    </Reference>
-    <Reference Include="Google.AdWords">
-      <HintPath>..\..\(third party)\GoogleAdwords\Google.AdWords.dll</HintPath>
-    </Reference>
     <Reference Include="GotDotNet.XPath, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\(third party)\GotDotNet.XPath\Compiled\GotDotNet.XPath.dll</HintPath>
@@ -110,17 +95,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Deliveries\Common\Classes.cs" />
+    <Compile Include="Deliveries\Common\Const.cs" />
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Objects\BoMetricsUnit.cs" />
+    <Compile Include="Objects\SegmentMetricsUnit.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
     <Compile Include="Services\Const.cs" />
-    <Compile Include="Services\Db4oImport.cs" />
     <Compile Include="Services\GenericInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
