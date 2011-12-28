@@ -64,7 +64,7 @@ namespace Edge.Core.Utilities
 			code.Append(@"
 			using System;
 
-			namespace Easynet.Edge.Runtime
+			namespace Edge.Runtime
 			{
 				public class Eval
 				{
@@ -100,7 +100,7 @@ namespace Edge.Core.Utilities
 			}
 			
 			Assembly a = cr.CompiledAssembly;
-			_compiled = a.CreateInstance("Easynet.Edge.Runtime.Eval");
+			_compiled = a.CreateInstance("Edge.Runtime.Eval");
 		}
 		
 		/*=========================*/
