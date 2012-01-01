@@ -38,24 +38,31 @@ namespace Edge.Data.Pipeline
 					xmlObject.Attributes = new XmlDynamicObject();
 				xmlObject.Attributes[attributeName] = reader.Value;
 			}
-
+			reader.MoveToElement();
 			// Read value elements
-			while (reader.Read())
+			if (!reader.IsEmptyElement)
 			{
-				string currentNodeName = GetNameWithPrefix(reader);
-				if (reader.NodeType == XmlNodeType.EndElement && currentNodeName == objectNodeName && reader.Depth == nodeDepth)
+				while (reader.Read())
 				{
-					break;
-				}
-				else if (reader.NodeType == XmlNodeType.Element)
-				{
-					xml[currentNodeName] = reader.IsEmptyElement ? null : ReadNode(reader);
-				}
-				else if (reader.NodeType == XmlNodeType.Text)
-				{
-					if (xml.InnerText == null)
-						xml.InnerText = string.Empty;
-					xmlObject.InnerText += reader.Value;
+					string currentNodeName = GetNameWithPrefix(reader);
+					if (reader.NodeType == XmlNodeType.EndElement && currentNodeName == objectNodeName && reader.Depth == nodeDepth)
+					{
+						break;
+					}
+					else if (reader.NodeType == XmlNodeType.Text)
+					{
+						if (xml.InnerText == null)
+							xml.InnerText = string.Empty;
+						xmlObject.InnerText += reader.Value;
+					}
+					else if (reader.NodeType == XmlNodeType.Element)
+					{
+						if (reader.Depth > nodeDepth)
+							xml[currentNodeName] = reader.IsEmptyElement ? null : ReadNode(reader);
+						else
+							break;
+					}
+
 				}
 			}
 			xmlObject.ArrayAddingMode = false;
