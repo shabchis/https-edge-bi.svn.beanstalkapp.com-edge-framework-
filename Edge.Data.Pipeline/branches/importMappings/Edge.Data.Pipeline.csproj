@@ -167,13 +167,13 @@
     <None Include="Edge.Data.Pipeline.snk" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Services\Validation\" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
       <Name>Edge.Core</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Services\Validation\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
