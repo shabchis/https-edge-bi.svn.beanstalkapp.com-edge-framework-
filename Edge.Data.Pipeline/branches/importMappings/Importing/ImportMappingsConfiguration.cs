@@ -77,11 +77,84 @@ namespace Edge.Data.Pipeline.ImportMapping
 		public List<ReadSource> ReadSources { get; set; }
 		public ValueExpression Value { get; set; }
 
-		public Map(string propertyName)
+		public Map(Type parentType,string propertyName)
 		{
-			SubMaps = new List<Map>();
-			ReadSources = new List<ReadSource>();
+			while (!string.IsNullOrEmpty(propertyName))
+			{
+				string currentObjectName = GetCurrentObjectName(ref propertyName);
+				if (TargetMember == null)
+				{
+					this.TargetMember = parentType.GetMember(currentObjectName)[0];
+					this.TargetMemberType = TargetMember.GetType();
+					if (TargetMemberType.IsAssignableFrom(typeof(ICollection)))
+					{
+						currentObjectName = GetCurrentObjectName(ref propertyName);
+						if (currentObjectName.StartsWith("[") && currentObjectName.EndsWith("]"))
+						{
+							//this is another confirmation that it's collection
+							currentObjectName=currentObjectName.Remove(0,1);
+							currentObjectName=currentObjectName.Remove(currentObjectName.Length-1,1);
+							string[] typeAndName = currentObjectName.Split(':');
+							//CollectionKey=
+						}
+
+					}
+				}
+				else
+				{
+					
+				}
+
+
+				SubMaps = new List<Map>();
+				ReadSources = new List<ReadSource>(); 
+			}
 		}
+
+		private string GetCurrentObjectName(ref string propertyName)
+		{
+			
+			StringBuilder currentPropertyName = new StringBuilder();			
+			char[] propertyNameChar = propertyName.ToCharArray();
+			bool bExit = false;
+			foreach (var item in propertyName.ToCharArray())
+			{
+				switch (item)
+				{
+					case '[':
+						{
+							if (currentPropertyName.Length > 0)
+								bExit = true;
+							else
+							{
+								currentPropertyName.Append(item);
+								propertyName.Remove(0, 1);
+							}
+							break;
+						}
+					case ']':
+						{
+							propertyName.Remove(0, 1);
+							currentPropertyName.Append(item);
+							bExit = true;
+							break;
+							
+						}
+					default:
+						{
+							propertyName.Remove(0, 1);
+							currentPropertyName.Append(item);
+							break;
+						}
+				}
+				if (bExit)
+					break;
+				
+			}
+			return currentPropertyName.ToString();
+		}
+
+		
 
 		public ReadSource GetSource(string name, bool useParentSources = true)
 		{
@@ -432,16 +505,19 @@ namespace Edge.Data.Pipeline.ImportMapping
 	public class MappingConfiguration
 	{
 		public Dictionary<Type, MappedObject> Objects = new Dictionary<Type, MappedObject>();
-
-		public static MappingConfiguration Load(string mappingFilePath)
+		public static Dictionary<string, Measure> Measures;
+		public static Dictionary<Segment, SegmentValue> Segments;
+		public static MappingConfiguration Load(string mappingFilePath,Dictionary<string, Measure> measures,Dictionary<Segment, SegmentValue> segments)
 		{
+			Measures = measures;
+			Segments = segments;
 			XmlDocument doc=new XmlDocument();
 			doc.Load(mappingFilePath);
 			var output = new MappingConfiguration();
-			XmlElement root=doc.GetElementById("ImportMappings");
 
 
-			foreach (XmlElement objectXml in root.SelectNodes("Object"))
+
+			foreach (XmlElement objectXml in doc.DocumentElement.SelectNodes("Object"))
 			{
 				var objectMapping = new MappedObject();
 				string typeName = objectXml.HasAttribute("Type") ? objectXml.GetAttribute("Type") : null;
@@ -480,8 +556,8 @@ namespace Edge.Data.Pipeline.ImportMapping
 					{
 						if (!element.HasAttribute("To"))
 							throw new MappingException("<Map>: Missing 'To' attribute.");
-
-						var map = new Map(element.GetAttribute("To"));
+						
+						var map = new Map(objectMapping.TargetType, element.GetAttribute("To"));
 
 
 						if (element.HasAttribute("Field"))
@@ -506,6 +582,8 @@ namespace Edge.Data.Pipeline.ImportMapping
 			}
 			return output;
 		}
+
+		
 	}
 
 	public class MappedObject
