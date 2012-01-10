@@ -28,6 +28,7 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OltpName;
 		public string DisplayName;
+		public string SourceName;
 		public MeasureOptions Options;
 
 		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator = MeasureOptionsOperator.And)
@@ -50,8 +51,9 @@ namespace Edge.Data.Objects
 					{
 						ID = (int) reader["MeasureID"],
 						Account = account,
-						Name = (string)reader["Name"],
+						Name =(string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
+						SourceName = reader["SourceName"] is DBNull ? string.Empty : (string)reader["SourceName"],
 						OltpName = (string) reader["FieldName"],
 						Options = (MeasureOptions)reader["Flags"]
 					};
@@ -69,6 +71,7 @@ namespace Edge.Data.Objects
 	[Flags]
 	public enum MeasureOptions
 	{
+		//IsDefault = 0x40,
 		IsBackOffice = 0x04,
 		IsTarget = 0x02,
 		IsCalculated = 0x10,
