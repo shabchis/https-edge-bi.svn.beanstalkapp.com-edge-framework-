@@ -13,46 +13,17 @@ using System.Collections;
 using Edge.Core.Utilities;
 using System.ComponentModel;
 
-namespace Edge.Data.Pipeline.ImportMapping
+namespace Edge.Data.Pipeline.Mapping
 {
 	/// <summary>
-	/// 
+	/// Applies a value to a property or field of an object.
 	/// </summary>
-	public class ReadSource
-	{
-		string _name;
-		string _field;
-
-		public string Name
-		{
-			get { return _name; }
-			set
-			{
-				if (!Regex.IsMatch(value, "[A-Za-z_][A-Za-z0-9_]*"))
-					throw new MappingException(String.Format("The read source name '{0}' is not valid because it includes illegal characters.", value));
-				
-				_name = value;
-			}
-		}
-
-		public string Field
-		{
-			get { return _field; }
-			set { _field = value; }
-		}
-		public Regex Regex;
-	}
-
-
-	/// <summary>
-	/// 
-	/// </summary>
-	public class Map
+	public class MapCommand: MappingContainer
 	{
 		/// <summary>
-		/// The parent &lt;Map&gt; element.
+		/// The parent mapping item.
 		/// </summary>
-		public Map Parent { get; set; }
+		public MappingContainer Parent { get; set; }
 
 		/// <summary>
 		/// The property or field (from reflection) that we are mapping to. (The "To" attribute.)
@@ -65,30 +36,33 @@ namespace Edge.Data.Pipeline.ImportMapping
 		public Type TargetMemberType { get; private set; }
 
 		/// <summary>
-		/// The key to used if TargetMemberType is IDictionary. (The "[]" part of the "To" attribute.)
+		/// The key to use if TargetMemberType is IDictionary. (The "[]" part of the "To" attribute.)
 		/// </summary>
 		public object CollectionKey { get; set; }
 
 		/// <summary>
-		/// The new object to create (the "::" part of the "To" attribute"). Default is null, which means use Target
+		/// The new object to create (the "::" part of the "To" attribute"). Default is null, which means use Target.
 		/// </summary>
 		public Type NewObjectType { get; set; }
-		public List<Map> SubMaps { get; set; }
-		public List<ReadSource> ReadSources { get; set; }
+
+		/// <summary>
+		/// The expression that formats the value that is applied to the target member. (The "Value" attribute.)
+		/// </summary>
 		public ValueExpression Value { get; set; }
 
-		public Map(Type parentType,string propertyName)
+
+		public MapCommand(Type parentType, string targetExpression)
 		{
-			while (!string.IsNullOrEmpty(propertyName))
+			while (!string.IsNullOrEmpty(targetExpression))
 			{
-				string currentObjectName = GetCurrentObjectName(ref propertyName);
+				string currentObjectName = GetCurrentObjectName(ref targetExpression);
 				if (TargetMember == null)
 				{
 					this.TargetMember = parentType.GetMember(currentObjectName)[0];
 					this.TargetMemberType = TargetMember.GetType();
 					if (TargetMemberType.IsAssignableFrom(typeof(ICollection)))
 					{
-						currentObjectName = GetCurrentObjectName(ref propertyName);
+						currentObjectName = GetCurrentObjectName(ref targetExpression);
 						if (currentObjectName.StartsWith("[") && currentObjectName.EndsWith("]"))
 						{
 							//this is another confirmation that it's collection
@@ -104,10 +78,6 @@ namespace Edge.Data.Pipeline.ImportMapping
 				{
 					
 				}
-
-
-				SubMaps = new List<Map>();
-				ReadSources = new List<ReadSource>(); 
 			}
 		}
 
@@ -156,7 +126,7 @@ namespace Edge.Data.Pipeline.ImportMapping
 
 		
 
-		public ReadSource GetSource(string name, bool useParentSources = true)
+		public ReadCommand GetSource(string name, bool useParentSources = true)
 		{
 			throw new NotImplementedException();
 		}
@@ -405,196 +375,13 @@ namespace Edge.Data.Pipeline.ImportMapping
 		}
 	}
 
-
-	public class ValueExpression
-	{
-		public List<ValueExpressionComponent> Components;
-
-		public T Ouput<T>()
-		{
-			return (T) this.Output(typeof(T));
-		}
-
-		public object Output(Type ouputType)
-		{
-			bool isstring = ouputType == typeof(string);
-			TypeConverter converter = null;
-			
-			if (!isstring)
-			{
-				converter = TypeDescriptor.GetConverter(ouputType);
-				if (converter == null)
-					throw new MappingException(String.Format("Cannot convert string to {0}.", ouputType.FullName));
-			}
-
-			var output = new StringBuilder();	
-
-			foreach (ValueExpressionComponent component in this.Components)
-			{
-				output.Append(component.Ouput());
-			}
-
-			string value = output.ToString();
-			object returnValue;
-
-			if (isstring)
-			{
-				// avoid compiler errors
-				object o = output.ToString();
-				returnValue = o;
-			}
-			else
-			{
-				if (!converter.IsValid(value))
-					throw new MappingException(String.Format("'{0}' is not a valid value for {1}", value, ouputType.FullName));
-				else
-					returnValue = converter.ConvertFrom(value);
-			}
-
-			return returnValue;
-		}
-	}
-
-	public abstract class ValueExpressionComponent
-	{
-		public abstract string Ouput();
-	}
-
-	public class FunctionInvokeComponent :ValueExpressionComponent
-	{
-		public string FunctionName;
-		public List<ValueExpression> Parameters;
-
-		public override string Ouput()
-		{
-			throw new NotImplementedException();
-		}
-	}
-
-	public class EvalComponent
-	{
-		public Evaluator Eval;
-		public List<ValueExpression> Variables;
-	}
-
-	public class ReadSourceOuputComponent
-	{
-		public ReadSource ReadSource;
-	}
-
-	public class StringComponent
-	{
-		public string String;
-	}
+	
 
 
 
 
-	[Serializable]
-	public class MappingException : Exception
-	{
-		public MappingException() { }
-		public MappingException(string message) : base(message) { }
-		public MappingException(string message, Exception inner) : base(message, inner) { }
-		protected MappingException(
-		  System.Runtime.Serialization.SerializationInfo info,
-		  System.Runtime.Serialization.StreamingContext context)
-			: base(info, context) { }
-	}
-
-	public class MappingConfiguration
-	{
-		public Dictionary<Type, MappedObject> Objects = new Dictionary<Type, MappedObject>();
-		public static Dictionary<string, Measure> Measures;
-		public static Dictionary<Segment, SegmentValue> Segments;
-		public static MappingConfiguration Load(string mappingFilePath,Dictionary<string, Measure> measures,Dictionary<Segment, SegmentValue> segments)
-		{
-			Measures = measures;
-			Segments = segments;
-			XmlDocument doc=new XmlDocument();
-			doc.Load(mappingFilePath);
-			var output = new MappingConfiguration();
+	
 
 
-
-			foreach (XmlElement objectXml in doc.DocumentElement.SelectNodes("Object"))
-			{
-				var objectMapping = new MappedObject();
-				string typeName = objectXml.HasAttribute("Type") ? objectXml.GetAttribute("Type") : null;
-				if (typeName == null)
-					throw new MappingException("<Object>: 'Type' attribute is missing.");
-				objectMapping.TargetType = Type.GetType(typeName, false);
-				if (objectMapping.TargetType == null)
-					throw new MappingException(String.Format("<Object>: Type '{0}' could not be found.", typeName));
-
-				foreach(XmlNode node in objectXml.ChildNodes)
-				{
-					if (!(node is XmlElement))
-						continue;
-
-					var element = (XmlElement) node;
-					if (element.Name == "Read")
-					{
-						var read = new ReadSource();
-						if (!element.HasAttribute("Field"))
-							throw new MappingException("<Read>: Missing 'Field' attribute.");
-						read.Field = element.GetAttribute("Field");
-
-						if (element.HasAttribute("Name"))
-							read.Name = element.GetAttribute("Name");
-						else
-							read.Name = read.Field;
-
-						// TODO: re-use the code from AutoSegments for resolving regex escape characters etc.
-						//if (element.HasAttribute("Regex"))
-						//	read.Name = new Regex(element.GetAttribute("Regex"));
-
-						// TODO: add the read object to somewhere?
-
-					}
-					else if (node.Name == "Map")
-					{
-						if (!element.HasAttribute("To"))
-							throw new MappingException("<Map>: Missing 'To' attribute.");
-						
-						var map = new Map(objectMapping.TargetType, element.GetAttribute("To"));
-
-
-						if (element.HasAttribute("Field"))
-						{
-							var read = new ReadSource();
-							read.Field = element.GetAttribute("Field");
-
-							// TODO: regex code
-
-							map.ReadSources.Add(read); //map.TargetMemberType);
-						}
-
-						
-						//map.
-					}
-					else
-					{
-						throw new MappingException(String.Format("<Object>: Element {0} is invalid.", node.Name));
-					}
-
-				}
-			}
-			return output;
-		}
-
-		
-	}
-
-	public class MappedObject
-	{
-		public Type TargetType;
-		public List<Map> Mappings;
-
-		public void Apply(object targetObject, Func<string, string> readFunction)
-		{
-			foreach (Map map in this.Mappings)
-				map.Apply(targetObject, readFunction);
-		}
-	}
+	
 }
