@@ -100,7 +100,13 @@
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Importing\ImportMappingsConfiguration.cs" />
+    <Compile Include="Mapping\Exceptions.cs" />
+    <Compile Include="Mapping\MapCommand.cs" />
+    <Compile Include="Mapping\MappingConfiguration.cs" />
+    <Compile Include="Mapping\MappingContainer.cs" />
+    <Compile Include="Mapping\ObjectMap.cs" />
+    <Compile Include="Mapping\ReadCommand.cs" />
+    <Compile Include="Mapping\ValueExpression.cs" />
     <Compile Include="Objects\SegmentMetricsUnit.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
