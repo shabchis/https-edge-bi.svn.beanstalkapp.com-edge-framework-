@@ -50,7 +50,7 @@ namespace Edge.Data.Objects
 					Measure m = new Measure()
 					{
 						ID = (int) reader["MeasureID"],
-						Account = account,
+						Account = reader.Get<int>("AccountID") == -1 ? null : account,
 						Name =(string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
 						SourceName = reader["SourceName"] is DBNull ? string.Empty : (string)reader["SourceName"],
