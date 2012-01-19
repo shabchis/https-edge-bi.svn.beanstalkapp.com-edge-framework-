@@ -9,10 +9,8 @@ namespace Edge.Data.Pipeline.Mapping
 {
 	public class MappingConfiguration
 	{
-		public Dictionary<Type, ObjectMap> Objects = new Dictionary<Type, ObjectMap>();
-
-		public Dictionary<string, Measure> Measures { get; set; }
-		public Dictionary<Segment, SegmentValue> Segments { get; set; }
+		public List<string> Namespaces = new List<string>();
+		public Dictionary<Type, MappingContainer> Objects = new Dictionary<Type, MappingContainer>();
 
 		/// <summary>
 		/// Loads mapping configurations from a file.
@@ -28,7 +26,9 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 
 			//
-			var output = new MappingConfiguration();
+			var config = new MappingConfiguration();
+			config.Namespaces.Add("System");
+
 			foreach (XmlNode node in doc.DocumentElement.ChildNodes)
 			{
 				// Check for allowed XML elements
@@ -40,25 +40,32 @@ namespace Edge.Data.Pipeline.Mapping
 						throw new MappingConfigurationException(String.Format("<{0}>: Node type {1} is not allowed here.", "Object", node.NodeType));
 				}
 
-				var objectXml = (XmlElement)node;
-				var objectMapping = new ObjectMap();
-				string typeName = objectXml.HasAttribute("Type") ? objectXml.GetAttribute("Type") : null;
-				if (typeName == null)
-					throw new MappingConfigurationException("<Object>: 'Type' attribute is missing.");
-				objectMapping.TargetType = Type.GetType(typeName, false);
-				if (objectMapping.TargetType == null)
-					throw new MappingConfigurationException(String.Format("<Object>: Type '{0}' could not be found.", typeName));
+				var element = (XmlElement)node;
+				if (element.Name == "Object")
+				{
+					var objectMapping = new MappingContainer();
+					string typeName = element.HasAttribute("Type") ? element.GetAttribute("Type") : null;
+					if (typeName == null)
+						throw new MappingConfigurationException("<Object>: 'Type' attribute is missing.");
+					objectMapping.TargetType = Type.GetType(typeName, false);
+					if (objectMapping.TargetType == null)
+						throw new MappingConfigurationException(String.Format("<Object>: Type '{0}' could not be found.", typeName));
 
-				DeserializeMappings(objectMapping, objectXml);
+					DeserializeMappings(config, objectMapping, element);
+				}
+				else if (element.Name == "Using")
+				{
+					config.Namespaces.Add(element.GetAttribute("Namespace"));
+				}
 			}
-			return output;
+			return config;
 		}
 
 
 		/// <summary>
 		/// Parses parentXml and finds MapCommand and ReadCommand objects that should be added to the parent container.
 		/// </summary>
-		private static void DeserializeMappings(MappingContainer parent, XmlElement parentXml)
+		private static void DeserializeMappings(MappingConfiguration config, MappingContainer parent, XmlElement parentXml)
 		{
 			foreach (XmlNode node in parentXml.ChildNodes)
 			{
@@ -98,7 +105,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (!element.HasAttribute("To"))
 						throw new MappingConfigurationException("<Map>: Missing 'To' attribute.");
 
-					var map = new MapCommand(parent, element.GetAttribute("To"));
+					MapCommand map = MapCommand.New(parent, element.GetAttribute("To"), config.Namespaces, true);
 
 					// Handle implicit read sources
 					ReadCommand implicitRead = null;
@@ -127,7 +134,7 @@ namespace Edge.Data.Pipeline.Mapping
 					}
 
 					// Recursively add child nodes
-					DeserializeMappings(map, element);
+					DeserializeMappings(config, map, element);
 
 					// Add to the parent
 					parent.MapCommands.Add(map);
