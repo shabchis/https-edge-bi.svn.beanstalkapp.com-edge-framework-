@@ -5,8 +5,13 @@ using System.Text;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	internal abstract class MappingContainer
+	public class MappingContainer
 	{
+		/// <summary>
+		/// The target type to which this mapping is to be applied, derived from Parent.
+		/// </summary>
+		public Type TargetType { get; set; }
+
 		/// <summary>
 		/// The map commands performed in this item.
 		/// </summary>

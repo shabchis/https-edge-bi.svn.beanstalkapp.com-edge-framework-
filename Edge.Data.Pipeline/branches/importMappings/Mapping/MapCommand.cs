@@ -18,113 +18,176 @@ namespace Edge.Data.Pipeline.Mapping
 	/// <summary>
 	/// Applies a value to a property or field of an object.
 	/// </summary>
-	public class MapCommand: MappingContainer
+	public class MapCommand : MappingContainer
 	{
 		/// <summary>
-		/// The parent mapping item.
+		/// The parent map command.
 		/// </summary>
-		public MappingContainer Parent { get; set; }
+		public MappingContainer Parent { get; internal set; }
 
 		/// <summary>
 		/// The property or field (from reflection) that we are mapping to. (The "To" attribute.)
 		/// </summary>
-		public MemberInfo TargetMember { get; set; }
-
-		/// <summary>
-		/// The type of the target member ("To" attribute). Equals to TargetMember.MemberType.
-		/// </summary>
-		public Type TargetMemberType { get; private set; }
+		public MemberInfo TargetMember { get; private set; }
 
 		/// <summary>
 		/// The key to use if TargetMemberType is IDictionary. (The "[]" part of the "To" attribute.)
 		/// </summary>
-		public object CollectionKey { get; set; }
+		public object CollectionKey { get; private set; }
 
 		/// <summary>
-		/// The new object to create (the "::" part of the "To" attribute"). Default is null, which means use Target.
+		/// The type of the value to apply (the "::" part of the "To" attribute").
 		/// </summary>
-		public Type NewObjectType { get; set; }
+		public Type ValueType { get; private set; }
 
 		/// <summary>
 		/// The expression that formats the value that is applied to the target member. (The "Value" attribute.)
 		/// </summary>
 		public ValueExpression Value { get; set; }
 
+		// Fun with regex (http://xkcd.com/208/)
+		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])*(?<valueType>::[a-z_][a-z0-9_]*)*)",
+			RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
-		public MapCommand(Type parentType, string targetExpression)
+
+		private MapCommand()
 		{
-			while (!string.IsNullOrEmpty(targetExpression))
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="targetType"></param>
+		/// <param name="targetExpression"></param>
+		public static MapCommand New(Type targetType, string targetExpression, List<string> namespaces = null, bool returnInnermostTarget = false)
+		{
+			if (targetType == null)
+				throw new ArgumentNullException("targetType");
+
+			var map = new MapCommand();
+
+			// Assign the target type
+			map.TargetType = targetType;
+
+			// No target expression is a valid situation
+			if (String.IsNullOrEmpty(targetExpression))
+				return map;
+
+			// Parse expression
+			MatchCollection matches = _levelRegex.Matches(targetExpression);
+
+			foreach (Match match in matches)
 			{
-				string currentObjectName = GetCurrentObjectName(ref targetExpression);
-				if (TargetMember == null)
+				// ...................................
+				// MEMBER
+
+				Group memberGroup = match.Groups["member"];
+				if (!memberGroup.Success)
+					throw new MappingConfigurationException(String.Format("'{0}' is not a valid target for a map command.", targetExpression));
+
+				// Do some error checking on target member name type
+				string targetMemberName = memberGroup.Value;
+				MemberInfo[] possibleMembers = map.TargetType.GetMember(targetMemberName, BindingFlags.Instance | BindingFlags.Public);
+				if (possibleMembers == null || possibleMembers.Length < 1)
+					throw new MappingConfigurationException(String.Format("The member '{0}' could not be found on {1}. Make sure it is public and non-static.", targetMemberName, targetType));
+				if (possibleMembers.Length > 1)
+					throw new MappingConfigurationException(String.Format("'{0}' matched more than one member in type {1}. Make sure it is a property or field.", targetMemberName, targetType));
+				MemberInfo member = possibleMembers[0];
+				if (member.MemberType != MemberTypes.Field && member.MemberType != MemberTypes.Property)
+					throw new MappingConfigurationException(String.Format("'{0}' is not a property of field and cannot be mapped.", targetMemberName));
+				if (member.MemberType == MemberTypes.Property && !((PropertyInfo)member).CanWrite)
+					throw new MappingConfigurationException(String.Format("'{0}' is a read-only property and cannot be mapped.", targetMemberName));
+
+				map.TargetMember = member;
+
+				// ...................................
+				// INDEXER
+
+				// TODO: support more than one indexer (obj[9,2]) + support sequence of indexers (obj[9][2])
+
+				Group indexerGroup = match.Groups["indexer"];
+				if (indexerGroup.Success)
 				{
-					this.TargetMember = parentType.GetMember(currentObjectName)[0];
-					this.TargetMemberType = TargetMember.GetType();
-					if (TargetMemberType.IsAssignableFrom(typeof(ICollection)))
+					string indexer = indexerGroup.Value;
+					Type indexerType = null;
+					Type memberType = null;
+
+					// Determine indexer type
+					if (member.MemberType == MemberTypes.Property)
+						memberType = ((PropertyInfo)member).PropertyType;
+					else
+						memberType = ((FieldInfo)member).FieldType;
+
+					PropertyInfo itemProp = memberType.GetProperty("Item");
+					ParameterInfo[] indexers = null;
+					if (itemProp != null)
+						indexers = itemProp.GetIndexParameters();
+					if (indexers == null || indexers.Length == 0)
+						throw new MappingConfigurationException(String.Format("'{0}' does not support indexers.", targetMemberName));
+					if (indexers.Length > 1)
+						throw new MappingConfigurationException(String.Format("'{0}' has an index with more than one parameter - not currently supported.", targetMemberName));
+					indexerType = indexers[0].ParameterType;
+
+					// TODO: allow escaping the colon
+					string[] lookupCallBits = indexer.Split(':');
+					if (lookupCallBits.Length == 2)
 					{
-						currentObjectName = GetCurrentObjectName(ref targetExpression);
-						if (currentObjectName.StartsWith("[") && currentObjectName.EndsWith("]"))
-						{
-							//this is another confirmation that it's collection
-							currentObjectName=currentObjectName.Remove(0,1);
-							currentObjectName=currentObjectName.Remove(currentObjectName.Length-1,1);
-							string[] typeAndName = currentObjectName.Split(':');
-							//CollectionKey=
-						}
+						// Mark the key as a value lookup
+						map.CollectionKey = new ValueLookup() { Name = lookupCallBits[0], Index = lookupCallBits[1], RequriedType = indexerType };
+					}
+					else if (lookupCallBits.Length == 1)
+					{
+						// Convert the key from string
+						TypeConverter converter = TypeDescriptor.GetConverter(indexerType);
+						if (converter == null || !converter.IsValid(indexer))
+							throw new MappingConfigurationException(String.Format("'{0}' cannot be converted to {1} for the {2} indexer.", indexer, indexerType, targetMemberName));
+
+						map.CollectionKey = converter.ConvertFromString(indexer);
 
 					}
+					else
+						throw new MappingConfigurationException(String.Format("'{0}' is not a valid indexer.", indexer));
+				}
+
+				// ...................................
+				// VALUE TYPE
+
+				Group valueTypeGroup = match.Groups["valueType"];
+				if (valueTypeGroup.Success)
+				{
+					string valueTypeName = valueTypeGroup.Value;
+					if (namespaces == null || namespaces.Count < 1)
+						throw new MappingConfigurationException(String.Format("The type '{0}' cannot be found because there are no namespaces defined ('<Using>' elements).", valueTypeName));
+					
+					// Search the namespaces for this type
+					foreach (string ns in namespaces)
+					{
+						Type t = Type.GetType(ns + "." + valueTypeName, false);
+						if (t != null)
+						{
+							map.ValueType = t;
+							break;
+						}
+					}
+
+					if (map.ValueType == null)
+						throw new MappingConfigurationException(String.Format("The type '{0}' cannot be found - are you missing a '<Using>'?", valueTypeName));
 				}
 				else
 				{
-					
+					map.ValueType = member.MemberType == MemberTypes.Property ?
+						((PropertyInfo)member).PropertyType :
+						((FieldInfo)member).FieldType;
 				}
 			}
+
+			// ...................................
+			return map;
+
 		}
 
-		private string GetCurrentObjectName(ref string propertyName)
-		{
-			
-			StringBuilder currentPropertyName = new StringBuilder();			
-			char[] propertyNameChar = propertyName.ToCharArray();
-			bool bExit = false;
-			foreach (var item in propertyName.ToCharArray())
-			{
-				switch (item)
-				{
-					case '[':
-						{
-							if (currentPropertyName.Length > 0)
-								bExit = true;
-							else
-							{
-								currentPropertyName.Append(item);
-								propertyName.Remove(0, 1);
-							}
-							break;
-						}
-					case ']':
-						{
-							propertyName.Remove(0, 1);
-							currentPropertyName.Append(item);
-							bExit = true;
-							break;
-							
-						}
-					default:
-						{
-							propertyName.Remove(0, 1);
-							currentPropertyName.Append(item);
-							break;
-						}
-				}
-				if (bExit)
-					break;
-				
-			}
-			return currentPropertyName.ToString();
-		}
 
-		
+
 
 		public ReadCommand GetSource(string name, bool useParentSources = true)
 		{
@@ -217,7 +280,7 @@ namespace Edge.Data.Pipeline.Mapping
 			//            readSources[name + "." + groupName] = m.Groups[groupName].Value;
 			//        }
 
-					
+
 			//        //MatchCollection matches = source.Regex.Matches(source);
 			//        //foreach (Match match in matches)
 			//        //{
@@ -375,13 +438,12 @@ namespace Edge.Data.Pipeline.Mapping
 		}
 	}
 
-	
 
 
-
-
-	
-
-
-	
+	public class ValueLookup
+	{
+		public string Name;
+		public string Index;
+		public Type RequriedType;
+	}
 }
