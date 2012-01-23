@@ -8,9 +8,14 @@ namespace Edge.Data.Pipeline.Mapping
 	public class MappingContainer
 	{
 		/// <summary>
-		/// The target type to which this mapping is to be applied, derived from Parent.
+		/// The configuration that this container belongs to.
 		/// </summary>
-		public Type TargetType { get; set; }
+		public MappingConfiguration Root { get; internal set; }
+
+		/// <summary>
+		/// The target type to which this mapping is to be applied.
+		/// </summary>
+		public Type TargetType { get; internal set; }
 
 		/// <summary>
 		/// The map commands performed in this item.
@@ -22,7 +27,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// </summary>
 		public List<ReadCommand> ReadCommands { get; private set; }
 
-		public MappingContainer()
+		internal MappingContainer()
 		{
 			this.MapCommands = new List<MapCommand>();
 			this.ReadCommands = new List<ReadCommand>();

@@ -3,55 +3,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Mapping
 {
 	public class ValueExpression
 	{
-		public List<ValueExpressionComponent> Components;
+		//static Regex
 
-		public T Ouput<T>()
+		/// <summary>
+		/// 
+		/// </summary>
+		public List<ValueExpressionComponent> Components { get; private set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="expression"></param>
+		public ValueExpression(string expression)
 		{
-			return (T)this.Output(typeof(T));
 		}
 
-		public object Output(Type ouputType)
+		public string Output()
 		{
-			bool isstring = ouputType == typeof(string);
-			TypeConverter converter = null;
-
-			if (!isstring)
-			{
-				converter = TypeDescriptor.GetConverter(ouputType);
-				if (converter == null)
-					throw new MappingException(String.Format("Cannot convert string to {0}.", ouputType.FullName));
-			}
-
 			var output = new StringBuilder();
-
+			
 			foreach (ValueExpressionComponent component in this.Components)
-			{
 				output.Append(component.Ouput());
-			}
 
 			string value = output.ToString();
-			object returnValue;
-
-			if (isstring)
-			{
-				// avoid compiler errors
-				object o = output.ToString();
-				returnValue = o;
-			}
-			else
-			{
-				if (!converter.IsValid(value))
-					throw new MappingException(String.Format("'{0}' is not a valid value for {1}", value, ouputType.FullName));
-				else
-					returnValue = converter.ConvertFrom(value);
-			}
-
-			return returnValue;
+			return value;
 		}
 	}
 
@@ -60,31 +42,24 @@ namespace Edge.Data.Pipeline.Mapping
 		public abstract string Ouput();
 	}
 
-	public class FunctionInvokeComponent : ValueExpressionComponent
+	public class ValueLookupComponent : ValueExpressionComponent
 	{
-		public string FunctionName;
-		public List<ValueExpression> Parameters;
-
-		public override string Ouput()
-		{
-			throw new NotImplementedException();
-		}
+		public ValueLookup Lookup;
 	}
 
 	public class EvalComponent
 	{
-		public Evaluator Eval;
-		public List<ValueExpression> Variables;
+		public EvaluatorExpression Expression;
 	}
 
-	public class ReadSourceOuputComponent
+	public class ReadComponent
 	{
-		public ReadCommand ReadSource;
+		public ReadCommand ReadCommand;
 	}
 
 	public class StringComponent
 	{
-		public string String;
+		public string Value;
 	}
 
 }
