@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline.Mapping
 				throw new MappingConfigurationException(String.Format("Failed to load mapping configuration file {0}. See inner exception for details.", mappingFilePath), ex);
 			}
 
-			//
+			// Create the root configuration with the System namespace
 			var config = new MappingConfiguration();
 			config.Namespaces.Add("System");
 
@@ -37,7 +37,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (node.NodeType == XmlNodeType.Whitespace || node.NodeType == XmlNodeType.Comment)
 						continue;
 					else
-						throw new MappingConfigurationException(String.Format("<{0}>: Node type {1} is not allowed here.", "Object", node.NodeType));
+						throw new MappingConfigurationException(String.Format("<Object}>: Node type {0} is not allowed here.", node.NodeType));
 				}
 
 				var element = (XmlElement)node;
@@ -57,6 +57,8 @@ namespace Edge.Data.Pipeline.Mapping
 				{
 					config.Namespaces.Add(element.GetAttribute("Namespace"));
 				}
+				else
+					throw new MappingConfigurationException(String.Format("<{0}> is not allowed here.", element.Name));
 			}
 			return config;
 		}
@@ -105,7 +107,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (!element.HasAttribute("To"))
 						throw new MappingConfigurationException("<Map>: Missing 'To' attribute.");
 
-					MapCommand map = MapCommand.New(parent, element.GetAttribute("To"), config.Namespaces, true);
+					MapCommand map = MapCommand.AddToContainer(parent, element.GetAttribute("To"), true);
 
 					// Handle implicit read sources
 					ReadCommand implicitRead = null;

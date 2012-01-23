@@ -49,35 +49,42 @@ namespace Edge.Data.Pipeline.Mapping
 		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])*(?<valueType>::[a-z_][a-z0-9_]*)*)",
 			RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
-
+		/// <summary>
+		/// Constructor is private.
+		/// </summary>
 		private MapCommand()
 		{
 		}
 
 		/// <summary>
-		/// 
+		/// Creates a new map command for a target type, parsing the supplied expression.
 		/// </summary>
-		/// <param name="targetType"></param>
-		/// <param name="targetExpression"></param>
-		public static MapCommand New(Type targetType, string targetExpression, List<string> namespaces = null, bool returnInnermostTarget = false)
+		/// <param name="returnInnermost">If true, returns the last nested map created if the expression has multiple parts. If false, returns the top level map.</param>
+		internal static MapCommand AddToContainer(MappingContainer container, string targetExpression, bool returnInnermost = false)
 		{
-			if (targetType == null)
-				throw new ArgumentNullException("targetType");
+			if (container == null)
+				throw new ArgumentNullException("container");
 
-			var map = new MapCommand();
+			var map = new MapCommand()
+			{
+				TargetType = container.TargetType,
+				Root = container.Root
+			};
 
-			// Assign the target type
-			map.TargetType = targetType;
+			// Keep track of the first one created
+			var outermost = map;
 
-			// No target expression is a valid situation
+			// No target expression - this is okay, so just return it
 			if (String.IsNullOrEmpty(targetExpression))
 				return map;
 
-			// Parse expression
+			// Parse the expression
 			MatchCollection matches = _levelRegex.Matches(targetExpression);
 
-			foreach (Match match in matches)
+			for (int i = 0; i < matches.Count; i++)
 			{
+				Match match = matches[i];
+
 				// ...................................
 				// MEMBER
 
@@ -129,21 +136,22 @@ namespace Edge.Data.Pipeline.Mapping
 					indexerType = indexers[0].ParameterType;
 
 					// TODO: allow escaping the colon
-					string[] lookupCallBits = indexer.Split(':');
-					if (lookupCallBits.Length == 2)
+					string[] lookup = indexer.Split(':');
+					if (lookup.Length == 2)
 					{
-						// Mark the key as a value lookup
-						map.CollectionKey = new ValueLookup() { Name = lookupCallBits[0], Index = lookupCallBits[1], RequriedType = indexerType };
+						// TODO: allow escaping the comma
+						string[] parameters = lookup[1].Split(',');
+
+						map.CollectionKey = new ValueLookup() { Name = lookup[0], Parameters = parameters, RequriedType = indexerType };
 					}
-					else if (lookupCallBits.Length == 1)
+					else if (lookup.Length == 1)
 					{
-						// Convert the key from string
+						// No lookup required, convert the key from string
 						TypeConverter converter = TypeDescriptor.GetConverter(indexerType);
 						if (converter == null || !converter.IsValid(indexer))
 							throw new MappingConfigurationException(String.Format("'{0}' cannot be converted to {1} for the {2} indexer.", indexer, indexerType, targetMemberName));
 
 						map.CollectionKey = converter.ConvertFromString(indexer);
-
 					}
 					else
 						throw new MappingConfigurationException(String.Format("'{0}' is not a valid indexer.", indexer));
@@ -156,11 +164,9 @@ namespace Edge.Data.Pipeline.Mapping
 				if (valueTypeGroup.Success)
 				{
 					string valueTypeName = valueTypeGroup.Value;
-					if (namespaces == null || namespaces.Count < 1)
-						throw new MappingConfigurationException(String.Format("The type '{0}' cannot be found because there are no namespaces defined ('<Using>' elements).", valueTypeName));
 					
 					// Search the namespaces for this type
-					foreach (string ns in namespaces)
+					foreach (string ns in map.Root.Namespaces)
 					{
 						Type t = Type.GetType(ns + "." + valueTypeName, false);
 						if (t != null)
@@ -179,10 +185,28 @@ namespace Edge.Data.Pipeline.Mapping
 						((PropertyInfo)member).PropertyType :
 						((FieldInfo)member).FieldType;
 				}
+
+				// ...................................
+				// DRILL DOWN
+
+				if (i < matches.Count - 1)
+				{
+					// Since there are more expression matches, create a child map and continue the loop
+					var child = new MapCommand()
+					{
+						TargetType = map.ValueType,
+						Parent = map,
+						Root = map.Root
+					};
+
+					map.MapCommands.Add(child);
+					map = child;
+				}
+
 			}
 
 			// ...................................
-			return map;
+			return returnInnermost ? map : outermost;
 
 		}
 
@@ -443,7 +467,7 @@ namespace Edge.Data.Pipeline.Mapping
 	public class ValueLookup
 	{
 		public string Name;
-		public string Index;
+		public string[] Parameters;
 		public Type RequriedType;
 	}
 }
