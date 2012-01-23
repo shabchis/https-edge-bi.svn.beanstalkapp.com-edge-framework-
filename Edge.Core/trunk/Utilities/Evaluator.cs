@@ -109,45 +109,20 @@ namespace Edge.Core.Utilities
 		#region Instance methods
 		/*=========================*/
 
-		public int EvaluateInt(string name)
-		{
-			return (int) Evaluate(name);
-		}
-
-		public int EvaluateInt()
-		{
-			return EvaluateInt(DefaultMethodName);
-		}
-
-		public string EvaluateString(string name)
-		{
-			return (string) Evaluate(name);
-		}
-
-		public string EvaluateString()
-		{
-			return EvaluateString(DefaultMethodName);
-		}
-
-		public bool EvaluateBool(string name)
-		{
-			return (bool) Evaluate(name);
-		}
-
-		public bool EvaluateBool()
-		{
-			return EvaluateBool(DefaultMethodName);
-		}
-
-		public object Evaluate(string name)
+		public T Evaluate<T>(string name, object[] @params = null)
 		{
 			MethodInfo mi = _compiled.GetType().GetMethod(name);
-			return mi.Invoke(_compiled, null);
+			return (T) mi.Invoke(_compiled, @params);
 		}
 
-		public object Evaluate()
+		public T Evaluate<T>()
 		{
-			return Evaluate(DefaultMethodName);
+			return Evaluate<T>(DefaultMethodName);
+		}
+
+		public T Evaluate<T>(params object[] @params)
+		{
+			return Evaluate<T>(DefaultMethodName, @params);
 		}
 
 		/*=========================*/
@@ -156,10 +131,10 @@ namespace Edge.Core.Utilities
 		#region Static methods
 		/*=========================*/
 
-		static public TReturnType Eval<TReturnType>(string expression, EvaluatorVariable[] variables)
+		static public T Eval<T>(string expression, EvaluatorVariable[] variables = null, object[] variableValues = null)
 		{
-			Evaluator eval = new Evaluator(expression, typeof(TReturnType), variables);
-			return (TReturnType) eval.Evaluate(DefaultMethodName);
+			Evaluator eval = new Evaluator(expression, typeof(T), variables);
+			return eval.Evaluate<T>(DefaultMethodName, variableValues);
 		}
 
 		/*=========================*/
@@ -190,27 +165,29 @@ namespace Edge.Core.Utilities
 
 		public override string ToString()
 		{
-			string variablesOutput = string.Empty;
+			var variablesOutput = new StringBuilder();
 			if (Variables != null)
 			{
-				foreach (EvaluatorVariable variable in Variables)
+				for (int i = 0; i < Variables.Length; i++ )
 				{
-					variablesOutput += variable.ToString();
+					EvaluatorVariable variable = Variables[i];
+					variablesOutput.Append(variable.ToString());
+					if (i < Variables.Length - 1)
+						variablesOutput.Append(", ");
+
 				}
 			}
 
 			return string.Format(@"
-				public {0} {1}()
+				public {0} {1}({2})
 				{{
-					{3}
-
-					return {2};
+					return {3};
 				}}
 				",
 				ReturnType.FullName,
 				Name,
-				Expression,
-				variablesOutput);
+				variablesOutput,
+				Expression);
 		}
 
 	}
@@ -221,24 +198,17 @@ namespace Edge.Core.Utilities
 	public class EvaluatorVariable
 	{
 		public readonly string Name;
-		public readonly string Value;
 		public readonly Type VariableType;
 
-		public EvaluatorVariable(string name, string value, Type variableType)
+		public EvaluatorVariable(string name, Type variableType)
 		{
 			Name = name;
-			Value = value;
 			VariableType = variableType;
 		}
 
 		public override string ToString()
 		{
-			return string.Format(@"
-				{0} {1} = {2};
-				",
-				VariableType.FullName,
-				Name,
-				Value);
+			return string.Format(@"{0} {1}", VariableType.FullName, Name);
 		}
 	}
 }
