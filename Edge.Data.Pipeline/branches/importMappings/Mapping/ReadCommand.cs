@@ -31,6 +31,7 @@ namespace Edge.Data.Pipeline.Mapping
 			get { return _field; }
 			set { _field = value; }
 		}
+		
 		public Regex Regex;
 	}
 }
