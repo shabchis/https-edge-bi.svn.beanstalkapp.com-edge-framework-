@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using Edge.Data.Objects;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Mapping
 {
@@ -11,6 +12,10 @@ namespace Edge.Data.Pipeline.Mapping
 	{
 		public List<string> Namespaces = new List<string>();
 		public Dictionary<Type, MappingContainer> Objects = new Dictionary<Type, MappingContainer>();
+
+		private List<EvaluatorExpression> _evalExpressions = new List<EvaluatorExpression>();
+		internal int NextEvalID = 0;
+		internal Evaluator Eval;
 
 		/// <summary>
 		/// Loads mapping configurations from a file.
@@ -107,7 +112,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (!element.HasAttribute("To"))
 						throw new MappingConfigurationException("<Map>: Missing 'To' attribute.");
 
-					MapCommand map = MapCommand.AddToContainer(parent, element.GetAttribute("To"), true);
+					MapCommand map = MapCommand.AddToContainer(parent, element.GetAttribute("To"), returnInnermost: true);
 
 					// Handle implicit read sources
 					ReadCommand implicitRead = null;

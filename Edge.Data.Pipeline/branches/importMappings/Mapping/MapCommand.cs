@@ -206,6 +206,7 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 
 			// ...................................
+
 			return returnInnermost ? map : outermost;
 
 		}
