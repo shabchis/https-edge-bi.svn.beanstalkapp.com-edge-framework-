@@ -21,11 +21,6 @@ namespace Edge.Data.Pipeline.Mapping
 	public class MapCommand : MappingContainer
 	{
 		/// <summary>
-		/// The parent map command.
-		/// </summary>
-		public MappingContainer Parent { get; internal set; }
-
-		/// <summary>
 		/// The property or field (from reflection) that we are mapping to. (The "To" attribute.)
 		/// </summary>
 		public MemberInfo TargetMember { get; private set; }
@@ -60,7 +55,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// Creates a new map command for a target type, parsing the supplied expression.
 		/// </summary>
 		/// <param name="returnInnermost">If true, returns the last nested map created if the expression has multiple parts. If false, returns the top level map.</param>
-		internal static MapCommand AddToContainer(MappingContainer container, string targetExpression, bool returnInnermost = false)
+		internal static MapCommand New(MappingContainer container, string targetExpression, bool returnInnermost = false)
 		{
 			if (container == null)
 				throw new ArgumentNullException("container");
@@ -136,15 +131,11 @@ namespace Edge.Data.Pipeline.Mapping
 					indexerType = indexers[0].ParameterType;
 
 					// TODO: allow escaping the colon
-					string[] lookup = indexer.Split(':');
-					if (lookup.Length == 2)
+					if (indexer.Contains(':'))
 					{
-						// TODO: allow escaping the comma
-						string[] parameters = lookup[1].Split(',');
-
-						map.CollectionKey = new ValueLookup() { Name = lookup[0], Parameters = parameters, RequriedType = indexerType };
+						map.CollectionKey = new ValueLookup(indexer) { RequriedType = indexerType };
 					}
-					else if (lookup.Length == 1)
+					else if (indexer.Length > 0)
 					{
 						// No lookup required, convert the key from string
 						TypeConverter converter = TypeDescriptor.GetConverter(indexerType);
@@ -461,14 +452,5 @@ namespace Edge.Data.Pipeline.Mapping
 			//    }
 			//}
 		}
-	}
-
-
-
-	public class ValueLookup
-	{
-		public string Name;
-		public string[] Parameters;
-		public Type RequriedType;
 	}
 }

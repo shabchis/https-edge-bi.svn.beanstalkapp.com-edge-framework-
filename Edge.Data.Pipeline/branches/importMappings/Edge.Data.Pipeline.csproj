@@ -106,6 +106,7 @@
     <Compile Include="Mapping\MappingContainer.cs" />
     <Compile Include="Mapping\ReadCommand.cs" />
     <Compile Include="Mapping\ValueExpression.cs" />
+    <Compile Include="Mapping\ValueLookup.cs" />
     <Compile Include="Objects\SegmentMetricsUnit.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />

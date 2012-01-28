@@ -30,11 +30,19 @@ namespace Edge.Data.Pipeline.Mapping
 				throw new MappingConfigurationException(String.Format("Failed to load mapping configuration file {0}. See inner exception for details.", mappingFilePath), ex);
 			}
 
+			return Load(doc.DocumentElement);
+		}
+
+		/// <summary>
+		/// Loads mapping configurations from an XmlElement.
+		/// </summary>
+		public static MappingConfiguration Load(XmlElement mappingXml)
+		{
 			// Create the root configuration with the System namespace
 			var config = new MappingConfiguration();
 			config.Namespaces.Add("System");
 
-			foreach (XmlNode node in doc.DocumentElement.ChildNodes)
+			foreach (XmlNode node in mappingXml.ChildNodes)
 			{
 				// Check for allowed XML elements
 				if (!(node is XmlElement))
@@ -99,9 +107,8 @@ namespace Edge.Data.Pipeline.Mapping
 					else
 						read.Name = read.Field;
 
-					// TODO: re-use the code from AutoSegments for resolving regex escape characters etc.
-					//if (element.HasAttribute("Regex"))
-					//	read.Name = new Regex(element.GetAttribute("Regex"));
+					if (element.HasAttribute("Regex"))
+						read.RegexPattern = element.GetAttribute("Regex");
 
 					parent.ReadCommands.Add(read);
 
@@ -112,7 +119,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (!element.HasAttribute("To"))
 						throw new MappingConfigurationException("<Map>: Missing 'To' attribute.");
 
-					MapCommand map = MapCommand.AddToContainer(parent, element.GetAttribute("To"), returnInnermost: true);
+					MapCommand map = MapCommand.New(parent, element.GetAttribute("To"), returnInnermost: true);
 
 					// Handle implicit read sources
 					ReadCommand implicitRead = null;
@@ -121,11 +128,13 @@ namespace Edge.Data.Pipeline.Mapping
 						implicitRead = new ReadCommand();
 						implicitRead.Field = element.GetAttribute("Field");
 
-						// TODO: regex code
-						//if (element.HasAttribute("Regex"))
+						if (element.HasAttribute("Regex"))
+							implicitRead.RegexPattern = element.GetAttribute("Regex");
 
 						parent.ReadCommands.Add(implicitRead); //map.TargetMemberType);
 					}
+					
+					map.Inherit();
 
 					// Handle value expressions
 					if (element.HasAttribute("Value"))

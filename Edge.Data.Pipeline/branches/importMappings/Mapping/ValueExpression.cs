@@ -28,16 +28,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// <param name="expression"></param>
 		internal ValueExpression(MapCommand parent, string expression)
 		{
-			this.Parent = parent;
-
-			// Table of recognized variables
-			var reads = new List<string>();
-			MappingContainer container = parent;
-			while (container != null)
-			{
-				//foreach (ReadCommand read in container.ReadCommands)
-					//varList.Add(read
-			}
+			this.Parent = parent;			
 
 			MatchCollection components = _componentParser.Matches(expression);
 			foreach (Match comp in components)
@@ -48,11 +39,11 @@ namespace Edge.Data.Pipeline.Mapping
 				ValueExpressionComponent component;
 				string compStr = comp.Groups[0].Value.Trim();
 				if (compStr.StartsWith("="))
-					component = new EvalComponent(this, String.Format("Eval{0}", parent.Root.NextEvalID++), compStr.Substring(1), reads);
+					component = new EvalComponent(this, String.Format("Eval{0}", parent.Root.NextEvalID++), compStr.Substring(1));
 				else if (compStr.Contains(':'))
-					component = new ValueLookupComponent(this) { Lookup = new ValueLookup(compStr) };
+					component = new ValueLookupComponent(this, compStr);
 				else
-					component = new ReadComponent(this) { ReadCommand = reads[compStr] };
+					component = new ReadComponent(this, compStr);
 
 				this.Components.Add(component);
 			}
@@ -89,23 +80,32 @@ namespace Edge.Data.Pipeline.Mapping
 
 	public class ValueLookupComponent : ValueExpressionComponent
 	{
-		public ValueLookup Lookup;
+		public ValueLookup Lookup { get; private set; }
+
+		internal ValueLookupComponent(ValueExpression parent, string lookupExpression): base(parent)
+		{
+		}
 	}
 
 	public class EvalComponent : ValueExpressionComponent
 	{
-		private string _evalID { get; private set; }
-		public EvaluatorExpression Expression;
 		static Regex _escaper = new Regex("[^a-z0-9_]", RegexOptions.IgnoreCase);
 
-		internal EvalComponent(ValueExpression parent, string expression, string evalID, List<string> variables):base(parent)
+		private string _evalID { get; private set; }
+		internal EvaluatorExpression Expression { get; private set;}
+		public string ExpressionString { get; private set; }
+
+		internal EvalComponent(ValueExpression parent, string expression, string evalID):base(parent)
 		{
 			this._evalID = evalID;
+			this.ExpressionString = expression;
 
 			// All vars are strings
-			var evalvars = new EvaluatorVariable[variables.Count];
-			for (int i = 0; i < variables.Count; i++)
+			var evalvars = new List<EvaluatorVariable>();
+			foreach (ReadCommand command in this.ParentExpression.Parent.InheritedReads)
+			{
 				evalvars[i] = new EvaluatorVariable(_escaper.Replace(variables[i], "_"), typeof(string));
+			}
 
 			// Create the expression, will be compiled later
 			this.Expression = new EvaluatorExpression(evalID, expression, typeof(object), evalvars);
@@ -121,6 +121,7 @@ namespace Edge.Data.Pipeline.Mapping
 	public class ReadComponent : ValueExpressionComponent
 	{
 		public ReadCommand ReadCommand;
+		public string Fragment;
 	}
 
 	public class StringComponent : ValueExpressionComponent
