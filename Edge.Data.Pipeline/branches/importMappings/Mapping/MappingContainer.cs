@@ -13,6 +13,11 @@ namespace Edge.Data.Pipeline.Mapping
 		public MappingConfiguration Root { get; internal set; }
 
 		/// <summary>
+		/// The parent map container.
+		/// </summary>
+		public MappingContainer Parent { get; internal set; }
+
+		/// <summary>
 		/// The target type to which this mapping is to be applied.
 		/// </summary>
 		public Type TargetType { get; internal set; }
@@ -31,6 +36,28 @@ namespace Edge.Data.Pipeline.Mapping
 		{
 			this.MapCommands = new List<MapCommand>();
 			this.ReadCommands = new List<ReadCommand>();
+		}
+
+		internal Dictionary<string, ReadCommand> InheritedReads = new Dictionary<string, ReadCommand>();
+
+		internal void Inherit()
+		{
+			InheritedReads.Clear();
+
+			// Get stuff from myself
+			foreach (ReadCommand read in this.ReadCommands)
+			{
+				InheritedReads.Add(read.Name, read);
+			}
+
+			// Merge with inherited
+			if (this.Parent != null)
+			{
+				// Merge reads
+				foreach (var readPair in this.Parent.InheritedReads)
+					if (!this.InheritedReads.ContainsKey(readPair.Key))
+						this.InheritedReads.Add(readPair.Key, readPair.Value);
+			}
 		}
 	}
 

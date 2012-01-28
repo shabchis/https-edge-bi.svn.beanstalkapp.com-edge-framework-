@@ -11,8 +11,17 @@ namespace Edge.Data.Pipeline.Mapping
 	/// </summary>
 	public class ReadCommand
 	{
+
 		string _name;
 		string _field;
+		string _regexString;
+		Regex _regex = null;
+		string[] _fragments = null;
+		internal string[] RawGroupNames = null;
+
+		static Regex _fixRegex = new Regex(@"\(\?\{(\w+)\}");
+		static string _fixReplace = @"(?<$1>";
+		static Regex _fragmentNameInvalid = new Regex(@"^\d+$");
 
 		public string Name
 		{
@@ -31,7 +40,50 @@ namespace Edge.Data.Pipeline.Mapping
 			get { return _field; }
 			set { _field = value; }
 		}
-		
-		public Regex Regex;
+
+		public string RegexPattern
+		{
+			get { return _regexString; }
+			set
+			{
+				_regexString = value;
+				_regex = null;
+				CreateRegex();
+			}
+		}
+
+		public Regex Regex
+		{
+			get { CreateRegex(); return _regex; }
+		}
+
+		public string[] RegexFragments
+		{
+			get { CreateRegex(); return _fragments; }
+		}
+
+		void CreateRegex()
+		{
+			if (_regex == null && !String.IsNullOrWhiteSpace(this.RegexPattern))
+			{
+				_regex = this.RegexPattern == null ? null : new Regex(_fixRegex.Replace(this.RegexPattern, _fixReplace), RegexOptions.ExplicitCapture);
+				this.RawGroupNames = this.RegexPattern == null ? null : this.Regex.GetGroupNames();
+				if (this.RawGroupNames != null)
+				{
+					List<string> frags = new List<string>();
+					foreach (string frag in this.RawGroupNames)
+						if (IsValidFragmentName(frag))
+							frags.Add(frag);
+					_fragments = frags.ToArray();
+				}
+				else
+					_fragments = null;
+			}
+		}
+
+		static bool IsValidFragmentName(string name)
+		{
+			return !_fragmentNameInvalid.IsMatch(name);
+		}
 	}
 }
