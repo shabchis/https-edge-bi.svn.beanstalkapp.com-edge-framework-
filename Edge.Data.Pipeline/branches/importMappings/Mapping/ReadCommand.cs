@@ -21,15 +21,15 @@ namespace Edge.Data.Pipeline.Mapping
 
 		static Regex _fixRegex = new Regex(@"\(\?\{(\w+)\}");
 		static string _fixReplace = @"(?<$1>";
-		static Regex _fragmentNameInvalid = new Regex(@"^\d+$");
+		static Regex _varName = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
 
 		public string Name
 		{
 			get { return _name; }
 			set
 			{
-				if (!Regex.IsMatch(value, "[A-Za-z_][A-Za-z0-9_]*"))
-					throw new MappingException(String.Format("The read command name '{0}' is not valid because it includes illegal characters.", value));
+				if (!_varName.IsMatch(value))
+					throw new MappingException(String.Format("'{0}' is not a valid read command name. Use C# variable naming rules.", value));
 
 				_name = value;
 			}
@@ -72,8 +72,12 @@ namespace Edge.Data.Pipeline.Mapping
 				{
 					List<string> frags = new List<string>();
 					foreach (string frag in this.RawGroupNames)
-						if (IsValidFragmentName(frag))
+					{
+						if (_varName.IsMatch(frag))
 							frags.Add(frag);
+						else
+							throw new MappingConfigurationException(String.Format("'{0}' is not a valid read command fragment name. Use C# variable naming rules.", frag));
+					}
 					_fragments = frags.ToArray();
 				}
 				else
@@ -81,9 +85,10 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 		}
 
-		static bool IsValidFragmentName(string name)
+		internal static bool IsValidVarName(string name)
 		{
-			return !_fragmentNameInvalid.IsMatch(name);
+			return _varName.IsMatch(name);
 		}
+
 	}
 }
