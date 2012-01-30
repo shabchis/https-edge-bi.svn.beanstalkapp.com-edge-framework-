@@ -355,8 +355,8 @@ namespace Edge.Core.Services
 								!step.Config.IsFailureHandler &&
 								step.Config.FailureHandler.Element != null &&
 								step.Config.FailureHandler.Element.BaseConfiguration.Element.Name != null &&
-								!IsInStepHistory(step.Config.FailureHandler.Element) &&
-								IsStepConditionValid(step.Config.FailureHandler.Element.ConditionOptions, step.Config.FailureHandler.Element.Condition)
+								!IsInStepHistory(step.Config.FailureHandler.Element) //&&
+								//IsStepConditionValid(step.Config.FailureHandler.Element.ConditionOptions, step.Config.FailureHandler.Element.Condition)
 								)
 							{
 								// Get the correct step element
@@ -510,8 +510,8 @@ namespace Edge.Core.Services
 				WorkflowStepElement step = Instance.Configuration.Workflow[i];
 				if (
 					step.IsEnabled &&
-					!step.IsFailureHandler &&
-					IsStepConditionValid(step.ConditionOptions, step.Condition)
+					!step.IsFailureHandler // &&
+					//IsStepConditionValid(step.ConditionOptions, step.Condition)
 				)
 				{
 					next = Instance.Configuration.Workflow[i];
@@ -522,6 +522,8 @@ namespace Edge.Core.Services
 			return next;
 		}
 
+		#region OBSOLETE not in used
+		/*
 		bool IsStepConditionValid(string[] requiredOptions, string expression)
 		{
 			if (String.IsNullOrEmpty(expression))
@@ -547,6 +549,8 @@ namespace Edge.Core.Services
 
 			return Evaluator.Eval<bool>(expression, _globalConditionVars.ToArray());
 		}
+		*/
+		#endregion
 
 		/*=========================*/
 		#endregion
