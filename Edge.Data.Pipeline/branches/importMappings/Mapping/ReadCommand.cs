@@ -41,6 +41,11 @@ namespace Edge.Data.Pipeline.Mapping
 			set { _field = value; }
 		}
 
+		/// <summary>
+		/// Indicates whether this read command is implicit (part of a &lt;Map&gt; command).
+		/// </summary>
+		public bool IsImplicit { get; internal set; }
+
 		public string RegexPattern
 		{
 			get { return _regexString; }

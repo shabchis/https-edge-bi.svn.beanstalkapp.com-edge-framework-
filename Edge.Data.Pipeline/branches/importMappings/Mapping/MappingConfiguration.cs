@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml;
 using Edge.Data.Objects;
 using Edge.Core.Utilities;
+using System.Reflection;
 
 namespace Edge.Data.Pipeline.Mapping
 {
@@ -12,10 +13,11 @@ namespace Edge.Data.Pipeline.Mapping
 	{
 		public List<string> Namespaces = new List<string>();
 		public Dictionary<Type, MappingContainer> Objects = new Dictionary<Type, MappingContainer>();
+		public Dictionary<string, Delegate> ExternalMethods = new Dictionary<string, Delegate>();
 
 		private List<EvaluatorExpression> _evalExpressions = new List<EvaluatorExpression>();
 		internal int NextEvalID = 0;
-		internal Evaluator Eval;
+		internal Evaluator Eval = new Evaluator();
 
 		/// <summary>
 		/// Loads mapping configurations from a file.
@@ -73,6 +75,11 @@ namespace Edge.Data.Pipeline.Mapping
 				else
 					throw new MappingConfigurationException(String.Format("<{0}> is not allowed here.", element.Name));
 			}
+
+			// Compilse the evaluator
+			config.Eval.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().FullName);
+			config.Eval.Compile();
+
 			return config;
 		}
 
@@ -125,8 +132,11 @@ namespace Edge.Data.Pipeline.Mapping
 					ReadCommand implicitRead = null;
 					if (element.HasAttribute("Field"))
 					{
-						implicitRead = new ReadCommand();
-						implicitRead.Field = element.GetAttribute("Field");
+						implicitRead = new ReadCommand()
+						{
+							Field = element.GetAttribute("Field"),
+							IsImplicit = true
+						};
 
 						if (element.HasAttribute("Regex"))
 							implicitRead.RegexPattern = element.GetAttribute("Regex");
@@ -139,14 +149,14 @@ namespace Edge.Data.Pipeline.Mapping
 					// Handle value expressions
 					if (element.HasAttribute("Value"))
 					{
-						map.Value = new ValueExpression(map, element.GetAttribute("Value"));
+						map.Value = new ValueFormat(map, element.GetAttribute("Value"));
 					}
 					else
 					{
 						if (implicitRead == null)
 							throw new MappingConfigurationException("<Map>: Missing either 'Field' or 'Value' attributes.");
 						else
-							map.Value = new ValueExpression(map, "{" + implicitRead.Field + "}");
+							map.Value = new ValueFormat(map, "{" + implicitRead.Field + "}");
 					}
 
 					// Recursively add child nodes

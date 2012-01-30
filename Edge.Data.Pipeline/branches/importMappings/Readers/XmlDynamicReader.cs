@@ -138,7 +138,7 @@ namespace Edge.Data.Pipeline
 		/// </summary>
 		/// <param name="childName">
 		///		The child element name to return.
-		///		For example, in the XML <code><parent><child/></parent></code>, use parent.GetArray("child").
+		///		For example, in the XML <![CDATA[<code><parent><child/><child/><child/></parent></code>]]> , use parent.GetArray("child").
 		///	</param>
 		/// <returns></returns>
 		public object[] GetArray(string childName)
