@@ -4,6 +4,7 @@ using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Text;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace Edge.Core.Utilities
 {
@@ -12,82 +13,64 @@ namespace Edge.Core.Utilities
 	/// </summary>
 	public class Evaluator
 	{
-		#region Fields
-		/*=========================*/
 
 		const string DefaultMethodName = "Expression";
-		//Type _compiledType = null;
 		object _compiled = null;
 
-		/*=========================*/
-		#endregion
+		public readonly List<EvaluatorExpression> Expressions = new List<EvaluatorExpression>();
+		public readonly Dictionary<string, Delegate> Externals = new Dictionary<string, Delegate>();
+		public readonly List<string> ReferencedAssemblies = new List<string>();
+		public readonly List<string> UsingNamespaces = new List<string>();
 
-		#region Constructors
-		/*=========================*/
-
-		public Evaluator(EvaluatorExpression[] expressions): this(expressions, null)
+		public void Compile()
 		{
-		}
-
-		public Evaluator(EvaluatorExpression[] expressions, EvaluatorVariable[] globalVariables)
-		{
-			ConstructEvaluator(expressions, globalVariables);
-		}
-
-		public Evaluator(string expression, Type returnType, EvaluatorVariable[] globalVariables)
-		{
-			EvaluatorExpression[] items = { new EvaluatorExpression(DefaultMethodName, expression, returnType) };
-			ConstructEvaluator(items, globalVariables);
-		}
-
-		public Evaluator(EvaluatorExpression expression)
-		{
-			EvaluatorExpression[] expressions = { expression };
-			ConstructEvaluator(expressions, null);
-		}
-
-		/*=========================*/
-		#endregion
-
-		#region Internal
-		/*=========================*/
-
-		private void ConstructEvaluator(EvaluatorExpression[] expressions, EvaluatorVariable[] globalVariables)
-		{
-			CSharpCodeProvider comp = new CSharpCodeProvider();
-			CompilerParameters cp = new CompilerParameters();
-			cp.ReferencedAssemblies.Add("system.dll");
-			cp.GenerateExecutable = false;
-			cp.GenerateInMemory = true;
+			// TODO: code access security, limit access to IO/network/etc.
+			// http://stackoverflow.com/questions/5997995/in-net-4-0-how-do-i-sandbox-an-in-memory-assembly-and-execute-a-method
 
 			StringBuilder code = new StringBuilder();
 			code.Append(@"
 			using System;
-
-			namespace Edge.Runtime
-			{
-				public class Eval
-				{
 			");
-
-			if (globalVariables != null)
+			
+			foreach (string ns in this.UsingNamespaces)
 			{
-				foreach (EvaluatorVariable variable in globalVariables)
-				{
-					code.Append(variable);
-				}
-			}
-	
-			foreach (EvaluatorExpression expression in expressions)
-			{
-				code.Append(expression);
+				code.AppendFormat("using {0};\n", ns);
 			}
 
 			code.Append(@"
+			namespace Edge.Runtime
+			{
+				public class Eval: MarshalByRefObject
+				{			
+					public event Func<string, object[], object> ExternalExecute;
+
+					");
+					
+					foreach (EvaluatorExpression expression in this.Expressions)
+					{
+						code.Append(expression);
+					}
+
+					foreach(KeyValuePair<string, Delegate> function in this.Externals)
+					{
+						code.AppendFormat(@"
+						{0} {1}(params object[] args)
+						{
+							ExternalExecute(""{1}"", args);
+						}
+						", function.Value.Method.ReturnType, function.Key);
+					}
+
+					code.Append(@"
 				}
 			}"
 			);
 
+			CSharpCodeProvider comp = new CSharpCodeProvider();
+			CompilerParameters cp = new CompilerParameters();
+			cp.ReferencedAssemblies.Add("system.dll");
+			cp.GenerateExecutable = false;
+			cp.GenerateInMemory = true; 
 			CompilerResults cr = comp.CompileAssemblyFromSource(cp, code.ToString());
 			if (cr.Errors.HasErrors)
 			{
@@ -103,16 +86,21 @@ namespace Edge.Core.Utilities
 			_compiled = a.CreateInstance("Edge.Runtime.Eval");
 		}
 		
-		/*=========================*/
-		#endregion
 
-		#region Instance methods
-		/*=========================*/
-
-		public T Evaluate<T>(string name, object[] @params = null)
+		public T Evaluate<T>(string expressionName, object[] @params = null)
 		{
-			MethodInfo mi = _compiled.GetType().GetMethod(name);
-			return (T) mi.Invoke(_compiled, @params);
+			if (_compiled == null)
+				throw new EvaluatorException("Compile() must be called on the evaluator before it can be used.");
+
+			MethodInfo mi = _compiled.GetType().GetMethod(expressionName);
+			if (mi == null)
+				throw new EvaluatorException(String.Format("There is no expression with the name '{0}' in the evaluator.", expressionName));
+
+			try { return (T)mi.Invoke(_compiled, @params); }
+			catch (Exception ex)
+			{
+				throw new EvaluatorException(String.Format("Expression evaluation failed: {0}.", ex is TargetInvocationException ? ex.InnerException.Message : ex.Message), ex);
+			}
 		}
 
 		public T Evaluate<T>()
@@ -125,20 +113,18 @@ namespace Edge.Core.Utilities
 			return Evaluate<T>(DefaultMethodName, @params);
 		}
 
-		/*=========================*/
-		#endregion
 
-		#region Static methods
-		/*=========================*/
-
+		/// <summary>
+		/// 
+		/// </summary>
 		static public T Eval<T>(string expression, EvaluatorVariable[] variables = null, object[] variableValues = null)
 		{
-			Evaluator eval = new Evaluator(expression, typeof(T), variables);
+			var eval = new Evaluator();
+			eval.Expressions.Add(new EvaluatorExpression(DefaultMethodName, expression, typeof(T), variables));
+			eval.Compile();
 			return eval.Evaluate<T>(DefaultMethodName, variableValues);
 		}
 
-		/*=========================*/
-		#endregion
 	}
 
 	/// <summary>
@@ -198,7 +184,8 @@ namespace Edge.Core.Utilities
 	public class EvaluatorVariable
 	{
 		public readonly string Name;
-		public readonly Type VariableType;
+		public readonly Type VariableType = null;
+		public readonly bool IsDynamic = false;
 
 		public EvaluatorVariable(string name, Type variableType)
 		{
@@ -206,9 +193,27 @@ namespace Edge.Core.Utilities
 			VariableType = variableType;
 		}
 
+		public EvaluatorVariable(string name)
+		{
+			Name = name;
+			IsDynamic = true;
+		}
+
 		public override string ToString()
 		{
-			return string.Format(@"{0} {1}", VariableType.FullName, Name);
+			return string.Format(@"{0} {1}", IsDynamic ? "dynamic" : VariableType.FullName, Name);
 		}
+	}
+
+	[Serializable]
+	public class EvaluatorException : Exception
+	{
+		public EvaluatorException() { }
+		public EvaluatorException(string message) : base(message) { }
+		public EvaluatorException(string message, Exception inner) : base(message, inner) { }
+		protected EvaluatorException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
 	}
 }
