@@ -51,10 +51,10 @@ namespace Edge.Data.Objects
 					{
 						ID = (int) reader["MeasureID"],
 						Account = reader.Get<int>("AccountID") == -1 ? null : account,
-						Name =(string)reader["Name"],
+						Name =reader["Name"] is DBNull ? string.Empty : (string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
 						SourceName = reader["SourceName"] is DBNull ? string.Empty : (string)reader["SourceName"],
-						OltpName = (string) reader["FieldName"],
+						OltpName = reader["FieldName"] is DBNull ? string.Empty : (string)reader["FieldName"],
 						Options = (MeasureOptions)reader["Flags"]
 					};
 
