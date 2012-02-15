@@ -23,6 +23,7 @@ namespace Edge.Data.Pipeline
 		public FileInfo FileInfo { get; internal set; }
 		public Stream Stream { get; internal set; }
 		public WebRequest Request { get; internal set; }
+		public WebResponse Response { get; internal set; }
 		public string RequestBody { get; set; }
 
 		internal string TargetPath { get; set; }
