@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline.Mapping
 {
 	public class MappingConfiguration
 	{
-		public List<string> Namespaces = new List<string>();
+		public List<string> Usings = new List<string>();
 		public Dictionary<Type, MappingContainer> Objects = new Dictionary<Type, MappingContainer>();
 		public Dictionary<string, Delegate> ExternalMethods = new Dictionary<string, Delegate>();
 
@@ -42,7 +42,6 @@ namespace Edge.Data.Pipeline.Mapping
 		{
 			// Create the root configuration with the System namespace
 			var config = new MappingConfiguration();
-			config.Namespaces.Add("System");
 
 			foreach (XmlNode node in mappingXml.ChildNodes)
 			{
@@ -58,25 +57,26 @@ namespace Edge.Data.Pipeline.Mapping
 				var element = (XmlElement)node;
 				if (element.Name == "Object")
 				{
-					var objectMapping = new MappingContainer();
+					var objectMapping = new MappingContainer() { Root = config };
 					string typeName = element.HasAttribute("Type") ? element.GetAttribute("Type") : null;
 					if (typeName == null)
 						throw new MappingConfigurationException("<Object>: 'Type' attribute is missing.");
-					objectMapping.TargetType = Type.GetType(typeName, false);
+					objectMapping.TargetType = config.ResolveType(typeName);
 					if (objectMapping.TargetType == null)
-						throw new MappingConfigurationException(String.Format("<Object>: Type '{0}' could not be found.", typeName));
+						throw new MappingConfigurationException(String.Format("<Object>: Type '{0}' could not be found. Did you forget a <Using>? <Using> elements must be defined before any <Object> elements that use it.", typeName));
 
 					DeserializeMappings(config, objectMapping, element);
+					config.Objects.Add(objectMapping.TargetType, objectMapping);
 				}
 				else if (element.Name == "Using")
 				{
-					config.Namespaces.Add(element.GetAttribute("Namespace"));
+					config.Usings.Add(element.GetAttribute("Namespace"));
 				}
 				else
 					throw new MappingConfigurationException(String.Format("<{0}> is not allowed here.", element.Name));
 			}
 
-			// Compilse the evaluator
+			// Compile the evaluator
 			config.Eval.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().FullName);
 			config.Eval.Compile();
 
@@ -117,8 +117,11 @@ namespace Edge.Data.Pipeline.Mapping
 					if (element.HasAttribute("Regex"))
 						read.RegexPattern = element.GetAttribute("Regex");
 
+					// Register it as a read command
 					parent.ReadCommands.Add(read);
-
+					
+					// Add the command to the parent's inherited list, so that child map commands inherit it also
+					parent.InheritedReads[read.Name] = read;
 				}
 				else if (element.Name == "Map")
 				{
@@ -134,6 +137,7 @@ namespace Edge.Data.Pipeline.Mapping
 					{
 						implicitRead = new ReadCommand()
 						{
+							Name = element.GetAttribute("Field"),
 							Field = element.GetAttribute("Field"),
 							IsImplicit = true
 						};
@@ -141,9 +145,10 @@ namespace Edge.Data.Pipeline.Mapping
 						if (element.HasAttribute("Regex"))
 							implicitRead.RegexPattern = element.GetAttribute("Regex");
 
-						parent.ReadCommands.Add(implicitRead); //map.TargetMemberType);
+						map.ReadCommands.Add(implicitRead); //map.TargetMemberType);
 					}
 					
+					// Force parent to re-inherit, and then inherit from it
 					map.Inherit();
 
 					// Handle value expressions
@@ -153,9 +158,7 @@ namespace Edge.Data.Pipeline.Mapping
 					}
 					else
 					{
-						if (implicitRead == null)
-							throw new MappingConfigurationException("<Map>: Missing either 'Field' or 'Value' attributes.");
-						else
+						if (implicitRead != null)
 							map.Value = new ValueFormat(map, "{" + implicitRead.Field + "}");
 					}
 
@@ -172,6 +175,24 @@ namespace Edge.Data.Pipeline.Mapping
 
 			}
 		}
+
+		public Type ResolveType(string typeName)
+		{
+			Type t = Type.GetType(typeName, false);
+			if (t != null)
+				return t;
+
+			// Search the namespaces for this type
+			foreach (string us in this.Usings)
+			{
+				t = Type.GetType(String.Format(us, typeName), false);
+				if (t != null)
+					return t;
+			}
+
+			return null;
+		}
+
 
 	}
 }

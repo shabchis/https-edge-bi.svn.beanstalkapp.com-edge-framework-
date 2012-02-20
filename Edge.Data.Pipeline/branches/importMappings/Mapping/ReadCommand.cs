@@ -53,40 +53,41 @@ namespace Edge.Data.Pipeline.Mapping
 			{
 				_regexString = value;
 				_regex = null;
+				_fragments = null;
+				RawGroupNames = null;
 				CreateRegex();
 			}
 		}
 
 		public Regex Regex
 		{
-			get { CreateRegex(); return _regex; }
+			get { return _regex; }
 		}
 
 		public string[] RegexFragments
 		{
-			get { CreateRegex(); return _fragments; }
+			get { return _fragments; }
 		}
 
 		void CreateRegex()
 		{
-			if (_regex == null && !String.IsNullOrWhiteSpace(this.RegexPattern))
+			if (!String.IsNullOrWhiteSpace(this.RegexPattern))
 			{
-				_regex = this.RegexPattern == null ? null : new Regex(_fixRegex.Replace(this.RegexPattern, _fixReplace), RegexOptions.ExplicitCapture);
-				this.RawGroupNames = this.RegexPattern == null ? null : this.Regex.GetGroupNames();
-				if (this.RawGroupNames != null)
+				_regex = new Regex(_fixRegex.Replace(this.RegexPattern, _fixReplace), RegexOptions.ExplicitCapture);
+
+				// skip the '0' group which is always first, the asshole
+				string[] groupNames = this.Regex.GetGroupNames();
+				this.RawGroupNames = groupNames.Length > 0 ? groupNames.Skip(1).ToArray() : groupNames;
+
+				List<string> frags = new List<string>();
+				foreach (string frag in this.RawGroupNames)
 				{
-					List<string> frags = new List<string>();
-					foreach (string frag in this.RawGroupNames)
-					{
-						if (_varName.IsMatch(frag))
-							frags.Add(frag);
-						else
-							throw new MappingConfigurationException(String.Format("'{0}' is not a valid read command fragment name. Use C# variable naming rules.", frag));
-					}
-					_fragments = frags.ToArray();
+					if (_varName.IsMatch(frag))
+						frags.Add(frag);
+					else
+						throw new MappingConfigurationException(String.Format("'{0}' is not a valid read command fragment name. Use C# variable naming rules.", frag));
 				}
-				else
-					_fragments = null;
+				_fragments = frags.ToArray();
 			}
 		}
 

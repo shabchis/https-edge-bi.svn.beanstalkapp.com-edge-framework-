@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Mapping
 		public MapCommand Parent { get; private set; }
 		
 		// Matches {stuff} but not \{stuff}
-		static Regex _componentParser = new Regex(@"(?<!\\)\{([^\}]*)\}");
+		static Regex _componentParser = new Regex(@"(?<!\\)\{(?<eval>[^\}]*)\}", RegexOptions.ExplicitCapture);
 
 		/// <summary>
 		/// 
@@ -33,12 +33,13 @@ namespace Edge.Data.Pipeline.Mapping
 		internal ValueFormat(MapCommand parent, string expression)
 		{
 			this.Parent = parent;
+			this.Components = new List<object>();
 
 			int indexLast = 0;
 			Match comp = _componentParser.Match(expression);
-			while (comp != null)
+			while (comp != null && comp.Success)
 			{
-				if (!comp.Groups[0].Success)
+				if (!comp.Groups["eval"].Success)
 					throw new MappingConfigurationException(String.Format("'{0}' is not a valid component of a value expression.", comp.Value));
 
 				// Get the string component between this match and the previos
@@ -47,11 +48,11 @@ namespace Edge.Data.Pipeline.Mapping
 					string str = expression.Substring(indexLast, comp.Index - indexLast);
 					this.Components.Add(new StringComponent(this.Parent, str));
 				}
-				
-				indexLast = comp.Index + comp.Length + 1;
+
+				indexLast = comp.Index + comp.Length;
 
 				// Construct the eval component
-				string eval = comp.Groups[0].Value.Trim();
+				string eval = comp.Groups["eval"].Value.Trim();
 				this.Components.Add(new EvalComponent(this.Parent, eval));
 
 				// Move to the next
@@ -112,7 +113,7 @@ namespace Edge.Data.Pipeline.Mapping
 
 			// Add a dynamic var with the name of the command, sort by name for later
 			var evalvars = new List<EvaluatorVariable>();
-			foreach (ReadCommand command in this.Parent.Parent.InheritedReads.Values.OrderBy(cmd => cmd.Name))
+			foreach (ReadCommand command in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.Name))
 				evalvars.Add(new EvaluatorVariable(command.Name));
 
 			// Create the expression, will be compiled later
@@ -122,6 +123,8 @@ namespace Edge.Data.Pipeline.Mapping
 				returnType:		typeof(Object),
 				variables:		evalvars.ToArray()
 			);
+
+			this.Parent.Root.Eval.Expressions.Add(this.Expression);
 		}
 
 		public override string Ouput(MappingContext context)

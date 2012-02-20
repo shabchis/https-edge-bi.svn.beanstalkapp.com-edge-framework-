@@ -51,8 +51,11 @@ namespace Edge.Data.Pipeline.Mapping
 		public bool IsImplicit { get; private set; }
 
 		// Fun with regex (http://xkcd.com/208/)
-		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])*(?<valueType>::[a-z_][a-z0-9_]*)*)",
+		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])?::((?<valueType>[a-z_][a-z0-9_]*))*)",
 			RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+
+		// Used to indicate that a target such as Creatives[] means add to collection if possible
+		private static object EmptyIndexer = new object();
 
 		/// <summary>
 		/// Constructor is private.
@@ -72,6 +75,7 @@ namespace Edge.Data.Pipeline.Mapping
 
 			var map = new MapCommand()
 			{
+				Parent = container,
 				TargetType = container.TargetType,
 				Root = container.Root
 			};
@@ -106,7 +110,7 @@ namespace Edge.Data.Pipeline.Mapping
 					throw new MappingConfigurationException(String.Format("'{0}' matched more than one member in type {1}. Make sure it is a property or field.", targetMemberName, map.TargetType));
 				MemberInfo member = possibleMembers[0];
 				if (member.MemberType != MemberTypes.Field && member.MemberType != MemberTypes.Property)
-					throw new MappingConfigurationException(String.Format("'{0}' is not a property of field and cannot be mapped.", targetMemberName));
+					throw new MappingConfigurationException(String.Format("'{0}' is not a property or field and cannot be mapped.", targetMemberName));
 				if (member.MemberType == MemberTypes.Property && !((PropertyInfo)member).CanWrite)
 					throw new MappingConfigurationException(String.Format("'{0}' is a read-only property and cannot be mapped.", targetMemberName));
 
@@ -154,7 +158,13 @@ namespace Edge.Data.Pipeline.Mapping
 						map.Indexer = converter.ConvertFromString(indexer);
 					}
 					else
-						throw new MappingConfigurationException(String.Format("Invalid indexer defined for target '{0}'.", targetMemberName));
+					{
+						// Empty indexers (i.e. 'Add' method) only valid with IList
+						if (!typeof(IList).IsAssignableFrom(memberType))
+							throw new MappingConfigurationException(String.Format("Invalid indexer defined for target '{0}'.", targetMemberName));
+
+						map.Indexer = MapCommand.EmptyIndexer;
+					}
 				}
 
 				// ...................................
@@ -164,17 +174,8 @@ namespace Edge.Data.Pipeline.Mapping
 				if (valueTypeGroup.Success)
 				{
 					string valueTypeName = valueTypeGroup.Value;
-					
-					// Search the namespaces for this type
-					foreach (string ns in map.Root.Namespaces)
-					{
-						Type t = Type.GetType(ns + "." + valueTypeName, false);
-						if (t != null)
-						{
-							map.ValueType = t;
-							break;
-						}
-					}
+
+					map.ValueType = map.Root.ResolveType(valueTypeName);
 
 					if (map.ValueType == null)
 						throw new MappingConfigurationException(String.Format("The type '{0}' cannot be found - are you missing a '<Using>'?", valueTypeName));
@@ -212,6 +213,7 @@ namespace Edge.Data.Pipeline.Mapping
 
 		}
 
+		
 		private void Apply(object targetObject)
 		{
 			
