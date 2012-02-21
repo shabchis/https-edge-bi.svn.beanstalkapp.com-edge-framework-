@@ -106,6 +106,8 @@
     <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
+    <Compile Include="Services\Common\Validation\DbDbChecksumBaseService.cs" />
+    <Compile Include="Services\Common\Validation\DeliveryDBChecksumBaseService.cs" />
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\GenericInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
@@ -171,9 +173,7 @@
       <Name>Edge.Core</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Services\Validation\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
   <Target Name="BeforeCompile">
