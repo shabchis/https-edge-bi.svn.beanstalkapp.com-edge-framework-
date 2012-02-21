@@ -5,6 +5,7 @@ using System.Text;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Edge.Core.Utilities;
+using System.Xml;
 
 namespace Edge.Data.Pipeline.Mapping
 {
@@ -30,7 +31,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// 
 		/// </summary>
 		/// <param name="expression"></param>
-		internal ValueFormat(MapCommand parent, string expression)
+		internal ValueFormat(MapCommand parent, string expression, XmlReader xml)
 		{
 			this.Parent = parent;
 			this.Components = new List<object>();
@@ -53,7 +54,7 @@ namespace Edge.Data.Pipeline.Mapping
 
 				// Construct the eval component
 				string eval = comp.Groups["eval"].Value.Trim();
-				this.Components.Add(new EvalComponent(this.Parent, eval));
+				this.Components.Add(new EvalComponent(this.Parent, eval, xml));
 
 				// Move to the next
 				comp = comp.NextMatch();
@@ -106,7 +107,7 @@ namespace Edge.Data.Pipeline.Mapping
 		internal EvaluatorExpression Expression { get; private set; }
 		public string ExpressionString { get; private set; }
 
-		internal EvalComponent(MapCommand parent, string expression):base(parent)
+		internal EvalComponent(MapCommand parent, string expression, XmlReader xml):base(parent)
 		{
 			this.ExpressionString = expression;
 			_evalID = String.Format("Expression_{0}", parent.Root.NextEvalID++);
@@ -118,11 +119,15 @@ namespace Edge.Data.Pipeline.Mapping
 
 			// Create the expression, will be compiled later
 			this.Expression = new EvaluatorExpression(
-				name:			_evalID,
+				name: _evalID,
 				expression: expression,
-				returnType:		typeof(Object),
-				variables:		evalvars.ToArray()
-			);
+				returnType: typeof(Object),
+				variables: evalvars.ToArray()
+			)
+			{
+				LineFile = parent.Root.SourcePath,
+				LineNumber = xml is XmlTextReader ? ((XmlTextReader)xml).LineNumber : 0
+			};
 
 			this.Parent.Root.Eval.Expressions.Add(this.Expression);
 		}

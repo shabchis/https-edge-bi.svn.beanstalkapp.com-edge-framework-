@@ -29,7 +29,7 @@ namespace Edge.Data.Pipeline.Mapping
 			set
 			{
 				if (!_varName.IsMatch(value))
-					throw new MappingException(String.Format("'{0}' is not a valid read command name. Use C# variable naming rules.", value));
+					throw new MappingConfigurationException(String.Format("'{0}' is not a valid read command name. Use C# variable naming rules.", value));
 
 				_name = value;
 			}
