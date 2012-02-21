@@ -5,7 +5,8 @@ using System.Text;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	public class MappingContext
+	internal class MappingContext
 	{
+		public Dictionary<string, object> ReadFields = new Dictionary<string, object>();
 	}
 }

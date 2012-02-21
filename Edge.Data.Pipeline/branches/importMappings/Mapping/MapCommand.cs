@@ -68,7 +68,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// Creates a new map command for a target type, parsing the supplied expression.
 		/// </summary>
 		/// <param name="returnInnermost">If true, returns the last nested map created if the expression has multiple parts. If false, returns the top level map.</param>
-		internal static MapCommand New(MappingContainer container, string targetExpression, bool returnInnermost = false)
+		internal static MapCommand New(MappingContainer container, string targetExpression, XmlReader xml, bool returnInnermost = false)
 		{
 			if (container == null)
 				throw new ArgumentNullException("container");
@@ -99,20 +99,20 @@ namespace Edge.Data.Pipeline.Mapping
 
 				Group memberGroup = match.Groups["member"];
 				if (!memberGroup.Success)
-					throw new MappingConfigurationException(String.Format("'{0}' is not a valid target for a map command.", targetExpression));
+					throw new MappingConfigurationException(String.Format("'{0}' is not a valid target for a map command.", targetExpression), "Map", xml);
 
 				// Do some error checking on target member name type
 				string targetMemberName = memberGroup.Value;
 				MemberInfo[] possibleMembers = map.TargetType.GetMember(targetMemberName, BindingFlags.Instance | BindingFlags.Public);
 				if (possibleMembers == null || possibleMembers.Length < 1)
-					throw new MappingConfigurationException(String.Format("The member '{0}' could not be found on {1}. Make sure it is public and non-static.", targetMemberName, map.TargetType));
+					throw new MappingConfigurationException(String.Format("The member '{0}' could not be found on {1}. Make sure it is public and non-static.", targetMemberName, map.TargetType), "Map", xml);
 				if (possibleMembers.Length > 1)
 					throw new MappingConfigurationException(String.Format("'{0}' matched more than one member in type {1}. Make sure it is a property or field.", targetMemberName, map.TargetType));
 				MemberInfo member = possibleMembers[0];
 				if (member.MemberType != MemberTypes.Field && member.MemberType != MemberTypes.Property)
-					throw new MappingConfigurationException(String.Format("'{0}' is not a property or field and cannot be mapped.", targetMemberName));
+					throw new MappingConfigurationException(String.Format("'{0}' is not a property or field and cannot be mapped.", targetMemberName), "Map", xml);
 				if (member.MemberType == MemberTypes.Property && !((PropertyInfo)member).CanWrite)
-					throw new MappingConfigurationException(String.Format("'{0}' is a read-only property and cannot be mapped.", targetMemberName));
+					throw new MappingConfigurationException(String.Format("'{0}' is a read-only property and cannot be mapped.", targetMemberName), "Map", xml);
 
 				map.TargetMember = member;
 
@@ -138,22 +138,22 @@ namespace Edge.Data.Pipeline.Mapping
 					if (itemProp != null)
 						indexers = itemProp.GetIndexParameters();
 					if (indexers == null || indexers.Length == 0)
-						throw new MappingConfigurationException(String.Format("'{0}' does not support indexers.", targetMemberName));
+						throw new MappingConfigurationException(String.Format("'{0}' does not support indexers.", targetMemberName), "Map", xml);
 					if (indexers.Length > 1)
-						throw new MappingConfigurationException(String.Format("'{0}' has an index with more than one parameter - not currently supported.", targetMemberName));
+						throw new MappingConfigurationException(String.Format("'{0}' has an index with more than one parameter - not currently supported.", targetMemberName), "Map", xml);
 					map.IndexerType = indexers[0].ParameterType;
 
 					if (indexer.StartsWith("{") && indexer.EndsWith("}"))
 					{
 						// This is an eval indexer
-						map.Indexer = new EvalComponent(map, indexer.Substring(1, indexer.Length-2));
+						map.Indexer = new EvalComponent(map, indexer.Substring(1, indexer.Length-2), xml);
 					}
 					else if (indexer.Length > 0)
 					{
 						// No eval required, convert the key from string
 						TypeConverter converter = TypeDescriptor.GetConverter(map.IndexerType);
 						if (converter == null || !converter.IsValid(indexer))
-							throw new MappingConfigurationException(String.Format("'{0}' cannot be converted to {1} for the {2} indexer.", indexer, map.IndexerType, targetMemberName));
+							throw new MappingConfigurationException(String.Format("'{0}' cannot be converted to {1} for the {2} indexer.", indexer, map.IndexerType, targetMemberName), "Map", xml);
 
 						map.Indexer = converter.ConvertFromString(indexer);
 					}
@@ -161,7 +161,7 @@ namespace Edge.Data.Pipeline.Mapping
 					{
 						// Empty indexers (i.e. 'Add' method) only valid with IList
 						if (!typeof(IList).IsAssignableFrom(memberType))
-							throw new MappingConfigurationException(String.Format("Invalid indexer defined for target '{0}'.", targetMemberName));
+							throw new MappingConfigurationException(String.Format("Invalid indexer defined for target '{0}'.", targetMemberName), "Map", xml);
 
 						map.Indexer = MapCommand.EmptyIndexer;
 					}
@@ -178,7 +178,7 @@ namespace Edge.Data.Pipeline.Mapping
 					map.ValueType = map.Root.ResolveType(valueTypeName);
 
 					if (map.ValueType == null)
-						throw new MappingConfigurationException(String.Format("The type '{0}' cannot be found - are you missing a '<Using>'?", valueTypeName));
+						throw new MappingConfigurationException(String.Format("The type '{0}' cannot be found - are you missing a '<Using>'?", valueTypeName), "Map", xml);
 				}
 				else
 				{
@@ -213,10 +213,23 @@ namespace Edge.Data.Pipeline.Mapping
 
 		}
 
-		
-		private void Apply(object targetObject)
+
+		protected override void OnApply(object target, MappingContext context)
 		{
-			
+			// Read values as necessary
+			foreach (ReadCommand read in this.InheritedReads.Values)
+			{
+				// Read from source if necessary
+				object fieldValue;
+				if (!context.ReadFields.TryGetValue(read.Field, out fieldValue))
+				{
+					if (this.Root.OnFieldRead == null)
+						throw new MappingException("Cannot apply mappings because the OnFieldRead delegate is not set.");
+
+					fieldValue = this.Root.OnFieldRead(read.Field);
+					context.ReadFields.Add(read.Field, fieldValue);
+				}
+			}
 		}
 	}
 }
