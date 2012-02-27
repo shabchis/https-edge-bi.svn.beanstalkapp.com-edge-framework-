@@ -46,20 +46,22 @@ namespace Edge.Core.Utilities
 
 					");
 					
+					foreach(KeyValuePair<string, Delegate> function in this.Externals)
+					{
+						code.AppendFormat(@"
+					{0} {1}(params object[] args)
+					{{
+						return ({0}) ExternalExecute(""{1}"", args);
+					}}
+						", function.Value.Method.ReturnType.FullName, function.Key);
+					}
+
+
 					foreach (EvaluatorExpression expression in this.Expressions)
 					{
 						code.Append(expression);
 					}
 
-					foreach(KeyValuePair<string, Delegate> function in this.Externals)
-					{
-						code.AppendFormat(@"
-						{0} {1}(params object[] args)
-						{
-							ExternalExecute(""{1}"", args);
-						}
-						", function.Value.Method.ReturnType, function.Key);
-					}
 
 					code.Append(@"
 				}
@@ -68,7 +70,9 @@ namespace Edge.Core.Utilities
 
 			CSharpCodeProvider comp = new CSharpCodeProvider();
 			CompilerParameters cp = new CompilerParameters();
-			cp.ReferencedAssemblies.Add("system.dll");
+			cp.ReferencedAssemblies.Add("System.dll");
+			cp.ReferencedAssemblies.Add("System.Core.dll");
+			cp.ReferencedAssemblies.Add("Microsoft.CSharp.dll");
 			cp.GenerateExecutable = false;
 			cp.GenerateInMemory = true; 
 			CompilerResults cr = comp.CompileAssemblyFromSource(cp, code.ToString());
@@ -77,7 +81,7 @@ namespace Edge.Core.Utilities
 				StringBuilder error = new StringBuilder();
 				foreach (CompilerError err in cr.Errors)
 				{
-					error.AppendFormat("{0}\n", err.ErrorText);
+					error.AppendFormat("{0} (line {1})\n", err.ErrorText, err.Line);
 				}
 				throw new Exception("Error compiling expression:\n\n" + error.ToString());
 			}
@@ -135,6 +139,8 @@ namespace Edge.Core.Utilities
 		public readonly string Name;
 		public readonly string Expression;
 		public readonly Type ReturnType;
+		public string LineFile;
+		public int LineNumber;
 		public readonly EvaluatorVariable[] Variables;
 
 		public EvaluatorExpression(string name, string expression, Type returnType): this(name, expression, returnType, null)
@@ -165,15 +171,18 @@ namespace Edge.Core.Utilities
 			}
 
 			return string.Format(@"
-				public {0} {1}({2})
-				{{
-					return {3};
-				}}
+					{4}
+					public {0} {1}({2})
+					{{
+						return {3};
+					}}
 				",
 				ReturnType.FullName,
 				Name,
 				variablesOutput,
-				Expression);
+				Expression,
+				LineFile != null & LineNumber > 0 ? String.Format("#line {0} \"{1}\"", LineNumber, LineFile) : null
+				);
 		}
 
 	}
