@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Dynamic;
 
 namespace Edge.Data.Pipeline.Mapping
 {
@@ -96,5 +97,49 @@ namespace Edge.Data.Pipeline.Mapping
 			return _varName.IsMatch(name);
 		}
 
+		internal void Read(MappingContext context)
+		{
+			// Read from source if necessary
+			object rawValue;
+			if (!context.FieldValues.TryGetValue(this.Field, out rawValue))
+			{
+				if (context.Root.OnFieldRead == null)
+					throw new MappingException("MappingConfiguration.OnFieldRead is not set - you must supply a function that will return the requested field value.");
+
+				rawValue = context.Root.OnFieldRead(this.Field);
+				context.FieldValues.Add(this.Field, rawValue);
+			}
+
+			ReadResult result;
+			if (!context.ReadResults.TryGetValue(this, out result))
+			{
+				// Process regular expressions
+				result = new ReadResult() { FieldValue = rawValue.ToString() };
+				Match m = _regex.Match(result.FieldValue);
+				if (_regex != null && rawValue != null)
+				{
+					if (m.Success)
+					{
+						foreach (string fragment in this.RegexFragments)
+						{
+							Group g = m.Groups[fragment];
+							if (g.Success)
+								((dynamic)result)[fragment] = g.Value;
+						}
+					}
+				}
+				context.ReadResults.Add(this, result);
+			}
+		}
+	}
+
+	public class ReadResult : DynamicDictionaryObject	
+	{
+		public string FieldValue;
+
+		public override string ToString()
+		{
+			return FieldValue;
+		}
 	}
 }

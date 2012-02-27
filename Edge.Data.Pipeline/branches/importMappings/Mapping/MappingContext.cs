@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Dynamic;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	internal class MappingContext
+	public class MappingContext
 	{
-		public Dictionary<string, object> ReadFields = new Dictionary<string, object>();
+		public MappingConfiguration Root;
+
+		internal Dictionary<string, object> FieldValues = new Dictionary<string, object>();
+		internal Dictionary<ReadCommand, ReadResult> ReadResults = new Dictionary<ReadCommand, ReadResult>();
 	}
 }

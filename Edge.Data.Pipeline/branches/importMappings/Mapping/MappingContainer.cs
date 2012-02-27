@@ -68,7 +68,7 @@ namespace Edge.Data.Pipeline.Mapping
 			if (!this.TargetType.IsAssignableFrom(target.GetType()))
 				throw new ArgumentException(String.Format("This mapping can only be applied to objects of type {0}.", this.TargetType), "target");
 
-			this.OnApply(target, new MappingContext());
+			this.OnApply(target, new MappingContext() { Root = this.Root });
 		}
 
 		protected virtual void OnApply(object target, MappingContext context)
