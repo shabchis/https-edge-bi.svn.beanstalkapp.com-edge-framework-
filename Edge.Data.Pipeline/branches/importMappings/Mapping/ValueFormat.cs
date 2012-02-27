@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// <summary>
 		/// 
 		/// </summary>
-		public List<object> Components { get; private set; }
+		public List<ValueComponent> Components { get; private set; }
 
 		/// <summary>
 		/// 
@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline.Mapping
 		internal ValueFormat(MapCommand parent, string expression, XmlReader xml)
 		{
 			this.Parent = parent;
-			this.Components = new List<object>();
+			this.Components = new List<ValueComponent>();
 
 			int indexLast = 0;
 			Match comp = _componentParser.Match(expression);
@@ -66,15 +66,28 @@ namespace Edge.Data.Pipeline.Mapping
 
 		}
 
-		public string Output(MappingContext context)
+		public object GetOutput(MappingContext context)
 		{
-			var output = new StringBuilder();
-			
-			foreach (ValueComponent component in this.Components)
-				output.Append(component.Ouput(context));
+			object output;
+			if (this.Components.Count > 1)
+			{
+				var asString = new StringBuilder();
 
-			string value = output.ToString();
-			return value;
+				foreach (ValueComponent component in this.Components)
+					asString.Append(component.GetOuput(context));
+
+				output = asString.ToString();
+			}
+			else if (this.Components.Count == 1)
+			{
+				output = this.Components[0].GetOuput(context);
+			}
+			else
+			{
+				output = null;
+			}
+
+			return output;
 		}
 	}
 
@@ -94,7 +107,7 @@ namespace Edge.Data.Pipeline.Mapping
 			this.Parent = parent;
 		}
 
-		public abstract string Ouput(MappingContext context);
+		public abstract object GetOuput(MappingContext context);
 	}
 
 	/// <summary>
@@ -132,14 +145,19 @@ namespace Edge.Data.Pipeline.Mapping
 			this.Parent.Root.Eval.Expressions.Add(this.Expression);
 		}
 
-		public override string Ouput(MappingContext context)
+		public override object GetOuput(MappingContext context)
 		{
-			throw new NotImplementedException();
-		}
+			// Build a list of vars, including null if nothing found
+			var evalVars = new List<object>();
+			foreach (ReadCommand read in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.Name))
+			{
+				ReadResult result;
+				if (!context.ReadResults.TryGetValue(read, out result))
+					result = null;
+				evalVars.Add(result);
+			}
 
-		public object Eval(MappingContext context)
-		{
-			return this.Parent.Root.Eval.Evaluate<object>(_evalID);//, context.EvalVariables);
+			return this.Parent.Root.Eval.Evaluate<object>(_evalID, evalVars.ToArray());
 		}
 
 	}
@@ -156,9 +174,9 @@ namespace Edge.Data.Pipeline.Mapping
 			this.Value = value;
 		}
 
-		public override string Ouput(MappingContext context)
+		public override object GetOuput(MappingContext context)
 		{
-			throw new NotImplementedException();
+			return this.Value;
 		}
 	}
 

@@ -216,20 +216,111 @@ namespace Edge.Data.Pipeline.Mapping
 
 		protected override void OnApply(object target, MappingContext context)
 		{
-			// Read values as necessary
+			// .......................................
+			// Process read commands
 			foreach (ReadCommand read in this.InheritedReads.Values)
-			{
-				// Read from source if necessary
-				object fieldValue;
-				if (!context.ReadFields.TryGetValue(read.Field, out fieldValue))
-				{
-					if (this.Root.OnFieldRead == null)
-						throw new MappingException("Cannot apply mappings because the OnFieldRead delegate is not set.");
+				read.Read(context);
 
-					fieldValue = this.Root.OnFieldRead(read.Field);
-					context.ReadFields.Add(read.Field, fieldValue);
+			if (this.TargetMember != null)
+			{
+				PropertyInfo property = this.TargetMember is PropertyInfo ? (PropertyInfo)this.TargetMember : null;
+				FieldInfo field = this.TargetMember is FieldInfo ? (FieldInfo)this.TargetMember : null;
+
+				// .......................................
+				// Get the command output
+				object output;
+				try { output = this.Value.GetOutput(context); }
+				catch (Exception ex)
+				{
+					throw new MappingException(String.Format("Failed to get the output of the map command for {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+				}
+
+				// .......................................
+				// Convert to required value type
+
+				object value;
+				if (output != null && !this.ValueType.IsAssignableFrom(output.GetType()))
+				{
+					// Try a converter when incompatible types are detected
+					TypeConverter converter = TypeDescriptor.GetConverter(output);
+					if (!converter.CanConvertTo(this.ValueType))
+						throw new MappingException(String.Format("Cannot convert '{0}' to {1} for applying to {2}.{3}.", output, this.ValueType, this.TargetType.Name, this.TargetMember.Name));
+					value = converter.ConvertFrom(output);
+				}
+				else
+				{
+					// Types might be compatible, just try to assign it
+					value = output;
+				}
+
+				// .......................................
+				// Check for indexers
+
+				object indexer = null;
+				if (this.IndexerType != null)
+				{
+					if (this.Indexer.Equals(MapCommand.EmptyIndexer))
+					{
+						// Add to end of list
+						IList list;
+						try
+						{
+							list = property != null ?
+							  (IList)property.GetValue(target, null) :
+							  (IList)field.GetValue(target);
+						}
+						catch (InvalidCastException ex)
+						{
+							throw new MappingException(String.Format("{0}.{1} is not an IList and cannot be set with the \"[]\" notation.", this.TargetType.Name, this.TargetMember.Name), ex);
+						}
+						catch (Exception ex)
+						{
+							throw new MappingException(String.Format("Error while mapping to {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+						}
+
+						list.Add(value);
+					}
+					else
+					{
+						// Actual indexer
+						if (this.Indexer is EvalComponent)
+						{
+							indexer = ((EvalComponent)this.Indexer).GetOuput(context);
+						}
+						else
+						{
+							indexer = this.Indexer;
+						}
+					}
+				}
+
+				// .......................................
+				// Apply to target member
+
+				try
+				{
+					if (property != null)
+					{
+						// Apply to the property
+						property.SetValue(target, value, indexer == null ? null : new object[] { indexer });
+
+					}
+					else if (field != null)
+					{
+						// Apply to the field
+						field.SetValue(target, value);
+					}
+				}
+				catch (Exception ex)
+				{
+					throw new MappingException(String.Format("Failed to map '{0}' to {1}.{2}. See inner exception for details.", value, this.TargetType.Name, this.TargetMember.Name), ex);
 				}
 			}
+
+			// .......................................
+			// Trickle down
+
+			base.OnApply(target, context);
 		}
 	}
 }

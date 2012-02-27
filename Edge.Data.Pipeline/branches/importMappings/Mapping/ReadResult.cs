@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	public class ReadResult: DynamicDictionaryObject
+	public class ProcessedField: DynamicDictionaryObject
 	{
 		public string Result;
 
