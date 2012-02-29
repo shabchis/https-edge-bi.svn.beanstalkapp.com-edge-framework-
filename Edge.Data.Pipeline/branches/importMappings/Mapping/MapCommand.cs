@@ -51,11 +51,11 @@ namespace Edge.Data.Pipeline.Mapping
 		public bool IsImplicit { get; private set; }
 
 		// Fun with regex (http://xkcd.com/208/)
-		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])?::((?<valueType>[a-z_][a-z0-9_]*))*)",
+		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])?(::(?<valueType>[a-z_][a-z0-9_]*))*)",
 			RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
 		// Used to indicate that a target such as Creatives[] means add to collection if possible
-		private static object EmptyIndexer = new object();
+		private static object ListAddingMode = new object();
 
 		/// <summary>
 		/// Constructor is private.
@@ -68,7 +68,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// Creates a new map command for a target type, parsing the supplied expression.
 		/// </summary>
 		/// <param name="returnInnermost">If true, returns the last nested map created if the expression has multiple parts. If false, returns the top level map.</param>
-		internal static MapCommand New(MappingContainer container, string targetExpression, XmlReader xml, bool returnInnermost = false)
+		internal static MapCommand CreateChild(MappingContainer container, string targetExpression, XmlReader xml, bool returnInnermost = false)
 		{
 			if (container == null)
 				throw new ArgumentNullException("container");
@@ -76,9 +76,12 @@ namespace Edge.Data.Pipeline.Mapping
 			var map = new MapCommand()
 			{
 				Parent = container,
-				TargetType = container.TargetType,
+				TargetType = container is MapCommand ? ((MapCommand)container).ValueType : container.TargetType,
 				Root = container.Root
 			};
+			
+			// Add to the parent
+			container.MapCommands.Add(map);
 
 			// Keep track of the first one created
 			var outermost = map;
@@ -163,7 +166,7 @@ namespace Edge.Data.Pipeline.Mapping
 						if (!typeof(IList).IsAssignableFrom(memberType))
 							throw new MappingConfigurationException(String.Format("Invalid indexer defined for target '{0}'.", targetMemberName), "Map", xml);
 
-						map.Indexer = MapCommand.EmptyIndexer;
+						map.Indexer = MapCommand.ListAddingMode;
 					}
 				}
 
@@ -221,6 +224,11 @@ namespace Edge.Data.Pipeline.Mapping
 			foreach (ReadCommand read in this.InheritedReads.Values)
 				read.Read(context);
 
+			// .......................................
+			// Apply mapping operation
+
+			object nextTarget = target;
+
 			if (this.TargetMember != null)
 			{
 				PropertyInfo property = this.TargetMember is PropertyInfo ? (PropertyInfo)this.TargetMember : null;
@@ -228,27 +236,60 @@ namespace Edge.Data.Pipeline.Mapping
 
 				// .......................................
 				// Get the command output
-				object output;
-				try { output = this.Value.GetOutput(context); }
-				catch (Exception ex)
+
+				object output = null;
+				if (this.Value != null)
 				{
-					throw new MappingException(String.Format("Failed to get the output of the map command for {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+					try { output = this.Value.GetOutput(context); }
+					catch (Exception ex)
+					{
+						throw new MappingException(String.Format("Failed to get the output of the map command for {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+					}
 				}
 
 				// .......................................
-				// Convert to required value type
+				// Get final value
 
-				object value;
+				object value = null;
 				if (output != null && !this.ValueType.IsAssignableFrom(output.GetType()))
 				{
+
 					// Try a converter when incompatible types are detected
-					TypeConverter converter = TypeDescriptor.GetConverter(output);
-					if (!converter.CanConvertTo(this.ValueType))
-						throw new MappingException(String.Format("Cannot convert '{0}' to {1} for applying to {2}.{3}.", output, this.ValueType, this.TargetType.Name, this.TargetMember.Name));
-					value = converter.ConvertFrom(output);
+					TypeConverter converter = TypeDescriptor.GetConverter(this.ValueType);
+					if (converter != null && converter.CanConvertFrom(output.GetType()))
+					{
+						try { value = converter.ConvertFrom(output); }
+						catch (Exception ex)
+						{
+							throw new MappingException(String.Format("Error while converting, '{0}' to {1} for applying to {2}.{3}, using TypeConverter.", output, this.ValueType, this.TargetType.Name, this.TargetMember.Name), ex);
+						}
+					}
+					else // no type converter available
+					{
+						// Make C# 4.0 do all the implicit/explicit conversion work at runtime
+						// social.msdn.microsoft.com/Forums/en-US/csharplanguage/thread/fe14d396-bc35-4f98-851d-ce3c8663cd79/
+
+						MethodInfo dynamicCastMethod = CastGenericMethod.MakeGenericMethod(this.ValueType);
+						try { value = dynamicCastMethod.Invoke(null, new object[] { output }); }
+						catch (Exception ex)
+						{
+							throw new MappingException(String.Format("Error while converting, '{0}' to {1} for applying to {2}.{3}. using dynamic cast.", output, this.ValueType, this.TargetType.Name, this.TargetMember.Name), ex);
+						}
+					}
 				}
 				else
 				{
+					// Try to create a new 
+					if (output == null && this.Value == null)
+					{
+						// Try to create an instance of the value type, since nothing was specified
+						try { output = Activator.CreateInstance(this.ValueType); }
+						catch (Exception ex)
+						{
+							throw new MappingException(String.Format("Cannot create a new instance of {0} for applying to {2}.{3}. (Did you forget the 'Value' attribute?)", this.ValueType, this.TargetType.Name, this.TargetMember.Name), ex);
+						}
+					}
+
 					// Types might be compatible, just try to assign it
 					value = output;
 				}
@@ -256,32 +297,45 @@ namespace Edge.Data.Pipeline.Mapping
 				// .......................................
 				// Check for indexers
 
-				object indexer = null;
-				if (this.IndexerType != null)
+				if (Object.Equals(this.Indexer, MapCommand.ListAddingMode))
 				{
-					if (this.Indexer.Equals(MapCommand.EmptyIndexer))
+					IList list;
+					try
 					{
-						// Add to end of list
-						IList list;
-						try
-						{
-							list = property != null ?
-							  (IList)property.GetValue(target, null) :
-							  (IList)field.GetValue(target);
-						}
-						catch (InvalidCastException ex)
-						{
-							throw new MappingException(String.Format("{0}.{1} is not an IList and cannot be set with the \"[]\" notation.", this.TargetType.Name, this.TargetMember.Name), ex);
-						}
+						// Try to get the list
+						list = property != null ?
+							(IList)property.GetValue(target, null) :
+							(IList)field.GetValue(target);
+					}
+					catch (InvalidCastException ex)
+					{
+						throw new MappingException(String.Format("{0}.{1} is not an IList and cannot be set with the \"[]\" notation.", this.TargetType.Name, this.TargetMember.Name), ex);
+					}
+					catch (Exception ex)
+					{
+						throw new MappingException(String.Format("Error while mapping to {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+					}
+
+					if (list == null)
+					{
+						// List is empty, create a new list
+						Type listType = property != null ? property.PropertyType : field.FieldType;
+						try { list = (IList)Activator.CreateInstance(listType); }
 						catch (Exception ex)
 						{
-							throw new MappingException(String.Format("Error while mapping to {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+							throw new MappingException(String.Format("Cannot create a new list of type {0} for applying to {2}.{3}. To avoid this error, make sure the list is not null before applying the mapping.", listType, this.TargetType.Name, this.TargetMember.Name), ex);
 						}
-
-						list.Add(value);
 					}
-					else
+
+					// Add to end of list
+					list.Add(value);
+				}
+				else
+				{
+					object indexer = null;
+					if (this.IndexerType != null)
 					{
+
 						// Actual indexer
 						if (this.Indexer is EvalComponent)
 						{
@@ -291,36 +345,47 @@ namespace Edge.Data.Pipeline.Mapping
 						{
 							indexer = this.Indexer;
 						}
+
 					}
-				}
 
-				// .......................................
-				// Apply to target member
+					// .......................................
+					// Apply to target member
 
-				try
-				{
-					if (property != null)
+					try
 					{
-						// Apply to the property
-						property.SetValue(target, value, indexer == null ? null : new object[] { indexer });
+						if (property != null)
+						{
+							// Apply to the property
+							property.SetValue(target, value, this.IndexerType == null ? null : new object[] { indexer });
 
+						}
+						else if (field != null)
+						{
+							// Apply to the field
+							field.SetValue(target, value);
+						}
 					}
-					else if (field != null)
+					catch (Exception ex)
 					{
-						// Apply to the field
-						field.SetValue(target, value);
+						throw new MappingException(String.Format("Failed to map '{0}' to {1}.{2}. See inner exception for details.", value, this.TargetType.Name, this.TargetMember.Name), ex);
 					}
 				}
-				catch (Exception ex)
-				{
-					throw new MappingException(String.Format("Failed to map '{0}' to {1}.{2}. See inner exception for details.", value, this.TargetType.Name, this.TargetMember.Name), ex);
-				}
+
+				nextTarget = value;
 			}
+
 
 			// .......................................
 			// Trickle down
 
-			base.OnApply(target, context);
+			base.OnApply(nextTarget, context);
 		}
+
+
+		public static T Cast<T>(dynamic o)
+		{
+			return (T)o;
+		}
+		static MethodInfo CastGenericMethod = typeof(MapCommand).GetMethod("Cast");
 	}
 }

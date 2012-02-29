@@ -115,9 +115,10 @@ namespace Edge.Data.Pipeline.Mapping
 			{
 				// Process regular expressions
 				result = new ReadResult() { FieldValue = rawValue.ToString() };
-				Match m = _regex.Match(result.FieldValue);
+				
 				if (_regex != null && rawValue != null)
 				{
+					Match m = _regex.Match(result.FieldValue);
 					if (m.Success)
 					{
 						foreach (string fragment in this.RegexFragments)
@@ -140,6 +141,11 @@ namespace Edge.Data.Pipeline.Mapping
 		public override string ToString()
 		{
 			return FieldValue;
+		}
+
+		public static implicit operator string(ReadResult result)
+		{
+			return result == null ? null : result.ToString();
 		}
 	}
 }
