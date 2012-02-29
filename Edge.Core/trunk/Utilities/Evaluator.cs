@@ -17,10 +17,10 @@ namespace Edge.Core.Utilities
 		const string DefaultMethodName = "Expression";
 		object _compiled = null;
 
-		public readonly List<EvaluatorExpression> Expressions = new List<EvaluatorExpression>();
-		public readonly Dictionary<string, Delegate> Externals = new Dictionary<string, Delegate>();
-		public readonly List<string> ReferencedAssemblies = new List<string>();
-		public readonly List<string> UsingNamespaces = new List<string>();
+		public List<EvaluatorExpression> Expressions; //= new List<EvaluatorExpression>();
+		public Dictionary<string, Delegate> ExternalFunctions; //= new Dictionary<string, Delegate>();
+		public List<string> ReferencedAssemblies; //= new List<string>();
+		public List<string> UsingNamespaces;// = new List<string>();
 
 		public void Compile()
 		{
@@ -42,11 +42,11 @@ namespace Edge.Core.Utilities
 			{
 				public class Eval: MarshalByRefObject
 				{			
-					public event Func<string, object[], object> ExternalExecute;
+					public Func<string, object[], object> ExternalExecute;
 
 					");
 					
-					foreach(KeyValuePair<string, Delegate> function in this.Externals)
+					foreach(KeyValuePair<string, Delegate> function in this.ExternalFunctions)
 					{
 						code.AppendFormat(@"
 					{0} {1}(params object[] args)
@@ -73,6 +73,9 @@ namespace Edge.Core.Utilities
 			cp.ReferencedAssemblies.Add("System.dll");
 			cp.ReferencedAssemblies.Add("System.Core.dll");
 			cp.ReferencedAssemblies.Add("Microsoft.CSharp.dll");
+			foreach(string referencedAssembly in this.ReferencedAssemblies)
+				cp.ReferencedAssemblies.Add(referencedAssembly);
+
 			cp.GenerateExecutable = false;
 			cp.GenerateInMemory = true; 
 			CompilerResults cr = comp.CompileAssemblyFromSource(cp, code.ToString());
@@ -88,6 +91,43 @@ namespace Edge.Core.Utilities
 			
 			Assembly a = cr.CompiledAssembly;
 			_compiled = a.CreateInstance("Edge.Runtime.Eval");
+
+			// Wireup external function executer
+			if (this.ExternalFunctions != null)
+			{
+				FieldInfo externalDelegate = _compiled.GetType().GetField("ExternalExecute");
+				externalDelegate.SetValue(_compiled, new Func<string, object[], object>(ExternalExecute));
+			}
+		}
+
+		private object ExternalExecute(string name, object[] args)
+		{
+			Delegate func;
+			if (!this.ExternalFunctions.TryGetValue(name, out func))
+				throw new EvaluatorException(String.Format("Could not find an external function named '{0}'.", name));
+			
+			object returnValue;
+
+			try
+			{
+				// TODO: add more performance boosters here for common method signatures - to avoid dynamic invoke
+				// (not sure this acutally improves anything, should be benchmarked)
+				if (func is Func<string, string>)
+				{
+					returnValue = ((Func<string, string>)func).Invoke((string)args[0]);
+				}
+				else
+				{
+					// Using dynamic invoke incurs a performance penalty and is last resort.
+					returnValue = func.DynamicInvoke(args);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new EvaluatorException(String.Format("Failed to execute the external function {0}. See inner exception for details.", name), ex);
+			}
+
+			return returnValue;
 		}
 		
 
