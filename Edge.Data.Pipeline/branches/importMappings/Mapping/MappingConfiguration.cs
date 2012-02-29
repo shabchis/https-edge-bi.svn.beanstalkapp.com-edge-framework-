@@ -19,9 +19,15 @@ namespace Edge.Data.Pipeline.Mapping
 
 		private List<EvaluatorExpression> _evalExpressions = new List<EvaluatorExpression>();
 		internal int NextEvalID = 0;
-		internal Evaluator Eval = new Evaluator();
+		internal Evaluator Eval = new Evaluator()
+		{
+			Expressions = new List<EvaluatorExpression>(),
+			ExternalFunctions = new Dictionary<string,Delegate>(),
+			ReferencedAssemblies = new List<string>(),
+			UsingNamespaces = new List<string>()
+		};
 
-		public FieldReadDelegate OnFieldRead = null;
+		public Func<string,object> OnFieldRead = null;
 
 		public MappingConfiguration()
 		{
@@ -90,10 +96,11 @@ namespace Edge.Data.Pipeline.Mapping
 
 			// Add external methods to the evaluator
 			foreach (var external in this.ExternalMethods)
-				this.Eval.Externals.Add(external.Key, external.Value);
+				this.Eval.ExternalFunctions.Add(external.Key, external.Value);
 
 			// Compile the evaluator
-			this.Eval.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().FullName);
+			this.Eval.ReferencedAssemblies.Add("Edge.Core.dll");
+			this.Eval.ReferencedAssemblies.Add("Edge.Data.Pipeline.dll");
 			this.Eval.Compile();
 
 		}
@@ -158,7 +165,7 @@ namespace Edge.Data.Pipeline.Mapping
 						if (to == null)
 							throw new MappingConfigurationException("Missing 'To' attribute.", "Map", element);
 
-						MapCommand map = MapCommand.New(parent, to, element, returnInnermost: true);
+						MapCommand map = MapCommand.CreateChild(parent, to, element, returnInnermost: true);
 
 						// Handle implicit read sources
 						ReadCommand implicitRead = null;
@@ -217,9 +224,6 @@ namespace Edge.Data.Pipeline.Mapping
 						// Recursively add child nodes
 						if (!element.IsEmptyElement)
 							DeserializeMappings(config, map, element);
-
-						// Add to the parent
-						parent.MapCommands.Add(map);
 					}
 					else
 					{
@@ -248,6 +252,4 @@ namespace Edge.Data.Pipeline.Mapping
 
 
 	}
-
-	public delegate object FieldReadDelegate(string field);
 }

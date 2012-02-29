@@ -8,5 +8,6 @@ namespace Edge.Data.Objects
 	public class Channel
 	{
 		public int ID;
+		public string Name;
 	}
 }
