@@ -505,7 +505,7 @@ namespace Edge.Core.Services
 				try
 				{
 					ServiceStart start = (ServiceStart) _appDomain.CreateInstanceFromAndUnwrap(
-						typeof(ServiceStart).Assembly.GetName().Name,
+						typeof(ServiceStart).Assembly.GetName().Name+".dll",
 						typeof(ServiceStart).FullName,
 						false,
 						BindingFlags.Default,
