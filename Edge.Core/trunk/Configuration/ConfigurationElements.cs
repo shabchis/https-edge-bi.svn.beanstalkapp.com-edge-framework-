@@ -1560,7 +1560,11 @@ namespace Edge.Core.Configuration
 			XmlTextReader reader = new XmlTextReader(stringReader);
 			reader.ReadToFollowing("ActiveService");
 			this.DeserializeElement(reader, false);
-			this.ResolveReferences(EdgeServicesConfiguration.Current.Services, null);
+
+			if (EdgeServicesConfiguration.Current != null)
+				this.ResolveReferences(EdgeServicesConfiguration.Current.Services, null);
+			else
+				throw new SerializationException("Cannot deserialize ActiveServiceElement because EdgeServicesConfiguration.Load has not been called yet.");
 
 			//_options = (Dictionary<string, string>)info.GetValue("options", Dictionary<string, string>);
 		}
