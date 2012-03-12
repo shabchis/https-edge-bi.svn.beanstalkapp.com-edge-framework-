@@ -87,7 +87,7 @@ namespace Edge.Core.Configuration
 			string val = null;
 
 			// Apply default configuration if necessary
-			configFile = configFile ?? EdgeServicesConfiguration.Current.ConfigurationFile;
+			configFile = configFile ?? (EdgeServicesConfiguration.Current != null ? EdgeServicesConfiguration.Current.ConfigurationFile : null);
 
 			// Go up the class hierarchy searching for requested config var
 			while (val == null && prefix != null)
