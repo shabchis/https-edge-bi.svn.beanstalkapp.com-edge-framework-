@@ -27,6 +27,13 @@ namespace Edge.Data.Pipeline
 				this.Definitions = definitions;
 		}
 
+		/// <summary>
+		/// Returns a segment value that matches patterns in the auto segment configuration, or null if nothing is found.
+		/// </summary>
+		/// <param name="segment">The segment type to extract (uses this segment's configuration).</param>
+		/// <param name="source">The string to search.</param>
+		/// <param name="defaultFragmentValues">If not found using the regex pattern, use these values.</param>
+		/// <returns></returns>
 		public SegmentValue ExtractSegmentValue(Segment segment, string source, Dictionary<string,string> defaultFragmentValues = null)
 		{
 			if (this.Definitions == null)
