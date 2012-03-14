@@ -53,12 +53,13 @@ namespace Edge.Data.Pipeline
 				AutoSegmentPattern pattern = def.Patterns[p];
 
 				MatchCollection matches = pattern.Regex.Matches(source);
+				int fragmentCounter = 0;
 				foreach (Match match in matches)
 				{
 					if (!match.Success)
 						continue;
 
-					int fragmentCounter = 0;
+					
 					for(int g = 0; g < match.Groups.Count; g++)
 					{
 						Group group = match.Groups[g];
