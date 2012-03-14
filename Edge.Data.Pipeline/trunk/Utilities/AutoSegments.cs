@@ -27,7 +27,7 @@ namespace Edge.Data.Pipeline
 				this.Definitions = definitions;
 		}
 
-		public SegmentValue ExtractSegmentValue(Segment segment, string source)
+		public SegmentValue ExtractSegmentValue(Segment segment, string source, Dictionary<string,string> defaultFragmentValues = null)
 		{
 			if (this.Definitions == null)
 				return null;
@@ -70,6 +70,13 @@ namespace Edge.Data.Pipeline
 						// Save the fragment
 						fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
 					}
+				}
+
+				if (defaultFragmentValues != null)
+				{
+					foreach (var pair in defaultFragmentValues)
+						if (!fragmentValues.ContainsKey(pair.Key))
+							fragmentValues.Add(pair.Key, pair.Value);
 				}
 
 				// found all the values, create a segment value
