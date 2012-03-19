@@ -699,6 +699,13 @@ namespace Edge.Core.Services
 					configuration.Options.Add(parentOption.Key, parentOption.Value);
 			}
 
+			// Add parent extensions, without overriding child options with the same name
+			foreach (var parentExtension in this.Configuration.Extensions)
+			{
+				if (!configuration.Extensions.ContainsKey(parentExtension.Key))
+					configuration.Extensions.Add(parentExtension.Key, parentExtension.Value);
+			}
+
 			// Generate a child instance
 			ServiceInstance child = Service.CreateInstance(configuration, this, this.AccountID);
 
