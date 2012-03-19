@@ -95,7 +95,12 @@ namespace Edge.Data.Pipeline.Configuration
 
 		protected override object GetElementKey(ConfigurationElement element)
 		{
-			return element.ElementInformation.LineNumber;
+			return ((AutoSegmentPattern)element).Name ?? element.ElementInformation.LineNumber.ToString();
+		}
+
+		public AutoSegmentPattern this[string name]
+		{
+			get { return (AutoSegmentPattern) base.BaseGet(name); }
 		}
 	}
 
@@ -126,6 +131,13 @@ namespace Edge.Data.Pipeline.Configuration
 		{
 			get { return FixFormat("Value", (string) this["Value"], false); }
 			set { FixFormat("Value", value, true); }
+		}
+
+		[ConfigurationProperty("Name", DefaultValue = null)]
+		public string Name
+		{
+			get { return FixFormat("Name", (string)this["Name"], false); }
+			set { FixFormat("Name", value, true); }
 		}
 
 		[ConfigurationProperty("OriginalID")]
