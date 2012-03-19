@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline
 		/// <param name="source">The string to search.</param>
 		/// <param name="defaultFragmentValues">If not found using the regex pattern, use these values.</param>
 		/// <returns></returns>
-		public SegmentValue ExtractSegmentValue(Segment segment, string source, Dictionary<string,string> defaultFragmentValues = null)
+		public SegmentValue ExtractSegmentValue(Segment segment, string source, string patternName =null, Dictionary<string,string> defaultFragmentValues = null)
 		{
 			if (this.Definitions == null)
 				return null;
@@ -50,49 +50,59 @@ namespace Edge.Data.Pipeline
 				throw new ArgumentException(String.Format("The segment '{0}' was not found in the {1} configuration.", segment.Name, AutoSegmentDefinitionCollection.ExtensionName), "segmentName");
 
 			var fragmentValues = new Dictionary<string,string>();
+			SegmentValue value = null;
 
-			// Find a definition that works
-			for (int p = 0; p < def.Patterns.Count; p++)
+			if (patternName == null)
 			{
-				// reset because previous iteration found nothing
-				fragmentValues.Clear();
-
-				AutoSegmentPattern pattern = def.Patterns[p];
-
-				MatchCollection matches = pattern.Regex.Matches(source);
-				int fragmentCounter = 0;
-				foreach (Match match in matches)
+				// Find a definition that works
+				for (int p = 0; p < def.Patterns.Count && value == null; p++)
 				{
-					if (!match.Success)
-						continue;
-
-					
-					for(int g = 0; g < match.Groups.Count; g++)
-					{
-						Group group = match.Groups[g];
-						string groupName = pattern.RawGroupNames[g];
-						if (!group.Success || !AutoSegmentPattern.IsValidFragmentName(groupName))
-							continue;
-
-						// Save the fragment
-						fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
-					}
+					// reset because previous iteration found nothing
+					fragmentValues.Clear();
+					value = ExtractSegmentValueFromPattern(segment, source, defaultFragmentValues, fragmentValues, def.Patterns[p]);
 				}
-
-				if (defaultFragmentValues != null)
-				{
-					foreach (var pair in defaultFragmentValues)
-						if (!fragmentValues.ContainsKey(pair.Key))
-							fragmentValues.Add(pair.Key, pair.Value);
-				}
-
-				// found all the values, create a segment value
-				if (fragmentValues.Count == pattern.Fragments.Length)
-					return CreateValueFromFragments(segment, fragmentValues, pattern);
+			}
+			else
+			{
+				value = ExtractSegmentValueFromPattern(segment, source, defaultFragmentValues, fragmentValues, def.Patterns[patternName]);
 			}
 
-			// found nothing
-			return null;
+			return value;
+		}
+
+		private SegmentValue ExtractSegmentValueFromPattern(Segment segment, string source, Dictionary<string, string> defaultFragmentValues, Dictionary<string, string> fragmentValues, AutoSegmentPattern pattern)
+		{
+			MatchCollection matches = pattern.Regex.Matches(source);
+			int fragmentCounter = 0;
+			foreach (Match match in matches)
+			{
+				if (!match.Success)
+					continue;
+
+				for (int g = 0; g < match.Groups.Count; g++)
+				{
+					Group group = match.Groups[g];
+					string groupName = pattern.RawGroupNames[g];
+					if (!group.Success || !AutoSegmentPattern.IsValidFragmentName(groupName))
+						continue;
+
+					// Save the fragment
+					fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
+				}
+			}
+
+			if (defaultFragmentValues != null)
+			{
+				foreach (var pair in defaultFragmentValues)
+					if (!fragmentValues.ContainsKey(pair.Key))
+						fragmentValues.Add(pair.Key, pair.Value);
+			}
+
+			// found all the values, create a segment value
+			if (fragmentValues.Count == pattern.Fragments.Length)
+				return CreateValueFromFragments(segment, fragmentValues, pattern);
+			else
+				return null;
 		}
 
 		public Dictionary<Segment, SegmentValue> ExtractSegmentValues(Segment[] segments, string source)
