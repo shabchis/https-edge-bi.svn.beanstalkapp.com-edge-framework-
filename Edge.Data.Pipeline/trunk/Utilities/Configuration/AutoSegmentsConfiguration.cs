@@ -37,8 +37,8 @@ namespace Edge.Data.Pipeline.Configuration
 		{
 			get { return (AutoSegmentDefinition)this.BaseGet(name); }
 		}
-		
-		[ConfigurationProperty("IsEnabled", DefaultValue=true, IsRequired=false)]
+
+		[ConfigurationProperty("IsEnabled", DefaultValue = true, IsRequired = false)]
 		public bool IsEnabled
 		{
 			get { return (bool)base["IsEnabled"]; }
@@ -95,12 +95,29 @@ namespace Edge.Data.Pipeline.Configuration
 
 		protected override object GetElementKey(ConfigurationElement element)
 		{
-			return ((AutoSegmentPattern)element).Name ?? element.ElementInformation.LineNumber.ToString();
+			if (string.IsNullOrEmpty(((AutoSegmentPattern)element).Name))
+			return  element.ElementInformation.LineNumber.ToString();
+			else 
+				return ((AutoSegmentPattern)element).Name;
 		}
 
 		public AutoSegmentPattern this[string name]
 		{
-			get { return (AutoSegmentPattern) base.BaseGet(name); }
+
+			get
+			{
+				AutoSegmentPattern patt = null;
+				foreach (AutoSegmentPattern item in this)
+				{
+					if (item.Name == name)
+					{
+						patt = item;
+						break;
+					}
+
+				}
+				return patt;
+			}
 		}
 	}
 
@@ -129,11 +146,11 @@ namespace Edge.Data.Pipeline.Configuration
 		[ConfigurationProperty("Value")]
 		public string Value
 		{
-			get { return FixFormat("Value", (string) this["Value"], false); }
+			get { return FixFormat("Value", (string)this["Value"], false); }
 			set { FixFormat("Value", value, true); }
 		}
 
-		[ConfigurationProperty("Name", DefaultValue = null)]
+		[ConfigurationProperty("Name", DefaultValue = "")]
 		public string Name
 		{
 			get { return FixFormat("Name", (string)this["Name"], false); }
