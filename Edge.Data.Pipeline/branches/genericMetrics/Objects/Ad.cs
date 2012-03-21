@@ -9,20 +9,15 @@ namespace Edge.Data.Objects
 	{
 		public Account Account;
 		public Channel Channel;
-		public CampaignSegment Campaign
-		{
-			get { return (CampaignSegment) this.Segments[SegmentType.Campaign]; }
-			set { this.Segments[SegmentType.Campaign] = value; }
-		}
 
 		public string Name;
 		public string OriginalID;
 		public string DestinationUrl;
-		public List<Creative> Creatives = new List<Creative>();
-		public List<Target> TargetingOptions = new List<Target>();
 		public ObjectStatus Status;
 
-		public Dictionary<SegmentType, Segment> Segments = new Dictionary<SegmentType, Segment>();
+		public List<Creative> Creatives = new List<Creative>();
+		public List<Target> Targets = new List<Target>();
+		public List<Segment> Segments = new List<Segment>();
 
 		/// <summary>
 		/// Extra fields for use by channels which have extra metadata per target.
