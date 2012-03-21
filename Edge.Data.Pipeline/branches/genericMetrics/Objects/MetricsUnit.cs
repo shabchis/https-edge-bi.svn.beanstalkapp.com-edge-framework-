@@ -17,10 +17,8 @@ namespace Edge.Data.Objects
 
 		public Channel Channel;
 		public Account Account;
-
-		//public Campaign Campaign;
 		
-		public List<Target> TargetingDimensions;
+		public List<Target> TargetDimensions;
 		public Dictionary<Measure, double> MeasureValues;
 	}
 
@@ -31,6 +29,6 @@ namespace Edge.Data.Objects
 
 	public class GenericMetricsUnit : MetricsUnit
 	{
-		public List<SegmentType> SegmentDimensions;
+		public List<Segment> SegmentDimensions;
 	}
 }

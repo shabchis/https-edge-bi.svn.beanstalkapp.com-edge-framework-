@@ -31,7 +31,7 @@ namespace Edge.Data.Objects
 		public string SourceName;
 		public MeasureOptions Options;
 
-		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator = MeasureOptionsOperator.And)
+		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, OptionsOperator @operator = OptionsOperator.And)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure),"GetMeasures.SP"),
 				System.Data.CommandType.StoredProcedure);
@@ -79,7 +79,7 @@ namespace Edge.Data.Objects
 		All = 0xff
 	}
 
-	public enum MeasureOptionsOperator
+	public enum OptionsOperator
 	{
 		Or = 0,
 		And = 1,

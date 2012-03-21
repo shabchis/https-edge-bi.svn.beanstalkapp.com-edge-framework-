@@ -97,6 +97,7 @@
   <ItemGroup>
     <Compile Include="Deliveries\Common\Classes.cs" />
     <Compile Include="Deliveries\Common\Const.cs" />
+    <Compile Include="Deliveries\Common\MetricsImportManager.cs" />
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />

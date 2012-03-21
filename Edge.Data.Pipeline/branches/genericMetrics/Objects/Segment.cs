@@ -8,63 +8,67 @@ namespace Edge.Data.Objects
 {
 	public class SegmentType
 	{
-		public Account Account;
-		public Channel Channel;
+		public Account Account {get; set;}
+		public Channel Channel {get; set; }
 
 		public int ID { get; set; }
 		public string Name { get; set; }
 
-		public static SegmentType Campaign = new SegmentType() { ID = -875, Name = "Campaign" };
-		public static SegmentType AdGroup = new SegmentType() { ID = -876, Name = "AdGroup" };
-		public static SegmentType Tracker = new SegmentType() { ID = -977, Name="Tracker" };
+		public static SegmentType CampaignSegment = new SegmentType() { ID = -875, Name = "Campaign" };
+		public static SegmentType AdGroupSegment = new SegmentType() { ID = -876, Name = "AdGroup" };
+		public static SegmentType TrackerSegment = new SegmentType() { ID = -977, Name="Tracker" };
 	}
 
-	[TypeID(1)]
-	public class Segment: MappedType
+	public class Segment: MappedObject
 	{
+		public SegmentType SegmentType;
 		public Account Account;
 		public Channel Channel;
 		public ObjectStatus Status;
 
 		public string OriginalID;
-
-		[FieldIndex(1)]
 		public string Value;
 
-		/// <summary>
-		/// Used to group segments.
-		/// </summary>
-		public Dictionary<SegmentType, Segment> Segments = new Dictionary<SegmentType, Segment>();
-
-		/// <summary>
-		/// Extra fields for use by channels which have additional metadata per segment.
-		/// </summary>
+		public List<Segment> Segments = new List<Segment>();
 		public Dictionary<ExtraField, object> ExtraFields = new Dictionary<ExtraField, object>();
+
+		protected override int GetDynamicTypeID()
+		{
+			return this.SegmentType.ID;
+		}
 	}
 
 	public class CampaignSegment : Segment
 	{
-		// For backwards compatibility
+		/// <summary>
+		/// Same as Value.
+		/// </summary>
 		public string Name
 		{
 			get { return this.Value; }
 			set { this.Value = value; }
 		}
 
-		[FieldIndex(4)]
+		[MappedObjectFieldIndex(4)]
 		public double Budget;
 	}
 
-	[TypeID(3)]
 	public class AdGroupSegment : Segment
 	{
+		/// <summary>
+		/// Same as Value.
+		/// </summary>
 		public string Name
 		{
 			get { return this.Value; }
 			set { this.Value = value; }
 		}
 
-		[FieldIndex(2)]
+		[MappedObjectFieldIndex(1)]
 		public CampaignSegment Campaign;
+	}
+
+	public class TrackerSegment : Segment
+	{
 	}
 }
