@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline
 		/// <param name="source">The string to search.</param>
 		/// <param name="defaultFragmentValues">If not found using the regex pattern, use these values.</param>
 		/// <returns></returns>
-		public SegmentValue ExtractSegmentValue(Segment segment, string source, string patternName =null, Dictionary<string,string> defaultFragmentValues = null)
+		public SegmentValue ExtractSegmentValue(Segment segment, string source, string patternName = null, Dictionary<string, string> defaultFragmentValues = null)
 		{
 			if (this.Definitions == null)
 				return null;
@@ -49,7 +49,7 @@ namespace Edge.Data.Pipeline
 			if (def == null)
 				throw new ArgumentException(String.Format("The segment '{0}' was not found in the {1} configuration.", segment.Name, AutoSegmentDefinitionCollection.ExtensionName), "segmentName");
 
-			var fragmentValues = new Dictionary<string,string>();
+			var fragmentValues = new Dictionary<string, string>();
 			SegmentValue value = null;
 
 			if (patternName == null)
@@ -87,7 +87,12 @@ namespace Edge.Data.Pipeline
 						continue;
 
 					// Save the fragment
-					fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
+					/*Fix bug when getting url like this(two same params):http://www.888.com/texasholdem1/?sr=855961/?sr=867151 (we get index out of range)
+					 * 
+					 */
+					if (!fragmentValues.ContainsKey(groupName))
+						fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
+					else Edge.Core.Utilities.Log.Write(string.Format("Duplicate tracker in same Creative has been found. DestURL:{0}", source),Core.Utilities.LogMessageType.Warning);
 				}
 			}
 
@@ -154,10 +159,10 @@ namespace Edge.Data.Pipeline
 			:
 				// no custom format
 				value = fragments.Count == 1 ?
-					// one fragment only, just use it
+				// one fragment only, just use it
 					fragments.First().Value
 				:
-					// json serialize fragments (re-use originalID if it was serialized above)
+				// json serialize fragments (re-use originalID if it was serialized above)
 					(originalID != null ?
 						originalID :
 						JsonSerialize(fragments)
@@ -172,7 +177,7 @@ namespace Edge.Data.Pipeline
 	public class AutoSegmentFoundEventArgs : EventArgs
 	{
 		public Segment Segment { get; internal set; }
-		public Dictionary<string, string> Fragments {get; internal set;}
+		public Dictionary<string, string> Fragments { get; internal set; }
 		public AutoSegmentPattern Pattern { get; internal set; }
 		public SegmentValue Value { get; set; }
 	}
