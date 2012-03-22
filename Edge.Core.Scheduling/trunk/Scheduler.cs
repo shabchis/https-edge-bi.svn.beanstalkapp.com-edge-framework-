@@ -213,7 +213,10 @@ namespace Edge.Core.Scheduling
 										serviceInstance.ActualDeviation = calculatedStartTime.Subtract(schedulingData.TimeToRun);
 										serviceInstance.MaxDeviationBefore = schedulingData.Rule.MaxDeviationBefore;
 										serviceInstance.ProfileID = schedulingData.Configuration.SchedulingProfile.ID;
-										serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
+										if (schedulingData.Configuration.ParentInstance == null)
+											serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
+										else
+											serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, schedulingData.Configuration.ParentInstance, serviceInstance.ProfileID);
 										serviceInstance.LegacyInstance.StateChanged += new EventHandler<Legacy.ServiceStateChangedEventArgs>(LegacyInstance_StateChanged);
 										serviceInstance.LegacyInstance.TimeScheduled = calculatedStartTime;
 										serviceInstance.ServiceName = schedulingData.Configuration.Name;
@@ -301,13 +304,13 @@ namespace Edge.Core.Scheduling
 					//    {
 					//        foreach (var schedule in _scheduledServices)
 					//        {
-								
+
 					//        }
-						
-							
+
+
 
 					//    }
-					
+
 
 					//}
 					//catch (Exception)
@@ -363,6 +366,41 @@ namespace Edge.Core.Scheduling
 			}
 			_needReschedule = true;
 		}
+		public void AddChildServiceToSchedule(Legacy.ServiceInstance serviceInstance)
+		{
+			ServiceElement baseService = EdgeServicesConfiguration.Current.Services[serviceInstance.Configuration.Name];
+			ServiceConfiguration baseConfiguration = new ServiceConfiguration();
+			baseConfiguration.MaxConcurrent = baseService.MaxInstances;
+			baseConfiguration.MaxCuncurrentPerProfile = baseService.MaxInstancesPerAccount;
+			baseConfiguration.Name = baseService.Name;
+
+			AccountElement accountElement = EdgeServicesConfiguration.Current.Accounts.GetAccount(serviceInstance.AccountID);
+
+			ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
+			serviceConfiguration.BaseConfiguration = baseConfiguration;
+			serviceConfiguration.Name = serviceInstance.Configuration.Name;
+			serviceConfiguration.MaxCuncurrentPerProfile = serviceInstance.Configuration.MaxInstancesPerAccount;
+			serviceConfiguration.MaxConcurrent = serviceInstance.Configuration.MaxInstances;
+			serviceConfiguration.LegacyConfiguration = serviceInstance.Configuration;
+			serviceConfiguration.ParentInstance = serviceInstance.ParentInstance;
+			serviceConfiguration.SchedulingRules.Add(new SchedulingRule() { Scope = SchedulingScope.UnPlanned, MaxDeviationAfter = new TimeSpan(0, 3, 0), Days = new List<int>(), Hours = new List<TimeSpan>() { new TimeSpan(0, 0, 0, 0) }, GuidForUnplaned = Guid.NewGuid(), SpecificDateTime = DateTime.Now });
+			Profile profile = new Profile();
+			profile.ID = accountElement.ID;
+			profile.Name = accountElement.Name;
+			profile.Settings = new Dictionary<string, object>();
+
+			profile.Settings.Add("AccountID", accountElement.ID);
+			serviceConfiguration.SchedulingProfile = profile;
+
+			_servicesWarehouse.Add(serviceConfiguration);
+
+
+			Schedule(true);
+			NotifyServicesToRun();
+
+
+		}
+
 
 		/// <summary>
 		/// Get this time line services 
@@ -688,7 +726,7 @@ namespace Edge.Core.Scheduling
 
 				_newSchedulethread = new Thread(new ThreadStart(delegate()
 				{
-					
+
 					while (true)
 					{
 						Thread.Sleep(_intervalBetweenNewSchedule);
@@ -737,7 +775,7 @@ namespace Edge.Core.Scheduling
 							scheduleService.Key.TimeToRun.Add(scheduleService.Key.Rule.MaxDeviationAfter) >= DateTime.Now &&
 						   scheduleService.Value.LegacyInstance.State == Legacy.ServiceState.Uninitialized)
 						{
-							instancesToRun.Add(scheduleService.Value);
+								instancesToRun.Add(scheduleService.Value);
 						}
 					}
 				}
@@ -796,6 +834,10 @@ namespace Edge.Core.Scheduling
 		{
 			_scheduledServices[schedulingData].LegacyInstance.Abort();
 		}
+
+
+
+
 	}
 	public class TimeToRunEventArgs : EventArgs
 	{
@@ -809,6 +851,10 @@ namespace Edge.Core.Scheduling
 	public class WillNotRunEventArgs : EventArgs
 	{
 		public List<SchedulingData> WillNotRun = new List<SchedulingData>();
+	}
+	public class SchedulingInformationEventArgs : EventArgs
+	{
+		public Dictionary<SchedulingData, ServiceInstanceInfo> ScheduleInformation;
 	}
 
 
