@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Edge.Core.Configuration;
+using Legacy = Edge.Core.Services; 
 
 
 namespace Edge.Core.Scheduling.Objects
@@ -22,6 +23,8 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan MaxExecutionTime = new TimeSpan(0,60, 0);
 		public ActiveServiceElement LegacyConfiguration;
 		public int priority;
+		public Legacy.ServiceInstance ParentInstance = null;
+		
 
         public ServiceConfiguration()
         {

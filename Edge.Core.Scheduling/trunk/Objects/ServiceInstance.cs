@@ -11,6 +11,7 @@ namespace Edge.Core.Scheduling.Objects
 	/// <summary>
 	/// Date of scheduling
 	/// </summary>
+	[Serializable]
 	public class ServiceInstance
 	{
 		public int ID;
@@ -26,20 +27,38 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan MaxDeviationAfter;
 		public TimeSpan ActualDeviation;
 		public double Odds;		
-		public bool Deleted;
-		
+		public bool Deleted;		
 		public Legacy.ServiceInstance LegacyInstance;
+		
 		
 		public ServiceOutcome Outcome
 		{
 			get { return this.LegacyInstance.Outcome; }
 		}
-		//internal ActiveServiceElement LegacyConfiguration;
+		
 		
 	}
 	/// <summary>
 	/// service-hour 
 	/// </summary>
+	/// 
+	public class ServiceInstanceInfo
+	{
+
+		public string ScheduledID { get; set; }
+		public string InstanceID { get; set; }
+		public string ServiceName { get; set; }
+		public int AccountID { get; set; }
+		public DateTime SchdeuleStartTime { get; set; }
+		public DateTime ScheduleEndTime { get; set; }
+		public DateTime ActualStartTime { get; set; }
+		public DateTime ActualEndTime { get; set; }
+		public ServiceState State { get; set; }
+		public ServiceOutcome Outcome { get; set; }
+		public string DayCode { get; set; }
+		public ServiceInstanceInfo ParentStep { get; set; }
+
+	}
 	public struct ServiceHourStruct
 	{
 		public TimeSpan SuitableHour;
