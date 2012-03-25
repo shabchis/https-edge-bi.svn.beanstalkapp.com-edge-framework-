@@ -213,10 +213,10 @@ namespace Edge.Core.Scheduling
 										serviceInstance.ActualDeviation = calculatedStartTime.Subtract(schedulingData.TimeToRun);
 										serviceInstance.MaxDeviationBefore = schedulingData.Rule.MaxDeviationBefore;
 										serviceInstance.ProfileID = schedulingData.Configuration.SchedulingProfile.ID;
-										if (schedulingData.Configuration.ParentInstance == null)
+										if (schedulingData.Configuration.Instance == null)
 											serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
 										else
-											serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, schedulingData.Configuration.ParentInstance, serviceInstance.ProfileID);
+											serviceInstance.LegacyInstance = schedulingData.Configuration.Instance;
 										serviceInstance.LegacyInstance.StateChanged += new EventHandler<Legacy.ServiceStateChangedEventArgs>(LegacyInstance_StateChanged);
 										serviceInstance.LegacyInstance.TimeScheduled = calculatedStartTime;
 										serviceInstance.ServiceName = schedulingData.Configuration.Name;
@@ -368,35 +368,38 @@ namespace Edge.Core.Scheduling
 		}
 		public void AddChildServiceToSchedule(Legacy.ServiceInstance serviceInstance)
 		{
-			ServiceElement baseService = EdgeServicesConfiguration.Current.Services[serviceInstance.Configuration.Name];
-			ServiceConfiguration baseConfiguration = new ServiceConfiguration();
-			baseConfiguration.MaxConcurrent = baseService.MaxInstances;
-			baseConfiguration.MaxCuncurrentPerProfile = baseService.MaxInstancesPerAccount;
-			baseConfiguration.Name = baseService.Name;
+			lock (_servicesWarehouse)
+			{
+				ServiceElement baseService = EdgeServicesConfiguration.Current.Services[serviceInstance.Configuration.Name];
+				ServiceConfiguration baseConfiguration = new ServiceConfiguration();
+				baseConfiguration.MaxConcurrent = baseService.MaxInstances;
+				baseConfiguration.MaxCuncurrentPerProfile = baseService.MaxInstancesPerAccount;
+				baseConfiguration.Name = baseService.Name;
 
-			AccountElement accountElement = EdgeServicesConfiguration.Current.Accounts.GetAccount(serviceInstance.AccountID);
+				AccountElement accountElement = EdgeServicesConfiguration.Current.Accounts.GetAccount(serviceInstance.AccountID);
 
-			ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
-			serviceConfiguration.BaseConfiguration = baseConfiguration;
-			serviceConfiguration.Name = serviceInstance.Configuration.Name;
-			serviceConfiguration.MaxCuncurrentPerProfile = serviceInstance.Configuration.MaxInstancesPerAccount;
-			serviceConfiguration.MaxConcurrent = serviceInstance.Configuration.MaxInstances;
-			serviceConfiguration.LegacyConfiguration = serviceInstance.Configuration;
-			serviceConfiguration.ParentInstance = serviceInstance.ParentInstance;
-			serviceConfiguration.SchedulingRules.Add(new SchedulingRule() { Scope = SchedulingScope.UnPlanned, MaxDeviationAfter = new TimeSpan(0, 3, 0), Days = new List<int>(), Hours = new List<TimeSpan>() { new TimeSpan(0, 0, 0, 0) }, GuidForUnplaned = Guid.NewGuid(), SpecificDateTime = DateTime.Now });
-			Profile profile = new Profile();
-			profile.ID = accountElement.ID;
-			profile.Name = accountElement.Name;
-			profile.Settings = new Dictionary<string, object>();
+				ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
+				serviceConfiguration.BaseConfiguration = baseConfiguration;
+				serviceConfiguration.Name = serviceInstance.Configuration.Name;
+				serviceConfiguration.MaxCuncurrentPerProfile = serviceInstance.Configuration.MaxInstancesPerAccount;
+				serviceConfiguration.MaxConcurrent = serviceInstance.Configuration.MaxInstances;
+				serviceConfiguration.LegacyConfiguration = serviceInstance.Configuration;
+				serviceConfiguration.Instance = serviceInstance;
+				serviceConfiguration.SchedulingRules.Add(new SchedulingRule() { Scope = SchedulingScope.UnPlanned, MaxDeviationAfter = new TimeSpan(0, 3, 0), Days = new List<int>(), Hours = new List<TimeSpan>() { new TimeSpan(0, 0, 0, 0) }, GuidForUnplaned = Guid.NewGuid(), SpecificDateTime = DateTime.Now });
+				Profile profile = new Profile();
+				profile.ID = accountElement.ID;
+				profile.Name = accountElement.Name;
+				profile.Settings = new Dictionary<string, object>();
 
-			profile.Settings.Add("AccountID", accountElement.ID);
-			serviceConfiguration.SchedulingProfile = profile;
+				profile.Settings.Add("AccountID", accountElement.ID.ToString());
+				serviceConfiguration.SchedulingProfile = profile;
 
-			_servicesWarehouse.Add(serviceConfiguration);
+				_servicesWarehouse.Add(serviceConfiguration);
 
 
-			Schedule(true);
-			NotifyServicesToRun();
+				Schedule(true);
+				NotifyServicesToRun(); 
+			}
 
 
 		}
