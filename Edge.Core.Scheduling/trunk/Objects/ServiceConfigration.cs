@@ -23,7 +23,7 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan MaxExecutionTime = new TimeSpan(0,60, 0);
 		public ActiveServiceElement LegacyConfiguration;
 		public int priority;
-		public Legacy.ServiceInstance ParentInstance = null;
+		public Legacy.ServiceInstance Instance = null;
 		
 
         public ServiceConfiguration()
