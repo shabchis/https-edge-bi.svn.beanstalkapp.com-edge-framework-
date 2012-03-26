@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Common.Importing
 		private SqlConnection _sqlConnection;
 
 		public Dictionary<string, Measure> Measures { get; private set; }
-		public Dictionary<string, Segment> Segments { get; private set; }
+		public Dictionary<string, Segment> SegmentTypes { get; private set; }
 		public ImportManagerOptions Options { get; private set; }
 
 		/*=========================*/
@@ -79,7 +79,7 @@ namespace Edge.Data.Pipeline.Common.Importing
 					this.MeasureOptionsOperator
 					);
 
-				this.Segments = Segment.GetSegments(
+				this.SegmentTypes = Segment.GetSegments(
 					this.CurrentDelivery.Account,
 					this.CurrentDelivery.Channel,
 					oltpConnection,
