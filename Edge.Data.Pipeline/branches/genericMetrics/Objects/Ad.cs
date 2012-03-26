@@ -17,7 +17,7 @@ namespace Edge.Data.Objects
 
 		public List<Creative> Creatives = new List<Creative>();
 		public List<Target> Targets = new List<Target>();
-		public List<Segment> Segments = new List<Segment>();
+		public Dictionary<Segment, SegmentObject> Segments = new Dictionary<Segment, SegmentObject>();
 
 		/// <summary>
 		/// Extra fields for use by channels which have extra metadata per target.

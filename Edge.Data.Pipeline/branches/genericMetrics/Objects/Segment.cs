@@ -3,25 +3,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Edge.Data.Objects.Reflection;
+using System.Data.SqlClient;
 
 namespace Edge.Data.Objects
 {
-	public class SegmentType
+	public class Segment
 	{
+		#region Const
+		public static class Common
+		{
+			public const string Campaign = "Campaign";
+			public const string AdGroup = "AdGroup";
+			public const string Tracker = "Tracker";
+		}
+		#endregion
+
 		public Account Account {get; set;}
 		public Channel Channel {get; set; }
 
 		public int ID { get; set; }
 		public string Name { get; set; }
 
-		public static SegmentType CampaignSegment = new SegmentType() { ID = -875, Name = "Campaign" };
-		public static SegmentType AdGroupSegment = new SegmentType() { ID = -876, Name = "AdGroup" };
-		public static SegmentType TrackerSegment = new SegmentType() { ID = -977, Name="Tracker" };
+		public static Dictionary<string, Segment> GetSegments(Account account, Channel channel, SqlConnection connection, SegmentOptions options, OptionsOperator @operator = OptionsOperator.And)
+		{
+			return new Dictionary<string, Segment>()
+			{
+				{Common.Campaign,  new Segment() { ID = -875, Name = Common.Campaign }},
+				{Common.AdGroup, new Segment() { ID = -876, Name = Common.AdGroup }},
+				{Common.Tracker, new Segment() { ID = -977, Name=Common.Tracker }}
+			};
+		}
 	}
 
-	public class Segment: MappedObject
+	public class SegmentObject : MappedObject
 	{
-		public SegmentType SegmentType;
 		public Account Account;
 		public Channel Channel;
 		public ObjectStatus Status;
@@ -29,16 +44,12 @@ namespace Edge.Data.Objects
 		public string OriginalID;
 		public string Value;
 
-		public List<Segment> Segments = new List<Segment>();
+		//public List<Segment> Segments = new List<Segment>();
 		public Dictionary<ExtraField, object> ExtraFields = new Dictionary<ExtraField, object>();
-
-		protected override int GetDynamicTypeID()
-		{
-			return this.SegmentType.ID;
-		}
 	}
 
-	public class CampaignSegment : Segment
+	[MappedObjectTypeID(75)]
+	public class Campaign : SegmentObject
 	{
 		/// <summary>
 		/// Same as Value.
@@ -53,7 +64,8 @@ namespace Edge.Data.Objects
 		public double Budget;
 	}
 
-	public class AdGroupSegment : Segment
+	[MappedObjectTypeID(76)]
+	public class AdGroup : SegmentObject
 	{
 		/// <summary>
 		/// Same as Value.
@@ -65,10 +77,12 @@ namespace Edge.Data.Objects
 		}
 
 		[MappedObjectFieldIndex(1)]
-		public CampaignSegment Campaign;
+		public Campaign Campaign;
 	}
 
-	public class TrackerSegment : Segment
+	[Flags]
+	public enum SegmentOptions
 	{
+		All = 0xff
 	}
 }

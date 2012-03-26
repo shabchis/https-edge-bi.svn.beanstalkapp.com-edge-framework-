@@ -29,6 +29,6 @@ namespace Edge.Data.Objects
 
 	public class GenericMetricsUnit : MetricsUnit
 	{
-		public List<Segment> SegmentDimensions;
+		public Dictionary<Segment, SegmentObject> SegmentDimensions;
 	}
 }

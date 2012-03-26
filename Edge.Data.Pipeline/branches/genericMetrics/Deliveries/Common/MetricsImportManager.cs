@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Common.Importing
 		private SqlConnection _sqlConnection;
 
 		public Dictionary<string, Measure> Measures { get; private set; }
-		public Dictionary<string, SegmentType> SegmentTypes { get; private set; }
+		public Dictionary<string, Segment> Segments { get; private set; }
 		public ImportManagerOptions Options { get; private set; }
 
 		/*=========================*/
@@ -79,15 +79,13 @@ namespace Edge.Data.Pipeline.Common.Importing
 					this.MeasureOptionsOperator
 					);
 
-				/*
-				this.SegmentTypes = SegmentType.GetSegmentTypes(
+				this.Segments = Segment.GetSegments(
 					this.CurrentDelivery.Account,
 					this.CurrentDelivery.Channel,
 					oltpConnection,
 					this.SegmentOptions,
 					this.SegmentOptionsOperator
 					);
-				*/
 			}
 
 			// Add measure columns to metrics
@@ -156,8 +154,8 @@ namespace Edge.Data.Pipeline.Common.Importing
 		protected abstract string TablePrefixType { get; }
 		protected abstract MeasureOptions MeasureOptions { get; }
 		protected abstract OptionsOperator MeasureOptionsOperator { get; }
-		//protected abstract SegmentOptions SegmentOptions { get; }
-		//protected abstract OptionsOperator SegmentOptionsOperator { get; }
+		protected abstract SegmentOptions SegmentOptions { get; }
+		protected abstract OptionsOperator SegmentOptionsOperator { get; }
 		protected abstract Type MetricsTableDefinition { get; }
 
 		/*=========================*/
