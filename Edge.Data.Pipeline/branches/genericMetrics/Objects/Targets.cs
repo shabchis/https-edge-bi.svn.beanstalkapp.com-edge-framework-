@@ -28,7 +28,7 @@ namespace Edge.Data.Objects
 		/// <summary>
 		/// Segments per target, e.g. tracker on a keyword.
 		/// </summary>
-		public List<Segment> Segments=new List<Segment>();
+		public List<SegmentObject> Segments=new List<SegmentObject>();
 	}
 
 	//==================================================================================

@@ -15,7 +15,7 @@ namespace Edge.Data.Objects
 		/// <summary>
 		/// Extra fields for use by channels which have additional metadata per creative.
 		/// </summary>
-		public Dictionary<SegmentType, Segment> Segments = new Dictionary<SegmentType, Segment>();
+		public Dictionary<Segment, SegmentObject> Segments = new Dictionary<Segment, SegmentObject>();
 
 		/// <summary>
 		/// Extra fields for use by channels which have additional metadata per creative.

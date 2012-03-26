@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline
 		/// <param name="source">The string to search.</param>
 		/// <param name="defaultFragmentValues">If not found using the regex pattern, use these values.</param>
 		/// <returns></returns>
-		public Segment ExtractSegmentValue(SegmentType segment, string source, Dictionary<string,string> defaultFragmentValues = null)
+		public SegmentObject ExtractSegmentValue(Segment segment, string source, Dictionary<string,string> defaultFragmentValues = null)
 		{
 			if (this.Definitions == null)
 				return null;
@@ -95,7 +95,7 @@ namespace Edge.Data.Pipeline
 			return null;
 		}
 
-		public Dictionary<SegmentType, Segment> ExtractSegmentValues(SegmentType[] segments, string source)
+		public Dictionary<Segment, SegmentObject> ExtractSegmentValues(Segment[] segments, string source)
 		{
 			throw new NotImplementedException();
 		}
@@ -111,7 +111,7 @@ namespace Edge.Data.Pipeline
 
 
 		private StringBuilder _stringBuilder = new StringBuilder();
-		private Segment CreateValueFromFragments(SegmentType segment, Dictionary<string, string> fragments, AutoSegmentPattern pattern)
+		private SegmentObject CreateValueFromFragments(Segment segment, Dictionary<string, string> fragments, AutoSegmentPattern pattern)
 		{
 			if (fragments == null || fragments.Count < 1)
 				return null;
@@ -155,16 +155,16 @@ namespace Edge.Data.Pipeline
 			;
 
 			// Return the value!
-			return new Segment() { OriginalID = originalID, Value = value };
+			return new SegmentObject() { OriginalID = originalID, Value = value };
 		}
 	}
 
 	public class AutoSegmentFoundEventArgs : EventArgs
 	{
-		public SegmentType Segment { get; internal set; }
+		public Segment Segment { get; internal set; }
 		public Dictionary<string, string> Fragments {get; internal set;}
 		public AutoSegmentPattern Pattern { get; internal set; }
-		public Segment Value { get; set; }
+		public SegmentObject Value { get; set; }
 	}
 }
 

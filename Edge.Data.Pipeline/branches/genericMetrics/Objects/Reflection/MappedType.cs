@@ -49,16 +49,8 @@ namespace Edge.Data.Objects.Reflection
 			get
 			{
 				MappedObjectType metadata = RegisterType();
-				if (metadata.TypeID == 0)
-					return GetDynamicTypeID();
-				else
-					return metadata.TypeID;
+				return metadata.TypeID;
 			}
-		}
-
-		protected virtual int GetDynamicTypeID()
-		{
-			throw new NotImplementedException("GetDynamicTypeID must be overridden if the MappedObjectTypeID attribute is not defined on the class.");
 		}
 
 		public Dictionary<MappedObjectField, object> GetFieldValues()
