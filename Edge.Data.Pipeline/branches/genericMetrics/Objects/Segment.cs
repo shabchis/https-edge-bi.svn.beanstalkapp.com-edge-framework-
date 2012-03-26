@@ -37,8 +37,8 @@ namespace Edge.Data.Objects
 
 	public class SegmentObject : MappedObject
 	{
-		public Account Account;
-		public Channel Channel;
+		//public Account Account;
+		//public Channel Channel;
 		public ObjectStatus Status;
 
 		public string OriginalID;

@@ -15,9 +15,6 @@ namespace Edge.Data.Objects
 
 		public Currency Currency;
 
-		public Channel Channel;
-		public Account Account;
-		
 		public List<Target> TargetDimensions;
 		public Dictionary<Measure, double> MeasureValues;
 	}
@@ -29,6 +26,9 @@ namespace Edge.Data.Objects
 
 	public class GenericMetricsUnit : MetricsUnit
 	{
+		public Channel Channel;
+		public Account Account;
+		
 		public Dictionary<Segment, SegmentObject> SegmentDimensions;
 	}
 }
