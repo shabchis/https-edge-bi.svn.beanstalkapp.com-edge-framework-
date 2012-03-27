@@ -28,6 +28,7 @@ namespace Edge.Core.Scheduling
 		#region members
 		private List<ServiceConfiguration> _servicesWarehouse = new List<ServiceConfiguration>(); //all services from configuration file load to this var
 		private Dictionary<SchedulingData, ServiceInstance> _scheduledServices = new Dictionary<SchedulingData, ServiceInstance>();
+		private Dictionary<int, Legacy.ServiceInstance> _serviceInstanceBySchedulingID = new Dictionary<int, Legacy.ServiceInstance>();
 		private Dictionary<int, ServiceConfiguration> _servicesPerConfigurationID = new Dictionary<int, ServiceConfiguration>();
 		private Dictionary<int, ServiceConfiguration> _servicesPerProfileID = new Dictionary<int, ServiceConfiguration>();
 		private Dictionary<SchedulingData, ServiceInstance> _mayNotBescheduleServices = new Dictionary<SchedulingData, ServiceInstance>();
@@ -200,6 +201,7 @@ namespace Edge.Core.Scheduling
 									if (countedPerProfile < schedulingData.Configuration.MaxCuncurrentPerProfile)
 									{
 										serviceInstance = new ServiceInstance();
+										serviceInstance.ScheduledID = schedulingData.GetHashCode();
 										serviceInstance.StartTime = calculatedStartTime;
 										serviceInstance.EndTime = calculatedEndTime;
 										serviceInstance.Odds = _percentile;
@@ -214,7 +216,15 @@ namespace Edge.Core.Scheduling
 										serviceInstance.MaxDeviationBefore = schedulingData.Rule.MaxDeviationBefore;
 										serviceInstance.ProfileID = schedulingData.Configuration.SchedulingProfile.ID;
 										if (schedulingData.Configuration.Instance == null)
-											serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
+										{
+											if (_serviceInstanceBySchedulingID.ContainsKey(serviceInstance.ScheduledID))
+												serviceInstance.LegacyInstance = _serviceInstanceBySchedulingID[serviceInstance.ScheduledID];
+											else
+											{
+												serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
+												_serviceInstanceBySchedulingID.Add(serviceInstance.ScheduledID, serviceInstance.LegacyInstance);
+											}
+										}
 										else
 											serviceInstance.LegacyInstance = schedulingData.Configuration.Instance;
 										serviceInstance.LegacyInstance.StateChanged += new EventHandler<Legacy.ServiceStateChangedEventArgs>(LegacyInstance_StateChanged);

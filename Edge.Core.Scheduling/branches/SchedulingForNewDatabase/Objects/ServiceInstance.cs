@@ -14,6 +14,7 @@ namespace Edge.Core.Scheduling.Objects
 	[Serializable]
 	public class ServiceInstance
 	{
+		public int ScheduledID;
 		public int ID;
 		public string ServiceName;
 		public int BaseConfigurationID;
@@ -44,8 +45,8 @@ namespace Edge.Core.Scheduling.Objects
 	/// 
 	public class ServiceInstanceInfo
 	{
-
-		public string ScheduledID { get; set; }
+		public Guid LegacyInstanceGuid { get; set; }
+		public int ScheduledID { get; set; }
 		public string InstanceID { get; set; }
 		public string ServiceName { get; set; }
 		public int AccountID { get; set; }
@@ -56,8 +57,7 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceState State { get; set; }
 		public ServiceOutcome Outcome { get; set; }
 		public string DayCode { get; set; }
-		public ServiceInstanceInfo ParentStep { get; set; }
-
+		public Guid ParentInstanceID { get; set; }
 	}
 	public struct ServiceHourStruct
 	{
