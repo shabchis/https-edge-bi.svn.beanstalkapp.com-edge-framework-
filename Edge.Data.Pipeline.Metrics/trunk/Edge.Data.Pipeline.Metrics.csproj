@@ -32,6 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -40,14 +41,37 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdMetrics\AdMetricsImportManager.cs" />
+    <Compile Include="GenericMetrics\GenericMetricsImportManager.cs" />
+    <Compile Include="_Base\MetricsImportManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Properties\AssemblyInfo.cs.template" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
+      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
+      <Name>Edge.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Edge.Data.Pipeline-branch-mappings\Edge.Data.Pipeline.csproj">
+      <Project>{53391A99-E8CA-4262-A8E0-5F05A1CC6608}</Project>
+      <Name>Edge.Data.Pipeline</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
+  <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+  <Target Name="BeforeCompile">
+    <SvnVersion LocalPath=".">
+      <Output TaskParameter="Revision" PropertyName="SvnRevision" />
+    </SvnVersion>
+    <FormatVersion Version="2.9.0.%2a" Revision="$(SvnRevision)">
+      <Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
+    </FormatVersion>
   </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  <PropertyGroup>
+    <PreBuildEvent>subwcrev.exe "$(ProjectDir)." "$(ProjectDir)Properties\AssemblyInfo.cs.template" "$(ProjectDir)Properties\AssemblyInfo.cs"</PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>
