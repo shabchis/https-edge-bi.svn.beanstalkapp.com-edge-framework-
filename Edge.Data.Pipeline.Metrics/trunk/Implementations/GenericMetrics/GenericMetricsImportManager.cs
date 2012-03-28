@@ -56,7 +56,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 		/*=========================*/
 		#endregion
 
-		public GenericMetricsImportManager(long serviceInstanceID, ImportManagerOptions options = null)
+		public GenericMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
 			: base(serviceInstanceID, options)
 		{
 		}

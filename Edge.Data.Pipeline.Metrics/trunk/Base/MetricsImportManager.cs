@@ -12,7 +12,10 @@ using Edge.Data.Pipeline.Common.Importing;
 
 namespace Edge.Data.Pipeline.Metrics
 {
-	public abstract class MetricsImportManager<MetricsUnitT>:DeliveryImportManager where MetricsUnitT: MetricsUnit
+	/// <summary>
+	/// Base class for metrics import managers.
+	/// </summary>
+	public abstract class MetricsImportManager:DeliveryImportManager
 	{
 		#region Fields
 		/*=========================*/
@@ -21,7 +24,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 		public Dictionary<string, Measure> Measures { get; private set; }
 		public Dictionary<string, Segment> SegmentTypes { get; private set; }
-		public ImportManagerOptions Options { get; private set; }
+		public MetricsImportManagerOptions Options { get; private set; }
 
 		/*=========================*/
 		#endregion
@@ -29,10 +32,10 @@ namespace Edge.Data.Pipeline.Metrics
 		#region Constructors
 		/*=========================*/
 
-		public MetricsImportManager(long serviceInstanceID, ImportManagerOptions options = null) : base(serviceInstanceID)
+		public MetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID)
 		{
-			options = options ?? new ImportManagerOptions();
-			options.SqlOltpConnectionString = options.SqlOltpConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Oltp);
+			options = options ?? new MetricsImportManagerOptions();
+			options.StagingConnectionString = options.StagingConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.StagingDatabase);
 			options.SqlPrepareCommand = options.SqlPrepareCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlPrepareCommand, throwException: false);
 			options.SqlCommitCommand = options.SqlCommitCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlCommitCommand, throwException: false);
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
@@ -68,7 +71,7 @@ namespace Edge.Data.Pipeline.Metrics
 			}
 
 			// Get measures
-			using (SqlConnection oltpConnection = new SqlConnection(this.Options.SqlOltpConnectionString))
+			using (SqlConnection oltpConnection = new SqlConnection(this.Options.StagingConnectionString))
 			{
 				oltpConnection.Open();
 
@@ -128,7 +131,7 @@ namespace Edge.Data.Pipeline.Metrics
 			cmd.ExecuteNonQuery();
 		}
 
-		public abstract void ImportMetrics(MetricsUnitT metrics);
+		public abstract void ImportMetrics(MetricsUnit metrics);
 
 		protected override void OnEndImport()
 		{
@@ -264,7 +267,7 @@ namespace Edge.Data.Pipeline.Metrics
 									{
 										double val = Convert.ToDouble(reader[total.Key]);
 										double diff = Math.Abs((total.Value - val) / total.Value);
-										if (diff > this.Options.CommitValidationThreshold)
+										if (diff > this.Options.ChecksumThreshold)
 											results.AppendFormat("{0}: processor totals = {1}, {2} table = {3}\n", total.Key, total.Value, ValidationTable, val);
 										else if (val == 0 && total.Value == 0)
 											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TargetPeriod), LogMessageType.Information);
@@ -469,5 +472,23 @@ namespace Edge.Data.Pipeline.Metrics
 
 		/*=========================*/
 		#endregion
+	}
+
+	/// <summary>
+	/// A type-safe base class for metrics import managers.
+	/// </summary>
+	/// <typeparam name="MetricsUnitT"></typeparam>
+	public abstract class MetricsImportManager<MetricsUnitT> : MetricsImportManager where MetricsUnitT : MetricsUnit
+	{
+		public MetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID, options)
+		{
+		}
+
+		public override void ImportMetrics(MetricsUnit metrics)
+		{
+			this.ImportMetrics((MetricsUnitT)metrics);
+		}
+
+		public abstract void ImportMetrics(MetricsUnitT metrics);
 	}
 }
