@@ -96,9 +96,15 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		/*=========================*/
 		#endregion
 
+		/// <summary>
+		/// A function delegate that returns a usid for an ad. If null, Ad.OriginalID is used.
+		/// </summary>
+		public Func<Ad, long> OnAdUsidRequired = null;
 
-		public AdMetricsImportManager(long serviceInstanceID, ImportManagerOptions options = null)
-			: base(serviceInstanceID, options)
+		/// <summary>
+		/// 
+		/// </summary>
+		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID, options)
 		{
 			this.MeasureOptions = MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
 			this.MeasureOptionsOperator = OptionsOperator.Not;
@@ -106,7 +112,9 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			this.SegmentOptionsOperator = OptionsOperator.And;
 		}
 
-		public Func<Ad, long> OnAdUsidRequired = null;
+		/// <summary>
+		/// Uses OnAdUsidRequired to extract a usid for an ad, or ad.OriginalID if the function delegate is not defined.
+		/// </summary>
 		private string GetAdIdentity(Ad ad)
 		{
 			string val;
@@ -120,7 +128,9 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			return val;
 		}
 
-
+		/// <summary>
+		/// Imports an ad into the delivery's staging tables.
+		/// </summary>
 		public void ImportAd(Ad ad)
 		{
 			EnsureBeginImport();
@@ -207,7 +217,9 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			}
 		}
 
-
+		/// <summary>
+		/// Imports a metrics unit into the delivery's staging tables.
+		/// </summary>
 		public override void ImportMetrics(AdMetricsUnit metrics)
 		{
 			EnsureBeginImport();
@@ -260,7 +272,6 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		{
 			get { return "AD"; }
 		}
-
 
 		protected override Type MetricsTableDefinition
 		{
