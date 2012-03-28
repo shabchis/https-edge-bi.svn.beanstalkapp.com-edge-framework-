@@ -95,8 +95,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Deliveries\Common\Classes.cs" />
-    <Compile Include="Deliveries\Common\Const.cs" />
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
@@ -113,8 +111,6 @@
     <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
-    <Compile Include="Services\Common\Validation\DbDbChecksumBaseService.cs" />
-    <Compile Include="Services\Common\Validation\DeliveryDBChecksumBaseService.cs" />
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\GenericInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
@@ -173,9 +169,7 @@
   <ItemGroup>
     <None Include="Edge.Data.Pipeline.snk" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Services\Validation\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
