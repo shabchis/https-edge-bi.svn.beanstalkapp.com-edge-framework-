@@ -29,16 +29,16 @@ namespace Edge.Data.Pipeline.Metrics
 
 		public static class ConnectionStrings
 		{
-			public const string StagingDatabase = "Pipeline.Staging";
+			public const string StagingDatabase = "StagingDatabase";
 		}
 
 		public static class ConfigurationOptions
 		{
-			public const string FileFormat = "FileFormat";
-			public const string Compression = "Compression";
-			public const string DeliveryFileName = "DeliveryFileName";
-			public const string MetricsImportManagerType = "MetricsImportManagerType";
+			public const string ImportManagerType = "ImportManagerType";
 			public const string ChecksumTheshold = "ChecksumTheshold";
+			public const string RollbackDeliveries = "RollbackDeliveries";
+			public const string RollbackTableName = "RollbackTableName";
+			public const string RollbackStoredProc = "RollbackStoredProc";
 		}
 	}
 }

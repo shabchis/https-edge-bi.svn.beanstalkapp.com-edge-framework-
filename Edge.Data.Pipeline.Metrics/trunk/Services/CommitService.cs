@@ -8,12 +8,15 @@ using Edge.Data.Pipeline.Common.Importing;
 using Edge.Data.Pipeline.Services;
 using Edge.Core.Utilities;
 
-namespace Edge.Data.Pipeline.Metrics
+namespace Edge.Data.Pipeline.Metrics.Services
 {
 	public class CommitService : PipelineService
 	{
 		protected override ServiceOutcome DoPipelineWork()
 		{
+			// ----------------
+			// SETUP
+
 			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
 			
 			MetricsImportManagerOptions options = new MetricsImportManagerOptions()
@@ -24,9 +27,7 @@ namespace Edge.Data.Pipeline.Metrics
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
 
-			string importManagerTypeName = Instance.Configuration.Options[Consts.ConfigurationOptions.MetricsImportManagerType];
-			if (importManagerTypeName == null)
-				throw new Exception(Consts.ConfigurationOptions.MetricsImportManagerType + " option is not defined.");
+			string importManagerTypeName = Instance.Configuration.GetOption(Consts.ConfigurationOptions.ImportManagerType);
 			Type importManagerType = Type.GetType(importManagerTypeName);
 
 			var importManager = (MetricsImportManager) Activator.CreateInstance(importManagerType, this.Instance.InstanceID, options);
