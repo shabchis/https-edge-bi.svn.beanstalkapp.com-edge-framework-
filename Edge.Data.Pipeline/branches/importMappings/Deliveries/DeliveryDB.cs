@@ -58,7 +58,7 @@ namespace Edge.Data.Pipeline
                     {
                         #region Delivery
 
-                        delivery = new Delivery(reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)));
+						delivery = new Delivery(reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s))) { FullyLoaded = deep };
 
                         delivery.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
                         delivery.Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null);
@@ -76,98 +76,101 @@ namespace Edge.Data.Pipeline
 						delivery.IsCommited = Convert.ToBoolean(reader["Committed"]);
 
                         #endregion
-                        #region DeliveryParameters
+						if (deep)
+						{
+							#region DeliveryParameters
+
+							if (deep)
+							{
+								if (reader.NextResult())
+								{
+									while (reader.Read())
+									{
+
+										delivery.Parameters.Add(reader.Get<string>("Key"), DeserializeJson(reader.Get<string>("Value")));
+									}
+								}
+							}
+							#endregion
+							#region DeliveryHistory
+
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+									delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], reader.Get<long>("ServiceInstanceID"), new Dictionary<string, object>()));
+
+							}
+							#endregion
+							#region DeliveryHistoryParameters
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+								{
+
+									delivery.History[reader.Get<int>("Index")].Parameters.Add(reader.Get<string>("Key"), DeserializeJson(reader.Get<string>("Value")));
+
+								}
+							}
+							#endregion
+							#region DeliveryFile
+
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+								{
+									DeliveryFile deliveryFile = new DeliveryFile();
+									deliveryFile.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
+									deliveryFile.FileID = reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s));
+									deliveryFile.FileFormat = (FileCompression)reader["FileCompression"];
+									deliveryFile.SourceUrl = reader.Get<string>("SourceUrl");
+									deliveryFile.Name = reader.Get<string>("Name");
+									deliveryFile.Location = reader.Get<string>("Location");
+									delivery.Files.Add(deliveryFile);
+								}
+
+							}
+							#endregion
+							#region DeliveryFileParameters
+
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+								{
+
+									DeliveryFile deliveryFile = delivery.Files[reader.Get<string>("Name")];
+									deliveryFile.Parameters.Add(reader.Get<string>("Key"), DeserializeJson(reader.Get<string>("Value")));
+								}
+
+							}
+							#endregion
+							#region DeliveryFileHistory
+
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+								{
+									DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
+									deliveryFile.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
+								}
 
 
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                            {
+							}
+							#endregion
+							#region DeliveryFileHistoryParameters
 
-                                delivery.Parameters.Add(reader.Get<string>("Key"), DeSerialize(reader.Get<string>("Value")));
-                            }
-                        }
-                        #endregion
-                        #region DeliveryHistory
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+								{
+									DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
 
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                                delivery.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], reader.Get<long>("ServiceInstanceID"), new Dictionary<string, object>()));
-
-                        }
-                        #endregion
-                        #region DeliveryHistoryParameters
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                            {
-
-								delivery.History[reader.Get<int>("Index")].Parameters.Add(reader.Get<string>("Key"), DeSerialize(reader.Get<string>("Value")));
-
-                            }
-                        }
-                        #endregion
-                        #region DeliveryFile
-
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                            {
-                                DeliveryFile deliveryFile = new DeliveryFile();
-                                deliveryFile.Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null);
-                                deliveryFile.FileID = reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s));
-                                deliveryFile.FileFormat = (FileCompression)reader["FileCompression"];
-                                deliveryFile.SourceUrl = reader.Get<string>("SourceUrl");
-                                deliveryFile.Name = reader.Get<string>("Name");
-                                deliveryFile.Location = reader.Get<string>("Location");
-                                delivery.Files.Add(deliveryFile);
-                            }
-
-                        }
-                        #endregion
-                        #region DeliveryFileParameters
-
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                            {
-
-                                DeliveryFile deliveryFile = delivery.Files[reader.Get<string>("Name")];
-                                deliveryFile.Parameters.Add(reader.Get<string>("Key"), DeSerialize(reader.Get<string>("Value")));
-                            }
-
-                        }
-                        #endregion
-                        #region DeliveryFileHistory
-
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                            {
-                                DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-                                deliveryFile.History.Add(new DeliveryHistoryEntry((DeliveryOperation)reader["Operation"], Convert.ToInt64(reader["ServiceInstanceID"])));
-                            }
+									deliveryFile.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
+								}
 
 
-                        }
-                        #endregion
-                        #region DeliveryFileHistoryParameters
-
-                        if (reader.NextResult())
-                        {
-                            while (reader.Read())
-                            {
-                                DeliveryFile deliveryFile = delivery.Files[reader["Name"].ToString()];
-
-                                deliveryFile.History[reader.Get<int>("Index")].Parameters.Add(reader["Key"].ToString(), reader.Get<object>("Value"));
-                            }
-
-
-                        }
-                        #endregion
-
-
+							}
+							#endregion
+						}
 
 
 
@@ -212,7 +215,7 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-        private static object DeSerialize(string json)
+        private static object DeserializeJson(string json)
         {
             object toReturn = null;
             JsonSerializerSettings s = new JsonSerializerSettings();
@@ -229,6 +232,9 @@ namespace Edge.Data.Pipeline
 				try { toReturn = JsonConvert.DeserializeObject(json, s);}
 				catch(Exception ex)
 				{
+					// WARNING: this will just ignore the param value. If the delivery is saved later, this param value will be deleted from the database.
+					// This is okay usually because this happens during rollback, and after rollback - nobody cares anymore about these old values.
+
 					Log.Write("Error while deserializing delivery parameter JSON.", ex);
 					toReturn = null;
 				}
@@ -241,6 +247,9 @@ namespace Edge.Data.Pipeline
 
         internal static Guid Save(Delivery delivery)
         {
+
+			if (!delivery.FullyLoaded)
+				throw new InvalidOperationException("Cannot save a delivery that was loaded with deep = false.");
 
             using (var client = DeliveryDBClient.Connect())
             {

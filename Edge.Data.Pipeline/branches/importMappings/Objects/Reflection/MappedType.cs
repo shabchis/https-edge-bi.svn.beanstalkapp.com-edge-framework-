@@ -7,36 +7,38 @@ using System.Reflection;
 
 namespace Edge.Data.Objects.Reflection
 {
-	public abstract class MappedType
+	public abstract class MappedObject
 	{
-		static Dictionary<Type, MappedTypeMetadata> _cache = new Dictionary<Type, MappedTypeMetadata>();
+		static Dictionary<Type, MappedObjectType> _cache = new Dictionary<Type, MappedObjectType>();
 
-		public MappedTypeMetadata RegisterType(Type type)
+		public MappedObjectType RegisterType()
 		{
-			MappedTypeMetadata metadata;
-			lock (_cache)
-			{
-				if (Attribute.IsDefined(type, typeof(TypeIDAttribute)))
-				{
-					// Get type ID
-					int typeid = ((TypeIDAttribute)Attribute.GetCustomAttribute(type, typeof(TypeIDAttribute))).TypeID;
+			Type type = this.GetType();
+			MappedObjectType metadata;
 
-					List<MappedFieldMetadata> fields = new List<MappedFieldMetadata>();
+			// Check if type already registered
+			if (!_cache.TryGetValue(type, out metadata))
+			{
+				int typeid = Attribute.IsDefined(type, typeof(MappedObjectTypeIDAttribute)) ?
+					((MappedObjectTypeIDAttribute)Attribute.GetCustomAttribute(type, typeof(MappedObjectTypeIDAttribute))).TypeID :
+					0;
+
+				lock (_cache)
+				{
+					List<MappedObjectField> fields = new List<MappedObjectField>();
 
 					// Get field indexes
-					foreach (FieldInfo field in this.GetType().GetFields())
+					foreach (FieldInfo field in type.GetFields())
 					{
-						if (Attribute.IsDefined(field, typeof(FieldIndexAttribute)))
+						if (Attribute.IsDefined(field, typeof(MappedObjectFieldIndexAttribute)))
 						{
-							int columnIndex = ((FieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(FieldIndexAttribute))).ColumnIndex;
-							fields.Add(new MappedFieldMetadata() { ColumnIndex = columnIndex, FieldInfo = field });
+							int columnIndex = ((MappedObjectFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(MappedObjectFieldIndexAttribute))).ColumnIndex;
+							fields.Add(new MappedObjectField() { ColumnIndex = columnIndex, FieldInfo = field });
 						}
 					}
 
-					_cache[type] = metadata = new MappedTypeMetadata() { TypeID = typeid, Fields = fields.ToArray() };
+					_cache[type] = metadata = new MappedObjectType() { TypeID = typeid, Fields = fields.ToArray() };
 				}
-				else
-					throw new Exception("TypeID attribute is not defined on this class.");
 			}
 
 			return metadata;
@@ -46,54 +48,48 @@ namespace Edge.Data.Objects.Reflection
 		{
 			get
 			{
-				Type type = this.GetType();
-				MappedTypeMetadata metadata;
-				if (!_cache.TryGetValue(type, out metadata))
-					metadata = RegisterType(type);
+				MappedObjectType metadata = RegisterType();
 				return metadata.TypeID;
 			}
 		}
 
-		public Dictionary<MappedFieldMetadata, object> GetFieldValues()
+		public Dictionary<MappedObjectField, object> GetFieldValues()
 		{
-			Type type = this.GetType();
-			MappedTypeMetadata metadata;
-			if (!_cache.TryGetValue(type, out metadata))
-				metadata = RegisterType(type);
+			MappedObjectType metadata = RegisterType();
 
-			var values = new Dictionary<MappedFieldMetadata, object>();
-			foreach (MappedFieldMetadata field in metadata.Fields)
+			var values = new Dictionary<MappedObjectField, object>();
+			foreach (MappedObjectField field in metadata.Fields)
 				values[field] = field.FieldInfo.GetValue(this);
 
 			return values;
 		}
 	}
 
-	public class MappedTypeMetadata
+	public class MappedObjectType
 	{
 		public int TypeID;
-		public MappedFieldMetadata[] Fields;
+		public MappedObjectField[] Fields;
 	}
 
-	public class MappedFieldMetadata
+	public class MappedObjectField
 	{
 		public int ColumnIndex;
 		public FieldInfo FieldInfo;
 	}
 
-	public class TypeIDAttribute : Attribute
+	public class MappedObjectTypeIDAttribute : Attribute
 	{
 		internal int TypeID;
-		public TypeIDAttribute(int typeID)
+		public MappedObjectTypeIDAttribute(int typeID)
 		{
 			TypeID = typeID;
 		}
 	}
 
-	public class FieldIndexAttribute : Attribute
+	public class MappedObjectFieldIndexAttribute : Attribute
 	{
 		internal int ColumnIndex;
-		public FieldIndexAttribute(int columnIndex)
+		public MappedObjectFieldIndexAttribute(int columnIndex)
 		{
 			ColumnIndex = columnIndex;
 		}

@@ -6,6 +6,7 @@ using System.Xml;
 using System.IO;
 using System.Collections;
 using GotDotNet.XPath;
+using Edge.Data.Pipeline;
 
 namespace Edge.Data.Pipeline
 {
@@ -94,12 +95,15 @@ namespace Edge.Data.Pipeline
 			{
 				var xpaths = new XPathCollection();
 				xpaths.Add(_xpath);
-
+				NameTable n = new NameTable();
+				xpaths.NamespaceManager = new XmlNamespaceManager(n);
+				//xpaths.NamespaceManager.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
 				var inner = _stream != null ?
 					new XmlTextReader(_stream) :
 					new XmlTextReader(_url);
-
-				inner.Namespaces = !_ignoreNamespaces;
+				inner.Namespaces = true;
+				
+				//inner.Namespaces = !_ignoreNamespaces;
 				if (_settings != null)
 				{
 					// TODO: map more XmlReaderSettings to XmlTextReader properties (check in reflector)

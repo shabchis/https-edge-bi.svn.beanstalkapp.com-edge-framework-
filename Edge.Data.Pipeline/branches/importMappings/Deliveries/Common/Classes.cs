@@ -183,8 +183,6 @@ namespace Edge.Data.Pipeline.Common.Importing
 
 			string cmdText = builder.ToString();
 			return cmdText;
-			//SqlCommand cmd = new SqlCommand(cmdText, this.Connection);
-			//cmd.ExecuteNonQuery();
 		}
 
 		public string GetCreateIndexSql()

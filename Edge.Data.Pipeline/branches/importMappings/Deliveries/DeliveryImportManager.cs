@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline
 {
@@ -164,22 +165,36 @@ namespace Edge.Data.Pipeline
 			this.CurrentDelivery = null;
 			this.HistoryEntryParameters = null;
 
-			onEnd(exception);
+			try
+			{
+				onEnd(exception);
+			}
+			catch (Exception ex)
+			{
+				if (exception == null)
+				{
+					throw new Exception("Failed to end delivery operation. There were no other exceptions before this one.", ex);
+				}
+				else
+					Log.Write("Failed to end delivery operation - probably because of another exception. See next log message.", ex);
+			}
 
 			if (exception == null)
 			{
 				// Add history and save
 				for (int i = 0; i < deliveries.Length; i++)
 				{
-					
+
 					Delivery delivery = deliveries[i];
 					delivery.History.Add(historyOperation, this._serviceInstanceID, entryParams[i]);
 					delivery.Save();
 				}
 			}
 			else
+			{
 				// Throw exception
-				throw new Exception("InnerException:", exception);
+				throw new Exception("Delivery operation failed while importing.", exception);
+			}
 
 			this.State = DeliveryImportManagerState.Idle;
 
