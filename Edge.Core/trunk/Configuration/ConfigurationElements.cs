@@ -180,7 +180,7 @@ namespace Edge.Core.Configuration
 		{
 			string val = this.Options[option];
 			if (val == null || (emptyIsError && string.IsNullOrWhiteSpace(val)))
-				throw new ServiceOptionsException(String.Format("The option '{0}' is missing in the service configuration.", option));
+				throw new ConfigurationErrorsException(String.Format("The option '{0}' is missing in the service configuration.", option), this.ElementInformation.Source, this.ElementInformation.LineNumber);
 			return val;
 		}
 
@@ -202,7 +202,7 @@ namespace Edge.Core.Configuration
 				try { val = (T)converter.ConvertFromString(raw); }
 				catch (Exception ex)
 				{
-					throw new ServiceOptionsException(String.Format("The option '{0}' could not be converted to {1}. See inner exception for details.", option, typeof(T).FullName), ex);
+					throw new ConfigurationErrorsException(String.Format("The option '{0}' could not be converted to {1}. See inner exception for details.", option, typeof(T).FullName), ex, this.ElementInformation.Source, this.ElementInformation.LineNumber);
 				}
 			}
 
