@@ -170,7 +170,7 @@ namespace Edge.Data.Pipeline
 			return new DeliveryFileDownloadOperation(this, request, location, length);
 		}
 
-		private string CreateLocation()
+		public string CreateLocation()
 		{
 			StringBuilder locationBuilder = new StringBuilder();
 			string location = string.Empty;

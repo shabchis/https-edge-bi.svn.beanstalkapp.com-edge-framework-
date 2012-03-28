@@ -60,7 +60,7 @@ namespace Edge.Data.Pipeline
 
 				// Try to get the response stream from the web request
 				WebResponse response;
-				try { response = operation.Request.GetResponse(); }
+				try { operation.Response = response = operation.Request.GetResponse(); }
 				catch (Exception ex)
 				{
 					operation.Success = false;
@@ -69,7 +69,7 @@ namespace Edge.Data.Pipeline
 					WebException webex;
 					if (ex is WebException && (webex = (WebException)ex).Status == WebExceptionStatus.ProtocolError)
 					{
-						response = webex.Response;
+						operation.Response = response = webex.Response;
 					}
 					else
 						return;

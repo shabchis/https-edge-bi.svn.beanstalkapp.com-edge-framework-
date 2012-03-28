@@ -28,9 +28,10 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OltpName;
 		public string DisplayName;
+		public string SourceName;
 		public MeasureOptions Options;
 
-		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator = MeasureOptionsOperator.And)
+		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, OptionsOperator @operator = OptionsOperator.And)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure),"GetMeasures.SP"),
 				System.Data.CommandType.StoredProcedure);
@@ -49,10 +50,11 @@ namespace Edge.Data.Objects
 					Measure m = new Measure()
 					{
 						ID = (int) reader["MeasureID"],
-						Account = account,
-						Name = (string)reader["Name"],
+						Account = reader.Get<int>("AccountID") == -1 ? null : account,
+						Name =reader["Name"] is DBNull ? string.Empty : (string)reader["Name"],
 						DisplayName = (string)reader["DisplayName"],
-						OltpName = (string) reader["FieldName"],
+						SourceName = reader["SourceName"] is DBNull ? string.Empty : (string)reader["SourceName"],
+						OltpName = reader["FieldName"] is DBNull ? string.Empty : (string)reader["FieldName"],
 						Options = (MeasureOptions)reader["Flags"]
 					};
 
@@ -69,6 +71,7 @@ namespace Edge.Data.Objects
 	[Flags]
 	public enum MeasureOptions
 	{
+		//IsDefault = 0x40,
 		IsBackOffice = 0x04,
 		IsTarget = 0x02,
 		IsCalculated = 0x10,
@@ -76,7 +79,7 @@ namespace Edge.Data.Objects
 		All = 0xff
 	}
 
-	public enum MeasureOptionsOperator
+	public enum OptionsOperator
 	{
 		Or = 0,
 		And = 1,

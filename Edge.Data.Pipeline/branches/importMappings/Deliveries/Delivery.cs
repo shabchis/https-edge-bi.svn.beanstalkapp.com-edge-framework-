@@ -28,6 +28,7 @@ namespace Edge.Data.Pipeline
 		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
 		DeliveryHistory _history;
+		public bool FullyLoaded { get; internal set; }
 
 		public bool IsCommited { get; set; }
 
@@ -57,6 +58,7 @@ namespace Edge.Data.Pipeline
 			_history = new DeliveryHistory();
 			_parameters = new Dictionary<string, object>();
 
+			this.FullyLoaded = true;
 			this.DeliveryID = specifiedDeliveryID;
 		}
 
@@ -202,9 +204,9 @@ namespace Edge.Data.Pipeline
 		// Statics
 		// =============================
 
-		public static Delivery Get(Guid deliveryID)
+		public static Delivery Get(Guid deliveryID, bool deep = true)
 		{
-			return DeliveryDB.Get(deliveryID);
+			return DeliveryDB.Get(deliveryID, deep);
 		}
 
 		public static Delivery[] GetByTargetPeriod(DateTime start, DateTime end, Channel channel = null, Account account = null, bool exact = false)
