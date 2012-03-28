@@ -60,7 +60,7 @@ namespace Edge.Data.Pipeline.Common.Importing
 
 			// Create bulk objects
 			_bulks = new Dictionary<Type, BulkObjects>();
-			Type tableList = this.GetType().GetNestedType("Table");
+			Type tableList = this.GetType().GetNestedType("Tables", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
 			foreach (Type table in tableList.GetNestedTypes())
 			{
 				_bulks[table] = new BulkObjects(this._tablePrefix, table, _sqlConnection, bufferSize);
@@ -152,11 +152,14 @@ namespace Edge.Data.Pipeline.Common.Importing
 		}
 
 		protected abstract string TablePrefixType { get; }
-		protected abstract MeasureOptions MeasureOptions { get; }
-		protected abstract OptionsOperator MeasureOptionsOperator { get; }
-		protected abstract SegmentOptions SegmentOptions { get; }
-		protected abstract OptionsOperator SegmentOptionsOperator { get; }
 		protected abstract Type MetricsTableDefinition { get; }
+
+
+		public MeasureOptions MeasureOptions { get; set; }
+		public OptionsOperator MeasureOptionsOperator { get; set; }
+		public SegmentOptions SegmentOptions { get; set; }
+		public OptionsOperator SegmentOptionsOperator { get; set; }
+		
 
 		/*=========================*/
 		#endregion
