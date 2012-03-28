@@ -309,5 +309,16 @@ namespace Edge.Core.Configuration
 	/*=========================*/
 	#endregion
 
+	[System.Serializable]
+	public class ServiceOptionsException : System.Exception
+	{
+		public ServiceOptionsException() { }
+		public ServiceOptionsException(string message) : base(message) { }
+		public ServiceOptionsException(string message, System.Exception inner) : base(message, inner) { }
+		protected ServiceOptionsException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
+	}
 
 }

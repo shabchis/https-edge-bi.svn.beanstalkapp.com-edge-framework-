@@ -173,6 +173,42 @@ namespace Edge.Core.Configuration
 
 		#region Methods
 
+		/// <summary>
+		/// Gets a configuration option from the Options collection and throws an exception if it is missing or empty.
+		/// </summary>
+		public string GetOption(string option, bool emptyIsError = true)
+		{
+			string val = this.Options[option];
+			if (val == null || (emptyIsError && string.IsNullOrWhiteSpace(val)))
+				throw new ServiceOptionsException(String.Format("The option '{0}' is missing in the service configuration.", option));
+			return val;
+		}
+
+		/// <summary>
+		/// Gets a configuration option from the Options collection and converts it to the desired type.
+		/// </summary>
+		/// <param name="convertFunction">If null, will try an automatic conversion.</param>
+		public T GetOption<T>(string option, bool emptyIsError = true, Func<string,T> convertFunction = null)
+		{
+			string raw = this.GetOption(option, emptyIsError);
+			T val;
+			if (convertFunction != null)
+			{
+				val = convertFunction(raw);
+			}
+			else
+			{
+				TypeConverter converter = TypeDescriptor.GetConverter(typeof(T));
+				try { val = (T)converter.ConvertFromString(raw); }
+				catch (Exception ex)
+				{
+					throw new ServiceOptionsException(String.Format("The option '{0}' could not be converted to {1}. See inner exception for details.", option, typeof(T).FullName), ex);
+				}
+			}
+
+			return val;
+		}
+
 		protected override bool OnDeserializeUnrecognizedAttribute(string name, string value)
 		{
 			if (Options.ContainsKey(name))
