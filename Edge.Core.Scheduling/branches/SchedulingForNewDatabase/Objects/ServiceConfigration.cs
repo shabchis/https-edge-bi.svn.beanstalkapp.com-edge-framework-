@@ -10,12 +10,40 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class ServiceConfiguration
 	{
+		private int _maxConcurrent = 1;
+		private int _maxCuncurrentPerProfile = 1;
         private Guid _guid;
 		public int ID;
 		public ServiceConfiguration BaseConfiguration;			
 		public string Name;
-		public int MaxConcurrent=2;
-		public int MaxCuncurrentPerProfile=2;
+		public int MaxConcurrent
+		{
+			get
+			{
+				return _maxConcurrent;
+			}
+			set
+			{
+				if (value != 0)
+					_maxConcurrent = value;
+				else
+					value = 999;
+			}
+		}
+		public int MaxCuncurrentPerProfile
+		{
+			get
+			{
+				return _maxCuncurrentPerProfile;
+			}
+			set
+			{
+				if (value != 0)
+					_maxCuncurrentPerProfile = value;
+				else
+					value = 999;
+			}
+		}
 		public Profile SchedulingProfile;
 		public List<SchedulingRule> SchedulingRules=new List<SchedulingRule>();
 		public bool Scheduled = false;

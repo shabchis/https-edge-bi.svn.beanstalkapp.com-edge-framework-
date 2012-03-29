@@ -54,6 +54,7 @@ namespace Edge.Core.Scheduling.Objects
 		public DateTime ScheduleEndTime { get; set; }
 		public DateTime ActualStartTime { get; set; }
 		public DateTime ActualEndTime { get; set; }
+		public double Progress { get; set; }
 		public ServiceState State { get; set; }
 		public ServiceOutcome Outcome { get; set; }
 		public string DayCode { get; set; }
