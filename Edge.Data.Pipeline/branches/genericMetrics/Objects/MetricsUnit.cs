@@ -8,7 +8,7 @@ namespace Edge.Data.Objects
 {
 	public abstract class MetricsUnit
 	{
-		public Guid Usid = new Guid();
+		public Guid Usid = Guid.NewGuid();
 
 		public DateTime PeriodStart;
 		public DateTime PeriodEnd;
