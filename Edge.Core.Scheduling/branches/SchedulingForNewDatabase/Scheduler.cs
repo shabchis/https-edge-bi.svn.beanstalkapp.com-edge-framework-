@@ -648,6 +648,7 @@ namespace Edge.Core.Scheduling
 		private void NotifyServicesToRun()
 		{
 			//DO some checks
+			Dictionary<SchedulingData,ServiceInstance> instancesShouldRun = new Dictionary<SchedulingData,ServiceInstance>();
 			List<ServiceInstance> instancesToRun = new List<ServiceInstance>();
 			if (_needReschedule)
 			{
@@ -669,18 +670,48 @@ namespace Edge.Core.Scheduling
 							scheduleService.Key.TimeToRun.Add(scheduleService.Key.Rule.MaxDeviationAfter) >= DateTime.Now &&
 						   scheduleService.Value.LegacyInstance.State == Legacy.ServiceState.Uninitialized)
 						{
-							instancesToRun.Add(scheduleService.Value);
+							instancesShouldRun.Add(scheduleService.Key ,scheduleService.Value);
 						}
 					}
 				}
 			}
 
-			if (instancesToRun.Count > 0)
+			if (instancesShouldRun.Count > 0)
 			{
-				instancesToRun = (List<ServiceInstance>)instancesToRun.OrderBy(s => s.StartTime).ToList<ServiceInstance>();
+				instancesShouldRun = (Dictionary<SchedulingData,ServiceInstance>)instancesShouldRun.OrderBy(s => s.Value.StartTime);
+				foreach (var instance in instancesShouldRun)
+				{
+					int countedServicesWithSameConfiguration = _scheduledServices.Count(s => s.Key.Configuration.Name == s.Key.Configuration.BaseConfiguration.Name &&
+															   s.Value.LegacyInstance.State != Legacy.ServiceState.Uninitialized &&
+															   s.Value.LegacyInstance.State != Legacy.ServiceState.Ended 
+															   && s.Value.Deleted == false);
+
+					if (countedServicesWithSameConfiguration >= instance.Value.MaxConcurrentPerConfiguration)
+						//cant run!!!!
+						continue;
+
+					int countedServicesWithSameProfile = _scheduledServices.Count(s => s.Value.ProfileID == s.Key.Configuration.SchedulingProfile.ID &&
+						s.Key.Configuration.Name == s.Key.Configuration.BaseConfiguration.Name && //should be id but no id yet
+																s.Value.LegacyInstance.State != Legacy.ServiceState.Uninitialized &&
+																s.Value.LegacyInstance.State != Legacy.ServiceState.Ended &&
+																s.Value.Deleted == false);
+
+					if (countedServicesWithSameProfile>=instance.Value.MaxCuncurrentPerProfile)
+						//cant run!!!
+						continue;
+					instancesToRun.Add(instance.Value);
+
+
+															    
+															   
+
+
+
+				
+				}
 				OnTimeToRun(new TimeToRunEventArgs() { ServicesToRun = instancesToRun.ToArray() });
 			}
-			instancesToRun.Clear();
+			instancesShouldRun.Clear();
 		}
 
 		/// <summary>
