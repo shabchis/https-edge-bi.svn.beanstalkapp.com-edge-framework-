@@ -5,12 +5,13 @@ using System.Text;
 using System.IO;
 using Newtonsoft.Json;
 
+
 namespace Edge.Core.Scheduling.Objects
 {
 	public static class SchedulerState
 	{
 		public static Dictionary<int, HistoryItem> HistoryItems = new Dictionary<int, HistoryItem>();
-		private static string _path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "test.json");
+		private static string _path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),System.Reflection.Assembly.GetEntryAssembly().FullName+ ".json");
 
 		public static void Save()
 		{
