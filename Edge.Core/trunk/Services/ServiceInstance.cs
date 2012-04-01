@@ -62,6 +62,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		internal ServiceInstance(ActiveServiceElement activeConfiguration, ServiceInstance parentInstance, int accountID)
 		{
+			this.Guid = Guid.NewGuid();
 			ActiveConfigurationProperty.SetValue(this, activeConfiguration);
 			ParentInstanceProperty.SetValue(this, parentInstance);
 
@@ -88,6 +89,7 @@ namespace Edge.Core.Services
 
 		#region Properties
 		/*=========================*/
+		public Guid Guid { get;private set; }
 
 		public int AccountID
 		{
@@ -805,7 +807,7 @@ namespace Edge.Core.Services
 	{
 		#region Fields
 		/*=========================*/
-
+		Guid _guid;
 		int _accountID;
 		long _instanceID;
 		string _serviceUrl;
@@ -829,6 +831,7 @@ namespace Edge.Core.Services
 
 		public ServiceInstanceInfo(ServiceInstance instance)
 		{
+			_guid = instance.Guid;
 			_accountID = instance.AccountID;
 			_instanceID = instance.InstanceID;
 			_priority = instance.Priority;
@@ -848,7 +851,10 @@ namespace Edge.Core.Services
 
 		#region Properties
 		/*=========================*/
-
+		public Guid Guid
+		{
+			get { return _guid; }
+		}
 		public int AccountID
 		{
 			get { return _accountID; }

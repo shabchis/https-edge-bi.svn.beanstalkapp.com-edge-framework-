@@ -61,6 +61,7 @@ namespace Edge.Core.Services
 
 	public interface IServiceInstance
 	{
+		Guid Guid { get; }
 		int AccountID { get; }
 		long InstanceID { get; }
 		string ServiceUrl { get; }
