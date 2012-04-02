@@ -132,7 +132,10 @@ namespace Edge.Data.Pipeline.Common.Importing
 		protected override void OnEndImport()
 		{
 			foreach (BulkObjects bulk in _bulks.Values)
+			{
+				bulk.Flush();
 				bulk.Dispose();
+			}
 		}
 
 		protected override void OnDisposeImport()
