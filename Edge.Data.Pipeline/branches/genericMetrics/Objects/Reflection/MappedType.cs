@@ -40,7 +40,7 @@ namespace Edge.Data.Objects.Reflection
 							MemberInfo valueSource = null;
 							if (valueSourceName != null)
 							{
-								MemberInfo[] members = field.FieldType.GetMember(valueSourceName, BindingFlags.Public | BindingFlags.NonPublic);
+								MemberInfo[] members = field.FieldType.GetMember(valueSourceName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 								foreach (MemberInfo member in members)
 								{
 									if (
