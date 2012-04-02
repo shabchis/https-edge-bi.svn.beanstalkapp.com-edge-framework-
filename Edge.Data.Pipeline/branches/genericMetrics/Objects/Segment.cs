@@ -60,8 +60,8 @@ namespace Edge.Data.Objects
 			set { this.Value = value; }
 		}
 
-		[MappedObjectFieldIndex(4)]
-		public double Budget;
+		[MappedObjectFieldIndex(1)]
+		public double? Budget;
 	}
 
 	[MappedObjectTypeID(76)]
@@ -76,7 +76,7 @@ namespace Edge.Data.Objects
 			set { this.Value = value; }
 		}
 
-		[MappedObjectFieldIndex(1)]
+		[MappedObjectFieldIndex(1, ValueSource="Value")]
 		public Campaign Campaign;
 	}
 
