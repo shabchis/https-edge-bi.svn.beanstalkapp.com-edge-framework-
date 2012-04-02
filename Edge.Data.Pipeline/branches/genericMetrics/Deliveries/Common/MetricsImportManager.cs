@@ -138,11 +138,6 @@ namespace Edge.Data.Pipeline.Common.Importing
 			}
 		}
 
-		protected override void OnDisposeImport()
-		{
-			OnEndImport();
-		}
-
 		protected BulkObjects Bulk<TableDef>()
 		{
 			return _bulks[typeof(TableDef)];
