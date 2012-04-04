@@ -24,14 +24,18 @@ namespace Edge.Data.Objects
 		#endregion
 
 		public int ID;
+        public int BaseMeasureID;
 		public Account Account;
 		public string Name;
+        public Channel Channel;
 		public string OltpName;
 		public string DisplayName;
 		public string SourceName;
+        public string StringFormat;
+        public int? AcquisitionNum;
 		public MeasureOptions Options;
 
-		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions options, MeasureOptionsOperator @operator = MeasureOptionsOperator.And)
+		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions? options = null, MeasureOptionsOperator @operator = MeasureOptionsOperator.And, bool includeBase = false)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure),"GetMeasures.SP"),
 				System.Data.CommandType.StoredProcedure);
@@ -40,32 +44,35 @@ namespace Edge.Data.Objects
 			cmd.Parameters["@accountID"].Value = account == null ? DBNull.Value : (object)account.ID;
 			cmd.Parameters["@channelID"].Value = channel == null ? DBNull.Value : (object)channel.ID;
 			cmd.Parameters["@flags"].Value = options;
-			cmd.Parameters["@operator"].Value = @operator;
+            cmd.Parameters["@operator"].Value = @operator;
+            cmd.Parameters["@includeBase"].Value = includeBase;
 
 			List<Measure> measures = new List<Measure>();
 			using (SqlDataReader reader = cmd.ExecuteReader())
 			{
 				while (reader.Read())
 				{
-					Measure m = new Measure()
-					{
-						ID = (int) reader["MeasureID"],
-						Account = reader.Get<int>("AccountID") == -1 ? null : account,
-						Name =reader["Name"] is DBNull ? string.Empty : (string)reader["Name"],
-						DisplayName = (string)reader["DisplayName"],
-						SourceName = reader["SourceName"] is DBNull ? string.Empty : (string)reader["SourceName"],
-						OltpName = reader["FieldName"] is DBNull ? string.Empty : (string)reader["FieldName"],
-						Options = (MeasureOptions)reader["Flags"]
-					};
+                    Measure m = new Measure()
+                    {
+                        ID = (int)reader["MeasureID"],
+                        BaseMeasureID = (int)reader["BaseMeasureID"],
+                        Account = reader.Get<int>("AccountID") == -1 ? null : account,
+                        Channel = reader.Get<int>("ChannelID") == -1 ? null : (channel ?? new Channel() { ID = reader.Get<int>("ChannelID") }),
+                        Name = reader["Name"] is DBNull ? string.Empty : (string)reader["Name"],
+                        DisplayName = reader["DisplayName"] is DBNull ? string.Empty : (string)reader["DisplayName"],
+                        SourceName = reader["SourceName"] is DBNull ? string.Empty : (string)reader["SourceName"],
+                        OltpName = reader["FieldName"] is DBNull ? string.Empty : (string)reader["FieldName"],
+                        StringFormat = reader["StringFormat"] is DBNull ? string.Empty : (string)reader["StringFormat"],
+                        AcquisitionNum = reader["AcquisitionNum"] is DBNull ? null : (int?)reader["AcquisitionNum"],
+                        Options = (MeasureOptions)reader["Flags"]
+                    };
 
 					measures.Add(m);
 				}
 			}
 
-			return measures.ToDictionary(m => m.Name);
+			return measures.ToDictionary(m => m.Name);            
 		}
-
-		
 	}
 
 	[Flags]
@@ -75,8 +82,7 @@ namespace Edge.Data.Objects
 		IsBackOffice = 0x04,
 		IsTarget = 0x02,
 		IsCalculated = 0x10,
-		ValidationRequired = 0x80,
-		All = 0xff
+		ValidationRequired = 0x80
 	}
 
 	public enum MeasureOptionsOperator
