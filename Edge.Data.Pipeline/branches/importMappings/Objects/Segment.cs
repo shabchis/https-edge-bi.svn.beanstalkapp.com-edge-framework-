@@ -76,13 +76,14 @@ namespace Edge.Data.Objects
 			set { this.Value = value; }
 		}
 
-		[MappedObjectFieldIndex(1)]
+		[MappedObjectFieldIndex(1, ValueSource = "Value")]
 		public Campaign Campaign;
 	}
 
 	[Flags]
 	public enum SegmentOptions
 	{
+		None = 0x00,
 		All = 0xff
 	}
 }

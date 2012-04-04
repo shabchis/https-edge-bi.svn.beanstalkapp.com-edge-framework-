@@ -115,6 +115,7 @@ namespace Edge.Data.Pipeline.Mapping
 			{
 				// Process regular expressions
 				result = new ReadResult() { FieldValue = rawValue.ToString() };
+				bool add = true;
 				
 				if (_regex != null && rawValue != null)
 				{
@@ -128,8 +129,12 @@ namespace Edge.Data.Pipeline.Mapping
 								((dynamic)result)[fragment] = g.Value;
 						}
 					}
+					else
+						add = false;
 				}
-				context.ReadResults.Add(this, result);
+				
+				if (add)
+					context.ReadResults.Add(this, result);
 			}
 		}
 	}
@@ -140,7 +145,13 @@ namespace Edge.Data.Pipeline.Mapping
 
 		public override string ToString()
 		{
-			return FieldValue;
+			if(this.Values.Count == 1)
+			{
+				object val = this.Values.First().Value;
+				return val == null ? null : val.ToString();
+			}
+			else
+				return this.FieldValue;
 		}
 
 		public static implicit operator string(ReadResult result)

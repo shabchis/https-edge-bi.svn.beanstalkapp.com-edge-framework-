@@ -19,6 +19,8 @@ namespace Edge.Data.Pipeline
 		DateTimeSpecification _start;
 		[JsonProperty(PropertyName = "end")]
 		DateTimeSpecification _end;
+		[JsonProperty(PropertyName = "timezone")]
+		public string TimeZone;
 
 		public DateTimeSpecification Start
 		{
@@ -140,6 +142,9 @@ namespace Edge.Data.Pipeline
 	{
 		#region Fields
 		/*=========================*/
+
+		[JsonProperty(PropertyName="timezone")]
+		public string TimeZone;
 
 		[JsonProperty(PropertyName="align"), JsonConverter(typeof(StringEnumConverter))]
 		public DateTimeSpecificationAlignment Alignment;
