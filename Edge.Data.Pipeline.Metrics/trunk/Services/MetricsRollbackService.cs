@@ -11,7 +11,7 @@ using Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
-	public class RollbackService : PipelineService
+	public class MetricsRollbackService : PipelineService
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{

@@ -10,7 +10,7 @@ using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
-	public class CommitService : PipelineService
+	public class MetricsCommitService : PipelineService
 	{
 		protected override ServiceOutcome DoPipelineWork()
 		{
