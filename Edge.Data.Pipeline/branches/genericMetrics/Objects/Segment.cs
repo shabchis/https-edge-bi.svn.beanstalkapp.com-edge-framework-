@@ -39,7 +39,7 @@ namespace Edge.Data.Objects
 	{
 		//public Account Account;
 		//public Channel Channel;
-		public ObjectStatus Status;
+		public ObjectStatus Status = ObjectStatus.Unknown;
 
 		public string OriginalID;
 		public string Value;

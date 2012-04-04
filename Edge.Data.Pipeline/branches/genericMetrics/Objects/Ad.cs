@@ -13,7 +13,7 @@ namespace Edge.Data.Objects
 		public string Name;
 		public string OriginalID;
 		public string DestinationUrl;
-		public ObjectStatus Status;
+		public ObjectStatus Status = ObjectStatus.Unknown;
 
 		public List<Creative> Creatives = new List<Creative>();
 		public List<Target> Targets = new List<Target>();
