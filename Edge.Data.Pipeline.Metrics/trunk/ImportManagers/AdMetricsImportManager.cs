@@ -106,10 +106,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		/// </summary>
 		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID, options)
 		{
-			this.MeasureOptions = MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
-			this.MeasureOptionsOperator = OptionsOperator.Not;
-			this.SegmentOptions = Data.Objects.SegmentOptions.All;
-			this.SegmentOptionsOperator = OptionsOperator.And;
+			options.MeasureOptions = options.MeasureOptions != MeasureOptions.None ? options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
+			options.MeasureOptionsOperator = options.MeasureOptions != MeasureOptions.None ? options.MeasureOptionsOperator : OptionsOperator.Not;
+			options.SegmentOptions = options.SegmentOptions != SegmentOptions.None ? options.SegmentOptions : Data.Objects.SegmentOptions.All;
+			options.SegmentOptionsOperator = options.SegmentOptions != SegmentOptions.None ? options.SegmentOptionsOperator : OptionsOperator.And;
 		}
 
 		/// <summary>

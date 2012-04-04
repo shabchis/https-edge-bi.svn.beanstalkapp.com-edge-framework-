@@ -39,6 +39,7 @@ namespace Edge.Data.Pipeline.Metrics
 			options.SqlPrepareCommand = options.SqlPrepareCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlPrepareCommand, throwException: false);
 			options.SqlCommitCommand = options.SqlCommitCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlCommitCommand, throwException: false);
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
+			
 			this.Options = options;
 		}
 
@@ -79,16 +80,16 @@ namespace Edge.Data.Pipeline.Metrics
 					this.CurrentDelivery.Account,
 					this.CurrentDelivery.Channel,
 					oltpConnection,
-					this.MeasureOptions,
-					this.MeasureOptionsOperator
+					this.Options.MeasureOptions,
+					this.Options.MeasureOptionsOperator
 					);
 
 				this.SegmentTypes = Segment.GetSegments(
 					this.CurrentDelivery.Account,
 					this.CurrentDelivery.Channel,
 					oltpConnection,
-					this.SegmentOptions,
-					this.SegmentOptionsOperator
+					this.Options.SegmentOptions,
+					this.Options.SegmentOptionsOperator
 					);
 			}
 
@@ -136,7 +137,10 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void OnEndImport()
 		{
 			foreach (BulkObjects bulk in _bulks.Values)
+			{
+				bulk.Flush();
 				bulk.Dispose();
+			}
 		}
 
 		protected override void OnDisposeImport()
@@ -158,10 +162,6 @@ namespace Edge.Data.Pipeline.Metrics
 		protected abstract string TablePrefixType { get; }
 		protected abstract Type MetricsTableDefinition { get; }
 
-		public MeasureOptions MeasureOptions { get; set; }
-		public OptionsOperator MeasureOptionsOperator { get; set; }
-		public SegmentOptions SegmentOptions { get; set; }
-		public OptionsOperator SegmentOptionsOperator { get; set; }
 
 		/*=========================*/
 		#endregion

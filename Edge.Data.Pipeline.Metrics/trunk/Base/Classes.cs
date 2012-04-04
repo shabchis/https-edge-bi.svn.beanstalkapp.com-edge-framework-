@@ -7,6 +7,7 @@ using System.Data.SqlClient;
 using Edge.Core.Data;
 using System.Reflection;
 using Edge.Core.Configuration;
+using Edge.Data.Objects;
 
 namespace Edge.Data.Pipeline.Common.Importing
 {
@@ -17,6 +18,10 @@ namespace Edge.Data.Pipeline.Common.Importing
 		public string SqlCommitCommand { get; set; }
 		public string SqlRollbackCommand { get; set; }
 		public double ChecksumThreshold { get; set; }
+		public MeasureOptions MeasureOptions { get; set; }
+		public OptionsOperator MeasureOptionsOperator { get; set; }
+		public SegmentOptions SegmentOptions { get; set; }
+		public OptionsOperator SegmentOptionsOperator { get; set; }
 	}
 
 	public static class TableDef
