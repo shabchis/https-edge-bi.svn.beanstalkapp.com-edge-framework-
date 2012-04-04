@@ -11,6 +11,7 @@ using Edge.Core.Configuration;
 using System.Threading;
 using System.Data.SqlClient;
 using EdgeConfiguration = Edge.Core.Data;
+using Edge.Data.Pipeline.Mapping;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -248,28 +249,28 @@ namespace Edge.Data.Pipeline.Services
 		// ==============================
 		#endregion
 
-		#region Auto segments
+		#region Mapping
 		// ==============================
 
-		AutoSegmentationUtility _autoSegments = null;
+		MappingConfiguration _mapping = null;
 		
-		public AutoSegmentationUtility AutoSegments
+		public MappingConfiguration Mappings
 		{
 			get
 			{
-				if (_autoSegments == null)
+				if (_mapping == null)
 				{
 					ConfigurationElement extension;
-					if (!this.Instance.Configuration.Extensions.TryGetValue(AutoSegmentDefinitionCollection.ExtensionName, out extension))
+					if (!this.Instance.Configuration.Extensions.TryGetValue(MappingConfiguration.ExtensionName, out extension))
 					{
 						AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
-						if (!account.Extensions.TryGetValue(AutoSegmentDefinitionCollection.ExtensionName, out extension))
-							throw new ConfigurationException("No AutoSegments configuration found.");
+						if (!account.Extensions.TryGetValue(MappingConfiguration.ExtensionName, out extension))
+							throw new MappingConfigurationException("No mapping configuration found.");
 					}
-					_autoSegments = new AutoSegmentationUtility(extension as AutoSegmentDefinitionCollection);
+					_mapping = (MappingConfiguration) extension;
 				}
 
-				return _autoSegments;
+				return _mapping;
 			}
 		}
 

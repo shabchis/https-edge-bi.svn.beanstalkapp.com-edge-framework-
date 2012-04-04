@@ -23,6 +23,7 @@ namespace Edge.Data.Pipeline.Mapping
 	{
 		public MappingConfigurationException() { }
 		public MappingConfigurationException(string message, XmlReader reader) : this(message, null, reader, null) { }
+		public MappingConfigurationException(string message, string tagName) : this(message, tagName, null, null) { }
 		public MappingConfigurationException(string message, string tagName, XmlReader reader) : this(message, tagName, reader, null) { }
 		public MappingConfigurationException(string message, string tagName, XmlReader reader, Exception inner) :
 			base(String.Format("{0}{1}{2}",

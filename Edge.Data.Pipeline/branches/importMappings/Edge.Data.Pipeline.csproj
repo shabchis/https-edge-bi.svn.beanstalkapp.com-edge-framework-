@@ -115,7 +115,6 @@
     <Compile Include="Services\GenericInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
-    <Compile Include="Utilities\Configuration\AutoSegmentsConfiguration.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
@@ -134,7 +133,6 @@
     <Compile Include="Objects\Targets.cs" />
     <Compile Include="Objects\Creative.cs" />
     <Compile Include="Objects\Segment.cs" />
-    <Compile Include="Utilities\AutoSegments.cs" />
     <Compile Include="Readers\Base\DynamicDictionaryObject.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />

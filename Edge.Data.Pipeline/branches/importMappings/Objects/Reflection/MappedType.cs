@@ -32,8 +32,39 @@ namespace Edge.Data.Objects.Reflection
 					{
 						if (Attribute.IsDefined(field, typeof(MappedObjectFieldIndexAttribute)))
 						{
-							int columnIndex = ((MappedObjectFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(MappedObjectFieldIndexAttribute))).ColumnIndex;
-							fields.Add(new MappedObjectField() { ColumnIndex = columnIndex, FieldInfo = field });
+							var attribute = (MappedObjectFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(MappedObjectFieldIndexAttribute));
+							int columnIndex = attribute.ColumnIndex;
+							string valueSourceName = attribute.ValueSource;
+
+							// If a value source was specified, find a field, property that has a getter, or method with no params that returns a value
+							MemberInfo valueSource = null;
+							if (valueSourceName != null)
+							{
+								MemberInfo[] members = field.FieldType.GetMember(valueSourceName, BindingFlags.Public | BindingFlags.NonPublic);
+								foreach (MemberInfo member in members)
+								{
+									if (
+										member.MemberType == MemberTypes.Field ||
+										(
+											member.MemberType == MemberTypes.Property &&
+											((PropertyInfo)member).CanRead
+										) ||
+										(
+											member.MemberType == MemberTypes.Method &&
+											((MethodInfo)member).ReturnType != typeof(void) &&
+											((MethodInfo)member).GetParameters().Length == 0 &&
+											!((MethodInfo)member).IsGenericMethod
+										)
+									)
+									{
+										valueSource = member;
+										break;
+									}
+								}
+
+							}
+
+							fields.Add(new MappedObjectField() { ColumnIndex = columnIndex, FieldInfo = field, ValueSource = valueSource });
 						}
 					}
 
@@ -59,7 +90,19 @@ namespace Edge.Data.Objects.Reflection
 
 			var values = new Dictionary<MappedObjectField, object>();
 			foreach (MappedObjectField field in metadata.Fields)
-				values[field] = field.FieldInfo.GetValue(this);
+			{
+				object value = field.FieldInfo.GetValue(this);
+				if (field.ValueSource != null)
+				{
+					if (field.ValueSource is FieldInfo)
+						value = ((FieldInfo)field.ValueSource).GetValue(value);
+					else if (field.ValueSource is PropertyInfo)
+						value = ((PropertyInfo)field.ValueSource).GetValue(value, null);
+					else if (field.ValueSource is MethodInfo)
+						value = ((MethodInfo)field.ValueSource).Invoke(value, null);
+				}
+				values[field] = value;
+			}
 
 			return values;
 		}
@@ -75,6 +118,7 @@ namespace Edge.Data.Objects.Reflection
 	{
 		public int ColumnIndex;
 		public FieldInfo FieldInfo;
+		public MemberInfo ValueSource;
 	}
 
 	public class MappedObjectTypeIDAttribute : Attribute
@@ -89,6 +133,8 @@ namespace Edge.Data.Objects.Reflection
 	public class MappedObjectFieldIndexAttribute : Attribute
 	{
 		internal int ColumnIndex;
+		public string ValueSource { get; set; }
+
 		public MappedObjectFieldIndexAttribute(int columnIndex)
 		{
 			ColumnIndex = columnIndex;

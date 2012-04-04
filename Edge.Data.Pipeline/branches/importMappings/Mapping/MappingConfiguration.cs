@@ -6,16 +6,20 @@ using System.Xml;
 using Edge.Data.Objects;
 using Edge.Core.Utilities;
 using System.Reflection;
+using System.Configuration;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	public class MappingConfiguration
+	public class MappingConfiguration: ConfigurationElement
 	{
+		public const string ExtensionName = "Mappings";
+
 		public string SourcePath { get; private set; }
 
-		public List<string> Usings = new List<string>();
-		public Dictionary<Type, MappingContainer> Objects = new Dictionary<Type, MappingContainer>();
-		public Dictionary<string, Delegate> ExternalMethods = new Dictionary<string, Delegate>();
+		public List<string> Usings { get; set; }
+		public Dictionary<Type, MappingContainer> Objects { get; set; }
+		public Dictionary<string, Delegate> ExternalMethods { get; set; }
+		public Func<string, object> OnFieldRead {get; set;}
 
 		private List<EvaluatorExpression> _evalExpressions = new List<EvaluatorExpression>();
 		internal int NextEvalID = 0;
@@ -27,10 +31,21 @@ namespace Edge.Data.Pipeline.Mapping
 			UsingNamespaces = new List<string>()
 		};
 
-		public Func<string,object> OnFieldRead = null;
 
 		public MappingConfiguration()
 		{
+			this.Usings = new List<string>();
+			this.Objects = new Dictionary<Type, MappingContainer>();
+			this.ExternalMethods = new Dictionary<string, Delegate>();
+		}
+
+		protected override void DeserializeElement(System.Xml.XmlReader reader, bool serializeCollectionKey)
+		{
+			string source = reader.GetAttribute("Source");
+			if (!String.IsNullOrWhiteSpace(source))
+				this.Load(source);
+			else
+				this.Load(reader);
 		}
 
 		/// <summary>
