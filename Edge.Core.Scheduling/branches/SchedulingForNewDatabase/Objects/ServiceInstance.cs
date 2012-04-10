@@ -29,15 +29,11 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan ActualDeviation;
 		public double Odds;		
 		public bool Deleted;		
-		public Legacy.ServiceInstance LegacyInstance;
-		
-		
+		public Legacy.ServiceInstance LegacyInstance;		
 		public ServiceOutcome Outcome
 		{
 			get { return this.LegacyInstance.Outcome; }
-		}
-		
-		
+		}		
 	}
 	/// <summary>
 	/// service-hour 
@@ -59,6 +55,7 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceOutcome Outcome { get; set; }
 		public string DayCode { get; set; }
 		public Guid ParentInstanceID { get; set; }
+		public DateTime BaseScheduleTime { get; set; }
 	}
 	public struct ServiceHourStruct
 	{
