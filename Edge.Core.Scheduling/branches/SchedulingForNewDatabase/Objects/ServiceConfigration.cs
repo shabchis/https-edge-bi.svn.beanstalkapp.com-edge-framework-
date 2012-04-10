@@ -52,8 +52,6 @@ namespace Edge.Core.Scheduling.Objects
 		public ActiveServiceElement LegacyConfiguration;
 		public int priority;
 		public Legacy.ServiceInstance Instance = null;
-		
-
         public ServiceConfiguration()
         {
             _guid = new Guid();
