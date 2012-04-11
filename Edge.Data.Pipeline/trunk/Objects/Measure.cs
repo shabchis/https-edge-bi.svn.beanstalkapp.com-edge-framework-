@@ -35,7 +35,7 @@ namespace Edge.Data.Objects
         public int? AcquisitionNum;
 		public MeasureOptions Options;
 
-		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions? options = null, MeasureOptionsOperator @operator = MeasureOptionsOperator.And, bool includeBase = false)
+		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions? options = null, MeasureOptionsOperator @operator = MeasureOptionsOperator.Or, bool includeBase = false)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure),"GetMeasures.SP"),
 				System.Data.CommandType.StoredProcedure);
