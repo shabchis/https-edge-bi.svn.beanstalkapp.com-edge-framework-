@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline
 		/// <param name="source">The string to search.</param>
 		/// <param name="defaultFragmentValues">If not found using the regex pattern, use these values.</param>
 		/// <returns></returns>
-		public SegmentObject ExtractSegmentValue(Segment segment, string source, Dictionary<string,string> defaultFragmentValues = null)
+		public SegmentObject ExtractSegmentValue(Segment segment, string source, string patternName = null, Dictionary<string, string> defaultFragmentValues = null)
 		{
 			if (this.Definitions == null)
 				return null;
@@ -49,16 +49,29 @@ namespace Edge.Data.Pipeline
 			if (def == null)
 				throw new ArgumentException(String.Format("The segment '{0}' was not found in the {1} configuration.", segment.Name, AutoSegmentDefinitionCollection.ExtensionName), "segmentName");
 
-			var fragmentValues = new Dictionary<string,string>();
+			var fragmentValues = new Dictionary<string, string>();
+			SegmentObject value = null;
 
+			if (patternName == null)
+			{
 			// Find a definition that works
-			for (int p = 0; p < def.Patterns.Count; p++)
+				for (int p = 0; p < def.Patterns.Count && value == null; p++)
 			{
 				// reset because previous iteration found nothing
 				fragmentValues.Clear();
+					value = ExtractSegmentValueFromPattern(segment, source, defaultFragmentValues, fragmentValues, def.Patterns[p]);
+				}
+			}
+			else
+			{
+				value = ExtractSegmentValueFromPattern(segment, source, defaultFragmentValues, fragmentValues, def.Patterns[patternName]);
+			}
 
-				AutoSegmentPattern pattern = def.Patterns[p];
+			return value;
+		}
 
+		private SegmentObject ExtractSegmentValueFromPattern(Segment segment, string source, Dictionary<string, string> defaultFragmentValues, Dictionary<string, string> fragmentValues, AutoSegmentPattern pattern)
+		{
 				MatchCollection matches = pattern.Regex.Matches(source);
 				int fragmentCounter = 0;
 				foreach (Match match in matches)
@@ -66,8 +79,7 @@ namespace Edge.Data.Pipeline
 					if (!match.Success)
 						continue;
 
-					
-					for(int g = 0; g < match.Groups.Count; g++)
+				for (int g = 0; g < match.Groups.Count; g++)
 					{
 						Group group = match.Groups[g];
 						string groupName = pattern.RawGroupNames[g];
@@ -75,7 +87,12 @@ namespace Edge.Data.Pipeline
 							continue;
 
 						// Save the fragment
+					/*Fix bug when getting url like this(two same params):http://www.888.com/texasholdem1/?sr=855961/?sr=867151 (we get index out of range)
+					 * 
+					 */
+					if (!fragmentValues.ContainsKey(groupName))
 						fragmentValues[pattern.Fragments[fragmentCounter++]] = group.Value;
+					else Edge.Core.Utilities.Log.Write(string.Format("Duplicate tracker in same Creative has been found. DestURL:{0}", source),Core.Utilities.LogMessageType.Warning);
 					}
 				}
 
@@ -89,9 +106,7 @@ namespace Edge.Data.Pipeline
 				// found all the values, create a segment value
 				if (fragmentValues.Count == pattern.Fragments.Length)
 					return CreateValueFromFragments(segment, fragmentValues, pattern);
-			}
-
-			// found nothing
+			else
 			return null;
 		}
 
