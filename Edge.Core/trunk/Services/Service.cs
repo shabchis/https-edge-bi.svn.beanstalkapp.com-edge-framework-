@@ -273,7 +273,18 @@ namespace Edge.Core.Services
 			{
 				// Add other conditions for settings as run
 				State = ServiceState.Running;
-				outcome = DoWork();
+				try
+				{
+
+
+					outcome = DoWork();
+				}
+				catch (ThreadAbortException ex)
+				{
+					Log.Write(ex.Message, ex, LogMessageType.Error);
+					throw ex;
+					throw;
+				}
 			}
 
 			// Apply returned outcome
@@ -610,10 +621,12 @@ namespace Edge.Core.Services
 		/// <returns></returns>
 		bool IErrorHandler.HandleError(Exception error)
 		{
-				if (OperationContext.Current != null &&
-				OperationContext.Current.EndpointDispatcher != null &&
-				OperationContext.Current.EndpointDispatcher.ContractName != typeof(IServiceEngine).FullName
-				)
+			Log.Write(error.Message, LogMessageType.Warning);
+
+			if (OperationContext.Current != null &&
+			OperationContext.Current.EndpointDispatcher != null &&
+			OperationContext.Current.EndpointDispatcher.ContractName != typeof(IServiceEngine).FullName
+			)
 			{
 				// Throw exception
 				return false;
@@ -904,6 +917,16 @@ namespace Edge.Core.Services
 
 		/*=========================*/
 		#endregion
+
+
+
+
+		public IsAlive IsAlive()
+		{
+			return IsAlive();
+		}
+
+
 	}
 
 	/// <summary>

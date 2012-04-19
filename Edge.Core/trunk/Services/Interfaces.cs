@@ -31,6 +31,9 @@ namespace Edge.Core.Services
 		[OperationContract(IsOneWay=true)]
 		void Unsubscribe();
 
+		[OperationContract(IsOneWay = false)]
+		IsAlive IsAlive();
+
 		[OperationContract(IsOneWay=true)]
 		void ChildServiceOutcomeReported(int stepNumber, ServiceOutcome outcome);
 	
@@ -40,6 +43,13 @@ namespace Edge.Core.Services
 		[OperationContract(IsOneWay = true)]
 		void ChildServiceProgressReported(int stepNumber, double progress);
 	}
+	public struct IsAlive
+	{
+		public string State { get; set; }
+		public string OutCome { get; set; }
+		public string Progress { get; set; }
+	}
+
 
 	/// <summary>
 	/// Contract of client.
