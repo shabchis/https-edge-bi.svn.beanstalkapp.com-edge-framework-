@@ -588,6 +588,11 @@ namespace Edge.Core.Services
 			_commChannel.Engine.Abort();
 		}
 
+		public IsAlive IsAlive()
+		{
+			return new IsAlive() { OutCome = this.Outcome.ToString(), Progress = this.Progress.ToString(), State = this.State.ToString() };
+		}
+
 		/*=========================*/
 		#endregion
 
