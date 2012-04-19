@@ -670,6 +670,21 @@ namespace Edge.Core.Scheduling
 		{
 			_scheduledServices[schedulingData].LegacyInstance.Abort();
 		}
+
+		public void RestUnEnded()
+		{
+			using (SqlConnection SqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "System")))
+			{
+				SqlConnection.Open();
+				using (SqlCommand sqlCommand =new SqlCommand("ResetUnendedServices",SqlConnection))
+				{
+					sqlCommand.CommandType=System.Data.CommandType.StoredProcedure;
+					sqlCommand.ExecuteNonQuery();
+
+					
+				}
+			}
+		}
 	}
 #region eventargs classes
 	public class TimeToRunEventArgs : EventArgs
