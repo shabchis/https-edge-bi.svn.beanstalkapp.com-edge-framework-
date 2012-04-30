@@ -671,6 +671,8 @@ namespace Edge.Core.Scheduling
 			_scheduledServices[schedulingData].LegacyInstance.Abort();
 		}
 
+		
+
 		public void RestUnEnded()
 		{
 			using (SqlConnection SqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "System")))
@@ -684,6 +686,22 @@ namespace Edge.Core.Scheduling
 					
 				}
 			}
+		}
+
+		public List<AccounServiceInformation> GetServicesConfigurations()
+		{
+			List<AccounServiceInformation> accounsServiceInformation=new List<AccounServiceInformation>();
+			foreach (AccountElement account in EdgeServicesConfiguration.Current.Accounts)
+			{
+				AccounServiceInformation accounServiceInformation;				
+				accounServiceInformation=new AccounServiceInformation(){ AccountName = account.Name, ID = account.ID };
+				accounServiceInformation.Services = new List<string>();
+				foreach (AccountServiceElement service in account.Services)				
+					accounServiceInformation.Services.Add(service.Name);
+				accounsServiceInformation.Add(accounServiceInformation);
+			}
+			return accounsServiceInformation;
+			
 		}
 	}
 #region eventargs classes

@@ -53,7 +53,7 @@ namespace Edge.Core.Scheduling.Objects
 		public double Progress { get; set; }
 		public ServiceState State { get; set; }
 		public ServiceOutcome Outcome { get; set; }
-		public string DayCode { get; set; }
+		public string TargetPeriod { get; set; }
 		public Guid ParentInstanceID { get; set; }
 		public DateTime BaseScheduleTime { get; set; }
 	}
@@ -62,6 +62,13 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan SuitableHour;
 		public SchedulingData Service;
 	}
+	public class AccounServiceInformation
+	{
+		public int ID { get; set; }
+		public string AccountName { get; set; }
+		public List<string> Services { get; set; }
+	}
+	
 	public enum ServiceStatus
 	{
 		Scheduled,
