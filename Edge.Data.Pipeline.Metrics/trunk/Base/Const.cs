@@ -35,6 +35,7 @@ namespace Edge.Data.Pipeline.Metrics
 		public static class ConfigurationOptions
 		{
 			public const string ImportManagerType = "ImportManagerType";
+			public const string ReaderAdapterType = "ReaderAdapterType";
 			public const string ChecksumTheshold = "ChecksumTheshold";
 			public const string RollbackDeliveries = "RollbackDeliveries";
 			public const string RollbackTableName = "RollbackTableName";
