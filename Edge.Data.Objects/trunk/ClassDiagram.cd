@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Edge.Data.Objects.EdgeObject">
+    <Position X="14" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAEAEAAAAAAAAAAAAQAAAAAAEAAAAEAAAAAAEA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.MetaProperty" Collapsed="true">
+    <Position X="33.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAgAAAAgAAAAAAAAAQAAAAAAAAAAAACAAAAAEA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.ChannelSpecificObject" Collapsed="true">
+    <Position X="10.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.Account" Collapsed="true">
+    <Position X="30" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgEAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.Channel" Collapsed="true">
+    <Position X="31.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAwAAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.Creative" Collapsed="true">
+    <Position X="2.25" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.TextCreative" Collapsed="true">
+    <Position X="0.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.ImageCreative" Collapsed="true">
+    <Position X="2.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.Ad" Collapsed="true">
+    <Position X="18.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAgAAAEAAAAAAEAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.AdCreative" Collapsed="true">
+    <Position X="5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAIAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.AdTarget" Collapsed="true">
+    <Position X="7.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAIAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.LandingPage" Collapsed="true">
+    <Position X="18.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.SearchQuery" Collapsed="true">
+    <Position X="16" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.Target" Collapsed="true">
+    <Position X="23" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.KeywordTarget" Collapsed="true">
+    <Position X="20.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.PlacementTarget" Collapsed="true">
+    <Position X="25.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.GenderTarget" Collapsed="true">
+    <Position X="27.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.AgeGroupTarget" Collapsed="true">
+    <Position X="23" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAACAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.Campaign" Collapsed="true">
+    <Position X="9.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.AdGroup" Collapsed="true">
+    <Position X="11.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Edge.Data.Objects.CustomValue" Collapsed="true">
+    <Position X="13.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Enum Name="Edge.Data.Objects.ObjectStatus" Collapsed="true">
+    <Position X="31.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAgAABAAAAAAAEAAAAAEAAAAAAAAAAgAAAAIAAAABA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Edge.Data.Objects.ChannelType" Collapsed="true">
+    <Position X="30" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Edge.Data.Objects.TextCreativeType" Collapsed="true">
+    <Position X="30" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAEgAAAABAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Edge.Data.Objects.LandingPageType" Collapsed="true">
+    <Position X="30" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAEAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Edge.Data.Objects.KeywordMatchType" Collapsed="true">
+    <Position X="33.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQAAAAAAAAAAIAAAAAAAAAAAAAAAAACAAAQA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Edge.Data.Objects.PlacementType" Collapsed="true">
+    <Position X="33.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAIAAAAABAIAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Edge.Data.Objects.Gender" Collapsed="true">
+    <Position X="31.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAA=</HashCode>
+      <FileName>Objects\Base\EdgeObject.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

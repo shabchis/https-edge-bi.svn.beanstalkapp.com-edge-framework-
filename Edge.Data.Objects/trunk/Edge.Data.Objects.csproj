@@ -40,20 +40,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Objects\Account.cs" />
-    <Compile Include="Objects\Ad.cs" />
     <Compile Include="Objects\Base\EdgeObject.cs" />
-    <Compile Include="Objects\Channel.cs" />
-    <Compile Include="Objects\Creative.cs" />
-    <Compile Include="Objects\Currency.cs" />
-    <Compile Include="Objects\Measure.cs" />
-    <Compile Include="Objects\MetricsUnit.cs" />
-    <Compile Include="Objects\ObjectStatus.cs" />
-    <Compile Include="Objects\Reflection\ExtraField.cs" />
-    <Compile Include="Objects\Reflection\MappedType.cs" />
-    <Compile Include="Objects\Segment.cs" />
-    <Compile Include="Objects\Targets.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
