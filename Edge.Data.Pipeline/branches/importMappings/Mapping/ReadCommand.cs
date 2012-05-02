@@ -103,10 +103,10 @@ namespace Edge.Data.Pipeline.Mapping
 			object rawValue;
 			if (!context.FieldValues.TryGetValue(this.Field, out rawValue))
 			{
-				if (context.Root.OnFieldRead == null)
-					throw new MappingException("MappingConfiguration.OnFieldRead is not set - you must supply a function that will return the requested field value.");
+				if (context.Root.OnFieldRequired == null)
+					throw new MappingException("MappingConfiguration.OnFieldRequired is not set - you must supply a function that will return the required field value.");
 
-				rawValue = context.Root.OnFieldRead(this.Field);
+				rawValue = context.Root.OnFieldRequired(this.Field);
 				context.FieldValues.Add(this.Field, rawValue);
 			}
 

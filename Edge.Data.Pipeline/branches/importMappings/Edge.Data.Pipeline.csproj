@@ -108,6 +108,9 @@
     <Compile Include="Mapping\ValueFormat.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
+    <Compile Include="Readers\Base\ReaderAdapter.cs" />
+    <Compile Include="Readers\CsvDynamicReaderAdapter.cs" />
+    <Compile Include="Readers\XmlDynamicReaderAdapter.cs" />
     <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />

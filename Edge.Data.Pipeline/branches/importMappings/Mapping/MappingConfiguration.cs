@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Mapping
 		public List<string> Usings { get; set; }
 		public Dictionary<Type, MappingContainer> Objects { get; set; }
 		public Dictionary<string, Delegate> ExternalMethods { get; set; }
-		public Func<string, object> OnFieldRead {get; set;}
+		public Func<string, object> OnFieldRequired {get; set;}
 
 		private List<EvaluatorExpression> _evalExpressions = new List<EvaluatorExpression>();
 		internal int NextEvalID = 0;
