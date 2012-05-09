@@ -106,10 +106,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		/// </summary>
 		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID, options)
 		{
-			options.MeasureOptions = options.MeasureOptions != MeasureOptions.None ? options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
-			options.MeasureOptionsOperator = options.MeasureOptions != MeasureOptions.None ? options.MeasureOptionsOperator : OptionsOperator.Not;
-			options.SegmentOptions = options.SegmentOptions != SegmentOptions.None ? options.SegmentOptions : Data.Objects.SegmentOptions.All;
-			options.SegmentOptionsOperator = options.SegmentOptions != SegmentOptions.None ? options.SegmentOptionsOperator : OptionsOperator.And;
+			this.Options.MeasureOptions = this.Options.MeasureOptions != MeasureOptions.None ? this.Options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
+			this.Options.MeasureOptionsOperator = this.Options.MeasureOptions != MeasureOptions.None ? this.Options.MeasureOptionsOperator : OptionsOperator.Not;
+			this.Options.SegmentOptions = this.Options.SegmentOptions != SegmentOptions.None ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
+			this.Options.SegmentOptionsOperator = this.Options.SegmentOptions != SegmentOptions.None ? this.Options.SegmentOptionsOperator : OptionsOperator.And;
 		}
 
 		/// <summary>
