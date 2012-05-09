@@ -143,11 +143,6 @@ namespace Edge.Data.Pipeline.Metrics
 			}
 		}
 
-		protected override void OnDisposeImport()
-		{
-			OnEndImport();
-		}
-
 		protected BulkObjects Bulk<TableDef>()
 		{
 			return _bulks[typeof(TableDef)];
