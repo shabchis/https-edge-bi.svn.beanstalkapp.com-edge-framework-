@@ -7,14 +7,16 @@ using Edge.Data.Objects;
 using Edge.Core.Utilities;
 using System.Reflection;
 using System.Configuration;
+using Edge.Core.Configuration;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	public class MappingConfiguration: ConfigurationElement
+	public class MappingConfiguration : ConfigurationElement, ISerializableConfigurationElement
 	{
 		public const string ExtensionName = "Mappings";
 
 		public string SourcePath { get; private set; }
+		public XmlDocument SourceXml { get; private set; }
 
 		public List<string> Usings { get; set; }
 		public Dictionary<Type, MappingContainer> Objects { get; set; }
@@ -39,13 +41,20 @@ namespace Edge.Data.Pipeline.Mapping
 			this.ExternalMethods = new Dictionary<string, Delegate>();
 		}
 
-		protected override void DeserializeElement(System.Xml.XmlReader reader, bool serializeCollectionKey)
+		void ISerializableConfigurationElement.Deserialize(XmlReader reader)
 		{
-			string source = reader.GetAttribute("Source");
-			if (!String.IsNullOrWhiteSpace(source))
-				this.Load(source);
+			SourcePath = reader.GetAttribute("Source");
+			this.SourceXml = new XmlDocument();
+
+			if (!String.IsNullOrWhiteSpace(SourcePath))
+				this.SourceXml.Load(SourcePath);
 			else
-				this.Load(reader);
+				this.SourceXml.Load(reader);
+		}
+
+		void ISerializableConfigurationElement.Serialize(XmlWriter writer, string elementName)
+		{
+			throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -64,6 +73,19 @@ namespace Edge.Data.Pipeline.Mapping
 				this.SourcePath = mappingFilePath;
 				this.Load(reader);
 			}
+		}
+
+		public void Load()
+		{
+			if (this.SourceXml != null)
+			{
+				using (var reader = new XmlNodeReader(this.SourceXml))
+				{
+					this.Load(reader);
+				}
+			}
+			else
+				throw new MappingConfigurationException("SourceXml was not loaded before Load() was called.");
 		}
 
 		/// <summary>
@@ -264,7 +286,5 @@ namespace Edge.Data.Pipeline.Mapping
 
 			return null;
 		}
-
-
 	}
 }

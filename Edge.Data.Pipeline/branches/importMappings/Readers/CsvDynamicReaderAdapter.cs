@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Edge.Data.Pipeline
 {
-	public class CsvProcessorService : ReaderAdapter
+	public class CsvDynamicReaderAdapter : ReaderAdapter
 	{
 		string[] _requiredColumns;
 		string _delimeter = null;
