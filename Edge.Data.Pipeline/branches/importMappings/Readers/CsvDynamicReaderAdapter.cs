@@ -10,8 +10,8 @@ namespace Edge.Data.Pipeline
 	public class CsvProcessorService : ReaderAdapter
 	{
 		string[] _requiredColumns;
-		string _delimeter;
-		Encoding _encoding;
+		string _delimeter = null;
+		Encoding _encoding = null;
 
 		public override void Init(Stream stream, ServiceElement configuration)
 		{
@@ -21,7 +21,7 @@ namespace Edge.Data.Pipeline
 			if (!String.IsNullOrEmpty(encoding))
 				_encoding = Encoding.GetEncoding(encoding);
 
-			base.Reader = new CsvDynamicReader(stream, _requiredColumns);
+			base.Reader = new CsvDynamicReader(stream, _requiredColumns, !String.IsNullOrEmpty(_delimeter) ? _delimeter[0] : ',', _encoding);
 		}
 
 		public new CsvDynamicReader Reader
