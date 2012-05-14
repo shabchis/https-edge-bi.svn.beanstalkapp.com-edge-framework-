@@ -261,13 +261,13 @@ namespace Edge.Data.Pipeline.Services
 				if (_mapping == null)
 				{
 					ConfigurationElement extension;
-					if (!this.Instance.Configuration.Extensions.TryGetValue(MappingConfiguration.ExtensionName, out extension))
+					if (!this.Instance.Configuration.Extensions.TryGetValue(MappingConfigurationElement.ExtensionName, out extension))
 					{
 						AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
-						if (!account.Extensions.TryGetValue(MappingConfiguration.ExtensionName, out extension))
+						if (!account.Extensions.TryGetValue(MappingConfigurationElement.ExtensionName, out extension))
 							throw new MappingConfigurationException("No mapping configuration found.");
 					}
-					_mapping = (MappingConfiguration) extension;
+					_mapping = ((MappingConfigurationElement) extension).Load();
 				}
 
 				return _mapping;
