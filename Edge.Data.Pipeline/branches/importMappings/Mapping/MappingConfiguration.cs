@@ -8,15 +8,46 @@ using Edge.Core.Utilities;
 using System.Reflection;
 using System.Configuration;
 using Edge.Core.Configuration;
+using System.IO;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	public class MappingConfiguration : ConfigurationElement, ISerializableConfigurationElement
+	public class MappingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement
 	{
 		public const string ExtensionName = "Mappings";
+		
+		public string RawXml { get; private set; }
 
+		void ISerializableConfigurationElement.Deserialize(XmlReader reader)
+		{
+			this.RawXml = reader.ReadOuterXml();
+		}
+
+		void ISerializableConfigurationElement.Serialize(XmlWriter writer, string elementName)
+		{
+			writer.WriteRaw(this.RawXml);
+		}
+
+		public MappingConfiguration Load()
+		{
+			var mapping = new MappingConfiguration();
+			using (XmlTextReader reader = new XmlTextReader(new StringReader(this.RawXml)))
+			{
+				string path = reader.GetAttribute("Path");
+				if (!string.IsNullOrEmpty(path))
+					mapping.Load(path);
+				else
+					mapping.Load(reader);
+			}
+
+			return mapping;
+		}
+	}
+
+	public class MappingConfiguration
+	{
+		
 		public string SourcePath { get; private set; }
-		public XmlDocument SourceXml { get; private set; }
 
 		public List<string> Usings { get; set; }
 		public Dictionary<Type, MappingContainer> Objects { get; set; }
@@ -41,21 +72,6 @@ namespace Edge.Data.Pipeline.Mapping
 			this.ExternalMethods = new Dictionary<string, Delegate>();
 		}
 
-		void ISerializableConfigurationElement.Deserialize(XmlReader reader)
-		{
-			SourcePath = reader.GetAttribute("Source");
-			this.SourceXml = new XmlDocument();
-
-			if (!String.IsNullOrWhiteSpace(SourcePath))
-				this.SourceXml.Load(SourcePath);
-			else
-				this.SourceXml.Load(reader);
-		}
-
-		void ISerializableConfigurationElement.Serialize(XmlWriter writer, string elementName)
-		{
-			throw new NotImplementedException();
-		}
 
 		/// <summary>
 		/// Loads mapping configurations from a file.
@@ -73,19 +89,6 @@ namespace Edge.Data.Pipeline.Mapping
 				this.SourcePath = mappingFilePath;
 				this.Load(reader);
 			}
-		}
-
-		public void Load()
-		{
-			if (this.SourceXml != null)
-			{
-				using (var reader = new XmlNodeReader(this.SourceXml))
-				{
-					this.Load(reader);
-				}
-			}
-			else
-				throw new MappingConfigurationException("SourceXml was not loaded before Load() was called.");
 		}
 
 		/// <summary>
