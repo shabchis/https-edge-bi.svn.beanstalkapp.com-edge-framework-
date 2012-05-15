@@ -315,9 +315,9 @@ namespace Edge.Data.Pipeline
 					cmd.Parameters.Add("@committed", System.Data.SqlDbType.Bit);
 
                     cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
-                    cmd.Parameters["@accountID"].Value = delivery.Account.ID;
-                    cmd.Parameters["@channelID"].Value = delivery.Channel.ID; ;
-                    cmd.Parameters["@originalID"].Value = delivery.Account.OriginalID == null ? (object)DBNull.Value : delivery.Account.OriginalID;
+					cmd.Parameters["@accountID"].Value = delivery.Account!= null ? delivery.Account.ID : -1;
+					cmd.Parameters["@channelID"].Value = delivery.Channel != null ? delivery.Channel.ID : -1; ;
+					cmd.Parameters["@originalID"].Value = delivery.Account == null ? null : delivery.Account.OriginalID == null ? (object)DBNull.Value : delivery.Account.OriginalID;
                     cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
                     cmd.Parameters["@dateModified"].Value = delivery.DateModified;
                     cmd.Parameters["@signature"].Value = delivery.Signature;

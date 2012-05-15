@@ -83,6 +83,7 @@ namespace Edge.Data.Objects
 	[Flags]
 	public enum SegmentOptions
 	{
+		None = 0x00,
 		All = 0xff
 	}
 }
