@@ -115,8 +115,8 @@
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
     <Compile Include="Services\Const.cs" />
-    <Compile Include="Services\GenericInitializerService.cs" />
-    <Compile Include="Services\GenericRetrieverService.cs" />
+    <Compile Include="Services\UrlInitializerService.cs" />
+    <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
     <Compile Include="Deliveries\DeliveryFileList.cs" />
