@@ -146,6 +146,21 @@ namespace Edge.Data.Pipeline.Mapping
 		}
 
 		/// <summary>
+		/// Combines the current configuration with the specified configuration, overriding any conflicting mappings.
+		/// </summary>
+		/// <param name="otherConfig">Mappings with which to extend the current configuration.</param>
+		public void Extend(MappingConfiguration otherConfig)
+		{
+			foreach (MappingContainer objectMappings in otherConfig.Objects.Values)
+			{
+			}
+		}
+
+		private void ExtendContainer()
+		{
+		}
+
+		/// <summary>
 		/// Parses parentXml and finds MapCommand and ReadCommand objects that should be added to the parent container.
 		/// </summary>
 		private static void DeserializeMappings(MappingConfiguration config, MappingContainer parent, XmlReader parentXml)
