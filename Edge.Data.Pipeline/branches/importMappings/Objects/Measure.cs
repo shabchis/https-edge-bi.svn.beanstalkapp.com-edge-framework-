@@ -78,11 +78,13 @@ namespace Edge.Data.Objects
 	[Flags]
 	public enum MeasureOptions
 	{
+		None = 0x0,
 		//IsDefault = 0x40,
 		IsBackOffice = 0x04,
 		IsTarget = 0x02,
 		IsCalculated = 0x10,
-		ValidationRequired = 0x80
+		ValidationRequired = 0x80,
+		All = 0xff
 	}
 
 	public enum OptionsOperator
