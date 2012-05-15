@@ -34,9 +34,6 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 		protected override void LoadConfiguration()
 		{
-			// Load from pre-loaded XML (config file)
-			this.Mappings.Load();
-
 			if (!this.Mappings.Objects.TryGetValue(typeof(Ad), out _adMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Ad.", "Object");
 
