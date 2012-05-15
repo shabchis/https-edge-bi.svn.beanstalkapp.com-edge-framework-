@@ -72,7 +72,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 				{Tables.Metrics.TargetPeriodStart, metrics.PeriodStart},
 				{Tables.Metrics.TargetPeriodEnd, metrics.PeriodEnd},
 				{Tables.Metrics.Account_ID, metrics.Account.ID},
-				{Tables.Metrics.Account_OriginalID, metrics.Account.OriginalID},
+				{Tables.Metrics.Account_OriginalID, metrics.Account.OriginalID == null ? (object)DBNull.Value : metrics.Account.OriginalID },
 				{Tables.Metrics.Channel_ID, metrics.Channel.ID}
 			};
 
@@ -92,6 +92,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 					{ Tables.MetricsDimensionSegment.SegmentID, segment.Key.ID},
 					{ Tables.MetricsDimensionSegment.TypeID, segment.Value.TypeID },
 					{ Tables.MetricsDimensionSegment.OriginalID, segment.Value.OriginalID },
+					{ Tables.MetricsDimensionSegment.Status, segment.Value.Status == ObjectStatus.Unknown ? (object)DBNull.Value :  segment.Value.Status},
 					{ Tables.MetricsDimensionSegment.Value, segment.Value.Value }
 				};
 
@@ -112,6 +113,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 					{ Tables.MetricsDimensionTarget.MetricsUsid, metrics.Usid.ToString("N") },
 					{ Tables.MetricsDimensionTarget.TypeID, target.TypeID },
 					{ Tables.MetricsDimensionTarget.OriginalID, target.OriginalID },
+					{ Tables.MetricsDimensionTarget.Status, target.Status == ObjectStatus.Unknown ? (object)DBNull.Value :  target.Status },
 					{ Tables.MetricsDimensionTarget.DestinationUrl, target.DestinationUrl }
 				};
 
