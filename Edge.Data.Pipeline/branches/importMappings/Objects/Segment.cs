@@ -39,7 +39,7 @@ namespace Edge.Data.Objects
 	{
 		//public Account Account;
 		//public Channel Channel;
-		public ObjectStatus Status;
+		public ObjectStatus Status = ObjectStatus.Unknown;
 
 		public string OriginalID;
 		public string Value;
@@ -60,8 +60,8 @@ namespace Edge.Data.Objects
 			set { this.Value = value; }
 		}
 
-		[MappedObjectFieldIndex(4)]
-		public double Budget;
+		[MappedObjectFieldIndex(1)]
+		public double? Budget;
 	}
 
 	[MappedObjectTypeID(76)]
@@ -76,14 +76,13 @@ namespace Edge.Data.Objects
 			set { this.Value = value; }
 		}
 
-		[MappedObjectFieldIndex(1, ValueSource = "Value")]
+		[MappedObjectFieldIndex(1, ValueSource="Value")]
 		public Campaign Campaign;
 	}
 
 	[Flags]
 	public enum SegmentOptions
 	{
-		None = 0x00,
 		All = 0xff
 	}
 }

@@ -35,12 +35,12 @@ namespace Edge.Data.Objects.Reflection
 							var attribute = (MappedObjectFieldIndexAttribute)Attribute.GetCustomAttribute(field, typeof(MappedObjectFieldIndexAttribute));
 							int columnIndex = attribute.ColumnIndex;
 							string valueSourceName = attribute.ValueSource;
-
+							
 							// If a value source was specified, find a field, property that has a getter, or method with no params that returns a value
 							MemberInfo valueSource = null;
 							if (valueSourceName != null)
 							{
-								MemberInfo[] members = field.FieldType.GetMember(valueSourceName, BindingFlags.Public | BindingFlags.NonPublic);
+								MemberInfo[] members = field.FieldType.GetMember(valueSourceName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 								foreach (MemberInfo member in members)
 								{
 									if (
@@ -61,7 +61,7 @@ namespace Edge.Data.Objects.Reflection
 										break;
 									}
 								}
-
+									
 							}
 
 							fields.Add(new MappedObjectField() { ColumnIndex = columnIndex, FieldInfo = field, ValueSource = valueSource });

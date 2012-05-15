@@ -18,7 +18,7 @@ namespace Edge.Data.Objects
 		public string OriginalID;
 		public string DestinationUrl;
 
-		public ObjectStatus Status;
+		public ObjectStatus Status = ObjectStatus.Unknown;
 
 		/// <summary>
 		/// Extra fields for use by channels which have extra metadata per target.
