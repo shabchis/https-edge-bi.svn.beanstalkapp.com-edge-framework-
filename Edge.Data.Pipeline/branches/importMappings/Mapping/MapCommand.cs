@@ -68,7 +68,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// Creates a new map command for a target type, parsing the supplied expression.
 		/// </summary>
 		/// <param name="returnInnermost">If true, returns the last nested map created if the expression has multiple parts. If false, returns the top level map.</param>
-		internal static MapCommand CreateChild(MappingContainer container, string targetExpression, XmlReader xml, bool returnInnermost = false)
+		internal static MapCommand CreateChild(MappingContainer container, string targetExpression, XmlReader xml, ReadCommand implicitRead, bool returnInnermost = false)
 		{
 			if (container == null)
 				throw new ArgumentNullException("container");
@@ -96,6 +96,13 @@ namespace Edge.Data.Pipeline.Mapping
 			for (int i = 0; i < matches.Count; i++)
 			{
 				Match match = matches[i];
+
+				// ...................................
+				// READ COMMANDS
+
+				if (implicitRead != null)
+					map.ReadCommands.Add(implicitRead);
+				map.Inherit();
 
 				// ...................................
 				// MEMBER
@@ -327,27 +334,54 @@ namespace Edge.Data.Pipeline.Mapping
 						}
 					}
 
+					if (property != null)
+						property.SetValue(target, list, null);
+					else
+						field.SetValue(target, list);
+
 					// Add to end of list
 					list.Add(value);
 				}
-				else
+				else if (this.IndexerType != null)
 				{
+					// Actual indexer
 					object indexer = null;
-					if (this.IndexerType != null)
+					if (this.Indexer is EvalComponent)
 					{
-
-						// Actual indexer
-						if (this.Indexer is EvalComponent)
-						{
-							indexer = ((EvalComponent)this.Indexer).GetOuput(context);
-						}
-						else
-						{
-							indexer = this.Indexer;
-						}
-
+						indexer = ((EvalComponent)this.Indexer).GetOuput(context);
+					}
+					else
+					{
+						indexer = this.Indexer;
 					}
 
+					Type collectionType = property != null ? property.PropertyType : field.FieldType;
+					object collection;
+					
+					// Try to get the object with the indexer
+					collection = property != null ?
+						property.GetValue(target, null) :
+						field.GetValue(target);
+
+					if (collection == null)
+					{
+						try { collection = Activator.CreateInstance(collectionType); }
+						catch (Exception ex)
+						{
+							throw new MappingException(String.Format("Cannot create a new object of type {0} for applying to {2}.{3}. To avoid this error, make sure the property is not null before applying the mapping.", collectionType, this.TargetType.Name, this.TargetMember.Name), ex);
+						}
+
+						if (property != null)
+							property.SetValue(target, collection, null);
+						else
+							field.SetValue(target, collection);
+					}
+
+					PropertyInfo itemProp = collectionType.GetProperty("Item");
+					itemProp.SetValue(collection, value, new object[]{indexer});
+				}
+				else
+				{
 					// .......................................
 					// Apply to target member
 
@@ -356,7 +390,7 @@ namespace Edge.Data.Pipeline.Mapping
 						if (property != null)
 						{
 							// Apply to the property
-							property.SetValue(target, value, this.IndexerType == null ? null : new object[] { indexer });
+							property.SetValue(target, value, null);
 
 						}
 						else if (field != null)

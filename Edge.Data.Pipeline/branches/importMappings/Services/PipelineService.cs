@@ -20,11 +20,6 @@ namespace Edge.Data.Pipeline.Services
 		#region Core methods
 		// ==============================
 
-		protected sealed override void OnInit()
-		{
-			// TODO: check for required configuration options
-		}
-
 		protected sealed override ServiceOutcome DoWork()
 		{
 			ServiceOutcome outcome = DoPipelineWork();
