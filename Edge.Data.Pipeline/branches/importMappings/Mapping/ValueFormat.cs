@@ -157,6 +157,7 @@ namespace Edge.Data.Pipeline.Mapping
 				evalVars.Add(result);
 			}
 
+			// TODO: if result not found and is required - throw exception - otherwise don't evaluate
 			return this.Parent.Root.Eval.Evaluate<object>(_evalID, evalVars.ToArray());
 		}
 
