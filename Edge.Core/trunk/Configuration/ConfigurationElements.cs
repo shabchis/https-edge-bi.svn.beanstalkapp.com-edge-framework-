@@ -179,7 +179,7 @@ namespace Edge.Core.Configuration
 		public string GetOption(string option, bool emptyIsError = true)
 		{
 			string val = this.Options[option];
-			if (val == null || (emptyIsError && string.IsNullOrWhiteSpace(val)))
+			if (emptyIsError && (val == null || string.IsNullOrWhiteSpace(val)))
 				throw new ConfigurationErrorsException(String.Format("The option '{0}' is missing in the service configuration.", option), this.ElementInformation.Source, this.ElementInformation.LineNumber);
 			return val;
 		}
@@ -188,13 +188,17 @@ namespace Edge.Core.Configuration
 		/// Gets a configuration option from the Options collection and converts it to the desired type.
 		/// </summary>
 		/// <param name="convertFunction">If null, will try an automatic conversion.</param>
-		public T GetOption<T>(string option, bool emptyIsError = true, Func<string,T> convertFunction = null)
+		public T GetOption<T>(string option, bool emptyIsError = true, T defaultValue = default(T), Func<string,T> convertFunction = null)
 		{
 			string raw = this.GetOption(option, emptyIsError);
 			T val;
 			if (convertFunction != null)
 			{
 				val = convertFunction(raw);
+			}
+			else if (!emptyIsError && raw == null)
+			{
+				val = defaultValue;
 			}
 			else
 			{
