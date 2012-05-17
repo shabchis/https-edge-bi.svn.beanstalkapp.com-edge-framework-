@@ -101,6 +101,7 @@
     <Compile Include="Mapping\Exceptions.cs" />
     <Compile Include="Mapping\MapCommand.cs" />
     <Compile Include="Mapping\MappingConfiguration.cs" />
+    <Compile Include="Mapping\MappingConfigurationElement.cs" />
     <Compile Include="Mapping\MappingContainer.cs" />
     <Compile Include="Mapping\MappingContext.cs" />
     <Compile Include="Mapping\ReadCommand.cs" />

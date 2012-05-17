@@ -12,38 +12,7 @@ using System.IO;
 
 namespace Edge.Data.Pipeline.Mapping
 {
-	public class MappingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement
-	{
-		public const string ExtensionName = "Mappings";
-		
-		public string RawXml { get; private set; }
-
-		void ISerializableConfigurationElement.Deserialize(XmlReader reader)
-		{
-			this.RawXml = reader.ReadOuterXml();
-		}
-
-		void ISerializableConfigurationElement.Serialize(XmlWriter writer, string elementName)
-		{
-			writer.WriteRaw(this.RawXml);
-		}
-
-		public MappingConfiguration Load()
-		{
-			var mapping = new MappingConfiguration();
-			using (XmlTextReader reader = new XmlTextReader(new StringReader(this.RawXml)))
-			{
-				string path = reader.GetAttribute("Path");
-				if (!string.IsNullOrEmpty(path))
-					mapping.Load(path);
-				else
-					mapping.Load(reader);
-			}
-
-			return mapping;
-		}
-	}
-
+	
 	public class MappingConfiguration
 	{
 		
@@ -106,7 +75,7 @@ namespace Edge.Data.Pipeline.Mapping
 					else
 						continue;
 				}
-				else if (mappingXml.Name == "MappingConfiguration")
+				else if (mappingXml.Name == "MappingConfiguration" || mappingXml.Name == "Mappings")
 				{
 					// Read into content
 					continue;
@@ -133,7 +102,10 @@ namespace Edge.Data.Pipeline.Mapping
 				else
 					throw new MappingConfigurationException(String.Format("<{0}> is not allowed here.", mappingXml.Name), mappingXml);
 			}
+		}
 
+		public void Compile()
+		{
 			// Add external methods to the evaluator
 			foreach (var external in this.ExternalMethods)
 				this.Eval.ExternalFunctions.Add(external.Key, external.Value);
@@ -142,7 +114,6 @@ namespace Edge.Data.Pipeline.Mapping
 			this.Eval.ReferencedAssemblies.Add("Edge.Core.dll");
 			this.Eval.ReferencedAssemblies.Add("Edge.Data.Pipeline.dll");
 			this.Eval.Compile();
-
 		}
 
 		/// <summary>
@@ -220,7 +191,6 @@ namespace Edge.Data.Pipeline.Mapping
 						if (to == null)
 							throw new MappingConfigurationException("Missing 'To' attribute.", "Map", element);
 
-						MapCommand map = MapCommand.CreateChild(parent, to, element, returnInnermost: true);
 
 						// Handle implicit read sources
 						ReadCommand implicitRead = null;
@@ -249,10 +219,9 @@ namespace Edge.Data.Pipeline.Mapping
 							{
 								throw new MappingConfigurationException(ex.Message, "Map", element, ex);
 							}
-							
-
-							map.ReadCommands.Add(implicitRead); //map.TargetMemberType);
 						}
+
+						MapCommand map = MapCommand.CreateChild(parent, to, element, implicitRead, returnInnermost: true);
 
 						// Force parent to re-inherit, and then inherit from it
 						map.Inherit();
