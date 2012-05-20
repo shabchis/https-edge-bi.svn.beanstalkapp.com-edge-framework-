@@ -17,7 +17,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 	/// <summary>
 	/// Base class for ad metrics processors.
 	/// </summary>
-	public abstract class GenericMetricsProcessorBase : MetricsProcessorServiceBase
+	public abstract class GenericMetricsProcessorBase : AutoMetricsProcessorServiceBase
 	{
 		MappingContainer _metricsMappings;
 
