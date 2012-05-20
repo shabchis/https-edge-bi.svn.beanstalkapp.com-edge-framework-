@@ -46,8 +46,9 @@
     <Compile Include="Checksums\DbDbChecksumBaseService.cs" />
     <Compile Include="Checksums\DeliveryDBChecksumBaseService.cs" />
     <Compile Include="Implementation\AdMetricsImportManager.cs" />
-    <Compile Include="Implementation\AdMetricsProcessorService.cs" />
-    <Compile Include="Implementation\GenericMetricsProcessorService.cs" />
+    <Compile Include="Implementation\AutoAdMetricsProcessorService.cs" />
+    <Compile Include="Implementation\AutoGenericMetricsProcessorService.cs" />
+    <Compile Include="Services\AutoMetricsProcessorServiceBase.cs" />
     <Compile Include="Services\MetricsCommitService.cs" />
     <Compile Include="Implementation\GenericMetricsImportManager.cs" />
     <Compile Include="Base\Const.cs" />

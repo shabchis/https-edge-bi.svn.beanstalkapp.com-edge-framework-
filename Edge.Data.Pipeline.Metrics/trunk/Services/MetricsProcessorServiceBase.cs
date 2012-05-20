@@ -16,46 +16,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		public Dictionary<string, Account> Accounts {get; private set;}
 		public Dictionary<string, Channel> Channels {get; private set;}
-		public MetricsImportManager ImportManager { get; private set; }
-		public ReaderAdapter ReaderAdapter { get; private set; }
+		public MetricsImportManager ImportManager { get; protected set; }
 
-		protected sealed override Core.Services.ServiceOutcome DoPipelineWork()
-		{
-			// Setup/defaults/configuration/etc.
-			// ------------------------------------------
-
-			string fileName;
-			if (!this.Instance.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.DeliveryFileName, out fileName))
-				throw new ConfigurationException(String.Format("{0} is missing in the service configuration options.", Const.DeliveryServiceConfigurationOptions.DeliveryFileName));
-
-			DeliveryFile file = this.Delivery.Files[fileName];
-			if (file == null)
-				throw new Exception(String.Format("Could not find delivery file '{0}' in the delivery.", fileName));
-
-			FileCompression compression;
-			string compressionOption;
-			if (this.Instance.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.Compression, out compressionOption))
-			{
-				if (!Enum.TryParse<FileCompression>(compressionOption, out compression))
-					throw new ConfigurationException(String.Format("Invalid compression type '{0}'.", compressionOption));
-			}
-			else
-				compression = FileCompression.None;
-
-			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
-			var importManagerOptions = new MetricsImportManagerOptions()
-			{
-				SqlPrepareCommand = Instance.Configuration.Options[Consts.AppSettings.SqlPrepareCommand],
-				SqlCommitCommand = Instance.Configuration.Options[Consts.AppSettings.SqlCommitCommand],
-				SqlRollbackCommand = Instance.Configuration.Options[Consts.AppSettings.SqlRollbackCommand],
-				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
-			};
-
-			// Create format processor from configuration
-			string adapterTypeName = Instance.Configuration.GetOption(Consts.ConfigurationOptions.ReaderAdapterType);
-			Type readerAdapterType = Type.GetType(adapterTypeName, true);
-			this.ReaderAdapter = (ReaderAdapter)Activator.CreateInstance(readerAdapterType);
-
+		protected override void OnInit()
+		{			
 			// Load mapping configuration
 			// ------------------------------------------
 
@@ -65,36 +29,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			this.Mappings.ExternalMethods.Add("GetMeasure", new Func<string, Measure>(GetMeasure));
 			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<string, string, string, DateTime>(CreatePeriodStart));
 			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<string, string, string, DateTime>(CreatePeriodEnd));
-
-			this.Mappings.OnFieldRequired = this.ReaderAdapter.GetField;
-
-
-			LoadConfiguration();
-
-			// ------------------------------------------
-
-			using (var stream = file.OpenContents(compression: compression))
-			{
-				using (this.ReaderAdapter)
-				{
-					this.ReaderAdapter.Init(stream, Instance.Configuration);
-
-					using (this.ImportManager = CreateImportManager(Instance.InstanceID, importManagerOptions))
-					{
-						while (this.ReaderAdapter.Reader.Read())
-							OnRead();
-
-						this.ImportManager.EndImport();
-					}
-				}
-			}
-
-			return Core.Services.ServiceOutcome.Success;
-		}
-
-		protected abstract MetricsImportManager CreateImportManager(long serviceInstanceID, MetricsImportManagerOptions options);
-		protected abstract void OnRead();
-		protected virtual void LoadConfiguration() { }
+			this.Mappings.Compile();
+		}		
 
 		#region Scriptable methods
 		// ==============================================

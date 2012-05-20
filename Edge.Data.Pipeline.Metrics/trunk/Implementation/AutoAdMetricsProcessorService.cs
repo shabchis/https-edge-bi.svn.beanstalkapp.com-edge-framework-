@@ -17,7 +17,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 	/// <summary>
 	/// Base class for ad metrics processors.
 	/// </summary>
-	public class AdMetricsProcessorService : MetricsProcessorServiceBase
+	public class AutoAdMetricsProcessorService : AutoMetricsProcessorServiceBase
 	{
 		MappingContainer _adMappings;
 		MappingContainer _metricsMappings;
