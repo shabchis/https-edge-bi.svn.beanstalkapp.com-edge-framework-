@@ -24,7 +24,7 @@ namespace Edge.Data.Pipeline.Mapping
 		static string _fixReplace = @"(?<$1>";
 		static Regex _varName = new Regex("^[A-Za-z_][A-Za-z0-9_]*$");
 
-		public string Name
+		public string VarName
 		{
 			get { return _name; }
 			set
