@@ -50,6 +50,11 @@ namespace Edge.Data.Pipeline.Mapping
 		/// </summary>
 		public bool IsImplicit { get; private set; }
 
+		/// <summary>
+		/// Indicates whether this command is optional, i.e. will not throw an exception if it fails.
+		/// </summary>
+		public bool IsRequired { get; internal set; }
+
 		// Fun with regex (http://xkcd.com/208/)
 		private static Regex _levelRegex = new Regex(@"((?<member>[a-z_][a-z0-9_]*)(\[(?<indexer>.*)\])?(::(?<valueType>[a-z_][a-z0-9_]*))*)",
 			RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -250,7 +255,10 @@ namespace Edge.Data.Pipeline.Mapping
 					try { output = this.Value.GetOutput(context); }
 					catch (Exception ex)
 					{
-						throw new MappingException(String.Format("Failed to get the output of the map command for {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+						if (this.IsRequired)
+							throw new MappingException(String.Format("Failed to get the output of the map command for {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
+						else
+							Log.Write(String.Format("Failed to get the output of the map command for {0}.{1}.", this.TargetType.Name, this.TargetMember.Name), ex);
 					}
 				}
 
