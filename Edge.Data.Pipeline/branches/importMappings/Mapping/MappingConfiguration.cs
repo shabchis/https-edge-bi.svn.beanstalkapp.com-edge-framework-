@@ -162,6 +162,7 @@ namespace Edge.Data.Pipeline.Mapping
 					{
 						read = new ReadCommand()
 						{
+                            Field=field,
 							VarName = element.GetAttribute("Var") ?? field,
 							RegexPattern = element.GetAttribute("Regex")
 						};
