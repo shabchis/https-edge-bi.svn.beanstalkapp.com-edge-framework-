@@ -127,8 +127,8 @@ namespace Edge.Data.Pipeline.Mapping
 
 			// Add a dynamic var with the name of the command, sort by name for later
 			var evalvars = new List<EvaluatorVariable>();
-			foreach (ReadCommand command in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.Name))
-				evalvars.Add(new EvaluatorVariable(command.Name));
+			foreach (ReadCommand command in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.VarName))
+				evalvars.Add(new EvaluatorVariable(command.VarName));
 
 			// Create the expression, will be compiled later
 			this.Expression = new EvaluatorExpression(
@@ -149,7 +149,7 @@ namespace Edge.Data.Pipeline.Mapping
 		{
 			// Build a list of vars, including null if nothing found
 			var evalVars = new List<object>();
-			foreach (ReadCommand read in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.Name))
+			foreach (ReadCommand read in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.VarName))
 			{
 				ReadResult result;
 				if (!context.ReadResults.TryGetValue(read, out result))

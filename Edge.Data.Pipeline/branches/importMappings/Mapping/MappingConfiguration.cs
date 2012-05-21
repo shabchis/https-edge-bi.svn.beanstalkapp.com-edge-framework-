@@ -155,35 +155,31 @@ namespace Edge.Data.Pipeline.Mapping
 					// Just an alias to make a distinction
 					XmlReader element = parentXml;
 
+					// If a field is specified, create a read command (implicit or explicit)
+					ReadCommand read = null;
+					string field = element.GetAttribute("Field");
+					if (field != null)
+					{
+						read = new ReadCommand()
+						{
+							VarName = element.GetAttribute("Var") ?? field,
+							RegexPattern = element.GetAttribute("Regex")
+						};
+					}
+					
 					if (element.Name == "Read")
 					{
-						// Handle explicit read sources
-						var read = new ReadCommand();
-						read.Field = element.GetAttribute("Field");
-						if (read.Field == null)
+						// Field is required for an explicit read command
+						if (read == null)
 							throw new MappingConfigurationException("Missing 'Field' attribute.", "Read", element);
-
-						try
-						{
-							string name = element.GetAttribute("Name");
-							read.Name = name != null ? name : read.Field;
-						}
-						catch(MappingConfigurationException ex)
-						{
-							if (read.Name != null)
-								throw new MappingConfigurationException(ex.Message, "Read", parentXml, ex);
-							else
-								throw new MappingConfigurationException(String.Format("'{0}' cannot be used as the command name. Please specify a 'Name' attribute.", read.Field), "Read", parentXml, ex);
-						}
-
-						read.RegexPattern = element.GetAttribute("Regex");
 
 						// Register it as a read command
 						parent.ReadCommands.Add(read);
 
 						// Add the command to the parent's inherited list, so that child map commands inherit it also
-						parent.InheritedReads[read.Name] = read;
+						parent.InheritedReads[read.VarName] = read;
 					}
+
 					else if (element.Name == "Map")
 					{
 						// Handle mappings
@@ -191,52 +187,30 @@ namespace Edge.Data.Pipeline.Mapping
 						if (to == null)
 							throw new MappingConfigurationException("Missing 'To' attribute.", "Map", element);
 
-						// Handle implicit read sources
-						ReadCommand implicitRead = null;
-						string implicitFieldName = element.GetAttribute("Field");
-						if (implicitFieldName != null)
-						{
-							
-							if (!ReadCommand.IsValidVarName(implicitFieldName))
-								throw new MappingConfigurationException(String.Format(
-									"'{0}' cannot be used as an implicit read command name because it is not a valid C# variable name. You must define a separate <Read> command with an explicit name.",
-									implicitFieldName),
-									"Map",
-									element);
+						if (read != null)
+							read.IsImplicit = true;
 
-							try
-							{
-								implicitRead = new ReadCommand()
-								{
-									Name = implicitFieldName,
-									Field = implicitFieldName,
-									RegexPattern = element.GetAttribute("Regex"),
-									IsImplicit = true
-								};
-							}
-							catch (MappingConfigurationException ex)
-							{
-								throw new MappingConfigurationException(ex.Message, "Map", element, ex);
-							}
-						}
-
-						MapCommand map = MapCommand.CreateChild(parent, to, element, implicitRead, returnInnermost: true);
-
-						// Check if mapping command is required
-						bool brequired = true;
-						string required = element.GetAttribute("Required");
-						if (required != null)
-						{
-							if (!bool.TryParse(required, out brequired))
-								throw new MappingConfigurationException("Invalid value for Required.", "Map", element);
-						}
-						map.IsRequired = brequired;
+						MapCommand map = MapCommand.CreateChild(parent, to, element, read, returnInnermost: true);
 
 						// Force parent to re-inherit, and then inherit from it
 						map.Inherit();
 
+
+						// Check if mapping command is required
+						bool required = true;
+						string srequired = element.GetAttribute("Required");
+						if (srequired != null && !bool.TryParse(srequired, out required))
+							throw new MappingConfigurationException("Invalid value for Required.", "Map", element);
+
+						map.IsRequired = required;
+
+						// Condition
+						string condition = element.GetAttribute("Condition");
+						if (condition != null)
+							map.Condition = new EvalComponent(map, condition, element);
+
 						// Handle value expressions
-						string valueFormat =  element.GetAttribute("Value");
+						string valueFormat = element.GetAttribute("Value");
 						try
 						{
 							if (valueFormat != null)
@@ -245,8 +219,8 @@ namespace Edge.Data.Pipeline.Mapping
 							}
 							else
 							{
-								if (implicitRead != null)
-									map.Value = new ValueFormat(map, "{" + implicitRead.Name + "}", element);
+								if (read != null)
+									map.Value = new ValueFormat(map, "{" + read.VarName + "}", element);
 							}
 						}
 						catch (MappingConfigurationException ex)
@@ -262,6 +236,7 @@ namespace Edge.Data.Pipeline.Mapping
 					{
 						throw new MappingConfigurationException(String.Format("Element '{0}' is not allowed here.", parentXml.Name), parentXml);
 					}
+
 				}
 			}
 		}

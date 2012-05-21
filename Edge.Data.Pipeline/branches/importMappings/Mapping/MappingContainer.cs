@@ -47,7 +47,7 @@ namespace Edge.Data.Pipeline.Mapping
 			// Get stuff from myself
 			foreach (ReadCommand read in this.ReadCommands)
 			{
-				InheritedReads.Add(read.Name, read);
+				InheritedReads.Add(read.VarName, read);
 			}
 
 			// Merge with inherited

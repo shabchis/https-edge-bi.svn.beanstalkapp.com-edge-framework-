@@ -46,6 +46,11 @@ namespace Edge.Data.Pipeline.Mapping
 		public ValueFormat Value { get; set; }
 
 		/// <summary>
+		/// An expression that is evaluated to determine whether the mapping operation should be performed.
+		/// </summary>
+		public EvalComponent Condition { get; set; }
+
+		/// <summary>
 		/// Indicates whether this map command is implicit (formed by a breakdown of the "To" expression).
 		/// </summary>
 		public bool IsImplicit { get; private set; }
@@ -240,6 +245,14 @@ namespace Edge.Data.Pipeline.Mapping
 			// Apply mapping operation
 
 			object nextTarget = target;
+
+			// Check condition
+			if (this.Condition != null)
+			{
+				var condition = (bool) this.Condition.GetOuput(context);
+				if (!condition)
+					return;
+			}
 
 			if (this.TargetMember != null)
 			{
