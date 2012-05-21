@@ -191,7 +191,6 @@ namespace Edge.Data.Pipeline.Mapping
 						if (to == null)
 							throw new MappingConfigurationException("Missing 'To' attribute.", "Map", element);
 
-
 						// Handle implicit read sources
 						ReadCommand implicitRead = null;
 						string implicitFieldName = element.GetAttribute("Field");
@@ -222,6 +221,16 @@ namespace Edge.Data.Pipeline.Mapping
 						}
 
 						MapCommand map = MapCommand.CreateChild(parent, to, element, implicitRead, returnInnermost: true);
+
+						// Check if mapping command is required
+						bool brequired = true;
+						string required = element.GetAttribute("Required");
+						if (required != null)
+						{
+							if (!bool.TryParse(required, out brequired))
+								throw new MappingConfigurationException("Invalid value for Required.", "Map", element);
+						}
+						map.IsRequired = brequired;
 
 						// Force parent to re-inherit, and then inherit from it
 						map.Inherit();
