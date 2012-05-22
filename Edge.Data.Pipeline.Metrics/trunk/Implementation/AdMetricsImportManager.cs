@@ -104,7 +104,8 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		/// <summary>
 		/// 
 		/// </summary>
-		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID, options)
+		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
+			: base(serviceInstanceID, options)
 		{
 			this.Options.MeasureOptions = this.Options.MeasureOptions != MeasureOptions.None ? this.Options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
 			this.Options.MeasureOptionsOperator = this.Options.MeasureOptions != MeasureOptions.None ? this.Options.MeasureOptionsOperator : OptionsOperator.Not;
@@ -246,9 +247,11 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			Bulk<Tables.Metrics>().SubmitRow(metricsRow);
 
 			// MetricsDimensionTarget
-			foreach (Target target in metrics.TargetDimensions)
+			if (metrics.TargetDimensions != null)
 			{
-				var row = new Dictionary<ColumnDef, object>()
+				foreach (Target target in metrics.TargetDimensions)
+				{
+					var row = new Dictionary<ColumnDef, object>()
 				{
 					{ Tables.MetricsDimensionTarget.MetricsUsid, metricsUsid },
 					{ Tables.MetricsDimensionTarget.AdUsid, adUsid },
@@ -257,13 +260,14 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 					{ Tables.MetricsDimensionTarget.DestinationUrl, target.DestinationUrl }
 				};
 
-				foreach (KeyValuePair<MappedObjectField, object> fixedField in target.GetFieldValues())
-					row[new ColumnDef(Tables.MetricsDimensionTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
+					foreach (KeyValuePair<MappedObjectField, object> fixedField in target.GetFieldValues())
+						row[new ColumnDef(Tables.MetricsDimensionTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
 
-				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
-					row[new ColumnDef(Tables.MetricsDimensionTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
+					foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
+						row[new ColumnDef(Tables.MetricsDimensionTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
 
-				Bulk<Tables.MetricsDimensionTarget>().SubmitRow(row);
+					Bulk<Tables.MetricsDimensionTarget>().SubmitRow(row);
+				}
 			}
 
 		}
