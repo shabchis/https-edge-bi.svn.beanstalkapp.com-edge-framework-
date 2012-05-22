@@ -53,8 +53,9 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			public class AdTarget
 			{
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int);
+				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef Status = new ColumnDef("Status", type: SqlDbType.Int);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
@@ -66,9 +67,11 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				public static ColumnDef SegmentID = new ColumnDef("SegmentID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 4000);
+				public static ColumnDef Status = new ColumnDef("Status", type: SqlDbType.Int, nullable: true);
 				public static ColumnDef Value = new ColumnDef("Value", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
+
 			}
 
 			public class Metrics
@@ -87,6 +90,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
+				public static ColumnDef Status = new ColumnDef("Status", type: SqlDbType.Int);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
@@ -163,6 +167,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 					{ Tables.AdTarget.AdUsid, adUsid },
 					{ Tables.AdTarget.TypeID, target.TypeID },
 					{ Tables.AdTarget.OriginalID, target.OriginalID },
+					{ Tables.AdTarget.Status, target.Status == ObjectStatus.Unknown ? (object)DBNull.Value :  target.Status },
 					{ Tables.AdTarget.DestinationUrl, target.DestinationUrl }
 				};
 
@@ -201,10 +206,12 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				var row = new Dictionary<ColumnDef, object>()
 				{
 					{ Tables.AdSegment.AdUsid, adUsid },
-					{ Tables.AdSegment.SegmentID, segment.Key.ID },
+					{ Tables.AdSegment.SegmentID, segment.Key.ID},
 					{ Tables.AdSegment.TypeID, segment.Value.TypeID },
 					{ Tables.AdSegment.OriginalID, segment.Value.OriginalID },
+					{ Tables.AdSegment.Status, segment.Value.Status == ObjectStatus.Unknown ? (object)DBNull.Value :  segment.Value.Status},
 					{ Tables.AdSegment.Value, segment.Value.Value }
+					
 					
 				};
 
@@ -253,10 +260,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				{
 					var row = new Dictionary<ColumnDef, object>()
 				{
-					{ Tables.MetricsDimensionTarget.MetricsUsid, metricsUsid },
-					{ Tables.MetricsDimensionTarget.AdUsid, adUsid },
+					{ Tables.MetricsDimensionTarget.MetricsUsid, metrics.Usid.ToString("N") },
 					{ Tables.MetricsDimensionTarget.TypeID, target.TypeID },
 					{ Tables.MetricsDimensionTarget.OriginalID, target.OriginalID },
+					{ Tables.MetricsDimensionTarget.Status, target.Status == ObjectStatus.Unknown ? (object)DBNull.Value :  target.Status },
 					{ Tables.MetricsDimensionTarget.DestinationUrl, target.DestinationUrl }
 				};
 
