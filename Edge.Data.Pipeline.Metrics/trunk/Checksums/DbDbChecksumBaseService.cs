@@ -46,8 +46,8 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
             DateTime fromDate, toDate;
             if ((String.IsNullOrEmpty(this.Instance.Configuration.Options["fromDate"])) && (String.IsNullOrEmpty(this.Instance.Configuration.Options["toDate"])))
             {
-                fromDate = this.TargetPeriod.Start.ToDateTime();
-                toDate = this.TargetPeriod.End.ToDateTime();
+                fromDate = this.TimePeriod.Start.ToDateTime();
+                toDate = this.TimePeriod.End.ToDateTime();
             }
             else
             {

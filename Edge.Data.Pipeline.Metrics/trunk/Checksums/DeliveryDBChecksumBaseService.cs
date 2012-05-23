@@ -54,8 +54,8 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 			DateTime fromDate, toDate;
 			if ((String.IsNullOrEmpty(this.Instance.Configuration.Options["fromDate"])) && (String.IsNullOrEmpty(this.Instance.Configuration.Options["toDate"])))
 			{
-				fromDate = this.TargetPeriod.Start.ToDateTime();
-				toDate = this.TargetPeriod.End.ToDateTime();
+				fromDate = this.TimePeriod.Start.ToDateTime();
+				toDate = this.TimePeriod.End.ToDateTime();
 			}
 			else
 			{
@@ -126,9 +126,9 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 						#region Searching and researching commited and rolledback deliveries
 						for (int i = 0; i < d.History.Count; i++)
 						{
-							if (d.History[i].Operation == DeliveryOperation.Committed)
+							if (d.History[i].OperationType == PipelineOperationType.Committed)
 								commitIndex = i;
-							else if (d.History[i].Operation == DeliveryOperation.RolledBack)
+							else if (d.History[i].OperationType == PipelineOperationType.RolledBack)
 								rollbackIndex = i;
 						}
 
@@ -138,7 +138,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 							foundCommited = true;
 
 							DeliveryHistoryEntry commitEntry = null;
-							IEnumerable<DeliveryHistoryEntry> processedEntries = d.History.Where(entry => (entry.Operation == DeliveryOperation.Imported));
+							IEnumerable<DeliveryHistoryEntry> processedEntries = d.History.Where(entry => (entry.OperationType == PipelineOperationType.Imported));
 							if (processedEntries != null && processedEntries.Count() > 0)
 								commitEntry = (DeliveryHistoryEntry)processedEntries.Last();
 							else
@@ -194,7 +194,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 				//Getting current Delivery totals
 				object totalso;
 				DeliveryHistoryEntry commitEntry = null;
-				IEnumerable<DeliveryHistoryEntry> processedEntries = this.Delivery.History.Where(entry => (entry.Operation == DeliveryOperation.Imported));
+				IEnumerable<DeliveryHistoryEntry> processedEntries = this.Delivery.History.Where(entry => (entry.OperationType == PipelineOperationType.Imported));
 				if (processedEntries != null && processedEntries.Count() > 0)
 				{
 					commitEntry = (DeliveryHistoryEntry)processedEntries.Last();

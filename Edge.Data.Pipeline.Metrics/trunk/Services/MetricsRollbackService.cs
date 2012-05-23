@@ -15,6 +15,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
+			throw new NotImplementedException("This service must be rewritten to rollback either by delivery list or by output list.");
+
 			string[] deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
 			string sp = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackStoredProc);
 			string tableName = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
