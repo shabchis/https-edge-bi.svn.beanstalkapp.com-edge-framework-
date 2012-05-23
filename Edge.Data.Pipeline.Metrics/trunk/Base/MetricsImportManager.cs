@@ -170,12 +170,12 @@ namespace Edge.Data.Pipeline.Metrics
 		const int Prepare_VALIDATE_PASS = 1;
 		const string ValidationTable = "Commit_FinalMetrics";
 
-		protected override int PreparePassCount
+		protected override int TransformPassCount
 		{
 			get { return 2; }
 		}
 
-		protected override void OnBeginPrepare()
+		protected override void OnBeginTransform()
 		{
 			if (String.IsNullOrWhiteSpace(this.Options.SqlPrepareCommand))
 				throw new ConfigurationException("Options.SqlPrepareCommand is empty.");
@@ -184,9 +184,9 @@ namespace Edge.Data.Pipeline.Metrics
 			_sqlConnection.Open();
 		}
 
-		protected override void OnPrepare(int pass)
+		protected override void OnTransform(int pass)
 		{
-			DeliveryHistoryEntry processedEntry = this.CurrentDelivery.History.Last(entry => entry.Operation == DeliveryOperation.Imported);
+			DeliveryHistoryEntry processedEntry = this.CurrentDelivery.History.Last(entry => entry.OperationType == PipelineOperationType.Imported);
 			if (processedEntry == null)
 				throw new Exception("This delivery has not been imported yet (could not find an 'Imported' history entry).");
 
@@ -254,7 +254,7 @@ namespace Edge.Data.Pipeline.Metrics
 									{
 
 										if (total.Value == 0)
-											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TargetPeriod), LogMessageType.Information);
+											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
 										else
 											results.AppendFormat("{0} is null in table {1}\n but {2} in measure {3}", total.Key, ValidationTable, total.Key, total.Value);
 									}
@@ -265,7 +265,7 @@ namespace Edge.Data.Pipeline.Metrics
 										if (diff > this.Options.ChecksumThreshold)
 											results.AppendFormat("{0}: processor totals = {1}, {2} table = {3}\n", total.Key, total.Value, ValidationTable, val);
 										else if (val == 0 && total.Value == 0)
-											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TargetPeriod), LogMessageType.Information);
+											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
 
 
 									}
@@ -308,11 +308,11 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnCommit(int pass)
 		{
-			 DeliveryHistoryEntry processedEntry = this.CurrentDelivery.History.Last(entry => entry.Operation == DeliveryOperation.Imported);
+			 DeliveryHistoryEntry processedEntry = this.CurrentDelivery.History.Last(entry => entry.OperationType == PipelineOperationType.Imported);
 			if (processedEntry == null)
 				throw new Exception("This delivery has not been imported yet (could not find an 'Imported' history entry).");
 
-			DeliveryHistoryEntry preparedEntry = this.CurrentDelivery.History.Last(entry => entry.Operation == DeliveryOperation.Prepared);
+			DeliveryHistoryEntry preparedEntry = this.CurrentDelivery.History.Last(entry => entry.OperationType == PipelineOperationType.Prepared);
 			if (preparedEntry == null)
 				throw new Exception("This delivery has not been prepared yet (could not find an 'Prepared' history entry).");
 
@@ -364,7 +364,7 @@ namespace Edge.Data.Pipeline.Metrics
 					{
 						deliveries.Add(Delivery.Get(Guid.Parse(existDelivery)));
 					}
-					throw new DeliveryConflictException(string.Format("Deliveries with the same signature are already committed in the database\n Deliveries:\n {0}:", deliveryIDsPerSignature)) { ConflictingDeliveries = deliveries.ToArray() };
+					throw new DeliveryConflictException(string.Format("Deliveries with the same signature are already committed in the database\n Deliveries:\n {0}:", deliveryIDsPerSignature)) { ConflictingOutputs = deliveries.ToArray() };
 				}
 				else
 					//already updated by sp, this is so we don't override it
@@ -405,33 +405,32 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnBeginRollback()
 		{
-			if (String.IsNullOrWhiteSpace(this.Options.SqlRollbackCommand))
-				throw new ConfigurationException("Options.SqlRollbackCommand is empty.");
-
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 			_rollbackTransaction = _sqlConnection.BeginTransaction("Delivery Rollback");
 		}
 
-		protected override void OnRollback(int pass)
+		protected override void OnRollbackDelivery(Delivery delivery, int pass)
 		{
-			DeliveryHistoryEntry prepareEntry = null;
-			string guid = this.CurrentDelivery.DeliveryID.ToString("N");
-			IEnumerable<DeliveryHistoryEntry> prepareEntries = this.CurrentDelivery.History.Where(entry => entry.Operation == DeliveryOperation.Prepared);
-			if (prepareEntries != null && prepareEntries.Count() > 0)
-				prepareEntry = (DeliveryHistoryEntry)prepareEntries.Last();
-			if (prepareEntry == null)
-				throw new Exception(String.Format("The delivery '{0}' has never been committed so it cannot be rolled back.", guid));
+			string guid = delivery.DeliveryID.ToString("N");
 
 			_rollbackCommand = _rollbackCommand ?? DataManager.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
 			_rollbackCommand.Connection = _sqlConnection;
 			_rollbackCommand.Transaction = _rollbackTransaction;
 
 			_rollbackCommand.Parameters["@DeliveryID"].Value = guid;
-			_rollbackCommand.Parameters["@TableName"].Value = prepareEntry.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+			_rollbackCommand.Parameters["@TableName"].Value = this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
 
 			_rollbackCommand.ExecuteNonQuery();
-			this.CurrentDelivery.IsCommited = false;
+
+			// This is redundant (SP already does this) but to sync our objects in memory we do it here also
+			foreach (DeliveryOutput output in delivery.Outputs)
+				output.Status = DeliveryOutputStatus.RolledBack;
+		}
+
+		protected override void OnRollbackOutput(DeliveryOutput output, int pass)
+		{
+			throw new NotImplementedException();
 		}
 
 		protected override void OnEndRollback(Exception ex)

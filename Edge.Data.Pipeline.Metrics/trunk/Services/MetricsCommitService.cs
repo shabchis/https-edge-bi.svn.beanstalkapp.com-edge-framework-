@@ -45,7 +45,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			try
 			{
 				Log.Write("Prepare: start", LogMessageType.Information);
-				importManager.Prepare(new Delivery[] { this.Delivery });
+				importManager.Transform(new Delivery[] { this.Delivery });
 				Log.Write("Prepare: end", LogMessageType.Information);
 			}
 			catch (Exception ex)
@@ -70,7 +70,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				catch (DeliveryConflictException dceex)
 				{
 					Log.Write("Rollback: start", LogMessageType.Information);
-					importManager.Rollback(dceex.ConflictingDeliveries);
+					importManager.RollbackOutputs(dceex.ConflictingOutputs);
 					Log.Write("Rollback: end", LogMessageType.Information);
 				}
 				catch (Exception ex)
