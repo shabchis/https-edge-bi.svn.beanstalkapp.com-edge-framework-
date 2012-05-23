@@ -25,17 +25,11 @@ namespace Edge.Data.Pipeline
 
 		public Delivery CurrentDelivery
 		{
-			get;
-			private set;
+		    get;
+		    private set;
 		}
 
-		public Dictionary<string, object> HistoryEntryParameters
-		{
-			get;
-			private set;
-		}
-
-		protected virtual int PreparePassCount
+		protected virtual int TransformPassCount
 		{
 			get { return 1; }
 		}
@@ -54,7 +48,6 @@ namespace Edge.Data.Pipeline
 			ThrowIfNotIdle();
 			this.State = DeliveryImportManagerState.Importing;
 			this.CurrentDelivery = delivery;
-			this.HistoryEntryParameters = new Dictionary<string, object>();
 			
 			OnBeginImport();
 		}
@@ -65,11 +58,8 @@ namespace Edge.Data.Pipeline
 				throw new InvalidOperationException("EndImport can only be called after BeginImport.");
 			OnEndImport();
 
-			this.CurrentDelivery.History.Add(DeliveryOperation.Imported, _serviceInstanceID, this.HistoryEntryParameters);
 			this.CurrentDelivery.Save();
-
 			this.CurrentDelivery = null;
-			this.HistoryEntryParameters = null;
 
 			this.State = DeliveryImportManagerState.Idle;
 
@@ -77,63 +67,102 @@ namespace Edge.Data.Pipeline
 			OnDispose();
 		}
 
-		public void Prepare(Delivery[] deliveries)
+		public void Transform(Delivery[] deliveries)
 		{
-			this.Batch(deliveries,
-				this.PreparePassCount,
-				OnBeginPrepare,
-				OnEndPrepare,
-				OnBeginPreparePass,
-				OnEndPreparePass,
-				OnPrepare,
-				OnDisposePrepare,
-				DeliveryImportManagerState.Preparing,
-				DeliveryOperation.Prepared);
+			this.Batch<Delivery>(deliveries,
+				this.TransformPassCount,
+				OnBeginTransform,
+				ex =>
+				{
+					OnEndTransform(ex);
+
+					if (ex == null)
+					{
+						foreach (Delivery d in deliveries)
+							d.Save();
+					}
+				},
+				OnBeginTransformPass,
+				OnEndTransformPass,
+				OnTransform,
+				DeliveryImportManagerState.Transforming);
 		}
 
 		public void Commit(Delivery[] deliveries)
 		{
-			this.Batch(deliveries,
+			this.Batch<Delivery>(deliveries,
 				this.CommitPassCount,
 				OnBeginCommit,
-				OnEndCommit,
+				ex =>
+				{
+					OnEndCommit(ex);
+
+					if (ex == null)
+					{
+						foreach (Delivery d in deliveries)
+							d.Save();
+					}
+				},
 				OnBeginCommitPass,
 				OnEndCommitPass,
 				OnCommit,
-				OnDisposeCommit,
-				DeliveryImportManagerState.Comitting,
-				DeliveryOperation.Committed);
+				DeliveryImportManagerState.Comitting);
 		}
 
-		public void Rollback(Delivery[] deliveries)
+
+		public void RollbackDeliveries(Delivery[] deliveries)
 		{
-			this.Batch(deliveries,
+			this.Batch<Delivery>(deliveries,
 				this.RollbackPassCount,
 				OnBeginRollback,
-				OnEndRollback,
+				ex =>
+				{
+					OnEndRollback(ex);
+
+					if (ex == null)
+					{
+						foreach (Delivery d in deliveries)
+							d.Save();
+					}
+				},
 				OnBeginRollbackPass,
 				OnEndRollbackPass,
-				OnRollback,
-				OnDisposeRollback,
-				DeliveryImportManagerState.RollingBack,
-				DeliveryOperation.RolledBack);
+				OnRollbackDelivery,
+				DeliveryImportManagerState.RollingBack);
 		}
 
+		public void RollbackOutputs(DeliveryOutput[] outputs)
+		{
+			this.Batch<DeliveryOutput>(outputs,
+				this.RollbackPassCount,
+				OnBeginRollback,
+				ex =>
+				{
+					OnEndRollback(ex);
 
-		void Batch(Delivery[] deliveries,
+					if (ex == null)
+					{
+						foreach (DeliveryOutput output in outputs)
+							output.Save();
+					}
+				},
+				OnBeginRollbackPass,
+				OnEndRollbackPass,
+				OnRollbackOutput,
+				DeliveryImportManagerState.RollingBack);
+		}
+
+		void Batch<T>(T[] items,
 			int passes,
 			Action onBegin,
 			Action<Exception> onEnd,
 			Action<int> onBeginPass,
 			Action<int> onEndPass,
-			Action<int> onItem,
-			Action onDispose,
-			DeliveryImportManagerState activeState,
-			DeliveryOperation historyOperation)
+			Action<T, int> onItem,
+			DeliveryImportManagerState activeState)
 		{
 			ThrowIfNotIdle();
 			this.State = activeState;
-			Dictionary<string, object>[] entryParams = new Dictionary<string, object>[deliveries.Length];
 
 			onBegin();
 			Exception exception = null;
@@ -143,12 +172,9 @@ namespace Edge.Data.Pipeline
 				for (int pass = 0; pass < passes; pass++)
 				{
 					onBeginPass(pass);
-					for (int i = 0; i < deliveries.Length; i++)
+					for (int i = 0; i < items.Length; i++)
 					{
-						this.CurrentDelivery = deliveries[i];
-						this.HistoryEntryParameters = entryParams[i] ?? (entryParams[i] = new Dictionary<string, object>());
-
-						onItem(pass);
+						onItem(items[i], pass);
 					}
 					onEndPass(pass);
 				}
@@ -162,9 +188,6 @@ namespace Edge.Data.Pipeline
 				exception = ex;
 			}
 
-			this.CurrentDelivery = null;
-			this.HistoryEntryParameters = null;
-
 			try
 			{
 				onEnd(exception);
@@ -172,34 +195,19 @@ namespace Edge.Data.Pipeline
 			catch (Exception ex)
 			{
 				if (exception == null)
-				{
-					throw new Exception("Failed to end delivery operation. There were no other exceptions before this one.", ex);
-				}
+					exception = ex;
 				else
 					Log.Write("Failed to end delivery operation - probably because of another exception. See next log message.", ex);
 			}
-
-			if (exception == null)
+			finally
 			{
-				// Add history and save
-				for (int i = 0; i < deliveries.Length; i++)
-				{
-
-					Delivery delivery = deliveries[i];
-					delivery.History.Add(historyOperation, this._serviceInstanceID, entryParams[i]);
-					delivery.Save();
-				}
+				this.State = DeliveryImportManagerState.Idle;
 			}
-			else
-			{
-				// Throw exception
+
+			
+			// Throw exception if found
+			if (exception != null)
 				throw new Exception("Delivery operation failed while importing.", exception);
-			}
-
-			this.State = DeliveryImportManagerState.Idle;
-
-			onDispose();
-			OnDispose();
 		}
 
 		void ThrowIfNotIdle()
@@ -220,23 +228,24 @@ namespace Edge.Data.Pipeline
 		protected virtual void OnEndImport() { }
 		protected virtual void OnDisposeImport() { }
 	
-		protected virtual void OnBeginPrepare() { }
-		protected virtual void OnBeginPreparePass(int pass) { }
-		protected abstract void OnPrepare(int pass);
-		protected virtual void OnEndPreparePass(int pass) { }
-		protected virtual void OnEndPrepare(Exception ex) { }
-		protected virtual void OnDisposePrepare() { }
+		protected virtual void OnBeginTransform() { }
+		protected virtual void OnBeginTransformPass(int pass) { }
+		protected abstract void OnTransform(Delivery delivery, int pass);
+		protected virtual void OnEndTransformPass(int pass) { }
+		protected virtual void OnEndTransform(Exception ex) { }
+		protected virtual void OnDisposeTransform() { }
 
 		protected virtual void OnBeginCommit() { }
 		protected virtual void OnBeginCommitPass(int pass) { }
-		protected abstract void OnCommit(int pass);
+		protected abstract void OnCommit(Delivery delivery, int pass);
 		protected virtual void OnEndCommitPass(int pass) { }
 		protected virtual void OnEndCommit(Exception ex) { }
 		protected virtual void OnDisposeCommit() { }
 
 		protected virtual void OnBeginRollback() { }
 		protected virtual void OnBeginRollbackPass(int pass) { }
-		protected abstract void OnRollback(int pass);
+		protected virtual void OnRollbackOutput(DeliveryOutput output, int pass );
+		protected virtual void OnRollbackDelivery(Delivery delivery, int pass);
 		protected virtual void OnEndRollbackPass(int pass) { }
 		protected virtual void OnEndRollback(Exception ex) { }
 		protected virtual void OnDisposeRollback() { }
@@ -248,7 +257,7 @@ namespace Edge.Data.Pipeline
 	{
 		Idle,
 		Importing,
-		Preparing,
+		Transforming,
 		Comitting,
 		RollingBack
 	}

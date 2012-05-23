@@ -13,6 +13,7 @@ namespace Edge.Data.Pipeline
 	public class Delivery
 	{
 		#region Consts
+		// =============================
 		public class Consts
 		{
 			public static class ConnectionStrings
@@ -20,29 +21,19 @@ namespace Edge.Data.Pipeline
 				public const string SqlStagingDatabase = "Sql.DeliveriesDb";
 			}
 		}
+		// =============================
 		#endregion
 
-		DeliveryFileList _files;
+		#region Fields
+		// =============================
+
 		DateTimeRange _targetPeriod;
-		DateTime _dateCreated = DateTime.Now;
-		DateTime _dateModified = DateTime.Now;
-		Dictionary<string, object> _parameters;
-		DeliveryHistory _history;
-		public bool FullyLoaded { get; internal set; }
 
-		public bool IsCommited { get; set; }
+		// =============================
+		#endregion
 
-		public static string CreateSignature(string value)
-		{
-			byte[] toEncodeAsBytes
-
-			= System.Text.UTF8Encoding.UTF8.GetBytes(value);
-
-			string returnValue = System.Convert.ToBase64String(toEncodeAsBytes);
-
-			return returnValue;
-
-		}
+		#region Constructor
+		// =============================
 
 		/// <summary>
 		/// Creates a new delivery with the specified ID.
@@ -53,135 +44,97 @@ namespace Edge.Data.Pipeline
 				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. " +
 					"If this exception occured in an initializer service, check that the workflow service is defined as Edge.Data.Pipeline.Services.PipelineWorkflowService.");
 
-			// fuck db4o
-			_files = new DeliveryFileList(this);
-			_history = new DeliveryHistory();
-			_parameters = new Dictionary<string, object>();
+			this.Files = new DeliveryChildList<DeliveryFile>(this);
+			this.Outputs = new DeliveryChildList<DeliveryOutput>(this);
+			this.Parameters = new Dictionary<string, object>();
 
 			this.FullyLoaded = true;
 			this.DeliveryID = specifiedDeliveryID;
 		}
+		
+		// =============================
+		#endregion
+	
+		#region Properties
+		// =============================
+
+		public bool FullyLoaded { get; internal set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public Account Account { get; set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public Channel Channel { get; set; }
 
 		/// <summary>
 		/// Gets the unique ID of the delivery (Guid.Empty if unsaved).
 		/// </summary>
-		public Guid DeliveryID
-		{
-			get;
-			private set;
-		}
-
-		public Account Account
-		{
-			get;
-			set;
-		}
+		public Guid DeliveryID { get; private set; }
 
 		/// <summary>
 		/// Location to save files of deliveries of this type. Example "Google/AdWords"
 		/// </summary>
-		public string TargetLocationDirectory
-		{
-			get;
-			set;
-		}
-
-		/// <summary>
-		/// Gets or sets the channel for which this channel is relevant
-		/// </summary>
-		public Channel Channel
-		{
-			get; set;
-		}
+		public string FileDirectory { get; set; }
 
 		/// <summary>
 		/// Gets/sets a general description of the delivery.
 		/// </summary>
-		public string Description
-		{
-			get;
-			set;
-		}
+		public string Description { get; set; }
 
 		/// <summary>
 		/// Gets the date the delivery was created.
 		/// </summary>
-		public DateTime DateCreated
-		{
-			get { return _dateCreated; }
-			internal set { _dateCreated = value; }
-		}
+		public DateTime DateCreated { get; internal set; }
 
 		/// <summary>
 		/// Gets the date the delivery was last modified.
 		/// </summary>
-		public DateTime DateModified
-		{
-			get { return _dateModified; }
-			internal set { _dateModified = value; }
-		}
+		public DateTime DateModified { get; internal set; }
 
 		/// <summary>
-		/// Gets or sets the target dates this delivery contains data for.
+		/// Contains the files of the delivery.
 		/// </summary>
-		public DateTimeRange TargetPeriod
-		{
-			get { return _targetPeriod; }
-			set { InternalSetTargetPeriod(value, value.Start.ToDateTime(), value.End.ToDateTime()); }
-		}
-
-		public DateTime TargetPeriodStart
-		{
-			get;
-			private set;
-		}
-
-		public DateTime TargetPeriodEnd
-		{
-			get;
-			private set;
-		}
-
-		internal void InternalSetTargetPeriod(DateTimeRange range, DateTime calculatedStart, DateTime calculatedEnd)
-		{
-			_targetPeriod = range;
-			this.TargetPeriodStart = calculatedStart;
-			this.TargetPeriodEnd = calculatedEnd;
-		}
+		public DeliveryChildList<DeliveryFile> Files { get; private set; }
 
 		/// <summary>
-		/// Gets the files of the delivery.
+		/// 
 		/// </summary>
-		public DeliveryFileList Files
-		{
-			get { return _files; }
-		}
+		public DeliveryChildList<DeliveryOutput> Outputs { get; private set; }
 
 		/// <summary>
 		/// Gets general parameters for use by services processing this delivery.
 		/// </summary>
-        public Dictionary<string,object> Parameters
-		{
-			get { return _parameters; }
-		}
+		public Dictionary<string, object> Parameters { get; private set; }
 
 		/// <summary>
-		/// Represents the history of operations on the delivery. Each service that does an operation related to this delivery
-		/// should add itself with the corresponding action.
+		/// Gets or sets the target dates this delivery contains data for.
 		/// </summary>
-		public DeliveryHistory History
-		{
-			get { return _history; }
-		}
+		public DateTimeRange TimePeriodDefinition { get; set; }
 
 		/// <summary>
-		/// Gets or sets a unique signature that will be used to identify whether any conflicting deliveries exist.
+		/// Used to break a single time period into separate outputs.
 		/// </summary>
-		public string Signature
-		{
-			get;
-			set;
-		}
+		public DateTimeRangeSplitResolution TimePeriodSplit { get; set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public DateTime TimePeriodStart { get; private set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public DateTime TimePeriodEnd { get; private set; }
+
+		// =============================
+		#endregion
+
+		#region Methods
+		// =============================
 
 		public void Save()
 		{
@@ -193,15 +146,19 @@ namespace Edge.Data.Pipeline
 			DeliveryDB.Delete(this);
 		}
 
-		public Delivery[] GetConflicting()
+		internal void InternalSetTimePeriod(DateTimeRange range, DateTime calculatedStart, DateTime calculatedEnd)
 		{
-			if (this.Signature == null)
-				throw new InvalidOperationException("The delivery does not have a signature - cannot search for conflicts.");
-
-			return DeliveryDB.GetBySignature(this.Signature, exclude: this.DeliveryID);
+			_targetPeriod = range;
+			this.TimePeriodStart = calculatedStart;
+			this.TimePeriodEnd = calculatedEnd;
 		}
+		
+		
+		// =============================
+		#endregion
 
-		// Statics
+
+		#region Statics
 		// =============================
 
 		public static Delivery Get(Guid deliveryID, bool deep = true)
@@ -209,6 +166,7 @@ namespace Edge.Data.Pipeline
 			return DeliveryDB.Get(deliveryID, deep);
 		}
 
+		/*
 		public static Delivery[] GetByTargetPeriod(DateTime start, DateTime end, Channel channel = null, Account account = null, bool exact = false)
 		{
 			return DeliveryDB.GetByTargetPeriod(
@@ -218,5 +176,18 @@ namespace Edge.Data.Pipeline
 				end,
 				exact);
 		}
+		*/
+
+		public static string CreateSignature(string value)
+		{
+			byte[] toEncodeAsBytes = System.Text.UTF8Encoding.UTF8.GetBytes(value);
+			string returnValue = System.Convert.ToBase64String(toEncodeAsBytes);
+
+			return returnValue;
+
+		}
+		// =============================
+		#endregion
+
 	}
 }

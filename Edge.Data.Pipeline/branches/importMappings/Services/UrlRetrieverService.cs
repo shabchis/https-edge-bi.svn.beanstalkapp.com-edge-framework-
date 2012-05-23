@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Edge.Data.Pipeline.Services;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -17,13 +18,15 @@ namespace Edge.Data.Pipeline.Services
 			BatchDownloadOperation batch = new BatchDownloadOperation();
 			batch.Progressed += new EventHandler((sender, e) =>
 			{
-				this.ReportProgress(batch.Progress * 0.95);
+				this.ReportProgress(batch.Progress * 0.99);
 			});
 
 			foreach (DeliveryFile file in this.Delivery.Files)
 			{
 				if (String.IsNullOrWhiteSpace(file.SourceUrl))
 					continue;
+
+				Log.Write(String.Format("Delivery file {0} starting download ({1}).",file.Name, file.FileID), LogMessageType.Information);
 
 				DeliveryFileDownloadOperation download = file.Download();
 				download.Ended += new EventHandler(download_Ended);
@@ -34,7 +37,6 @@ namespace Edge.Data.Pipeline.Services
 			batch.Wait();
 
 			// Add a retrieved history entry for the entire delivery
-			this.Delivery.History.Add(DeliveryOperation.Retrieved, this.Instance.InstanceID);
 			this.Delivery.Save();
 
 			return Core.Services.ServiceOutcome.Success;
@@ -42,8 +44,10 @@ namespace Edge.Data.Pipeline.Services
 
 		void download_Ended(object sender, EventArgs e)
 		{
-			// Add a retrieved history entry to every file
-			((DeliveryFileDownloadOperation)sender).DeliveryFile.History.Add(DeliveryOperation.Retrieved, this.Instance.InstanceID);
+			var operation = (DeliveryFileDownloadOperation)sender;
+			operation.DeliveryFile.Status = DeliveryFileStatus.Retrieved;
+
+			Log.Write(String.Format("Delivery file {0} retrieved successfully ({1}).", operation.DeliveryFile.Name, operation.DeliveryFile.FileID), LogMessageType.Information);
 		}
 	}
 }

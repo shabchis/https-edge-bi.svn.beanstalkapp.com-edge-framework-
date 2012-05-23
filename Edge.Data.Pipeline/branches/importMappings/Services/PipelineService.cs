@@ -12,6 +12,7 @@ using System.Threading;
 using System.Data.SqlClient;
 using EdgeConfiguration = Edge.Core.Data;
 using Edge.Data.Pipeline.Mapping;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -42,21 +43,21 @@ namespace Edge.Data.Pipeline.Services
 		public static class ConfigurationOptionNames
 		{
 			public const string DeliveryID = "DeliveryID";
-			public const string TargetPeriod = "TargetPeriod";
+			public const string TimePeriod = "TimePeriod";
 			public const string ConflictBehavior = "ConflictBehavior";
 		}
 
 
 		DateTimeRange? _range = null;
-		public DateTimeRange TargetPeriod
+		public DateTimeRange TimePeriod
 		{
 			get
 			{
 				if (_range == null)
 				{
-					if (Instance.Configuration.Options.ContainsKey(ConfigurationOptionNames.TargetPeriod))
+					if (Instance.Configuration.Options.ContainsKey(ConfigurationOptionNames.TimePeriod))
 					{
-						_range = DateTimeRange.Parse(Instance.Configuration.Options[ConfigurationOptionNames.TargetPeriod]);
+						_range = DateTimeRange.Parse(Instance.Configuration.Options[ConfigurationOptionNames.TimePeriod]);
 					}
 					else
 					{
@@ -64,11 +65,11 @@ namespace Edge.Data.Pipeline.Services
 					}
 
 					// enforce limitation
-					if (this.TargetPeriodLimitation != DateTimeRangeLimitation.None)
+					if (this.TimePeriodLimitation != DateTimeRangeLimitation.None)
 					{
-						DateTime start = this.TargetPeriod.Start.ToDateTime();
-						DateTime end = this.TargetPeriod.End.ToDateTime();
-						switch (this.TargetPeriodLimitation)
+						DateTime start = this.TimePeriod.Start.ToDateTime();
+						DateTime end = this.TimePeriod.End.ToDateTime();
+						switch (this.TimePeriodLimitation)
 						{
 							case DateTimeRangeLimitation.SameDay:
 								if (end.Date != start.Date)
@@ -86,7 +87,7 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
-		protected virtual DateTimeRangeLimitation TargetPeriodLimitation
+		protected virtual DateTimeRangeLimitation TimePeriodLimitation
 		{
 			get { return DateTimeRangeLimitation.SameDay; }
 		}
@@ -133,7 +134,7 @@ namespace Edge.Data.Pipeline.Services
 		public Delivery NewDelivery()
 		{
 			var d = new Delivery(this.TargetDeliveryID);
-			d.History.Add(DeliveryOperation.Initialized, this.Instance.InstanceID);
+			Log.Write(String.Format("Creating delivery {0}",this.TargetDeliveryID), LogMessageType.Information);
 			return d;
 		}
 
@@ -143,41 +144,10 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="delivery"></param>
 		/// <param name="conflictBehavior">Indicates how conflicting deliveries will be handled.</param>
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
-		public DeliveryRollbackOperation HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
+		public void HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
-			if (this.Delivery.Signature == null)
-				throw new InvalidOperationException("Cannot handle conflicts before a valid signature is given to the delivery.");
-
-			// ================================
-			// Ticket behavior
-			DeliveryTicketBehavior ticketBehavior=DeliveryTicketBehavior.Abort;
-			if (getBehaviorFromConfiguration)
-			{
-				string configuredTicketBehavior;
-				if (Instance.Configuration.Options.TryGetValue("TicketBehavior", out configuredTicketBehavior))
-					ticketBehavior = (DeliveryTicketBehavior)Enum.Parse(typeof(DeliveryTicketBehavior), configuredTicketBehavior);
-			}
-
-
-
-			//prevent duplicate data in case two services runing on the same time
-			if (ticketBehavior==DeliveryTicketBehavior.Abort)
-			{
-				using (SqlConnection sqlConnection = new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase")))
-				{
-					// @"DeliveryTicket_Get(@deliverySignature:Nvarchar, @deliveryID:Nvarchar, $workflowInstanceID:bigint)"
-					SqlCommand command = EdgeConfiguration.DataManager.CreateCommand(string.Format("{0}({1})", AppSettings.Get(this.GetType(), "DeliveryTicket.SP"), "@deliverySignature:NvarChar,@deliveryID:NvarChar,@workflowInstanceID:bigint"), System.Data.CommandType.StoredProcedure);
-					command.Parameters["@deliverySignature"].Value = Delivery.Signature;
-					command.Parameters["@deliveryID"].Value = Delivery.DeliveryID.ToString("N");
-					command.Parameters["@workflowInstanceID"].Value = Instance.ParentInstance.InstanceID;
-					command.Parameters["@workflowInstanceID"].Direction = System.Data.ParameterDirection.InputOutput;
-
-					sqlConnection.Open();
-					command.Connection = sqlConnection;
-					if (((DeliveryTicketStatus)command.ExecuteScalar()) == DeliveryTicketStatus.ClaimedByOther)
-						throw new Exception(String.Format("The current delivery signature is currently claimed by service instance ID {0}.", command.Parameters["@workflowInstanceID"].Value));
-				} 
-			}
+			if (this.Delivery.Outputs.Count < 1)
+				return;
 
 			// ================================
 			// Conflict behavior
@@ -190,55 +160,31 @@ namespace Edge.Data.Pipeline.Services
 					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
 			}
 
+			
+			var processing = new List<DeliveryOutput>();
+			var committed = new List<DeliveryOutput>();
+			foreach (DeliveryOutput output in this.Delivery.Outputs)
+			{
+				DeliveryOutput[] conflicts = output.GetConflicting();
+
+				foreach (DeliveryOutput conflict in conflicts)
+				{
+					if (conflict.ProcessingState != DeliveryOutputProcessingState.Idle)
+						processing.Add(conflict);
+
+					if (conflict.Status == DeliveryOutputStatus.Committed)
+						committed.Add(conflict);
+				}
+			}
+			if (processing.Count > 0)
+				throw new DeliveryConflictException("There are outputs with the same signatures currently being processed:"); // add list of output ids
+
 			if (behavior == DeliveryConflictBehavior.Ignore)
-				return null;
+				return;
 
-			Delivery[] conflicting = this.Delivery.GetConflicting();
-			Delivery[] toCheck = new Delivery[conflicting.Length + 1];
-			toCheck[0] = this.Delivery;
-			conflicting.CopyTo(toCheck, 1);
+			if (committed.Count > 0)
+				throw new DeliveryConflictException("There are outputs with the same signatures are already committed:"); // add list of output ids
 
-			// Check whether the last commit was not rolled back for each conflicting delivery
-			List<Delivery> toRollback = new List<Delivery>();
-			foreach (Delivery d in toCheck)
-			{
-				int rollbackIndex = -1;
-				int commitIndex = -1;
-				for (int i = 0; i < d.History.Count; i++)
-				{
-					if (d.History[i].Operation == DeliveryOperation.Committed)
-						commitIndex = i;
-					else if (d.History[i].Operation == DeliveryOperation.RolledBack)
-						rollbackIndex = i;
-				}
-
-				if (commitIndex > rollbackIndex)
-					toRollback.Add(d);
-			}
-
-			DeliveryRollbackOperation operation = null;
-			if (toRollback.Count > 0)
-			{
-				if (behavior == DeliveryConflictBehavior.Rollback)
-				{
-					operation = new DeliveryRollbackOperation();
-					operation.AsyncDelegate = new Action<Delivery[]>(importManager.Rollback);
-					operation.AsyncResult = operation.AsyncDelegate.BeginInvoke(toRollback.ToArray(), null, null);	
-				}
-				else
-				{
-					StringBuilder guids = new StringBuilder();
-					for (int i = 0; i < toRollback.Count; i++)
-					{
-						guids.Append(toRollback[i].DeliveryID.ToString("N"));
-						if (i < toRollback.Count - 1)
-							guids.Append(", ");
-					}
-					throw new Exception("Conflicting deliveries found: " + guids.ToString());
-				}
-			}
-
-			return operation;
 		}
 
 		// ==============================
@@ -276,8 +222,7 @@ namespace Edge.Data.Pipeline.Services
 	public enum DeliveryConflictBehavior
 	{
 		Ignore,
-		Abort,
-		Rollback
+		Abort
 	}
 
 	public enum DeliveryTicketBehavior
@@ -299,18 +244,6 @@ namespace Edge.Data.Pipeline.Services
 		None,
 		SameDay,
 		SameMonth
-	}
-
-	public class DeliveryRollbackOperation
-	{
-		internal IAsyncResult AsyncResult;
-		internal Action<Delivery[]> AsyncDelegate;
-
-		public void Wait()
-		{
-			this.AsyncResult.AsyncWaitHandle.WaitOne();
-			this.AsyncDelegate.EndInvoke(this.AsyncResult);
-		}
 	}
 
 }
