@@ -19,8 +19,9 @@ namespace Edge.Data.Pipeline
 
 	public enum DeliveryOutputStatus
 	{
+		// This 
 		Empty		= 0,
-		Loaded		= 1,
+		Imported	= 1,
 		Transformed = 2,
 		Staged		= 3,
 		Committed	= 4,
