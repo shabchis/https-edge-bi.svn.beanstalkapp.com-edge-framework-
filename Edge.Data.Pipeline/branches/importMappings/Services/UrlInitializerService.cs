@@ -15,9 +15,9 @@ namespace Edge.Data.Pipeline.Services
 			if (this.Delivery == null)
 			{
 				this.Delivery = NewDelivery();
-				this.Delivery.TargetPeriod = this.TargetPeriod;
+				this.Delivery.TimePeriodDefinition = this.TimePeriod;
 				this.Delivery.Account = this.Instance.AccountID != -1 ? new Account() { ID = this.Instance.AccountID } : null; // no account means there is no permission validation
-				this.Delivery.TargetLocationDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.TargetLocationDirectory);
+				this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.TargetLocationDirectory);
 
 				int channelID = this.Instance.Configuration.GetOption<int>("ChannelID", emptyIsError: false, defaultValue: -1);
 				if (channelID != -1)
@@ -28,7 +28,7 @@ namespace Edge.Data.Pipeline.Services
 
 				Delivery.CreateSignature(String.Format("UrlInitializerService-[{0}]-[{1}]-[{2}]",
 				this.Instance.AccountID,
-				this.TargetPeriod.ToAbsolute()
+				this.TimePeriod.ToAbsolute()
 				));
 			}
 

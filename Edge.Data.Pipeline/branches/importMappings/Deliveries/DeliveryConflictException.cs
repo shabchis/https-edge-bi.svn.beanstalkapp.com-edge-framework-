@@ -8,7 +8,7 @@ namespace Edge.Data.Pipeline
 	[Serializable]
 	public class DeliveryConflictException : Exception
 	{
-		public Delivery[] ConflictingDeliveries { get; set; }
+		public DeliveryOutput[] ConflictingOutputs { get; set; }
 
 		public DeliveryConflictException() { }
 		public DeliveryConflictException(string message) : base(message) { }

@@ -95,7 +95,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Deliveries\DeliveryFileDownloadOperation.cs" />
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
+    <Compile Include="Deliveries\DeliveryChildList.cs" />
+    <Compile Include="Deliveries\Enums.cs" />
+    <Compile Include="Deliveries\DeliveryOutput.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
     <Compile Include="Mapping\Exceptions.cs" />
@@ -120,11 +124,9 @@
     <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
-    <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
     <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
-    <Compile Include="Deliveries\DeliveryHistory.cs" />
     <Compile Include="Deliveries\DeliveryImportManager.cs" />
     <Compile Include="Objects\Account.cs" />
     <Compile Include="Objects\Ad.cs" />
