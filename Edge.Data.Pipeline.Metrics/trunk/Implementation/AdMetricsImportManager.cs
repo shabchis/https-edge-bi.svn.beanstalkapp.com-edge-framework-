@@ -261,6 +261,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 					var row = new Dictionary<ColumnDef, object>()
 				{
 					{ Tables.MetricsDimensionTarget.MetricsUsid, metrics.Usid.ToString("N") },
+                    { Tables.MetricsDimensionTarget.AdUsid, adUsid},
 					{ Tables.MetricsDimensionTarget.TypeID, target.TypeID },
 					{ Tables.MetricsDimensionTarget.OriginalID, target.OriginalID },
 					{ Tables.MetricsDimensionTarget.Status, target.Status == ObjectStatus.Unknown ? (object)DBNull.Value :  target.Status },
