@@ -102,7 +102,7 @@ namespace Edge.Data.Pipeline.Services
 
 				Guid deliveryID = this.TargetDeliveryID;
 				if (deliveryID != Guid.Empty)
-					_delivery = DeliveryDB.Get(deliveryID);
+					_delivery = DeliveryDB.GetDelivery(deliveryID);
 
 				return _delivery;
 			}
