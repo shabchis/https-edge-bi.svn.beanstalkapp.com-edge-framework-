@@ -13,7 +13,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 {
 	abstract public class DeliveryDBChecksumBaseService : ValidationService
 	{
-		abstract protected ValidationResult DeliveryDbCompare(Delivery delivery, Dictionary<string, double> totals, string DbConnectionStringName, string comparisonTable);
+		abstract protected ValidationResult DeliveryDbCompare(DeliveryOutput deliveryOutput, Dictionary<string, double> totals, string DbConnectionStringName, string comparisonTable);
 		public static Double ALLOWED_DIFF = 0.1;
 		public double progress = 0;
 
@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 			}
 			else
 			{
-				List<string> account = new List<string>(){this.Instance.AccountID.ToString()};
+				List<string> account = new List<string>() { this.Instance.AccountID.ToString() };
 				accounts = account.ToArray();
 			}
 
@@ -65,11 +65,10 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 			#endregion
 
 
-
 			if (this.Delivery == null || this.Delivery.DeliveryID.Equals(Guid.Empty))
 			{
 				#region Creating Delivery Search List
-				List<DeliverySearchItem> deliverySearchList = new List<DeliverySearchItem>();
+				List<DeliveryOutput> deliveryOutputSearchList = new List<DeliveryOutput>();
 
 				while (fromDate <= toDate)
 				{
@@ -91,14 +90,15 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 					foreach (var Channel in channels)
 					{
-
 						foreach (string account in accounts)
 						{
-							DeliverySearchItem delivery = new DeliverySearchItem();
-							delivery.account = new Account() { ID = Convert.ToInt32(account) };
-							delivery.channel = new Channel() { ID = Convert.ToInt32(Channel) };
-							delivery.targetPeriod = subRange;
-							deliverySearchList.Add(delivery);
+							DeliveryOutput deliveryOutput = new DeliveryOutput();
+							deliveryOutput.Account = new Account() { ID = Convert.ToInt32(account) };
+							deliveryOutput.Channel = new Channel() { ID = Convert.ToInt32(Channel) };
+							deliveryOutput.TimePeriodStart = subRange.Start.ToDateTime();
+							deliveryOutput.TimePeriodEnd = subRange.End.ToDateTime();
+
+							deliveryOutputSearchList.Add(deliveryOutput);
 
 							progress += 0.3 * ((1 - progress) / (channels.LongLength + accounts.LongLength));
 							this.ReportProgress(progress);
@@ -107,68 +107,37 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 					fromDate = fromDate.AddDays(1);
 				}
 				#endregion
-				foreach (DeliverySearchItem deliveryToSearch in deliverySearchList)
-				{
-					#region Foreach
 
+				foreach (DeliveryOutput deliveryOutput in deliveryOutputSearchList)
+				{
 					//Getting criterion matched deliveries
-					Delivery[] deliveriesToCheck = Delivery.GetByTargetPeriod(deliveryToSearch.targetPeriod.Start.ToDateTime(), deliveryToSearch.targetPeriod.End.ToDateTime(), deliveryToSearch.channel, deliveryToSearch.account);
+					DeliveryOutput[] outputToCheck = DeliveryOutput.GetByTimePeriod(deliveryOutput.TimePeriodStart, deliveryOutput.TimePeriodEnd, deliveryOutput.Channel, deliveryOutput.Account);
 					bool foundCommited = false;
 
 					progress += 0.3 * (1 - progress);
 					this.ReportProgress(progress);
 
-					foreach (Delivery d in deliveriesToCheck)
+					foreach (DeliveryOutput output in outputToCheck)
 					{
-						int rollbackIndex = -1;
-						int commitIndex = -1;
-
-						#region Searching and researching commited and rolledback deliveries
-						for (int i = 0; i < d.History.Count; i++)
+						if (output.Status == DeliveryOutputStatus.Committed && output.CheckSum != null && output.CheckSum.Count > 0)
 						{
-							if (d.History[i].OperationType == PipelineOperationType.Committed)
-								commitIndex = i;
-							else if (d.History[i].OperationType == PipelineOperationType.RolledBack)
-								rollbackIndex = i;
+							//Check Delivery data vs OLTP
+							yield return (DeliveryDbCompare(output, output.CheckSum, "OltpDB", comparisonTable));
 						}
-
-						if (commitIndex > rollbackIndex)
-						{
-							object totalso;
-							foundCommited = true;
-
-							DeliveryHistoryEntry commitEntry = null;
-							IEnumerable<DeliveryHistoryEntry> processedEntries = d.History.Where(entry => (entry.OperationType == PipelineOperationType.Imported));
-							if (processedEntries != null && processedEntries.Count() > 0)
-								commitEntry = (DeliveryHistoryEntry)processedEntries.Last();
-							else
-								continue;
-
-							if (commitEntry.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.ChecksumTotals, out totalso))
-							{
-								Dictionary<string, double> totals = (Dictionary<string, double>)totalso;
-
-								//Check Delivery data vs OLTP
-								yield return (DeliveryDbCompare(d, totals, "OltpDB", comparisonTable));
-							}
-
-						}
-						#endregion
 
 					}
 
-
 					//could not find deliveries by user criterions
-					if (deliveriesToCheck.Length == 0)
+					if (outputToCheck.Length == 0)
 					{
 						yield return new ValidationResult()
 						{
 							ResultType = ValidationResultType.Error,
-							AccountID = deliveryToSearch.account.ID,
-							TargetPeriodStart = deliveryToSearch.targetPeriod.Start.ToDateTime(),
-							TargetPeriodEnd = deliveryToSearch.targetPeriod.End.ToDateTime(),
+							AccountID = deliveryOutput.Account.ID,
+							TargetPeriodStart = deliveryOutput.TimePeriodStart,
+							TargetPeriodEnd = deliveryOutput.TimePeriodEnd,
 							Message = "Cannot find deliveries in DB",
-							ChannelID = deliveryToSearch.channel.ID,
+							ChannelID = deliveryOutput.Channel.ID,
 							CheckType = this.Instance.Configuration.Name
 						};
 					}
@@ -177,43 +146,33 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 						yield return new ValidationResult()
 						{
 							ResultType = ValidationResultType.Error,
-							AccountID = deliveryToSearch.account.ID,
-							TargetPeriodStart = deliveryToSearch.targetPeriod.Start.ToDateTime(),
-							TargetPeriodEnd = deliveryToSearch.targetPeriod.End.ToDateTime(),
+							AccountID = deliveryOutput.Account.ID,
+							TargetPeriodStart = deliveryOutput.TimePeriodStart,
+							TargetPeriodEnd = deliveryOutput.TimePeriodEnd,
 							Message = "Cannot find Commited deliveries in DB",
-							ChannelID = deliveryToSearch.channel.ID,
+							ChannelID = deliveryOutput.Channel.ID,
 							CheckType = this.Instance.Configuration.Name
 						};
 					}
-					#endregion
+
 				} // End of foreach
 
 			}
 			else
 			{
 				//Getting current Delivery totals
-				object totalso;
-				DeliveryHistoryEntry commitEntry = null;
-				IEnumerable<DeliveryHistoryEntry> processedEntries = this.Delivery.History.Where(entry => (entry.OperationType == PipelineOperationType.Imported));
-				if (processedEntries != null && processedEntries.Count() > 0)
+
+				foreach (DeliveryOutput output in this.Delivery.Outputs)
 				{
-					commitEntry = (DeliveryHistoryEntry)processedEntries.Last();
-					if (commitEntry.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.ChecksumTotals, out totalso))
+					if (output.Status == DeliveryOutputStatus.Committed && output.CheckSum != null && output.CheckSum.Count > 0)
 					{
-						Dictionary<string, double> totals = (Dictionary<string, double>)totalso;
-						yield return (DeliveryDbCompare(this.Delivery, totals, "OltpDB", comparisonTable));
+						yield return (DeliveryDbCompare(output, output.CheckSum, "OltpDB", comparisonTable));
 					}
 				}
+
 			}
-
-
 		}
 
 	}
-	public class DeliverySearchItem
-	{
-		public Account account { set; get; }
-		public Channel channel { set; get; }
-		public DateTimeRange targetPeriod { set; get; }
-	}
+
 }
