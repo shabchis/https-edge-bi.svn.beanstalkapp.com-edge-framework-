@@ -118,5 +118,10 @@ namespace Edge.Data.Pipeline
 		{
 			throw new NotImplementedException();
 		}
+
+		public static DeliveryOutput[] GetByTimePeriod(DateTime timePeriodStart, DateTime timePeriodEnd, Channel channel, Account account)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
