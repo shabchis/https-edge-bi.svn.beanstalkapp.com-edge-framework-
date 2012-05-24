@@ -227,7 +227,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 				foreach (DeliveryOutput outPut in delivery.Outputs)
 				{
-					object totalso;
+					
 
 					if (outPut.CheckSum!=null && outPut.CheckSum.Count>0)
 					{
@@ -249,7 +249,7 @@ namespace Edge.Data.Pipeline.Metrics
 								if (reader.Read())
 								{
 									var results = new StringBuilder();
-									foreach (KeyValuePair<int, double> total in outPut.CheckSum)
+									foreach (KeyValuePair<string, double> total in outPut.CheckSum)
 									{
 										if (reader[total.Key] is DBNull)
 										{
