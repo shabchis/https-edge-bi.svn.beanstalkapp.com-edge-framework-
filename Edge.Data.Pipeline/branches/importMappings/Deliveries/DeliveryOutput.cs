@@ -10,7 +10,7 @@ namespace Edge.Data.Pipeline
 	{
 		#region IDeliveryChild Members
 
-		public Dictionary<string,double CheckSum { get; set; }
+		public Dictionary<int,double> CheckSum { get; set; }
 
 		string IDeliveryChild.Key
 		{
