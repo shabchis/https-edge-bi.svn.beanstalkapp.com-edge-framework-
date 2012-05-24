@@ -10,6 +10,8 @@ namespace Edge.Data.Pipeline
 	{
 		#region IDeliveryChild Members
 
+		public Dictionary<string,double CheckSum { get; set; }
+
 		string IDeliveryChild.Key
 		{
 			get { return this.Signature; }
