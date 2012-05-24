@@ -27,7 +27,7 @@ namespace Edge.Data.Pipeline
 		#region Fields
 		// =============================
 
-		DateTimeRange _targetPeriod;
+		DateTimeRange _timePeriod;
 
 		// =============================
 		#endregion
@@ -148,7 +148,7 @@ namespace Edge.Data.Pipeline
 
 		internal void InternalSetTimePeriod(DateTimeRange range, DateTime calculatedStart, DateTime calculatedEnd)
 		{
-			_targetPeriod = range;
+			_timePeriod = range;
 			this.TimePeriodStart = calculatedStart;
 			this.TimePeriodEnd = calculatedEnd;
 		}
