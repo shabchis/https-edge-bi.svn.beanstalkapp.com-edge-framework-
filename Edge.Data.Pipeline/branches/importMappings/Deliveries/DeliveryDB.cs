@@ -637,6 +637,11 @@ namespace Edge.Data.Pipeline
                 return connection;
             }
         }
-       
-    }
+
+
+		internal static DeliveryOutput[] GetOutputsBySignature(string p, Guid exclude)
+		{
+			throw new NotImplementedException();
+		}
+	}
 }

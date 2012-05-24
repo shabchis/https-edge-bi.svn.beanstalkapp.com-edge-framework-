@@ -143,7 +143,7 @@ namespace Edge.Data.Pipeline
 					if (ex == null)
 					{
 						foreach (DeliveryOutput output in outputs)
-							output.Save();
+							output.Delivery.Save();
 					}
 				},
 				OnBeginRollbackPass,
@@ -244,8 +244,8 @@ namespace Edge.Data.Pipeline
 
 		protected virtual void OnBeginRollback() { }
 		protected virtual void OnBeginRollbackPass(int pass) { }
-		protected virtual void OnRollbackOutput(DeliveryOutput output, int pass );
-		protected virtual void OnRollbackDelivery(Delivery delivery, int pass);
+		protected virtual void OnRollbackOutput(DeliveryOutput output, int pass) { }
+		protected virtual void OnRollbackDelivery(Delivery delivery, int pass) { }
 		protected virtual void OnEndRollbackPass(int pass) { }
 		protected virtual void OnEndRollback(Exception ex) { }
 		protected virtual void OnDisposeRollback() { }

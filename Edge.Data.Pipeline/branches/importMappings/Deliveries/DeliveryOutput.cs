@@ -111,5 +111,10 @@ namespace Edge.Data.Pipeline
 
 			return DeliveryDB.GetOutputsBySignature(this.Signature, exclude: this.OutputID);
 		}
+
+		public static DeliveryOutput Get(Guid guid)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
