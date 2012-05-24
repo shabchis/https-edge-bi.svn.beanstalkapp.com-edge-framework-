@@ -14,7 +14,7 @@ namespace Edge.Data.Pipeline
 
 		string IDeliveryChild.Key
 		{
-			get { return this.Signature; }
+			get { return this.OutputID.ToString("N"); }
 		}
 
 		Delivery IDeliveryChild.Delivery
@@ -31,6 +31,10 @@ namespace Edge.Data.Pipeline
 
 		#endregion
 
+		public DeliveryOutput()
+		{
+			CheckSum = new Dictionary<string, double>();
+		}
 		Dictionary<string, object> _parameters;
 
 		/// <summary>

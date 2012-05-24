@@ -138,7 +138,7 @@ namespace Edge.Data.Pipeline
 
 		public void Save()
 		{
-			this.DeliveryID = DeliveryDB.Save(this);
+			this.DeliveryID = DeliveryDB.SaveDelivery(this);
 		}
 
 		public void Delete()
@@ -163,7 +163,7 @@ namespace Edge.Data.Pipeline
 
 		public static Delivery Get(Guid deliveryID, bool deep = true)
 		{
-			return DeliveryDB.Get(deliveryID, deep);
+			return DeliveryDB.GetDelivery(deliveryID, deep);
 		}
 
 		/*
