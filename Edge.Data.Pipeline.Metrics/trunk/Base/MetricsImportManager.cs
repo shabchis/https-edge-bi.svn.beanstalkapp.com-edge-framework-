@@ -55,7 +55,7 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void OnBeginImport()
 		{
 			this._tablePrefix = string.Format("{0}_{1}_{2}_{3}", this.TablePrefixType, this.CurrentDelivery.Account.ID, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
-			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this._tablePrefix);
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this._tablePrefix);
 
 			int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
 
@@ -116,12 +116,12 @@ namespace Edge.Data.Pipeline.Metrics
 				count++;
 			}
 
-			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql, measuresFieldNamesSQL.ToString());
-			this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql, measuresFieldNamesSQL.ToString());
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
 			if (string.IsNullOrEmpty(measuresValidationSQL.ToString()))
 				Log.Write("No measures marked for checksum validation; there will be no validation before the final commit.", LogMessageType.Warning);
 			else
-				this.HistoryEntryParameters.Add(Consts.DeliveryHistoryParameters.MeasureValidateSql, measuresValidationSQL.ToString());
+				this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureValidateSql, measuresValidationSQL.ToString());
 
 			// Create the tables
 			StringBuilder createTableCmdText = new StringBuilder();
