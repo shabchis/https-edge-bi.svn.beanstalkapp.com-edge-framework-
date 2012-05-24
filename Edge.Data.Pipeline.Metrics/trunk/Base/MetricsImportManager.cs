@@ -184,17 +184,15 @@ namespace Edge.Data.Pipeline.Metrics
 			_sqlConnection.Open();
 		}
 
-		protected override void OnTransform(int pass)
+		protected override void  OnTransform(Delivery delivery, int pass)
 		{
-			DeliveryHistoryEntry processedEntry = this.CurrentDelivery.History.Last(entry => entry.OperationType == PipelineOperationType.Imported);
-			if (processedEntry == null)
-				throw new Exception("This delivery has not been imported yet (could not find an 'Imported' history entry).");
+			
 
 			// get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
-			string measuresNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
+			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
+			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
 
-			string tablePerfix = processedEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
 			string deliveryId = this.CurrentDelivery.DeliveryID.ToString("N");
 
 			if (pass == Prepare_PREPARE_PASS)
@@ -222,18 +220,18 @@ namespace Edge.Data.Pipeline.Metrics
 					throw new Exception(String.Format("Delivery {0} failed during Prepare.", deliveryId), ex);
 				}
 
-				this.HistoryEntryParameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
+				delivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
 			}
 			else if (pass == Prepare_VALIDATE_PASS)
 			{
 				object totalso;
 
-				if (processedEntry.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.ChecksumTotals, out totalso))
+				if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.ChecksumTotals, out totalso))
 				{
 					var totals = (Dictionary<string, double>)totalso;
 
 					object sql;
-					if (processedEntry.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.MeasureValidateSql, out sql))
+					if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.MeasureValidateSql, out sql))
 					{
 
 						string measuresValidateSQL = (string)sql;
@@ -306,16 +304,8 @@ namespace Edge.Data.Pipeline.Metrics
 			_commitTransaction = _sqlConnection.BeginTransaction("Delivery Commit");
 		}
 
-		protected override void OnCommit(int pass)
+		protected override void  OnCommit(Delivery delivery, int pass)
 		{
-			 DeliveryHistoryEntry processedEntry = this.CurrentDelivery.History.Last(entry => entry.OperationType == PipelineOperationType.Imported);
-			if (processedEntry == null)
-				throw new Exception("This delivery has not been imported yet (could not find an 'Imported' history entry).");
-
-			DeliveryHistoryEntry preparedEntry = this.CurrentDelivery.History.Last(entry => entry.OperationType == PipelineOperationType.Prepared);
-			if (preparedEntry == null)
-				throw new Exception("This delivery has not been prepared yet (could not find an 'Prepared' history entry).");
-
 			// get this from last 'Processed' history entry
 			string measuresFieldNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
 			string measuresNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
@@ -334,13 +324,13 @@ namespace Edge.Data.Pipeline.Metrics
 			_commitCommand.Parameters["@DeliveryFileName"].Size = 4000;
 			_commitCommand.Parameters["@DeliveryFileName"].Value = tablePerfix;
 			_commitCommand.Parameters["@CommitTableName"].Size = 4000;
-			_commitCommand.Parameters["@CommitTableName"].Value = preparedEntry.Parameters["CommitTableName"];
+			_commitCommand.Parameters["@CommitTableName"].Value = delivery.Parameters["CommitTableName"];
 			_commitCommand.Parameters["@MeasuresNamesSQL"].Size = 4000;
 			_commitCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
-			_commitCommand.Parameters["@Signature"].Size = 4000;
-			_commitCommand.Parameters["@Signature"].Value = this.CurrentDelivery.Signature; ;
+			//_commitCommand.Parameters["@Signature"].Size = 4000;
+			//_commitCommand.Parameters["@Signature"].Value = this.CurrentDelivery.Signature; ;
 			_commitCommand.Parameters["@DeliveryIDsPerSignature"].Size = 4000;
 			_commitCommand.Parameters["@DeliveryIDsPerSignature"].Direction = ParameterDirection.Output;
 			_commitCommand.Parameters["@DeliveryID"].Size = 4000;
@@ -368,7 +358,11 @@ namespace Edge.Data.Pipeline.Metrics
 				}
 				else
 					//already updated by sp, this is so we don't override it
-					this.CurrentDelivery.IsCommited = true;
+					foreach (var output in delivery.Outputs)
+					{
+						output.Status = DeliveryOutputStatus.Committed;
+						
+					}
 			}
 			finally
 			{

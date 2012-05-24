@@ -294,5 +294,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		{
 			throw new NotImplementedException();
 		}
+
+		protected override void OnTransform(Delivery delivery, int pass)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

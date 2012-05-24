@@ -141,5 +141,10 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 		{
 			throw new NotImplementedException();
 		}
+
+		protected override void OnTransform(Delivery delivery, int pass)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
