@@ -289,5 +289,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		{
 			get { return typeof(Tables.Metrics); }
 		}
+
+		protected override void OnCommit(Delivery delivery, int pass)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
