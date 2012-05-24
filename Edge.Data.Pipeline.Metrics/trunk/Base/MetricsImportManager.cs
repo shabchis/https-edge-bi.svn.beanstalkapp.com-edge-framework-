@@ -307,10 +307,10 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void  OnCommit(Delivery delivery, int pass)
 		{
 			// get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
-			string measuresNamesSQL = processedEntry.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
+			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
+			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
 
-			string tablePerfix = processedEntry.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
 			string deliveryId = this.CurrentDelivery.DeliveryID.ToString("N");
 
 
@@ -342,19 +342,19 @@ namespace Edge.Data.Pipeline.Metrics
 				_commitCommand.ExecuteNonQuery();
 				//	_commitTransaction.Commit();
 
-				string deliveryIDsPerSignature = _commitCommand.Parameters["@DeliveryIDsPerSignature"].Value.ToString();
+				string outPutsIDsPerSignature = _commitCommand.Parameters["@DeliveryIDsPerSignature"].Value.ToString();
 
-				string[] existDeliveries;
-				if ((!string.IsNullOrEmpty(deliveryIDsPerSignature) && deliveryIDsPerSignature != "0"))
+				string[] outPuts;
+				if ((!string.IsNullOrEmpty(outPutsIDsPerSignature) && outPutsIDsPerSignature != "0"))
 				{
 					_commitTransaction.Rollback();
-					existDeliveries = deliveryIDsPerSignature.Split(',');
-					List<Delivery> deliveries = new List<Delivery>();
-					foreach (string existDelivery in existDeliveries)
+					existsOutPuts = outPutsIDsPerSignature.Split(',');
+					List<DeliveryOutput> outputs = new List<DeliveryOutput>();
+					foreach (string existOutput in existsOutPuts)
 					{
-						deliveries.Add(Delivery.Get(Guid.Parse(existDelivery)));
+						outputs.Add(DeliveryOutput.Get(Guid.Parse(existOutput)));
 					}
-					throw new DeliveryConflictException(string.Format("Deliveries with the same signature are already committed in the database\n Deliveries:\n {0}:", deliveryIDsPerSignature)) { ConflictingOutputs = deliveries.ToArray() };
+					throw new DeliveryConflictException(string.Format("Deliveries with the same signature are already committed in the database\n Deliveries:\n {0}:", outPutsIDsPerSignature)) { ConflictingOutputs = outputs.ToArray() };
 				}
 				else
 					//already updated by sp, this is so we don't override it
@@ -460,6 +460,8 @@ namespace Edge.Data.Pipeline.Metrics
 
 		/*=========================*/
 		#endregion
+
+		public string[] existsOutPuts { get; set; }
 	}
 
 	/// <summary>
