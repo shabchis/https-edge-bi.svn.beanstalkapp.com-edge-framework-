@@ -224,56 +224,61 @@ namespace Edge.Data.Pipeline.Metrics
 			}
 			else if (pass == Prepare_VALIDATE_PASS)
 			{
-				object totalso;
 
-				if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.ChecksumTotals, out totalso))
+				foreach (DeliveryOutput outPut in delivery.Outputs)
 				{
-					var totals = (Dictionary<string, double>)totalso;
+					object totalso;
 
-					object sql;
-					if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.MeasureValidateSql, out sql))
+					if (outPut.CheckSum!=null && outPut.CheckSum.Count>0)
 					{
+						
 
-						string measuresValidateSQL = (string)sql;
-						measuresValidateSQL = measuresValidateSQL.Insert(0, "SELECT ");
-						measuresValidateSQL = measuresValidateSQL + string.Format("\nFROM {0}_{1} \nWHERE DeliveryID=@DeliveryID:Nvarchar", tablePerfix, ValidationTable);
-
-						SqlCommand validateCommand = DataManager.CreateCommand(measuresValidateSQL);
-						validateCommand.Connection = _sqlConnection;
-						validateCommand.Parameters["@DeliveryID"].Value = this.CurrentDelivery.DeliveryID.ToString("N");
-						using (SqlDataReader reader = validateCommand.ExecuteReader())
+						object sql;
+						if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.MeasureValidateSql, out sql))
 						{
-							if (reader.Read())
+
+							string measuresValidateSQL = (string)sql;
+							measuresValidateSQL = measuresValidateSQL.Insert(0, "SELECT ");
+							measuresValidateSQL = measuresValidateSQL + string.Format("\nFROM {0}_{1} \nWHERE output=@output:Nvarchar", tablePerfix, ValidationTable);
+
+							SqlCommand validateCommand = DataManager.CreateCommand(measuresValidateSQL);
+							validateCommand.Connection = _sqlConnection;
+							validateCommand.Parameters["@DeliveryID"].Value = this.CurrentDelivery.DeliveryID.ToString("N");
+							using (SqlDataReader reader = validateCommand.ExecuteReader())
 							{
-								var results = new StringBuilder();
-								foreach (KeyValuePair<string, double> total in totals)
+								if (reader.Read())
 								{
-									if (reader[total.Key] is DBNull)
+									var results = new StringBuilder();
+									foreach (KeyValuePair<int, double> total in outPut.CheckSum)
 									{
+										if (reader[total.Key] is DBNull)
+										{
 
-										if (total.Value == 0)
-											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
+											if (total.Value == 0)
+												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
+											else
+												results.AppendFormat("{0} is null in table {1}\n but {2} in measure {3}", total.Key, ValidationTable, total.Key, total.Value);
+										}
 										else
-											results.AppendFormat("{0} is null in table {1}\n but {2} in measure {3}", total.Key, ValidationTable, total.Key, total.Value);
-									}
-									else
-									{
-										double val = Convert.ToDouble(reader[total.Key]);
-										double diff = Math.Abs((total.Value - val) / total.Value);
-										if (diff > this.Options.ChecksumThreshold)
-											results.AppendFormat("{0}: processor totals = {1}, {2} table = {3}\n", total.Key, total.Value, ValidationTable, val);
-										else if (val == 0 && total.Value == 0)
-											Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
+										{
+											double val = Convert.ToDouble(reader[total.Key]);
+											double diff = Math.Abs((total.Value - val) / total.Value);
+											if (diff > this.Options.ChecksumThreshold)
+												results.AppendFormat("{0}: processor totals = {1}, {2} table = {3}\n", total.Key, total.Value, ValidationTable, val);
+											else if (val == 0 && total.Value == 0)
+												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
 
 
+										}
 									}
+									if (results.Length > 0)
+										throw new Exception("Commit validation (checksum) failed:\n" + results.ToString());
 								}
-								if (results.Length > 0)
-									throw new Exception("Commit validation (checksum) failed:\n" + results.ToString());
+								else
+									throw new Exception(String.Format("Commit validation (checksum) did not find any data matching this delivery in {0}.", ValidationTable));
 							}
-							else
-								throw new Exception(String.Format("Commit validation (checksum) did not find any data matching this delivery in {0}.", ValidationTable));
 						}
+						
 					}
 				}
 			}
@@ -344,7 +349,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 				string outPutsIDsPerSignature = _commitCommand.Parameters["@DeliveryIDsPerSignature"].Value.ToString();
 
-				string[] outPuts;
+				string[] existsOutPuts;
 				if ((!string.IsNullOrEmpty(outPutsIDsPerSignature) && outPutsIDsPerSignature != "0"))
 				{
 					_commitTransaction.Rollback();
@@ -461,7 +466,7 @@ namespace Edge.Data.Pipeline.Metrics
 		/*=========================*/
 		#endregion
 
-		public string[] existsOutPuts { get; set; }
+		
 	}
 
 	/// <summary>
