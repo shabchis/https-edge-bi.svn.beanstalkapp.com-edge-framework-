@@ -182,9 +182,9 @@ namespace Edge.Data.Pipeline
 								while (reader.Read())
 								{
 									var deliveryOutput = delivery.Outputs[reader.Get<string>("OutputID")];
-									if (deliveryOutput.CheckSum == null)
-										deliveryOutput.CheckSum = new Dictionary<string, double>();
-									deliveryOutput.CheckSum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Total"]));
+									if (deliveryOutput.Checksum == null)
+										deliveryOutput.Checksum = new Dictionary<string, double>();
+									deliveryOutput.Checksum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Total"]));
 
 
 
@@ -503,7 +503,7 @@ namespace Edge.Data.Pipeline
 					#region checkSum
 					foreach (var output in delivery.Outputs)
 					{
-						foreach (KeyValuePair<string, double> sum in output.CheckSum)
+						foreach (KeyValuePair<string, double> sum in output.Checksum)
 						{
 							cmd = DataManager.CreateCommand(@"
 							INSERT INTO [OutputCheckSum] (
@@ -775,9 +775,9 @@ namespace Edge.Data.Pipeline
 								while (reader.Read())
 								{
 
-									if (output.CheckSum == null)
-										output.CheckSum = new Dictionary<string, double>();
-									output.CheckSum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Total"]));
+									if (output.Checksum == null)
+										output.Checksum = new Dictionary<string, double>();
+									output.Checksum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Total"]));
 
 
 
