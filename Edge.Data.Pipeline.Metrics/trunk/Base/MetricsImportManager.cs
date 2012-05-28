@@ -239,11 +239,11 @@ namespace Edge.Data.Pipeline.Metrics
 
 							string measuresValidateSQL = (string)sql;
 							measuresValidateSQL = measuresValidateSQL.Insert(0, "SELECT ");
-							measuresValidateSQL = measuresValidateSQL + string.Format("\nFROM {0}_{1} \nWHERE output=@output:Nvarchar", tablePerfix, ValidationTable);
+							measuresValidateSQL = measuresValidateSQL + string.Format("\nFROM {0}_{1} \nWHERE outputID=@outputid:Nvarchar", tablePerfix, ValidationTable);
 
 							SqlCommand validateCommand = DataManager.CreateCommand(measuresValidateSQL);
 							validateCommand.Connection = _sqlConnection;
-							validateCommand.Parameters["@output"].Value = outPut.OutputID.ToString("N");
+							validateCommand.Parameters["@outputid"].Value = outPut.OutputID.ToString("N");
 							using (SqlDataReader reader = validateCommand.ExecuteReader())
 							{
 								if (reader.Read())
@@ -316,7 +316,7 @@ namespace Edge.Data.Pipeline.Metrics
 			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
 
 			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
-			string deliveryId = this.CurrentDelivery.DeliveryID.ToString("N");
+			string deliveryId = delivery.DeliveryID.ToString("N");
 
 
 			// ...........................
