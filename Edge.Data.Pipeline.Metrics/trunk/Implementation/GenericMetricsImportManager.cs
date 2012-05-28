@@ -69,6 +69,8 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			var metricsRow = new Dictionary<ColumnDef, object>()
 			{
 				{Tables.Metrics.MetricsUsid, metrics.Usid.ToString("N")},
+				{Tables.Metrics.TargetPeriodStart, metrics.TimePeriodStart},
+				{Tables.Metrics.TargetPeriodEnd, metrics.TimePeriodEnd},
 				{Tables.Metrics.Account_ID, metrics.Account.ID},
 				{Tables.Metrics.Account_OriginalID, metrics.Account.OriginalID == null ? (object)DBNull.Value : metrics.Account.OriginalID },
 				{Tables.Metrics.Channel_ID, metrics.Channel.ID}
