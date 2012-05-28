@@ -334,8 +334,8 @@ namespace Edge.Data.Pipeline.Metrics
 			_commitCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
-			//_commitCommand.Parameters["@Signature"].Size = 4000;
-			//_commitCommand.Parameters["@Signature"].Value = this.CurrentDelivery.Signature; ;
+			_commitCommand.Parameters["@Signature"].Size = 4000;
+			_commitCommand.Parameters["@Signature"].Value = delivery.Outputs.First().Signature;
 			_commitCommand.Parameters["@DeliveryIDsPerSignature"].Size = 4000;
 			_commitCommand.Parameters["@DeliveryIDsPerSignature"].Direction = ParameterDirection.Output;
 			_commitCommand.Parameters["@DeliveryID"].Size = 4000;
@@ -372,6 +372,7 @@ namespace Edge.Data.Pipeline.Metrics
 			finally
 			{
 				this.State = DeliveryImportManagerState.Idle;
+				
 			}
 		}
 
@@ -385,6 +386,7 @@ namespace Edge.Data.Pipeline.Metrics
 					_commitTransaction.Rollback();
 			}
 			this.State = DeliveryImportManagerState.Idle;
+			
 		}
 
 		protected override void OnDisposeCommit()
