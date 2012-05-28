@@ -65,7 +65,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					{
 						while (this.ReaderAdapter.Reader.Read())
 							OnRead();
-
+							
 						this.ImportManager.EndImport();
 					}
 				}
