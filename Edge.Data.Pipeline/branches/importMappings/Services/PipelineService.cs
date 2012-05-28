@@ -16,7 +16,7 @@ using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Services
 {
-	public abstract class PipelineService: Service
+	public abstract class PipelineService : Service
 	{
 		#region Core methods
 		// ==============================
@@ -61,7 +61,7 @@ namespace Edge.Data.Pipeline.Services
 					}
 					else
 					{
-						_range = DateTimeRange.AllOfYesterday; 
+						_range = DateTimeRange.AllOfYesterday;
 					}
 
 					// enforce limitation
@@ -136,7 +136,7 @@ namespace Edge.Data.Pipeline.Services
 			var d = new Delivery(this.TargetDeliveryID);
 			d.TimePeriodDefinition = this.TimePeriod;
 
-			Log.Write(String.Format("Creating delivery {0}",this.TargetDeliveryID), LogMessageType.Information);
+			Log.Write(String.Format("Creating delivery {0}", this.TargetDeliveryID), LogMessageType.Information);
 			return d;
 		}
 
@@ -151,6 +151,17 @@ namespace Edge.Data.Pipeline.Services
 			if (this.Delivery.Outputs.Count < 1)
 				return;
 
+			ServiceInstanceInfo parent = this.Instance;
+			while (parent.ParentInstance != null)
+			{
+				parent = parent.ParentInstance;
+
+			}
+			foreach (DeliveryOutput output in this.Delivery.Outputs)
+				output.PipelineInstanceID = parent.InstanceID;
+
+			this.Delivery.Save();
+
 			// ================================
 			// Conflict behavior
 
@@ -162,7 +173,7 @@ namespace Edge.Data.Pipeline.Services
 					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
 			}
 
-			
+
 			var processing = new List<DeliveryOutput>();
 			var committed = new List<DeliveryOutput>();
 			foreach (DeliveryOutput output in this.Delivery.Outputs)
@@ -171,7 +182,7 @@ namespace Edge.Data.Pipeline.Services
 
 				foreach (DeliveryOutput conflict in conflicts)
 				{
-					if (conflict.ProcessingState != DeliveryOutputProcessingState.Idle)
+					if (conflict.PipelineInstanceIsRunning)
 						processing.Add(conflict);
 
 					if (conflict.Status == DeliveryOutputStatus.Committed)
@@ -179,13 +190,26 @@ namespace Edge.Data.Pipeline.Services
 				}
 			}
 			if (processing.Count > 0)
-				throw new DeliveryConflictException("There are outputs with the same signatures currently being processed:"); // add list of output ids
+			{
+				foreach (var output in Delivery.Outputs)
+					output.Status = DeliveryOutputStatus.Canceled;
+
+				this.Delivery.Save();
+				throw new DeliveryConflictException("There are outputs with the same signatures currently being processed:") { ConflictingOutputs = processing.ToArray() }; // add list of output ids
+			}
 
 			if (behavior == DeliveryConflictBehavior.Ignore)
 				return;
 
 			if (committed.Count > 0)
-				throw new DeliveryConflictException("There are outputs with the same signatures are already committed:"); // add list of output ids
+			{
+				foreach (var output in Delivery.Outputs)
+					output.Status = DeliveryOutputStatus.Canceled;
+
+
+				this.Delivery.Save();
+				throw new DeliveryConflictException("There are outputs with the same signatures are already committed:") { ConflictingOutputs = committed.ToArray() }; // add list of output ids
+			}
 
 		}
 
@@ -196,7 +220,7 @@ namespace Edge.Data.Pipeline.Services
 		// ==============================
 
 		MappingConfiguration _mapping = null;
-		
+
 		public MappingConfiguration Mappings
 		{
 			get
@@ -210,7 +234,7 @@ namespace Edge.Data.Pipeline.Services
 						if (!account.Extensions.TryGetValue(MappingConfigurationElement.ExtensionName, out extension))
 							throw new MappingConfigurationException("No mapping configuration found.");
 					}
-					_mapping = ((MappingConfigurationElement) extension).Load();
+					_mapping = ((MappingConfigurationElement)extension).Load();
 				}
 
 				return _mapping;

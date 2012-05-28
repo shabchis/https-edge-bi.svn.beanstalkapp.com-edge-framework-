@@ -32,6 +32,7 @@ namespace Edge.Data.Pipeline
 		public DeliveryOutput()
 		{
 			Checksum = new Dictionary<string, double>();
+			
 		}
 		Dictionary<string, object> _parameters;
 
@@ -83,7 +84,12 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// 
 		/// </summary>
-		public DeliveryOutputProcessingState ProcessingState { get; internal set; }
+		public long? PipelineInstanceID { get; internal set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public bool PipelineInstanceIsRunning { get; internal set; }
 
 		/// <summary>
 		/// Gets the date the delivery file was created.
