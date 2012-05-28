@@ -141,7 +141,8 @@ namespace Edge.Data.Pipeline
 								{
 									var deliveryOutput = new DeliveryOutput()
 									{
-										OutputID = reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)),
+
+										OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
 										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null),
 										Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
 										Signature = reader.Get<string>("Signature"),
@@ -164,7 +165,7 @@ namespace Edge.Data.Pipeline
 								while (reader.Read())
 								{
 
-									DeliveryOutput deliveryOutput = delivery.Outputs[reader.Get<string>("Signature")];
+									DeliveryOutput deliveryOutput = delivery.Outputs[reader.Get<string>("OutputID")];
 									deliveryOutput.Parameters.Add(reader.Get<string>("Key"), DeserializeJson(reader.Get<string>("Value")));
 								}
 
@@ -183,7 +184,7 @@ namespace Edge.Data.Pipeline
 									var deliveryOutput = delivery.Outputs[reader.Get<string>("OutputID")];
 									if (deliveryOutput.CheckSum == null)
 										deliveryOutput.CheckSum = new Dictionary<string, double>();
-									deliveryOutput.CheckSum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Value"]));
+									deliveryOutput.CheckSum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Total"]));
 
 
 
@@ -465,6 +466,40 @@ namespace Edge.Data.Pipeline
 					// ..................
 					#endregion
 
+					#region DeliveryOutputParameters
+					// ..................
+
+					foreach (DeliveryOutput output in delivery.Outputs)
+					{
+						foreach (KeyValuePair<string, object> param in output.Parameters)
+						{
+							cmd = DataManager.CreateCommand(@"
+								INSERT INTO [DeliveryOutputParameters] (
+									[DeliveryID],
+									[OutputID],
+									[Key],
+									[Value]
+								)
+								VALUES (
+									@deliveryID:Char,
+									@outputID:NVarChar,
+									@key:NVarChar,
+									@value:NVarChar
+								)", System.Data.CommandType.Text);
+							cmd.Connection = client;
+							cmd.Transaction = transaction;
+
+							cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
+							cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
+							cmd.Parameters["@key"].Value = param.Key;
+							cmd.Parameters["@value"].Value = Serialize(param.Value);
+							cmd.ExecuteNonQuery();
+						}
+					}
+
+					// ..................
+					#endregion
+
 					#region checkSum
 					foreach (var output in delivery.Outputs)
 					{
@@ -501,39 +536,7 @@ namespace Edge.Data.Pipeline
 					}
 					#endregion
 
-					#region DeliveryFileParameters
-					// ..................
-
-					foreach (DeliveryOutput output in delivery.Outputs)
-					{
-						foreach (KeyValuePair<string, object> param in output.Parameters)
-						{
-							cmd = DataManager.CreateCommand(@"
-								INSERT INTO [DeliveryOutputParameters] (
-									[DeliveryID],
-									[Name],
-									[Key],
-									[Value]
-								)
-								VALUES (
-									@deliveryID:Char,
-									@signature:NVarChar,
-									@key:NVarChar,
-									@value:NVarChar
-								)", System.Data.CommandType.Text);
-							cmd.Connection = client;
-							cmd.Transaction = transaction;
-
-							cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
-							cmd.Parameters["@signature"].Value = output.Signature;
-							cmd.Parameters["@key"].Value = param.Key;
-							cmd.Parameters["@value"].Value = Serialize(param.Value);
-							cmd.ExecuteNonQuery();
-						}
-					}
-
-					// ..................
-					#endregion
+				
 
 					transaction.Commit();
 
@@ -747,26 +750,6 @@ namespace Edge.Data.Pipeline
 							};
 							#endregion
 
-							#region checksum
-							// ..................
-
-							if (reader.NextResult())
-							{
-								while (reader.Read())
-								{
-
-									if (output.CheckSum == null)
-										output.CheckSum = new Dictionary<string, double>();
-									output.CheckSum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Value"]));
-
-
-
-								}
-
-							}
-							// ..................
-							#endregion
-
 							#region DeliveryOutputParameters
 							// ..................
 
@@ -783,6 +766,28 @@ namespace Edge.Data.Pipeline
 
 							// ..................
 							#endregion
+
+							#region checksum
+							// ..................
+
+							if (reader.NextResult())
+							{
+								while (reader.Read())
+								{
+
+									if (output.CheckSum == null)
+										output.CheckSum = new Dictionary<string, double>();
+									output.CheckSum.Add(reader["MeasureName"].ToString(), Convert.ToDouble(reader["Total"]));
+
+
+
+								}
+
+							}
+							// ..................
+							#endregion
+
+						
 						}
 
 					}
