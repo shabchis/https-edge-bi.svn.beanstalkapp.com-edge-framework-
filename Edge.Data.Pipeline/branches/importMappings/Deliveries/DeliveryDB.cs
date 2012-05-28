@@ -428,7 +428,7 @@ namespace Edge.Data.Pipeline
 								[AccountID],
 								[ChannelID],
 								[Signature],
-								[Status],
+								[Status] ,								
 								[TimePeriodStart],
 								[TimePeriodEnd],
 								[DateCreated],
@@ -440,7 +440,7 @@ namespace Edge.Data.Pipeline
 								@accountID:Int,
 								@channelID:Int,
 								@signature:NVarChar,
-								@status:Int,
+								@status:Int,								
 								@timePeriodStart:DateTime2,
 								@timePeriodEnd:DateTime2,
 								@dateCreated:DateTime,
@@ -454,7 +454,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
 						cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 						cmd.Parameters["@signature"].Value = output.Signature;
-						cmd.Parameters["@status"].Value = output.Status;
+						cmd.Parameters["@status"].Value = output.Status;						
 						cmd.Parameters["@timePeriodStart"].Value = output.TimePeriodStart;
 						cmd.Parameters["@timePeriodEnd"].Value = output.TimePeriodEnd;
 						cmd.Parameters["@dateCreated"].Value = output.DateCreated;
