@@ -10,8 +10,6 @@ namespace Edge.Data.Pipeline
 	{
 		#region IDeliveryChild Members
 
-		public Dictionary<string,double> CheckSum { get; set; }
-
 		string IDeliveryChild.Key
 		{
 			get { return this.OutputID.ToString("N"); }
@@ -33,7 +31,7 @@ namespace Edge.Data.Pipeline
 
 		public DeliveryOutput()
 		{
-			CheckSum = new Dictionary<string, double>();
+			Checksum = new Dictionary<string, double>();
 		}
 		Dictionary<string, object> _parameters;
 
@@ -105,6 +103,8 @@ namespace Edge.Data.Pipeline
 			get { return _parameters ?? (_parameters = new Dictionary<string, object>()); }
 			set { _parameters = value; }
 		}
+
+		public Dictionary<string,double> Checksum { get; set; }
 
 		/// <summary>
 		/// Gets outputs that conflict with the current output by signature.

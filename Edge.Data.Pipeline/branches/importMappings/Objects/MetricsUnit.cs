@@ -10,8 +10,8 @@ namespace Edge.Data.Objects
 	{
 		public Guid Usid = Guid.NewGuid();
 
-		public DateTime PeriodStart;
-		public DateTime PeriodEnd;
+		public DateTime TimePeriodStart;
+		public DateTime TimePeriodEnd; 
 
 		public Currency Currency;
 
