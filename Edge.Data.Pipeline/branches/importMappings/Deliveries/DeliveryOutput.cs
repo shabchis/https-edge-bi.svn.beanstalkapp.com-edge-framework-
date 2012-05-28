@@ -118,10 +118,18 @@ namespace Edge.Data.Pipeline
 		/// <returns></returns>
 		public DeliveryOutput[] GetConflicting()
 		{
+			DeliveryOutput[] conflicting = null;
 			if (this.Signature == null)
 				throw new InvalidOperationException("The output does not have a signature - cannot search for conflicts.");
 
-			return DeliveryDB.GetOutputsBySignature(this.Signature, exclude: this.OutputID);
+			conflicting= DeliveryDB.GetOutputsBySignature(this.Signature, exclude: this.OutputID);
+			if (conflicting != null)
+			{
+
+				foreach (DeliveryOutput conflict in conflicting)
+					conflict.PipelineInstanceIsRunning = DeliveryDB.GetRuning(conflict.PipelineInstanceID.Value);				
+			}
+			return conflicting;
 		}
 
 		public static DeliveryOutput Get(Guid guid)

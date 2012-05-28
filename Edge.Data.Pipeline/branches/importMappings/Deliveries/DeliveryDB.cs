@@ -148,7 +148,8 @@ namespace Edge.Data.Pipeline
 										Signature = reader.Get<string>("Signature"),
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
 										TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
-										TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd")
+										TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
+										PipelineInstanceID=reader.Get<long>("PipelineInstanceID")
 									};
 									delivery.Outputs.Add(deliveryOutput);
 								}
@@ -432,7 +433,8 @@ namespace Edge.Data.Pipeline
 								[TimePeriodStart],
 								[TimePeriodEnd],
 								[DateCreated],
-								[DateModified]
+								[DateModified],
+								[PipelineInstanceID]
 							)
 							VALUES (
 								@deliveryID:Char,
@@ -444,7 +446,8 @@ namespace Edge.Data.Pipeline
 								@timePeriodStart:DateTime2,
 								@timePeriodEnd:DateTime2,
 								@dateCreated:DateTime,
-								@dateModified:DateTime
+								@dateModified:DateTime,
+								@pipelineInstanceID:BigInt
 							)", System.Data.CommandType.Text);
 						cmd.Connection = client;
 						cmd.Transaction = transaction;
@@ -459,6 +462,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@timePeriodEnd"].Value = output.TimePeriodEnd;
 						cmd.Parameters["@dateCreated"].Value = output.DateCreated;
 						cmd.Parameters["@dateModified"].Value = output.DateModified;
+						cmd.Parameters["@pipelineInstanceID"].Value = output.PipelineInstanceID.HasValue ? output.PipelineInstanceID.Value : (object)DBNull.Value; 
 
 						cmd.ExecuteNonQuery();
 					}
@@ -778,7 +782,8 @@ namespace Edge.Data.Pipeline
 								Signature = reader.Get<string>("Signature"),
 								Status = reader.Get<DeliveryOutputStatus>("Status"),
 								TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
-								TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd")
+								TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
+								PipelineInstanceID=reader.Get<long?>("PipelineInstanceID")
 							};
 							#endregion
 
@@ -828,6 +833,29 @@ namespace Edge.Data.Pipeline
 			return output;
 
 
+		}
+
+		internal static bool GetRuning(long parentInstanceID)
+		{
+			bool runing=false;
+			using (var client = DeliveryDBClient.Connect())
+			{
+				// Select deliveries that match a signature but none of the guids in 'exclude'
+				using (SqlCommand cmd = DataManager.CreateCommand(@"SELECT InstanceID
+																	FROM ServiceInstance 
+																	WHERE State!= 6 AND State!= 7 AND InstanceID=@instanceid:Bigint",System.Data.CommandType.Text))
+				{
+					cmd.Connection = client;
+					cmd.Parameters["@instanceid"].Value = parentInstanceID;					
+					using (SqlDataReader reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+							runing = true;
+					}
+				}
+			}
+			return runing;
+			
 		}
 	}
 }

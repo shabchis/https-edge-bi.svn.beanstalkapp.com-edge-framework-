@@ -152,13 +152,15 @@ namespace Edge.Data.Pipeline.Services
 				return;
 
 			ServiceInstanceInfo parent = this.Instance;
-			while (parent.ParentInstance != null)
-			{
+			while (parent.ParentInstance != null)			
 				parent = parent.ParentInstance;
 
-			}
+
 			foreach (DeliveryOutput output in this.Delivery.Outputs)
+			{
+				if (!output.PipelineInstanceID.HasValue)
 				output.PipelineInstanceID = parent.InstanceID;
+			}
 
 			this.Delivery.Save();
 
