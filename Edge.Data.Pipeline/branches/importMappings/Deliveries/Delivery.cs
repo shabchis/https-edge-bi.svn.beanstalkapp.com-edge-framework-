@@ -113,7 +113,11 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Gets or sets the target dates this delivery contains data for.
 		/// </summary>
-		public DateTimeRange TimePeriodDefinition { get; set; }
+		public DateTimeRange TimePeriodDefinition
+		{
+			get { return _timePeriod; }
+			set { InternalSetTimePeriod(value); }
+		}
 
 		/// <summary>
 		/// Used to break a single time period into separate outputs.
@@ -144,6 +148,13 @@ namespace Edge.Data.Pipeline
 		public void Delete()
 		{
 			DeliveryDB.Delete(this);
+		}
+
+		internal void InternalSetTimePeriod(DateTimeRange range)
+		{
+			_timePeriod = range;
+			this.TimePeriodStart = range.Start.ToDateTime();
+			this.TimePeriodEnd = range.End.ToDateTime();
 		}
 
 		internal void InternalSetTimePeriod(DateTimeRange range, DateTime calculatedStart, DateTime calculatedEnd)
