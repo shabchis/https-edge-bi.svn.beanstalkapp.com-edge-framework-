@@ -79,7 +79,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				public static ColumnDef MetricsUsid = new ColumnDef("MetricsUsid", size: 32, type: SqlDbType.Char, nullable: false);
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
-				public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char, nullable: false);
+				public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char,size:32, nullable: false);
 				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef Currency = new ColumnDef("Currency", size: 10);
@@ -240,10 +240,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			string metricsUsid = metrics.Usid.ToString("N");
 
 			// Metrics
-			var metricsRow = new Dictionary<ColumnDef, object>()
+		var metricsRow = new Dictionary<ColumnDef, object>()
 			{
 				{Tables.Metrics.MetricsUsid, metricsUsid},
-				{Tables.Metrics.OutputID,metrics.Output.OutputID},
+				{Tables.Metrics.OutputID,metrics.Output.OutputID.ToString("N")},
 				{Tables.Metrics.AdUsid, adUsid},
 				{Tables.Metrics.TargetPeriodStart, metrics.Output.TimePeriodStart},
 				{Tables.Metrics.TargetPeriodEnd, metrics.Output.TimePeriodEnd},
