@@ -336,8 +336,8 @@ namespace Edge.Data.Pipeline.Metrics
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
 			_commitCommand.Parameters["@Signature"].Size = 4000;
 			_commitCommand.Parameters["@Signature"].Value = delivery.Outputs.First().Signature;
-			_commitCommand.Parameters["@DeliveryIDsPerSignature"].Size = 4000;
-			_commitCommand.Parameters["@DeliveryIDsPerSignature"].Direction = ParameterDirection.Output;
+			//_commitCommand.Parameters["@DeliveryIDsPerSignature"].Size = 4000;
+			//_commitCommand.Parameters["@DeliveryIDsPerSignature"].Direction = ParameterDirection.Output;
 			_commitCommand.Parameters["@DeliveryID"].Size = 4000;
 			_commitCommand.Parameters["@DeliveryID"].Value = deliveryId;
 
