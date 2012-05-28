@@ -193,7 +193,7 @@ namespace Edge.Data.Pipeline.Metrics
 			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
 
 			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
-			string deliveryId = this.CurrentDelivery.DeliveryID.ToString("N");
+			string deliveryId = delivery.DeliveryID.ToString("N");
 
 			if (pass == Prepare_PREPARE_PASS)
 			{
@@ -229,7 +229,7 @@ namespace Edge.Data.Pipeline.Metrics
 				{
 					
 
-					if (outPut.CheckSum!=null && outPut.CheckSum.Count>0)
+					if (outPut.Checksum!=null && outPut.Checksum.Count>0)
 					{
 						
 
@@ -243,13 +243,13 @@ namespace Edge.Data.Pipeline.Metrics
 
 							SqlCommand validateCommand = DataManager.CreateCommand(measuresValidateSQL);
 							validateCommand.Connection = _sqlConnection;
-							validateCommand.Parameters["@DeliveryID"].Value = this.CurrentDelivery.DeliveryID.ToString("N");
+							validateCommand.Parameters["@output"].Value = outPut.OutputID.ToString("N");
 							using (SqlDataReader reader = validateCommand.ExecuteReader())
 							{
 								if (reader.Read())
 								{
 									var results = new StringBuilder();
-									foreach (KeyValuePair<string, double> total in outPut.CheckSum)
+									foreach (KeyValuePair<string, double> total in outPut.Checksum)
 									{
 										if (reader[total.Key] is DBNull)
 										{
