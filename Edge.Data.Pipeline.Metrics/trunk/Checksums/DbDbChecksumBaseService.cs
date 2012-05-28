@@ -13,7 +13,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
     abstract public class DbDbChecksumBaseService : ValidationService
     {
         public double progress = 0;
-        Dictionary<string, string> Params = new Dictionary<string, string>();
+        public Dictionary<string, string> Params = new Dictionary<string, string>();
 
         protected override IEnumerable<ValidationResult> Validate()
         {
