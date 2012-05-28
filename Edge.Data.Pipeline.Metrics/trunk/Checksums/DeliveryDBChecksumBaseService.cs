@@ -119,10 +119,10 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 					foreach (DeliveryOutput output in outputToCheck)
 					{
-						if (output.Status == DeliveryOutputStatus.Committed && output.CheckSum != null && output.CheckSum.Count > 0)
+						if (output.Status == DeliveryOutputStatus.Committed && output.Checksum != null && output.Checksum.Count > 0)
 						{
 							//Check Delivery data vs OLTP
-							yield return (DeliveryDbCompare(output, output.CheckSum, "OltpDB", comparisonTable));
+							yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
 						}
 
 					}
@@ -164,9 +164,9 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 				foreach (DeliveryOutput output in this.Delivery.Outputs)
 				{
-					if (output.Status == DeliveryOutputStatus.Committed && output.CheckSum != null && output.CheckSum.Count > 0)
+					if (output.Status == DeliveryOutputStatus.Committed && output.Checksum != null && output.Checksum.Count > 0)
 					{
-						yield return (DeliveryDbCompare(output, output.CheckSum, "OltpDB", comparisonTable));
+						yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
 					}
 				}
 

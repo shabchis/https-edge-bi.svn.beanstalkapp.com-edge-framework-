@@ -79,6 +79,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				public static ColumnDef MetricsUsid = new ColumnDef("MetricsUsid", size: 32, type: SqlDbType.Char, nullable: false);
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
+				public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char, nullable: false);
 				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef Currency = new ColumnDef("Currency", size: 10);
@@ -242,9 +243,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			var metricsRow = new Dictionary<ColumnDef, object>()
 			{
 				{Tables.Metrics.MetricsUsid, metricsUsid},
+				{Tables.Metrics.OutputID,metrics.Output.OutputID},
 				{Tables.Metrics.AdUsid, adUsid},
-				{Tables.Metrics.TargetPeriodStart, metrics.PeriodStart},
-				{Tables.Metrics.TargetPeriodEnd, metrics.PeriodEnd},
+				{Tables.Metrics.TargetPeriodStart, metrics.Output.TimePeriodStart},
+				{Tables.Metrics.TargetPeriodEnd, metrics.Output.TimePeriodEnd},
 				{Tables.Metrics.Currency, metrics.Currency == null ? null : metrics.Currency.Code}
 			};
 
@@ -292,12 +294,12 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 		protected override void OnCommit(Delivery delivery, int pass)
 		{
-			throw new NotImplementedException();
+			base.OnCommit(delivery, pass);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			throw new NotImplementedException();
+			base.OnTransform(delivery,pass);
 		}
 	}
 }
