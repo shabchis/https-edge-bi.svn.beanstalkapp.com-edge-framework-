@@ -134,6 +134,8 @@ namespace Edge.Data.Pipeline.Services
 		public Delivery NewDelivery()
 		{
 			var d = new Delivery(this.TargetDeliveryID);
+			d.TimePeriodDefinition = this.TimePeriod;
+
 			Log.Write(String.Format("Creating delivery {0}",this.TargetDeliveryID), LogMessageType.Information);
 			return d;
 		}

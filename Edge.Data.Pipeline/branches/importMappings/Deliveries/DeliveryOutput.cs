@@ -120,7 +120,7 @@ namespace Edge.Data.Pipeline
 
 		public static DeliveryOutput Get(Guid guid)
 		{
-			throw new NotImplementedException();
+			return DeliveryDB.GetOutput(guid);
 		}
 
 		public static DeliveryOutput[] GetByTimePeriod(DateTime timePeriodStart, DateTime timePeriodEnd, Channel channel, Account account)

@@ -506,7 +506,7 @@ namespace Edge.Data.Pipeline
 						foreach (KeyValuePair<string, double> sum in output.Checksum)
 						{
 							cmd = DataManager.CreateCommand(@"
-							INSERT INTO [OutputCheckSum] (
+							INSERT INTO [DeliveryOutputChecksum] (
 								[DeliveryID],
 								[OutputID],
 								[MeasureName],
@@ -566,7 +566,7 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		internal static Delivery[] GetBySignature(string signature, Guid exclude)
+		internal static Delivery[] GetDeliveriesBySignature(string signature, Guid exclude)
 		{
 			List<Delivery> deliveries = new List<Delivery>();
 			using (var client = DeliveryDBClient.Connect())
@@ -596,7 +596,7 @@ namespace Edge.Data.Pipeline
 			return guidArray.ToString();
 		}
 
-		internal static Delivery[] GetByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end, bool exact)
+		public static Delivery[] GetDeliveriesByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end, bool exact)
 		{
 			List<Delivery> deliveries = new List<Delivery>();
 			List<string> deliveriesId = new List<string>();
@@ -624,6 +624,38 @@ namespace Edge.Data.Pipeline
 					deliveries.Add(GetDelivery(Guid.Parse(id)));
 				}
 				return deliveries.ToArray();
+			}
+
+
+		}
+		public static DeliveryOutput[] GetOutputsByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end, bool exact)
+		{
+			List<DeliveryOutput> outputs = new List<DeliveryOutput>();
+			List<string> outputsIds = new List<string>();
+
+			using (var client = DeliveryDBClient.Connect())
+			{
+				using (SqlCommand cmd = DataManager.CreateCommand("Output_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
+				{
+					cmd.Connection = client;
+					cmd.Parameters["@channelID"].Value = channelID;
+					cmd.Parameters["@accountID"].Value = accountID;
+					cmd.Parameters["@targetPeriodStart"].Value = start;
+					cmd.Parameters["@targetPeriodEnd"].Value = end;
+					cmd.Parameters["@exact"].Value = exact;
+
+					using (SqlDataReader reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+							//deliveriesId.Add(Get(Guid.Parse(reader.GetString(0))));
+							outputsIds.Add(reader.GetString(0));
+					}
+				}
+				foreach (string id in outputsIds)
+				{
+					outputs.Add(GetOutput(Guid.Parse(id)));
+				}
+				return outputs.ToArray();
 			}
 
 
@@ -720,7 +752,7 @@ namespace Edge.Data.Pipeline
 			return outputs.ToArray();
 		}
 
-		private static DeliveryOutput GetOutput(Guid guid)
+		public static DeliveryOutput GetOutput(Guid guid)
 		{
 			DeliveryOutput output = null;
 			using (var client = DeliveryDBClient.Connect())
