@@ -113,6 +113,7 @@
     <Compile Include="Mapping\ValueFormat.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
+    <Compile Include="Objects\Signature.cs" />
     <Compile Include="Readers\Base\ReaderAdapter.cs" />
     <Compile Include="Readers\CsvDynamicReaderAdapter.cs" />
     <Compile Include="Readers\XmlDynamicReaderAdapter.cs" />
