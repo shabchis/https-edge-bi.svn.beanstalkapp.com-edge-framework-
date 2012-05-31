@@ -80,7 +80,11 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 			else if (this.Components.Count == 1)
 			{
-				output = this.Components[0].GetOuput(context);
+				object temp = this.Components[0].GetOuput(context);
+				if (temp is ReadResult && ((ReadResult)temp).Values == null)
+					output = ((ReadResult)temp).FieldValue;
+				else
+					output = temp;
 			}
 			else
 			{

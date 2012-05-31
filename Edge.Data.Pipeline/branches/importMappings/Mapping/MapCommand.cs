@@ -162,6 +162,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (indexers.Length > 1)
 						throw new MappingConfigurationException(String.Format("'{0}' has an index with more than one parameter - not currently supported.", targetMemberName), "Map", xml);
 					map.IndexerType = indexers[0].ParameterType;
+					map.ValueType = itemProp.PropertyType;
 
 					if (indexer.StartsWith("{") && indexer.EndsWith("}"))
 					{
@@ -202,9 +203,13 @@ namespace Edge.Data.Pipeline.Mapping
 				}
 				else
 				{
-					map.ValueType = member.MemberType == MemberTypes.Property ?
-						((PropertyInfo)member).PropertyType :
-						((FieldInfo)member).FieldType;
+					// Use the target member's value type only if no value type was found before (in the case of an indexer, for example)
+					if (map.ValueType == null)
+					{
+						map.ValueType = member.MemberType == MemberTypes.Property ?
+							((PropertyInfo)member).PropertyType :
+							((FieldInfo)member).FieldType;
+					}
 				}
 
 				// ...................................

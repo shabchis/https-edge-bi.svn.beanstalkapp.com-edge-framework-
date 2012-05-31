@@ -158,13 +158,21 @@ namespace Edge.Data.Pipeline.Mapping
 					// If a field is specified, create a read command (implicit or explicit)
 					ReadCommand read = null;
 					string field = element.GetAttribute("Field");
+
+					// Check if mapping command is required
+					bool required = true;
+					string srequired = element.GetAttribute("Required");
+					if (srequired != null && !bool.TryParse(srequired, out required))
+						throw new MappingConfigurationException("Invalid value for Required.", element.Name, element);
+
 					if (field != null)
 					{
 						read = new ReadCommand()
 						{
                             Field=field,
 							VarName = element.GetAttribute("Var") ?? field,
-							RegexPattern = element.GetAttribute("Regex")
+							RegexPattern = element.GetAttribute("Regex"),
+							IsRequired = required
 						};
 					}
 					
@@ -195,13 +203,6 @@ namespace Edge.Data.Pipeline.Mapping
 
 						// Force parent to re-inherit, and then inherit from it
 						map.Inherit();
-
-
-						// Check if mapping command is required
-						bool required = true;
-						string srequired = element.GetAttribute("Required");
-						if (srequired != null && !bool.TryParse(srequired, out required))
-							throw new MappingConfigurationException("Invalid value for Required.", "Map", element);
 
 						map.IsRequired = required;
 

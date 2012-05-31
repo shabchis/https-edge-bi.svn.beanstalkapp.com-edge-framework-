@@ -26,10 +26,10 @@ namespace Edge.Data.Pipeline.Services
 					ID = channelID
 				};
 
-				Delivery.CreateSignature(String.Format("UrlInitializerService-[{0}]-[{1}]-[{2}]",
-				this.Instance.AccountID,
-				this.TimePeriod.ToAbsolute()
-				));
+				//Delivery.CreateSignature(String.Format("UrlInitializerService-[{0}]-[{1}]-[{2}]",
+				//this.Instance.AccountID,
+				//this.TimePeriod.ToAbsolute()
+				//));
 			}
 
 			this.Delivery.Files.Add(new DeliveryFile()

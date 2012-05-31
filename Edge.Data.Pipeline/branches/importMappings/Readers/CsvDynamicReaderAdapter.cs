@@ -17,11 +17,24 @@ namespace Edge.Data.Pipeline
 		{
 			_requiredColumns = configuration.GetOption("CsvRequiredColumns").Split();
 			_delimeter = configuration.Options["CsvDelimeter"];
+
+			char delimeterCode ;
+
+			switch (_delimeter)
+			{
+				case "\\u0009": // Tab code
+					delimeterCode = '\u0009';
+					break;
+				default: 
+					delimeterCode = _delimeter[0];
+					break;
+			}
+
 			string encoding = configuration.Options["CsvEncoding"];
 			if (!String.IsNullOrEmpty(encoding))
 				_encoding = Encoding.GetEncoding(encoding);
 
-			base.Reader = new CsvDynamicReader(stream, _requiredColumns, !String.IsNullOrEmpty(_delimeter) ? _delimeter[0] : ',', _encoding);
+			base.Reader = new CsvDynamicReader(stream, _requiredColumns, !String.IsNullOrEmpty(_delimeter) ? delimeterCode : ',', _encoding);
 		}
 
 		public new CsvDynamicReader Reader

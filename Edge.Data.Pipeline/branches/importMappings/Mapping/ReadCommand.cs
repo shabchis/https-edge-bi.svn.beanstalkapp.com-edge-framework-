@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Dynamic;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Mapping
 {
@@ -41,6 +42,11 @@ namespace Edge.Data.Pipeline.Mapping
 			get { return _field; }
 			set { _field = value; }
 		}
+
+		/// <summary>
+		/// Indicates whether this command is optional, i.e. will not throw an exception if it fails.
+		/// </summary>
+		public bool IsRequired { get; internal set; }
 
 		/// <summary>
 		/// Indicates whether this read command is implicit (part of a &lt;Map&gt; command).
@@ -106,7 +112,17 @@ namespace Edge.Data.Pipeline.Mapping
 				if (context.Root.OnFieldRequired == null)
 					throw new MappingException("MappingConfiguration.OnFieldRequired is not set - you must supply a function that will return the required field value.");
 
-				rawValue = context.Root.OnFieldRequired(this.Field);
+				try { rawValue = context.Root.OnFieldRequired(this.Field); }
+				catch (Exception ex)
+				{
+					if (this.IsRequired)
+						throw new MappingException(String.Format("Failed to read field '{0}'. See inner exception for details.", this.Field), ex);
+					else
+					{
+						Log.Write(String.Format("Failed to read field '{0}'.", this.Field), ex);
+						return;
+					}
+				}
 				context.FieldValues.Add(this.Field, rawValue);
 			}
 
@@ -114,7 +130,7 @@ namespace Edge.Data.Pipeline.Mapping
 			if (!context.ReadResults.TryGetValue(this, out result))
 			{
 				// Process regular expressions
-				result = new ReadResult() { FieldValue = rawValue.ToString() };
+				result = new ReadResult() { FieldValue = rawValue == null ? null : rawValue.ToString() };
 				bool add = true;
 				
 				if (_regex != null && rawValue != null)
@@ -145,12 +161,12 @@ namespace Edge.Data.Pipeline.Mapping
 
 		public override string ToString()
 		{
-			if(this.Values.Count == 1)
-			{
-				object val = this.Values.First().Value;
-				return val == null ? null : val.ToString();
-			}
-			else
+			//if(this.Values.Count == 1)
+			//{
+			//    object val = this.Values.First().Value;
+			//    return val == null ? null : val.ToString();
+			//}
+			//else
 				return this.FieldValue;
 		}
 

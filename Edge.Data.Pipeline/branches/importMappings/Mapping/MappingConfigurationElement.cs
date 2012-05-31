@@ -25,9 +25,8 @@ namespace Edge.Data.Pipeline.Mapping
 			writer.WriteRaw(this.RawXml);
 		}
 
-		public MappingConfiguration Load()
+		public void LoadInto(MappingConfiguration mapping)
 		{
-			var mapping = new MappingConfiguration();
 			using (XmlTextReader reader = new XmlTextReader(new StringReader(this.RawXml)))
 			{
 				string path = reader.GetAttribute("Path");
@@ -36,8 +35,6 @@ namespace Edge.Data.Pipeline.Mapping
 				else
 					mapping.Load(reader);
 			}
-
-			return mapping;
 		}
 	}
 
