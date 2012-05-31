@@ -8,5 +8,10 @@ namespace Edge.Data.Objects
 	public class Signature
 	{
 		public string Value;
+
+		public override string ToString()
+		{
+			return this.Value;
+		}
 	}
 }
