@@ -22,8 +22,8 @@ namespace Edge.Data.Pipeline
 
 			switch (_delimeter)
 			{
-				case "\\u0009": // Tab code
-					delimeterCode = '\u0009';
+				case "\\t": // Tab code
+					delimeterCode = '\t';
 					break;
 				default: 
 					delimeterCode = _delimeter[0];
