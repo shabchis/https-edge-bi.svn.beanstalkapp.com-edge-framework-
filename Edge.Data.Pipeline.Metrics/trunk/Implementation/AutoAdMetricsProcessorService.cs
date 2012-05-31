@@ -41,7 +41,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			if (!this.Mappings.Objects.TryGetValue(typeof(AdMetricsUnit), out _metricsMappings))
 				throw new MappingConfigurationException("Missing mapping definition for AdMetricsUnit.", "Object");
 
-			if (!this.Mappings.Objects.TryGetValue(typeof(Signature), out _metricsMappings))
+			if (!this.Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
 
@@ -53,6 +53,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			this.ImportManager.ImportAd(ad);
 
 			var metrics = new AdMetricsUnit();
+			metrics.Ad = ad;
 			_metricsMappings.Apply(metrics);
 
 			var signature = new Signature();
@@ -71,7 +72,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			{
 				DeliveryOutput deliveryOutput = new DeliveryOutput() 
 				{ 
-					Signature = signature.ToString(), 
+					Signature = signature.Value, 
 					TimePeriodStart =metrics.TimePeriodStart,
 					TimePeriodEnd = metrics.TimePeriodEnd,
 					Account = metrics.Ad.Account,

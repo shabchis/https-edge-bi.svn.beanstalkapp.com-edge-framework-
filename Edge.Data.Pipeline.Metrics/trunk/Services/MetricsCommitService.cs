@@ -41,16 +41,16 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			ReportProgress(0.2);
 
 			// ----------------
-			// PREPARE
+			// TRANSFORM
 			try
 			{
-				Log.Write("Prepare: start", LogMessageType.Information);
+				Log.Write("Transform: start", LogMessageType.Information);
 				importManager.Transform(new Delivery[] { this.Delivery });
-				Log.Write("Prepare: end", LogMessageType.Information);
+				Log.Write("Transform: end", LogMessageType.Information);
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Delivery {0} failed during prepare.", this.Delivery.DeliveryID), ex);
+				throw new Exception(String.Format("Delivery {0} failed during Transform.", this.Delivery.DeliveryID), ex);
 			}
 
 			ReportProgress(0.6);

@@ -63,6 +63,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 					using (this.ImportManager = CreateImportManager(Instance.InstanceID, importManagerOptions))
 					{
+						this.ImportManager.BeginImport(this.Delivery);
+
 						while (this.ReaderAdapter.Reader.Read())
 							OnRead();
 							

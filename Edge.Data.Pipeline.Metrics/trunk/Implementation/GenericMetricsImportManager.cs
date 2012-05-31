@@ -65,6 +65,9 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 
 		public override void ImportMetrics(GenericMetricsUnit metrics)
 		{
+			if (metrics.Output == null)
+				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with a delivery output.");
+
 			// Metrics
 			var metricsRow = new Dictionary<ColumnDef, object>()
 			{
