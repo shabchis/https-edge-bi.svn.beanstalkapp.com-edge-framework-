@@ -112,10 +112,13 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
 			: base(serviceInstanceID, options)
 		{
-			this.Options.MeasureOptions = this.Options.MeasureOptions != MeasureOptions.None ? this.Options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
-			this.Options.MeasureOptionsOperator = this.Options.MeasureOptions != MeasureOptions.None ? this.Options.MeasureOptionsOperator : OptionsOperator.Not;
-			this.Options.SegmentOptions = this.Options.SegmentOptions != SegmentOptions.None ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
-			this.Options.SegmentOptionsOperator = this.Options.SegmentOptions != SegmentOptions.None ? this.Options.SegmentOptionsOperator : OptionsOperator.And;
+			bool hasMeasureOptions = this.Options.MeasureOptions != MeasureOptions.None;
+			this.Options.MeasureOptions = hasMeasureOptions ? this.Options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
+			this.Options.MeasureOptionsOperator = hasMeasureOptions ? this.Options.MeasureOptionsOperator : OptionsOperator.Not;
+
+			bool hasSegmentOptions = this.Options.SegmentOptions != SegmentOptions.None;
+			this.Options.SegmentOptions = hasSegmentOptions ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
+			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsOperator.And;
 		}
 
 		/// <summary>
@@ -232,7 +235,9 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		public override void ImportMetrics(AdMetricsUnit metrics)
 		{
 			EnsureBeginImport();
-
+			
+			if (metrics.Output == null)
+				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with a delivery output.");
 			if (metrics.Ad == null)
 				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with an ad.");
 

@@ -24,9 +24,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// ------------------------------------------
 
 			this.Mappings.ExternalMethods.Add("GetChannel", new Func<string, Channel>(GetChannel));
-			this.Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<string, Channel>(GetCurrentChannel));
+			this.Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
 			this.Mappings.ExternalMethods.Add("GetAccount", new Func<string, Account>(GetAccount));
-			this.Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<string, Account>(GetCurrentAccount));
+			this.Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
 			this.Mappings.ExternalMethods.Add("GetSegment", new Func<string, Segment>(GetSegment));
 			this.Mappings.ExternalMethods.Add("GetMeasure", new Func<string, Measure>(GetMeasure));
 			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<string, string, string, DateTime>(CreatePeriodStart));
@@ -45,7 +45,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return a;
 		}
 
-		public Account GetCurrentAccount(string name)
+		public Account GetCurrentAccount()
 		{
 			return new Account() { ID = this.Instance.AccountID};
 		}
@@ -58,7 +58,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return c;
 		}
 
-		public Channel GetCurrentChannel(string name)
+		public Channel GetCurrentChannel()
 		{
 			return this.Delivery.Channel;
 		}
