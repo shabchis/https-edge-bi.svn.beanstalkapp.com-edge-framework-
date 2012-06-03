@@ -38,8 +38,11 @@ namespace Edge.Data.Pipeline.Metrics
 			public const string ReaderAdapterType = "ReaderAdapterType";
 			public const string ChecksumTheshold = "ChecksumTheshold";
 			public const string RollbackDeliveries = "RollbackDeliveries";
+			public const string RollbackOutputs = "RollbackOutputs";
 			public const string RollbackTableName = "RollbackTableName";
-			public const string RollbackStoredProc = "RollbackStoredProc";
+			public const string RollbackByDeliverisStoredProc = "RollbackByDeliverisStoredProc";
+
+			public static string RollbackByOutputsStoredProc = "RollbackByOutputsStoredProc";
 		}
 	}
 }
