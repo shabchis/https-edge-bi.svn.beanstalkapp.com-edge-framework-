@@ -15,17 +15,23 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			throw new NotImplementedException("This service must be rewritten to rollback either by delivery list or by output list.");
+			
 
 			string[] deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
-			string sp = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackStoredProc);
+			string[] ouputsIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
+			string spRolebackbyDeliveries = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByDeliverisStoredProc);
+			string spRolebackbyOutputs = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByOutputsStoredProc);
 			string tableName = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
 
 			using (SqlConnection conn = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.StagingDatabase)))
 			{
+				
+				
 				conn.Open();
-				SqlCommand cmd = DataManager.CreateCommand(sp, System.Data.CommandType.StoredProcedure);
+				SqlTransaction tran = conn.BeginTransaction();
+				SqlCommand cmd = DataManager.CreateCommand(spRolebackbyDeliveries, System.Data.CommandType.StoredProcedure);
 				cmd.Connection = conn;
+				cmd.Transaction=tran;
 
 				foreach (string deliveryID in deliveriesIds)
 				{
@@ -34,6 +40,22 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					cmd.Parameters["@TableName"].Value = tableName;
 					cmd.ExecuteNonQuery();
 				}
+
+				cmd = DataManager.CreateCommand(spRolebackbyOutputs, System.Data.CommandType.StoredProcedure);
+				cmd.Connection = conn;
+				cmd.Transaction = tran;
+
+				foreach (string outputID in ouputsIds)
+				{
+
+					cmd.Parameters["@outputID"].Value = outputID;
+					cmd.Parameters["@TableName"].Value = tableName;
+					cmd.ExecuteNonQuery();
+				}
+				
+				tran.Commit();
+
+				
 			}
 
 
