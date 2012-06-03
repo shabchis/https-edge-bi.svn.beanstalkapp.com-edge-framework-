@@ -9,6 +9,10 @@ using Edge.Data.Pipeline.Services;
 using Edge.Data.Pipeline.Mapping;
 using Edge.Data.Pipeline.Common.Importing;
 using System.IO;
+using System.Data.SqlClient;
+using Edge.Core.Configuration;
+using Edge.Core.Services;
+using Edge.Data.Pipeline.Metrics.AdMetrics;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
@@ -19,29 +23,34 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public MetricsImportManager ImportManager { get; protected set; }
 
 		protected override void OnInit()
-		{			
+		{
+			Accounts = GetAccountsFromDB(Instance.AccountID);
+			Channels = GetChannelsFromDB();
+			
 			// Load mapping configuration
 			// ------------------------------------------
-
-			this.Mappings.ExternalMethods.Add("GetChannel", new Func<string, Channel>(GetChannel));
+			this.Mappings.ExternalMethods.Add("GetChannel", new Func<dynamic, Channel>(GetChannel));
 			this.Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
-			this.Mappings.ExternalMethods.Add("GetAccount", new Func<string, Account>(GetAccount));
+			this.Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
 			this.Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
-			this.Mappings.ExternalMethods.Add("GetSegment", new Func<string, Segment>(GetSegment));
-			this.Mappings.ExternalMethods.Add("GetMeasure", new Func<string, Measure>(GetMeasure));
-			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<string, string, string, DateTime>(CreatePeriodStart));
-			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<string, string, string, DateTime>(CreatePeriodEnd));
+			this.Mappings.ExternalMethods.Add("GetSegment", new Func<dynamic, Segment>(GetSegment));
+			this.Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
+			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
+			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
 			this.Mappings.Compile();
-		}		
+		}
+
+	
 
 		#region Scriptable methods
 		// ==============================================
 
-		public Account GetAccount(string name)
+		public Account GetAccount(dynamic name)
 		{
+			var n = (string)name;
 			Account a;
-			if (!Accounts.TryGetValue(name, out a))
-				throw new MappingException(String.Format("No account named '{0}' could be found, or it cannot be used from within account #{1}.", name, Instance.AccountID));
+			if (!Accounts.TryGetValue(n, out a))
+				throw new MappingException(String.Format("No account named '{0}' could be found, or it cannot be used from within account #{1}.", n, Instance.AccountID));
 			return a;
 		}
 
@@ -50,11 +59,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return new Account() { ID = this.Instance.AccountID};
 		}
 
-		public Channel GetChannel(string name)
+		public Channel GetChannel(dynamic name)
 		{
+			var n = (string)name;
 			Channel c;
-			if (!Channels.TryGetValue(name, out c))
-				throw new MappingException(String.Format("No channel named '{0}' could be found.", name));
+			if (!Channels.TryGetValue(n, out c))
+				throw new MappingException(String.Format("No channel named '{0}' could be found.", n));
 			return c;
 		}
 
@@ -63,30 +73,32 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return this.Delivery.Channel;
 		}
 
-		public Segment GetSegment(string name)
+		public Segment GetSegment(dynamic name)
 		{
+			var n = (string)name;
 			Segment s;
-			if (!ImportManager.SegmentTypes.TryGetValue(name, out s))
-				throw new MappingException(String.Format("No segment named '{0}' could be found.", name));
+			if (!ImportManager.SegmentTypes.TryGetValue(n, out s))
+				throw new MappingException(String.Format("No segment named '{0}' could be found.", n));
 			return s;
 		}
 
-		public Measure GetMeasure(string name)
+		public Measure GetMeasure(dynamic name)
 		{
+			var n = (string)name;
 			Measure m;
-			if (!ImportManager.Measures.TryGetValue(name, out m))
-				throw new MappingException(String.Format("No measure named '{0}' could be found. Make sure you specified the base measure name, not the display name.", name));
+			if (!ImportManager.Measures.TryGetValue(n, out m))
+				throw new MappingException(String.Format("No measure named '{0}' could be found. Make sure you specified the base measure name, not the display name.", n));
 			return m;
 		}
 
-		public DateTime CreatePeriodStart(string year, string month, string day)
+		public DateTime CreatePeriodStart(dynamic year, dynamic month, dynamic day)
 		{
-			return CreatePeriod(DateTimeSpecificationAlignment.Start, year, month, day);
+			return CreatePeriod(DateTimeSpecificationAlignment.Start, (string)year, (string)month, (string)day);
 		}
 
-		public DateTime CreatePeriodEnd(string year, string month, string day)
+		public DateTime CreatePeriodEnd(dynamic year, dynamic month, dynamic day)
 		{
-			return CreatePeriod(DateTimeSpecificationAlignment.End, year, month, day);
+			return CreatePeriod(DateTimeSpecificationAlignment.End, (string)year, (string)month, (string)day);
 		}
 
 		public DateTime CreatePeriod(DateTimeSpecificationAlignment align, string year, string month, string day)//, string hour = null, string minute = null, string second = null )
@@ -111,6 +123,78 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 		// ==============================================
 		#endregion
+
+		private Dictionary<string, Account> GetAccountsFromDB(int currentAccountId)
+		{
+
+			Dictionary<string, Account> accounts = new Dictionary<string, Account>();
+			SqlConnection connection;
+			connection = new SqlConnection(AppSettings.GetConnectionString(typeof(AdMetricsImportManager), "StagingDatabase"));
+			try
+			{
+				using (connection)
+				{
+					SqlCommand cmd = DataManager.CreateCommand(@"GetAccountFamily_ById(@CurrentAccountId:int)", System.Data.CommandType.StoredProcedure);
+					cmd.Connection = connection;
+					connection.Open();
+					cmd.Parameters["@CurrentAccountId"].Value = currentAccountId;
+
+					using (SqlDataReader reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							Account account = new Account()
+							{
+								ID = Convert.ToInt16(reader[1]),
+								Name = Convert.ToString(reader[0])
+							};
+							accounts.Add(account.Name, account);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get accounts from DB", ex);
+			}
+			return accounts;
+			
+		}
+		private Dictionary<string, Channel> GetChannelsFromDB()
+		{
+			Dictionary<string, Channel> channels = new Dictionary<string, Channel>(StringComparer.CurrentCultureIgnoreCase);
+			SqlConnection connection;
+			connection = new SqlConnection(AppSettings.GetConnectionString(typeof(AdMetricsImportManager), "StagingDatabase"));
+			try
+			{
+				using (connection)
+				{
+					SqlCommand cmd = DataManager.CreateCommand(@"GetChannels()", System.Data.CommandType.StoredProcedure);
+					cmd.Connection = connection;
+					connection.Open();
+					using (SqlDataReader reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							Channel channel = new Channel()
+							{
+								ID = Convert.ToInt16(reader[0]),
+								Name = Convert.ToString(reader[1])
+							};
+							channels.Add(channel.Name, channel);
+						}
+					}
+				}
+				//var a=channels.Where(pp=>pp.Key.ToLower()=="fff".tol
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get Channels from DB", ex);
+			}
+			return channels;
+		}
+
+		
 	}
 
 	
