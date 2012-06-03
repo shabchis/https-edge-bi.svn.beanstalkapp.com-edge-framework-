@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Dynamic;
 using Edge.Core.Utilities;
+using System.ComponentModel;
 
 namespace Edge.Data.Pipeline.Mapping
 {
@@ -154,7 +155,8 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 		}
 	}
-
+	
+	[TypeConverter(typeof(ReadResultConverter))]
 	public class ReadResult : DynamicDictionaryObject	
 	{
 		public string FieldValue;
@@ -173,6 +175,25 @@ namespace Edge.Data.Pipeline.Mapping
 		public static implicit operator string(ReadResult result)
 		{
 			return result == null ? null : result.ToString();
+		}
+	}
+
+	public class ReadResultConverter : TypeConverter
+	{
+		public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+		{
+			if (destinationType == typeof(string))
+				return true;
+			else
+				return base.CanConvertTo(context, destinationType);
+		}
+
+		public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
+		{
+			if (destinationType == typeof(string))
+				return ((ReadResult)value).ToString();
+			else
+				return base.ConvertTo(context, culture, value, destinationType);
 		}
 	}
 }

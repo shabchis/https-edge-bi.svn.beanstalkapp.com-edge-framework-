@@ -109,7 +109,6 @@
     <Compile Include="Mapping\MappingContainer.cs" />
     <Compile Include="Mapping\MappingContext.cs" />
     <Compile Include="Mapping\ReadCommand.cs" />
-    <Compile Include="Mapping\ReadResult.cs" />
     <Compile Include="Mapping\ValueFormat.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
