@@ -143,7 +143,7 @@ namespace Edge.Core.Utilities
 			try { return (T)mi.Invoke(_compiled, @params); }
 			catch (Exception ex)
 			{
-				throw new EvaluatorException(String.Format("Expression evaluation failed: {0}.", ex is TargetInvocationException ? ex.InnerException.Message : ex.Message), ex);
+				throw new EvaluatorException(String.Format("Expression evaluation failed: {0}", ex is TargetInvocationException ? ex.InnerException.Message : ex.Message), ex);
 			}
 		}
 
