@@ -32,6 +32,7 @@ namespace Edge.Data.Pipeline
 		public DeliveryOutput()
 		{
 			Checksum = new Dictionary<string, double>();
+			this.OutputID = Guid.NewGuid();
 			
 		}
 		Dictionary<string, object> _parameters;
