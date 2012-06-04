@@ -220,6 +220,12 @@ namespace Edge.Core.Utilities
 			entry.Save();
 		}
 
+		public static void Stop()
+		{
+			_stopThread = true;
+			_asyncResult.WaitHandle.WaitOne();
+		}
+
 		public static void Write(string message, Exception ex, LogMessageType messageType, int accountID = -1)
 		{
 			if (Service.Current == null)

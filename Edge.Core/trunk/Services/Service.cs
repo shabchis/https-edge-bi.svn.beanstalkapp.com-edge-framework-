@@ -719,6 +719,9 @@ namespace Edge.Core.Services
 				// Call finalizers
 				OnEnded(_outcome);
 
+				// Wait for all log messageds to be written
+				Log.Stop();
+
 				// Notify subscribers
 				if (_subscribers.ContainsKey(ServiceEventType.OutcomeReported))
 				{
