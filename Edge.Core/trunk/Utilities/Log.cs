@@ -56,13 +56,13 @@ namespace Edge.Core.Utilities
 
 		public void Save()
 		{
-            /*Fixed buy alon 30/3/2001- bug-when  data manager.currecnt.openconnection() is starting transaction and 
-             * on the log.save you create transaction you get error message:"ther transaction is either not associete with the current connection
-             or has been commited.
-             the fix is to create the comand not using the datamatanger.createCommand so the transaction will not be associte withe the log connection*/
-            SqlCommand cmd = new SqlCommand();
-            cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = @"insert into Log
+			/*Fixed buy alon 30/3/2001- bug-when  data manager.currecnt.openconnection() is starting transaction and 
+			 * on the log.save you create transaction you get error message:"ther transaction is either not associete with the current connection
+			 or has been commited.
+			 the fix is to create the comand not using the datamatanger.createCommand so the transaction will not be associte withe the log connection*/
+			SqlCommand cmd = new SqlCommand();
+			cmd.CommandType = System.Data.CommandType.Text;
+			cmd.CommandText = @"insert into Log
 				(
 					MachineName,
 					ProcessID,
@@ -88,51 +88,51 @@ namespace Edge.Core.Utilities
 				)";
 
 
-            cmd.Parameters.AddWithValue("@MachineName", this.MachineName);
-            cmd.Parameters.AddWithValue("@ProcessID", this.ProcessID);
-            cmd.Parameters.AddWithValue("@Source", this.Source);
-            cmd.Parameters.AddWithValue("@MessageType", this.MessageType);
-            cmd.Parameters.AddWithValue("@ServiceInstanceID", this.ServiceInstanceID);
-            cmd.Parameters.AddWithValue("@AccountID", this.AccountID);
-            cmd.Parameters.AddWithValue("@Message", Null(this.Message));
-            cmd.Parameters.AddWithValue("@IsException", this.IsException);
-            cmd.Parameters.AddWithValue("@ExceptionDetails", Null(this.ExceptionDetails));
+			cmd.Parameters.AddWithValue("@MachineName", this.MachineName);
+			cmd.Parameters.AddWithValue("@ProcessID", this.ProcessID);
+			cmd.Parameters.AddWithValue("@Source", this.Source);
+			cmd.Parameters.AddWithValue("@MessageType", this.MessageType);
+			cmd.Parameters.AddWithValue("@ServiceInstanceID", this.ServiceInstanceID);
+			cmd.Parameters.AddWithValue("@AccountID", this.AccountID);
+			cmd.Parameters.AddWithValue("@Message", Null(this.Message));
+			cmd.Parameters.AddWithValue("@IsException", this.IsException);
+			cmd.Parameters.AddWithValue("@ExceptionDetails", Null(this.ExceptionDetails));
 
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(ConnectionString))
-                {
-                    connection.Open();
-                    cmd.Connection = connection;
-                    cmd.ExecuteNonQuery();
+			try
+			{
+				using (SqlConnection connection = new SqlConnection(ConnectionString))
+				{
+					connection.Open();
+					cmd.Connection = connection;
+					cmd.ExecuteNonQuery();
 
-                }
-            }
-            catch (Exception ex)
-            {
+				}
+			}
+			catch (Exception ex)
+			{
 
-                try
-                {
-                    if (!EventLog.SourceExists("Edge.Core.Utilities.Log"))
-                    {
-                        EventLog.CreateEventSource(new EventSourceCreationData("Edge.Core.Utilities.Log", "Edge"));
-                    }
-                    EventLog eventLog = new EventLog();
-                    eventLog.Source = "Edge.Core.Utilities.Log";
-                    eventLog.WriteEntry(string.Format("Source:Log.Save\nerror: {0}", ex.Message), EventLogEntryType.Error);
+				try
+				{
+					if (!EventLog.SourceExists("Edge.Core.Utilities.Log"))
+					{
+						EventLog.CreateEventSource(new EventSourceCreationData("Edge.Core.Utilities.Log", "Edge"));
+					}
+					EventLog eventLog = new EventLog();
+					eventLog.Source = "Edge.Core.Utilities.Log";
+					eventLog.WriteEntry(string.Format("Source:Log.Save\nerror: {0}", ex.Message), EventLogEntryType.Error);
 
-                }
-                catch (Exception)
-                {
-
-
-                }
+				}
+				catch (Exception)
+				{
 
 
+				}
 
-            }
-           
-            
+
+
+			}
+
+
 
 
 		}
@@ -148,16 +148,21 @@ namespace Edge.Core.Utilities
 
 
 
-    /// <summary>
-    /// A class which writes events into the windows event viewer.
-    /// </summary>
-    public class Log
-    {        
+	/// <summary>
+	/// A class which writes events into the windows event viewer.
+	/// </summary>
+	public class Log
+	{
 		//public static string LogName = AppSettings.Get(typeof(Log), "LogName");
 		//private EventLog _log = new EventLog(LogName);
 		private string _source;
-		private IServiceInstance _instance;
 
+		private IServiceInstance _instance;
+		private Queue<LogEntry> _logQueue = new Queue<LogEntry>();
+		private log4net.ILog logg = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+		private static IAsyncResult _asyncResult;
+		private static Action _save;
+		private static bool _stopThread;
 		/*
 		static Log()
 		{
@@ -183,7 +188,7 @@ namespace Edge.Core.Utilities
 		{
 			if (instance == null)
 				throw new ArgumentNullException("instance");
-			
+
 			_instance = instance;
 
 			//_log.Source = instance.Configuration.Name;
@@ -199,7 +204,7 @@ namespace Edge.Core.Utilities
 			_source = source;
 		}
 
-		internal void InternalWrite(string message, Exception ex, LogMessageType messageType, int accountID=-1)
+		internal void InternalWrite(string message, Exception ex, LogMessageType messageType, int accountID = -1)
 		{
 			LogEntry entry = new LogEntry();
 			entry.Source = _source;
@@ -209,7 +214,7 @@ namespace Edge.Core.Utilities
 			if (_instance != null)
 				entry.ServiceInstanceID = _instance.InstanceID;
 
-			entry.AccountID = accountID != -1 || _instance == null ? accountID  : _instance.AccountID;
+			entry.AccountID = accountID != -1 || _instance == null ? accountID : _instance.AccountID;
 
 			if (ex != null)
 			{
@@ -217,17 +222,44 @@ namespace Edge.Core.Utilities
 				entry.ExceptionDetails = ex.ToString();
 			}
 
-			entry.Save();
+			lock (_logQueue)
+			{
+				_logQueue.Enqueue(entry);
+			}
+
+			if (_asyncResult == null)
+			{
+				_save = new Action(Save);				
+				_asyncResult = _save.BeginInvoke(null, null);
+				
+			}
+
+
+
+
+
+
+
+
+
+
+
+
+			//entry.Save();
 		}
 
 		public static void Stop()
 		{
 			_stopThread = true;
-			_asyncResult.WaitHandle.WaitOne();
+			if (_asyncResult != null)
+			{
+				_asyncResult.AsyncWaitHandle.WaitOne();
+			}
 		}
 
 		public static void Write(string message, Exception ex, LogMessageType messageType, int accountID = -1)
 		{
+
 			if (Service.Current == null)
 				throw new InvalidOperationException("Source parameter must be specified when writing to the log outside of a service context.");
 
@@ -236,16 +268,22 @@ namespace Edge.Core.Utilities
 
 		public static void Write(string message, LogMessageType messageType)
 		{
-			Write(message, (Exception) null, messageType);
+
+
+			Write(message, (Exception)null, messageType);
 		}
 
 		public static void Write(string message, Exception ex)
 		{
+
+
 			Write(message, ex, LogMessageType.Error);
 		}
-		
+
 		public static void Write(string source, string message, Exception ex, LogMessageType messageType)
 		{
+
+
 			// Use source-less version when source is null
 			if (String.IsNullOrEmpty(source))
 				Write(message, ex, messageType);
@@ -259,15 +297,19 @@ namespace Edge.Core.Utilities
 
 		public static void Write(string source, string message, LogMessageType messageType)
 		{
+
+
 			Write(source, message, null, messageType);
 		}
 
 		public static void Write(string source, string message, Exception ex)
 		{
+
+
 			Write(source, message, ex, LogMessageType.Error);
 		}
 
-		
+
 		/*
 		static EventLogEntryType GetEventEntryType(LogMessageType type)
 		{
@@ -284,6 +326,58 @@ namespace Edge.Core.Utilities
 		}
 		*/
 
+
+		public void Save()
+		{
+			while (_stopThread!=true)
+			{
+
+
+				while (_logQueue.Count > 0)
+				{
+					WriteToDb();
+				}
+				Thread.Sleep(100);
+			}
+			if (_logQueue.Count > 0)
+				WriteToDb();
+	
+			
+
+		}
+
+		private void WriteToDb()
+		{
+			LogEntry entry;
+			lock (_logQueue)
+			{
+				entry = _logQueue.Dequeue();
+			}
+			log4net.ThreadContext.Properties["@dateRecorded"] = DateTime.Now;
+			log4net.ThreadContext.Properties["@machineName"] = entry.MachineName;
+			log4net.ThreadContext.Properties["@processID"] = entry.ProcessID;
+			log4net.ThreadContext.Properties["@source"] = entry.Source;
+			log4net.ThreadContext.Properties["@messageType"] = (int)entry.MessageType;
+			log4net.ThreadContext.Properties["@serviceInstanceID"] = entry.ServiceInstanceID;
+			log4net.ThreadContext.Properties["@accountID"] = entry.AccountID;
+			log4net.ThreadContext.Properties["@message"] = entry.Message;
+			log4net.ThreadContext.Properties["@isException"] = entry.IsException;
+			log4net.ThreadContext.Properties["@exceptionDetails"] = entry.ExceptionDetails;
+
+			switch (entry.MessageType)
+			{
+				case LogMessageType.Error:
+					logg.Fatal(string.Empty);
+					break;
+				case LogMessageType.Warning:
+					logg.Error(string.Empty);
+					break;
+				case LogMessageType.Information:
+					logg.Info(string.Empty);
+					break;
+
+			}
+		}
 	}
 
 	//[AttributeUsage(AttributeTargets.Class, Inherited=true, AllowMultiple=false)]
