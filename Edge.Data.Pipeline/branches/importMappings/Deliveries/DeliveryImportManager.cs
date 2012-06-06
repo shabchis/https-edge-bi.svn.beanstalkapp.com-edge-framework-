@@ -79,7 +79,15 @@ namespace Edge.Data.Pipeline
 					if (ex == null)
 					{
 						foreach (Delivery d in deliveries)
+						{
+							foreach (DeliveryOutput output in d.Outputs)
+							{
+								output.Status = DeliveryOutputStatus.Transformed;
+								
+							}
 							d.Save();
+						}
+							
 					}
 				},
 				OnBeginTransformPass,
@@ -139,12 +147,13 @@ namespace Edge.Data.Pipeline
 				ex =>
 				{
 					OnEndRollback(ex);
+					//no need to save the outpust since amit change it on the roleback
+					//if (ex == null)
+					//{
+					//    foreach (DeliveryOutput output in outputs)
+					//        output.Delivery.Save();
 
-					if (ex == null)
-					{
-						foreach (DeliveryOutput output in outputs)
-							output.Delivery.Save();
-					}
+					//}
 				},
 				OnBeginRollbackPass,
 				OnEndRollbackPass,

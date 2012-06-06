@@ -187,7 +187,7 @@ namespace Edge.Data.Pipeline.Services
 					if (conflict.PipelineInstanceIsRunning)
 						processing.Add(conflict);
 
-					if (conflict.Status == DeliveryOutputStatus.Committed)
+					if (conflict.Status == DeliveryOutputStatus.Committed || conflict.Status==DeliveryOutputStatus.Staged)
 						committed.Add(conflict);
 				}
 			}
@@ -210,7 +210,7 @@ namespace Edge.Data.Pipeline.Services
 
 
 				this.Delivery.Save();
-				throw new DeliveryConflictException("There are outputs with the same signatures are already committed:") { ConflictingOutputs = committed.ToArray() }; // add list of output ids
+				throw new DeliveryConflictException("There are outputs with the same signatures are already committed\\staged:") { ConflictingOutputs = committed.ToArray() }; // add list of output ids
 			}
 
 		}
