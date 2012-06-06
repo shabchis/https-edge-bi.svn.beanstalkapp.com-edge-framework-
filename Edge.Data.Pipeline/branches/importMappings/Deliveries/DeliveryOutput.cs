@@ -35,6 +35,11 @@ namespace Edge.Data.Pipeline
 			this.OutputID = Guid.NewGuid();
 			
 		}
+
+		public void Save()
+		{
+			this.OutputID = DeliveryDB.SaveOutput(this);
+		}
 		Dictionary<string, object> _parameters;
 
 		/// <summary>

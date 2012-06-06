@@ -18,6 +18,7 @@ using System.Data.SqlTypes;
 using System.Runtime.Serialization;
 using System.Collections;
 using Newtonsoft.Json;
+using System.Data;
 
 
 
@@ -30,6 +31,7 @@ namespace Edge.Data.Pipeline
 		{
 			public const string SP_DeliveryGet = "SP.DeliveryGet";
 			public const string SP_DeliveryDelete = "SP.DeliveryDelete";
+			public const string SP_OutputDelete = "SP.OutputDelete";
 		}
 
 		internal static Delivery GetDelivery(Guid deliveryID, bool deep = true, SqlConnection connection = null)
@@ -149,7 +151,7 @@ namespace Edge.Data.Pipeline
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
 										TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
 										TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
-										PipelineInstanceID=reader.Get<long>("PipelineInstanceID")
+										PipelineInstanceID = reader.Get<long>("PipelineInstanceID")
 									};
 									delivery.Outputs.Add(deliveryOutput);
 								}
@@ -457,12 +459,12 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
 						cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 						cmd.Parameters["@signature"].Value = output.Signature;
-						cmd.Parameters["@status"].Value = output.Status;						
+						cmd.Parameters["@status"].Value = output.Status;
 						cmd.Parameters["@timePeriodStart"].Value = output.TimePeriodStart;
 						cmd.Parameters["@timePeriodEnd"].Value = output.TimePeriodEnd;
 						cmd.Parameters["@dateCreated"].Value = output.DateCreated;
 						cmd.Parameters["@dateModified"].Value = output.DateModified;
-						cmd.Parameters["@pipelineInstanceID"].Value = output.PipelineInstanceID.HasValue ? output.PipelineInstanceID.Value : (object)DBNull.Value; 
+						cmd.Parameters["@pipelineInstanceID"].Value = output.PipelineInstanceID.HasValue ? output.PipelineInstanceID.Value : (object)DBNull.Value;
 
 						cmd.ExecuteNonQuery();
 					}
@@ -540,7 +542,7 @@ namespace Edge.Data.Pipeline
 					}
 					#endregion
 
-				
+
 
 					transaction.Commit();
 
@@ -552,6 +554,180 @@ namespace Edge.Data.Pipeline
 
 				return guid;
 			}
+		}
+
+		internal static Guid SaveOutput(DeliveryOutput output)
+		{
+			Guid guid = output.OutputID;
+
+			using (var client = DeliveryDBClient.Connect())
+			{
+				SqlTransaction transaction = client.BeginTransaction();
+
+
+				if (guid != Guid.Empty)
+				{
+					#region [Delete]
+					// ..................
+
+					SqlCommand cmd = DataManager.CreateCommand((String.Format("{0}(@outputID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_OutputDelete))), System.Data.CommandType.StoredProcedure);
+
+					cmd.Connection = client;
+					cmd.Transaction = transaction;
+					cmd.CommandType = System.Data.CommandType.StoredProcedure;
+					cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
+					cmd.ExecuteNonQuery();
+
+					// ..................
+					#endregion
+
+
+
+
+
+
+
+
+
+					#region DeliveryOutput
+					// ..................
+
+
+					if (output.OutputID == Guid.Empty)
+						output.OutputID = Guid.NewGuid();
+					if (output.DateCreated == DateTime.MinValue)
+						output.DateCreated = DateTime.Now;
+					output.DateModified = DateTime.Now;
+
+					cmd = DataManager.CreateCommand(@"
+							INSERT INTO [DeliveryOutput] (
+								[DeliveryID],
+								[OutputID],
+								[AccountID],
+								[ChannelID],
+								[Signature],
+								[Status] ,								
+								[TimePeriodStart],
+								[TimePeriodEnd],
+								[DateCreated],
+								[DateModified],
+								[PipelineInstanceID]
+							)
+							VALUES (
+								@deliveryID:Char,
+								@outputID:Char,
+								@accountID:Int,
+								@channelID:Int,
+								@signature:NVarChar,
+								@status:Int,								
+								@timePeriodStart:DateTime2,
+								@timePeriodEnd:DateTime2,
+								@dateCreated:DateTime,
+								@dateModified:DateTime,
+								@pipelineInstanceID:BigInt
+							)", System.Data.CommandType.Text);
+					cmd.Connection = client;
+					cmd.Transaction = transaction;
+
+					 cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID;
+					cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
+					cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
+					cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
+					cmd.Parameters["@signature"].Value = output.Signature;
+					cmd.Parameters["@status"].Value = output.Status;
+					cmd.Parameters["@timePeriodStart"].Value = output.TimePeriodStart;
+					cmd.Parameters["@timePeriodEnd"].Value = output.TimePeriodEnd;
+					cmd.Parameters["@dateCreated"].Value = output.DateCreated;
+					cmd.Parameters["@dateModified"].Value = output.DateModified;
+					cmd.Parameters["@pipelineInstanceID"].Value = output.PipelineInstanceID.HasValue ? output.PipelineInstanceID.Value : (object)DBNull.Value;
+
+					cmd.ExecuteNonQuery();
+
+
+					// ..................
+					#endregion
+
+					#region DeliveryOutputParameters
+					// ..................
+
+
+					foreach (KeyValuePair<string, object> param in output.Parameters)
+					{
+						cmd = DataManager.CreateCommand(@"
+								INSERT INTO [DeliveryOutputParameters] (
+									[DeliveryID],
+									[OutputID],
+									[Key],
+									[Value]
+								)
+								VALUES (
+									@deliveryID:Char,
+									@outputID:NVarChar,
+									@key:NVarChar,
+									@value:NVarChar
+								)", System.Data.CommandType.Text);
+						cmd.Connection = client;
+						cmd.Transaction = transaction;
+
+						cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID.ToString("N");
+						cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
+						cmd.Parameters["@key"].Value = param.Key;
+						cmd.Parameters["@value"].Value = Serialize(param.Value);
+						cmd.ExecuteNonQuery();
+					}
+
+
+					// ..................
+					#endregion
+
+					#region checkSum
+
+					foreach (KeyValuePair<string, double> sum in output.Checksum)
+					{
+						cmd = DataManager.CreateCommand(@"
+							INSERT INTO [DeliveryOutputChecksum] (
+								[DeliveryID],
+								[OutputID],
+								[MeasureName],
+								[Total]
+							)
+							VALUES (
+								@deliveryID:Char,
+								@outputid:Char,
+								@measureName:NVarChar,
+								@total:decimal
+								
+							)", System.Data.CommandType.Text);
+						cmd.Connection = client;
+						cmd.Transaction = transaction;
+
+						cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID.ToString("N");
+						cmd.Parameters["@outputid"].Value = output.OutputID.ToString("N");
+						cmd.Parameters["@measureName"].Value = sum.Key;
+						cmd.Parameters["@total"].Value = sum.Value;
+
+
+						cmd.ExecuteNonQuery();
+
+
+					}
+
+
+					#endregion
+
+
+
+					transaction.Commit();
+
+				}
+				else
+				{
+					throw new NotSupportedException("In Pipeline 2.9, you cannot save a Delivery without first giving it a GUID.");
+				}
+			}
+
+			return guid;
+
 		}
 
 		internal static void Delete(Delivery delivery)
@@ -776,14 +952,14 @@ namespace Edge.Data.Pipeline
 							#region DeliveryOutput
 							output = new DeliveryOutput()
 							{
-								OutputID = reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)),
+								OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
 								Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null),
 								Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
 								Signature = reader.Get<string>("Signature"),
 								Status = reader.Get<DeliveryOutputStatus>("Status"),
 								TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
 								TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
-								PipelineInstanceID=reader.Get<long?>("PipelineInstanceID")
+								PipelineInstanceID = reader.Get<long?>("PipelineInstanceID")
 							};
 							#endregion
 
@@ -824,7 +1000,7 @@ namespace Edge.Data.Pipeline
 							// ..................
 							#endregion
 
-						
+
 						}
 
 					}
@@ -837,16 +1013,16 @@ namespace Edge.Data.Pipeline
 
 		internal static bool GetRuning(long parentInstanceID)
 		{
-			bool runing=false;
+			bool runing = false;
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
 				using (SqlCommand cmd = DataManager.CreateCommand(@"SELECT InstanceID
 																	FROM ServiceInstance 
-																	WHERE State!= 6 AND State!= 7 AND InstanceID=@instanceid:Bigint",System.Data.CommandType.Text))
+																	WHERE State!= 6 AND State!= 7 AND InstanceID=@instanceid:Bigint", System.Data.CommandType.Text))
 				{
 					cmd.Connection = client;
-					cmd.Parameters["@instanceid"].Value = parentInstanceID;					
+					cmd.Parameters["@instanceid"].Value = parentInstanceID;
 					using (SqlDataReader reader = cmd.ExecuteReader())
 					{
 						while (reader.Read())
@@ -855,7 +1031,8 @@ namespace Edge.Data.Pipeline
 				}
 			}
 			return runing;
-			
+
 		}
 	}
 }
+
