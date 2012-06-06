@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			
+
 
 			string[] deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
 			string[] ouputsIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
@@ -25,37 +25,44 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			using (SqlConnection conn = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.StagingDatabase)))
 			{
-				
-				
+				SqlTransaction tran = null;
+				SqlCommand cmd = null;
 				conn.Open();
-				SqlTransaction tran = conn.BeginTransaction();
-				SqlCommand cmd = DataManager.CreateCommand(spRolebackbyDeliveries, System.Data.CommandType.StoredProcedure);
-				cmd.Connection = conn;
-				cmd.Transaction=tran;
+				if (deliveriesIds != null && deliveriesIds.Length > 0)
+				{
+					tran = conn.BeginTransaction();
+					cmd = DataManager.CreateCommand(spRolebackbyDeliveries, System.Data.CommandType.StoredProcedure);
+					cmd.Connection = conn;
+					cmd.Transaction = tran;
 
-				foreach (string deliveryID in deliveriesIds)
+					foreach (string deliveryID in deliveriesIds)
+					{
+
+						cmd.Parameters["@DeliveryID"].Value = deliveryID;
+						cmd.Parameters["@TableName"].Value = tableName;
+						cmd.ExecuteNonQuery();
+					}
+				}
+				if (ouputsIds != null && ouputsIds.Length > 0)
 				{
 
-					cmd.Parameters["@DeliveryID"].Value = deliveryID;
-					cmd.Parameters["@TableName"].Value = tableName;
-					cmd.ExecuteNonQuery();
+					cmd = DataManager.CreateCommand(spRolebackbyOutputs, System.Data.CommandType.StoredProcedure);
+					cmd.Connection = conn;
+					cmd.Transaction = tran;
+
+					foreach (string outputID in ouputsIds)
+					{
+
+						cmd.Parameters["@outputID"].Value = outputID;
+						cmd.Parameters["@TableName"].Value = tableName;
+						cmd.ExecuteNonQuery();
+					}
 				}
 
-				cmd = DataManager.CreateCommand(spRolebackbyOutputs, System.Data.CommandType.StoredProcedure);
-				cmd.Connection = conn;
-				cmd.Transaction = tran;
+				if (tran != null)
+					tran.Commit();
 
-				foreach (string outputID in ouputsIds)
-				{
 
-					cmd.Parameters["@outputID"].Value = outputID;
-					cmd.Parameters["@TableName"].Value = tableName;
-					cmd.ExecuteNonQuery();
-				}
-				
-				tran.Commit();
-
-				
 			}
 
 
