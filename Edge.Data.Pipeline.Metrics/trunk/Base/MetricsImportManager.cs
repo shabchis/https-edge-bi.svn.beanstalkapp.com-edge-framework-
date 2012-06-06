@@ -221,6 +221,8 @@ namespace Edge.Data.Pipeline.Metrics
 				}
 
 				delivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
+				foreach (var output in delivery.Outputs)
+					output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
 			}
 			else if (pass == Prepare_VALIDATE_PASS)
 			{
@@ -334,10 +336,8 @@ namespace Edge.Data.Pipeline.Metrics
 			_commitCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
 			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
-			_commitCommand.Parameters["@Signature"].Size = 4000;
-			_commitCommand.Parameters["@Signature"].Value = delivery.Outputs.First().Signature;
-			//_commitCommand.Parameters["@DeliveryIDsPerSignature"].Size = 4000;
-			//_commitCommand.Parameters["@DeliveryIDsPerSignature"].Direction = ParameterDirection.Output;
+			_commitCommand.Parameters["@OutputIDsPerSignature"].Size = 4000;
+			_commitCommand.Parameters["@OutputIDsPerSignature"].Direction = ParameterDirection.Output;
 			_commitCommand.Parameters["@DeliveryID"].Size = 4000;
 			_commitCommand.Parameters["@DeliveryID"].Value = deliveryId;
 
@@ -347,7 +347,7 @@ namespace Edge.Data.Pipeline.Metrics
 				_commitCommand.ExecuteNonQuery();
 				//	_commitTransaction.Commit();
 
-				string outPutsIDsPerSignature = _commitCommand.Parameters["@DeliveryIDsPerSignature"].Value.ToString();
+				string outPutsIDsPerSignature = _commitCommand.Parameters["@OutputIDsPerSignature"].Value.ToString();
 
 				string[] existsOutPuts;
 				if ((!string.IsNullOrEmpty(outPutsIDsPerSignature) && outPutsIDsPerSignature != "0"))
@@ -357,7 +357,10 @@ namespace Edge.Data.Pipeline.Metrics
 					List<DeliveryOutput> outputs = new List<DeliveryOutput>();
 					foreach (string existOutput in existsOutPuts)
 					{
-						outputs.Add(DeliveryOutput.Get(Guid.Parse(existOutput)));
+						DeliveryOutput o = DeliveryOutput.Get(Guid.Parse(existOutput));
+						o.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
+						outputs.Add(o);
+						
 					}
 					throw new DeliveryConflictException(string.Format("Deliveries with the same signature are already committed in the database\n Deliveries:\n {0}:", outPutsIDsPerSignature)) { ConflictingOutputs = outputs.ToArray() };
 				}
@@ -365,7 +368,7 @@ namespace Edge.Data.Pipeline.Metrics
 					//already updated by sp, this is so we don't override it
 					foreach (var output in delivery.Outputs)
 					{
-						output.Status = DeliveryOutputStatus.Committed;
+						output.Status = DeliveryOutputStatus.Staged;
 						
 					}
 			}
@@ -431,7 +434,20 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnRollbackOutput(DeliveryOutput output, int pass)
 		{
-			throw new NotImplementedException();
+			string guid = output.OutputID.ToString("N");
+
+			_rollbackCommand = _rollbackCommand ?? DataManager.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
+			_rollbackCommand.Connection = _sqlConnection;
+			_rollbackCommand.Transaction = _rollbackTransaction;
+
+			_rollbackCommand.Parameters["@DeliveryOutputID"].Value = guid;
+			_rollbackCommand.Parameters["@TableName"].Value =output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+
+			_rollbackCommand.ExecuteNonQuery();
+
+			// This is redundant (SP already does this) but to sync our objects in memory we do it here also
+			output.Status = DeliveryOutputStatus.RolledBack;
+			
 		}
 
 		protected override void OnEndRollback(Exception ex)
