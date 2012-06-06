@@ -50,7 +50,27 @@ namespace Edge.Data.Pipeline.Services
 		private void DownloadFile(DeliveryFile file)
 		{
 			WebRequest request = FileWebRequest.Create(file.SourceUrl);
-			_batch.Add(file.Download(request));
+			
+			/* FTP */
+			if (request.GetType().Equals(typeof(FtpWebRequest)))
+			{
+				FtpWebRequest ftpRequest = (FtpWebRequest)request;
+				ftpRequest.UseBinary = true;
+				ftpRequest.Credentials = new NetworkCredential
+					(
+						this.Delivery.Parameters["UserID"].ToString(),
+						this.Delivery.Parameters["Password"].ToString()
+					);
+				ftpRequest.Method = WebRequestMethods.Ftp.DownloadFile;
+				ftpRequest.UsePassive = true;
+				_batch.Add(file.Download(request, Convert.ToInt64(file.Parameters["Size"])));
+
+			}
+			/*OTHER*/
+			else
+			{
+				_batch.Add(file.Download(request));
+			}
 		}
 
 		void download_Ended(object sender, EventArgs e)
