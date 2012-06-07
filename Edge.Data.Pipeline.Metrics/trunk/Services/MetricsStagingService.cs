@@ -10,7 +10,7 @@ using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
-	public class MetricsCommitService : PipelineService
+	public class MetricsStagingService : PipelineService
 	{
 		protected override ServiceOutcome DoPipelineWork()
 		{
@@ -62,20 +62,20 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				try
 				{
-					Log.Write("Commit: start", LogMessageType.Information);
-					importManager.Commit(new Delivery[] { this.Delivery });
-					Log.Write("Commit: end", LogMessageType.Information);
+					//Log.Write("Staging: start", LogMessageType.Information);
+					importManager.Stage(new Delivery[] { this.Delivery });
+					//Log.Write("Staging: end", LogMessageType.Information);
 					success = true;
 				}
 				catch (DeliveryConflictException dceex)
 				{
-					Log.Write("Rollback: start", LogMessageType.Information);
+					//Log.Write("Rollback: start", LogMessageType.Information);
 					importManager.RollbackOutputs(dceex.ConflictingOutputs);
-					Log.Write("Rollback: end", LogMessageType.Information);
+					//Log.Write("Rollback: end", LogMessageType.Information);
 				}
 				catch (Exception ex)
 				{
-					throw new Exception(String.Format("Delivery {0} failed during commit.", this.Delivery.DeliveryID), ex);
+					throw new Exception(String.Format("Delivery {0} failed during staging.", this.Delivery.DeliveryID), ex);
 				}
 			}
 			while (!success);
