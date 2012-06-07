@@ -96,14 +96,14 @@ namespace Edge.Data.Pipeline
 				DeliveryImportManagerState.Transforming);
 		}
 
-		public void Commit(Delivery[] deliveries)
+		public void Stage(Delivery[] deliveries)
 		{
 			this.Batch<Delivery>(deliveries,
 				this.CommitPassCount,
-				OnBeginCommit,
+				OnBeginStage,
 				ex =>
 				{
-					OnEndCommit(ex);
+					OnEndStage(ex);
 
 					if (ex == null)
 					{
@@ -111,9 +111,9 @@ namespace Edge.Data.Pipeline
 							d.Save();
 					}
 				},
-				OnBeginCommitPass,
-				OnEndCommitPass,
-				OnCommit,
+				OnBeginStagePass,
+				OnEndStagePass,
+				OnStage,
 				DeliveryImportManagerState.Comitting);
 		}
 
@@ -228,7 +228,7 @@ namespace Edge.Data.Pipeline
 		public void Dispose()
 		{
 			OnDisposeImport();
-			OnDisposeCommit();
+			OnDisposeStage();
 			OnDisposeRollback();
 			OnDispose();
 		}
@@ -244,12 +244,12 @@ namespace Edge.Data.Pipeline
 		protected virtual void OnEndTransform(Exception ex) { }
 		protected virtual void OnDisposeTransform() { }
 
-		protected virtual void OnBeginCommit() { }
-		protected virtual void OnBeginCommitPass(int pass) { }
-		protected abstract void OnCommit(Delivery delivery, int pass);
-		protected virtual void OnEndCommitPass(int pass) { }
-		protected virtual void OnEndCommit(Exception ex) { }
-		protected virtual void OnDisposeCommit() { }
+		protected virtual void OnBeginStage() { }
+		protected virtual void OnBeginStagePass(int pass) { }
+		protected abstract void OnStage(Delivery delivery, int pass);
+		protected virtual void OnEndStagePass(int pass) { }
+		protected virtual void OnEndStage(Exception ex) { }
+		protected virtual void OnDisposeStage() { }
 
 		protected virtual void OnBeginRollback() { }
 		protected virtual void OnBeginRollbackPass(int pass) { }
