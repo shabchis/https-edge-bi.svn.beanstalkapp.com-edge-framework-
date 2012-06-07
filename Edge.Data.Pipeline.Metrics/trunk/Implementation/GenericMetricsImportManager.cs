@@ -140,7 +140,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			get { return typeof(Tables.Metrics); }
 		}
 
-		protected override void OnCommit(Delivery delivery, int pass)
+		protected override void OnStage(Delivery delivery, int pass)
 		{
 			throw new NotImplementedException();
 		}

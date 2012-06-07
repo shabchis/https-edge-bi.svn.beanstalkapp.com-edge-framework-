@@ -300,7 +300,7 @@ namespace Edge.Data.Pipeline.Metrics
 			get { return 1; }
 		}
 
-		protected override void OnBeginCommit()
+		protected override void OnBeginStage()
 		{
 			if (String.IsNullOrWhiteSpace(this.Options.SqlCommitCommand))
 				throw new ConfigurationException("Options.SqlCommitCommand is empty.");
@@ -311,7 +311,7 @@ namespace Edge.Data.Pipeline.Metrics
 			_commitTransaction = _sqlConnection.BeginTransaction("Delivery Commit");
 		}
 
-		protected override void  OnCommit(Delivery delivery, int pass)
+		protected override void  OnStage(Delivery delivery, int pass)
 		{
 			// get this from last 'Processed' history entry
 			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
@@ -379,7 +379,7 @@ namespace Edge.Data.Pipeline.Metrics
 			}
 		}
 
-		protected override void OnEndCommit(Exception ex)
+		protected override void OnEndStage(Exception ex)
 		{
 			if (_commitTransaction != null)
 			{
@@ -392,7 +392,7 @@ namespace Edge.Data.Pipeline.Metrics
 			
 		}
 
-		protected override void OnDisposeCommit()
+		protected override void OnDisposeStage()
 		{
 			if (_commitTransaction != null)
 				_commitTransaction.Dispose();

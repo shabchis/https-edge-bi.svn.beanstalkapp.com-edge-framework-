@@ -49,7 +49,7 @@
     <Compile Include="Implementation\AutoAdMetricsProcessorService.cs" />
     <Compile Include="Implementation\AutoGenericMetricsProcessorService.cs" />
     <Compile Include="Services\AutoMetricsProcessorServiceBase.cs" />
-    <Compile Include="Services\MetricsCommitService.cs" />
+    <Compile Include="Services\MetricsStagingService.cs" />
     <Compile Include="Implementation\GenericMetricsImportManager.cs" />
     <Compile Include="Base\Const.cs" />
     <Compile Include="Base\MetricsImportManager.cs" />

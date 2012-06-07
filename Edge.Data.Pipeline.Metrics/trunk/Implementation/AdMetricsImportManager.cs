@@ -297,9 +297,9 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			get { return typeof(Tables.Metrics); }
 		}
 
-		protected override void OnCommit(Delivery delivery, int pass)
+		protected override void OnStage(Delivery delivery, int pass)
 		{
-			base.OnCommit(delivery, pass);
+			base.OnStage(delivery, pass);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
