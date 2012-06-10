@@ -106,7 +106,7 @@ namespace Edge.Data.Pipeline.Services
 							FtpWebRequest sizeRequest;
 							sizeRequest = (FtpWebRequest)FtpWebRequest.Create(new Uri(FtpServer + "/" + fileName));
 							sizeRequest.Credentials = new NetworkCredential(UserId, Password);
-							sizeRequest.Method = WebRequestMethods.Ftp.;
+							sizeRequest.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
 							FtpWebResponse sizeResponse = (FtpWebResponse)sizeRequest.GetResponse();
 							long size = sizeResponse.ContentLength;
 
@@ -138,6 +138,7 @@ namespace Edge.Data.Pipeline.Services
 				this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Instance.Configuration.Options["DirectoryWatcherLocation"];
 
 			}
+			return Core.Services.ServiceOutcome.Success;
 		}
 	}
 }
