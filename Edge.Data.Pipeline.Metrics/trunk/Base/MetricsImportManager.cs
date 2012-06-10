@@ -257,7 +257,7 @@ namespace Edge.Data.Pipeline.Metrics
 										{
 
 											if (total.Value == 0)
-												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
+												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}-{3}", total.Key, ValidationTable, outPut.TimePeriodStart,outPut.TimePeriodEnd), LogMessageType.Information);
 											else
 												results.AppendFormat("{0} is null in table {1}\n but {2} in measure {3}", total.Key, ValidationTable, total.Key, total.Value);
 										}
@@ -268,7 +268,7 @@ namespace Edge.Data.Pipeline.Metrics
 											if (diff > this.Options.ChecksumThreshold)
 												results.AppendFormat("{0}: processor totals = {1}, {2} table = {3}\n", total.Key, total.Value, ValidationTable, val);
 											else if (val == 0 && total.Value == 0)
-												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}", total.Key, ValidationTable, CurrentDelivery.TimePeriodDefinition), LogMessageType.Information);
+												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}-{3}", total.Key, ValidationTable, outPut.TimePeriodStart, outPut.TimePeriodEnd), LogMessageType.Information);
 
 
 										}
