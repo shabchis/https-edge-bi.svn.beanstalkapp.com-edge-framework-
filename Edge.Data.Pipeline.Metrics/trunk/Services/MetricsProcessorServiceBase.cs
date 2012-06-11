@@ -37,9 +37,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			this.Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
 			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
+
+			OnInitMappings();
+
 			this.Mappings.Compile();
 		}
 
+		protected virtual void OnInitMappings()
+		{
+		}
 	
 
 		#region Scriptable methods
