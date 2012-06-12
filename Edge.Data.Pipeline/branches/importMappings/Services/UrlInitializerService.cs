@@ -64,74 +64,13 @@ namespace Edge.Data.Pipeline.Services
 
 			if (!String.IsNullOrEmpty(FtpServer))
 			{
-				//Getting files in ftp directory
-				FtpWebRequest request;
-				List<string> files = new List<string>();
-				try
+				this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
 				{
-					request = (FtpWebRequest)FtpWebRequest.Create(new Uri(FtpServer + "/"));
-					request.UseBinary = (bool)this.Delivery.Parameters["UseBinary"];
-					request.UsePassive = (bool)this.Delivery.Parameters["UsePassive"];
-					request.Credentials = new NetworkCredential(UserId, Password);
-					request.Method = WebRequestMethods.Ftp.ListDirectory;
+					Name = "FTP_" + this.Instance.Configuration.Options["FileName"],
+					SourceUrl = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl],
+				});
 
-					FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-					StreamReader reader = new StreamReader(response.GetResponseStream());
-					string file = reader.ReadLine();
-					bool ExtensionsFlag = false;
-
-					while (file != null)
-					{
-						//Checking AllowedExtensions
-						string[] fileExtension = file.Split('.');
-						foreach (string item in AllowedExtensions)
-						{
-							if (fileExtension[fileExtension.Length - 1].ToLower().Equals(item.ToLower()))
-								continue;
-							ExtensionsFlag = true;
-						}
-						if (!ExtensionsFlag) files.Add(file); //Get only matched extension files
-						file = reader.ReadLine();
-					}
-					reader.Close();
-					response.Close();
-
-					if (files.Count == 0)
-					{
-						Core.Utilities.Log.Write("No files in FTP directory for account id " + this.Instance.AccountID.ToString(), Core.Utilities.LogMessageType.Information);
-					}
-					else
-						//creating Delivery File foreach file in ftp
-						foreach (string fileName in files)
-						{
-							FtpWebRequest sizeRequest;
-							sizeRequest = (FtpWebRequest)FtpWebRequest.Create(new Uri(FtpServer + "/" + fileName));
-							sizeRequest.Credentials = new NetworkCredential(UserId, Password);
-							sizeRequest.Method = WebRequestMethods.Ftp.GetFileSize;
-							FtpWebResponse sizeResponse = (FtpWebResponse)sizeRequest.GetResponse();
-							long size = sizeResponse.ContentLength;
-
-							this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
-							{
-								Name = "FTP_" + fileName,
-								SourceUrl = FtpServer + "/" + fileName,
-							}
-							);
-
-							this.Delivery.Files["FTP_" + fileName].Parameters.Add("Size", size);
-							sizeResponse.Close();
-
-						}
-				}
-				catch (Exception e)
-				{
-					Core.Utilities.Log.Write(
-						string.Format("Cannot connect FTP server for account ID:{0}  Exception: {1}",
-						this.Instance.AccountID.ToString(), e.Message),
-						Core.Utilities.LogMessageType.Information);
-					return Edge.Core.Services.ServiceOutcome.Failure;
-				}
-
+				this.Delivery.Files["FTP_" + this.Instance.Configuration.Options["FileName"]].Parameters.Add("Size", this.Instance.Configuration.Options["Size"]);
 				this.Delivery.Parameters["FtpServer"] = FtpServer;
 				this.Delivery.Parameters["AllowedExtensions"] = AllowedExtensions;
 				this.Delivery.Parameters["UserID"] = UserId;
@@ -147,7 +86,7 @@ namespace Edge.Data.Pipeline.Services
 					SourceUrl = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.SourceUrl)
 				});
 			}
-		
+
 
 			this.Delivery.Save();
 
