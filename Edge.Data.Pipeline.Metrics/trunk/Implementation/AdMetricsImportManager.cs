@@ -243,7 +243,8 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 			string adUsid = GetAdIdentity(metrics.Ad);
 			string metricsUsid = metrics.Usid.ToString("N");
-
+			
+			
 			// Metrics
 		var metricsRow = new Dictionary<ColumnDef, object>()
 			{

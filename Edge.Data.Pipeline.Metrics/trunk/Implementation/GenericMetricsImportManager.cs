@@ -24,13 +24,13 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			public class Metrics
 			{
 				public static ColumnDef MetricsUsid = new ColumnDef("MetricsUsid", size: 32, type: SqlDbType.Char, nullable: false);
+				public static ColumnDef OutputID = new ColumnDef("OutputID", size: 32, type: SqlDbType.Char, nullable: false);
 				public static ColumnDef Channel_ID = new ColumnDef("Channel_ID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Account_ID = new ColumnDef("Account_ID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Account_OriginalID = new ColumnDef("Account_OriginalID", type: SqlDbType.NVarChar, size: 100, nullable: true);
-				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");				
+				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
 				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
-                public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char, size: 32, nullable: false);
 
 			}
 			public class MetricsDimensionSegment
@@ -69,15 +69,20 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			if (metrics.Output == null)
 				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with a delivery output.");
 
+			metrics.Account = metrics.Output.Account;
+			metrics.Channel = metrics.Output.Channel;
+			metrics.TimePeriodStart = metrics.Output.TimePeriodStart;
+			metrics.TimePeriodEnd = metrics.Output.TimePeriodEnd;
+
 			// Metrics
 			var metricsRow = new Dictionary<ColumnDef, object>()
 			{
 				{Tables.Metrics.MetricsUsid, metrics.Usid.ToString("N")},
+				{Tables.Metrics.OutputID,metrics.Output.OutputID.ToString("N")},
 				{Tables.Metrics.TargetPeriodStart, metrics.TimePeriodStart},
 				{Tables.Metrics.TargetPeriodEnd, metrics.TimePeriodEnd},
 				{Tables.Metrics.Account_ID, metrics.Account.ID},
 				{Tables.Metrics.Account_OriginalID, metrics.Account.OriginalID == null ? (object)DBNull.Value : metrics.Account.OriginalID },
-                {Tables.Metrics.OutputID,metrics.Output.OutputID.ToString("N")},
 				{Tables.Metrics.Channel_ID, metrics.Channel.ID}
 			};
 
@@ -111,9 +116,11 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			}
 
 			// MetricsDimensionTarget
-			foreach (Target target in metrics.TargetDimensions)
+			if (metrics.TargetDimensions != null)
 			{
-				var row = new Dictionary<ColumnDef, object>()
+				foreach (Target target in metrics.TargetDimensions)
+				{
+					var row = new Dictionary<ColumnDef, object>()
 				{
 					{ Tables.MetricsDimensionTarget.MetricsUsid, metrics.Usid.ToString("N") },
 					{ Tables.MetricsDimensionTarget.TypeID, target.TypeID },
@@ -122,13 +129,14 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 					{ Tables.MetricsDimensionTarget.DestinationUrl, target.DestinationUrl }
 				};
 
-				foreach (KeyValuePair<MappedObjectField, object> fixedField in target.GetFieldValues())
-					row[new ColumnDef(Tables.MetricsDimensionTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
+					foreach (KeyValuePair<MappedObjectField, object> fixedField in target.GetFieldValues())
+						row[new ColumnDef(Tables.MetricsDimensionTarget.FieldX, fixedField.Key.ColumnIndex)] = fixedField.Value;
 
-				foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
-					row[new ColumnDef(Tables.MetricsDimensionTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
+					foreach (KeyValuePair<ExtraField, object> customField in target.ExtraFields)
+						row[new ColumnDef(Tables.MetricsDimensionTarget.ExtraFieldX, customField.Key.ColumnIndex)] = customField.Value;
 
-				Bulk<Tables.MetricsDimensionTarget>().SubmitRow(row);
+					Bulk<Tables.MetricsDimensionTarget>().SubmitRow(row);
+				}
 			}
 		}
 
@@ -144,12 +152,13 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 
 		protected override void OnStage(Delivery delivery, int pass)
 		{
-            base.OnStage(delivery, pass);
+			base.OnStage(delivery, pass);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-            base.OnTransform(delivery,pass);
+			base.OnTransform(delivery, pass);
 		}
+		
 	}
 }
