@@ -61,7 +61,7 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 
 			// Pick up the remainer of the string
-			if (indexLast < expression.Length-1)
+			if (indexLast <= expression.Length-1)
 				this.Components.Add(new StringComponent(this.Parent, expression.Substring(indexLast)));
 
 		}
@@ -151,10 +151,18 @@ namespace Edge.Data.Pipeline.Mapping
 
 		public override object GetOuput(MappingContext context)
 		{
+			return this.GetOuput(context, false);
+		}
+
+		public object GetOuput(MappingContext context, bool inheritedOnly)
+		{
 			// Build a list of vars, including null if nothing found
 			var evalVars = new List<object>();
 			foreach (ReadCommand read in this.Parent.InheritedReads.Values.OrderBy(cmd => cmd.VarName))
 			{
+				if (inheritedOnly && this.Parent.ReadCommands.Contains(read))
+					continue;
+
 				ReadResult result;
 				if (!context.ReadResults.TryGetValue(read, out result))
 					result = null;
