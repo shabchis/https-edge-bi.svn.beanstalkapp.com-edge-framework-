@@ -32,10 +32,6 @@ namespace Edge.Data.Pipeline.Services
 				Log.Write(String.Format("Delivery file {0} starting download ({1}).",file.Name, file.FileID), LogMessageType.Information);
 
 				DownloadFile(file);
-
-				//DeliveryFileDownloadOperation download = file.Download();
-				//download.Ended += new EventHandler(download_Ended);
-				//_batch.Add(download);
 			}
 
 			_batch.Start();
@@ -73,12 +69,12 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
-		void download_Ended(object sender, EventArgs e)
-		{
-			var operation = (DeliveryFileDownloadOperation)sender;
-			operation.DeliveryFile.Status = DeliveryFileStatus.Retrieved;
+		//void download_Ended(object sender, EventArgs e)
+		//{
+		//    var operation = (DeliveryFileDownloadOperation)sender;
+		//    operation.DeliveryFile.Status = DeliveryFileStatus.Retrieved;
 
-			Log.Write(String.Format("Delivery file {0} retrieved successfully ({1}).", operation.DeliveryFile.Name, operation.DeliveryFile.FileID), LogMessageType.Information);
-		}
+		//    Log.Write(String.Format("Delivery file {0} retrieved successfully ({1}).", operation.DeliveryFile.Name, operation.DeliveryFile.FileID), LogMessageType.Information);
+		//}
 	}
 }
