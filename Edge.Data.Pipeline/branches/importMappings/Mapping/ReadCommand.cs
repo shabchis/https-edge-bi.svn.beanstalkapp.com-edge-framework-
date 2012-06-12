@@ -112,7 +112,7 @@ namespace Edge.Data.Pipeline.Mapping
 			{
 				if (context.Root.OnFieldRequired == null)
 					throw new MappingException("MappingConfiguration.OnFieldRequired is not set - you must supply a function that will return the required field value.");
-
+				
 				try { rawValue = context.Root.OnFieldRequired(this.Field); }
 				catch (Exception ex)
 				{

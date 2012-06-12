@@ -108,13 +108,6 @@ namespace Edge.Data.Pipeline.Mapping
 				Match match = matches[i];
 
 				// ...................................
-				// READ COMMANDS
-
-				if (implicitRead != null)
-					map.ReadCommands.Add(implicitRead);
-				map.Inherit();
-
-				// ...................................
 				// MEMBER
 
 				Group memberGroup = match.Groups["member"];
@@ -189,6 +182,13 @@ namespace Edge.Data.Pipeline.Mapping
 				}
 
 				// ...................................
+				// READ COMMANDS
+
+				if (implicitRead != null)
+					map.ReadCommands.Add(implicitRead);
+				map.Inherit();
+
+				// ...................................
 				// VALUE TYPE
 
 				Group valueTypeGroup = match.Groups["valueType"];
@@ -241,6 +241,13 @@ namespace Edge.Data.Pipeline.Mapping
 
 		protected override void OnApply(object target, MappingContext context)
 		{
+			if (this.Condition != null)
+			{
+				var condition = (bool)this.Condition.GetOuput(context, inheritedOnly: true);
+				if (!condition)
+					return;
+			}
+
 			// .......................................
 			// Process read commands
 			foreach (ReadCommand read in this.InheritedReads.Values)
@@ -252,12 +259,7 @@ namespace Edge.Data.Pipeline.Mapping
 			object nextTarget = target;
 
 			// Check condition
-			if (this.Condition != null)
-			{
-				var condition = (bool) this.Condition.GetOuput(context);
-				if (!condition)
-					return;
-			}
+			
 
 			if (this.TargetMember != null)
 			{
@@ -377,7 +379,7 @@ namespace Edge.Data.Pipeline.Mapping
 					object indexer = null;
 					if (this.Indexer is EvalComponent)
 					{
-						indexer = ((EvalComponent)this.Indexer).GetOuput(context);
+						indexer = ((EvalComponent)this.Indexer).GetOuput(context, inheritedOnly: true);
 					}
 					else
 					{
