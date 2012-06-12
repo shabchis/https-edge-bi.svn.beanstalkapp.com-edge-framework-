@@ -5,29 +5,19 @@ using System.Text;
 using Edge.Data.Objects;
 using System.Net;
 using System.IO;
+using System.Text.RegularExpressions;
+using Edge.Core.Scheduling;
+using Edge.Core.Services;
+using System.Data.SqlClient;
+using Edge.Core.Configuration;
+using Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Services
 {
-	class FtpImporterPreInitializerService : PipelineService
+	class FtpImporterPreInitializerService : Service
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			if (this.Delivery == null)
-			{
-				this.Delivery = NewDelivery();
-				this.Delivery.TimePeriodDefinition = this.TimePeriod;
-				this.Delivery.Account = this.Instance.AccountID != -1 ? new Account() { ID = this.Instance.AccountID } : null; // no account means there is no permission validation
-				this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.TargetLocationDirectory);
-
-				int channelID = this.Instance.Configuration.GetOption<int>("ChannelID", emptyIsError: false, defaultValue: -1);
-				if (channelID != -1)
-					this.Delivery.Channel = new Channel()
-					{
-						ID = channelID
-					};
-			}
-
-			/*------------------------------------------------------------------------------------------*/
 			#region FTP Configuration
 			/*===============================================================================================*/
 			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FtpServer"]))
@@ -42,11 +32,11 @@ namespace Edge.Data.Pipeline.Services
 
 			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
 				throw new Exception("Missing Configuration Param , UsePassive");
-			this.Delivery.Parameters.Add("UsePassive", bool.Parse(this.Instance.Configuration.Options["UsePassive"]));
+			bool UsePassive = bool.Parse(this.Instance.Configuration.Options["UsePassive"]);
 
 			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
 				throw new Exception("Missing Configuration Param , UsePassive");
-			this.Delivery.Parameters.Add("UseBinary", bool.Parse(this.Instance.Configuration.Options["UseBinary"]));
+			bool UseBinary = bool.Parse(this.Instance.Configuration.Options["UseBinary"]);
 
 			//Get Permissions
 			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
@@ -59,86 +49,118 @@ namespace Edge.Data.Pipeline.Services
 			string Password = Core.Utilities.Encryptor.Dec(this.Instance.Configuration.Options["Password"]);
 			/*===============================================================================================*/
 			#endregion
+			FtpWebRequest request;
+			int filesCounter = 0;
 
-			if (!String.IsNullOrEmpty(FtpServer))
+			try
 			{
-				//Getting files in ftp directory
-				FtpWebRequest request;
-				List<string> files = new List<string>();
-				try
+				request = (FtpWebRequest)FtpWebRequest.Create(new Uri(FtpServer + "/"));
+				request.UseBinary = UseBinary;
+				request.UsePassive = UsePassive;
+				request.Credentials = new NetworkCredential(UserId, Password);
+				request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
+
+				FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+				StreamReader reader = new StreamReader(response.GetResponseStream());
+				string fileInfoAsString = reader.ReadLine();
+
+				while (fileInfoAsString != null)
 				{
-					request = (FtpWebRequest)FtpWebRequest.Create(new Uri(FtpServer + "/"));
-					request.UseBinary = (bool)this.Delivery.Parameters["UseBinary"];
-					request.UsePassive = (bool)this.Delivery.Parameters["UsePassive"];
-					request.Credentials = new NetworkCredential(UserId, Password);
-					request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
+					//Checking AllowedExtensions
+					Dictionary<string, string> fileInfo = GetFileInfo(fileInfoAsString);
 
-					FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-					StreamReader reader = new StreamReader(response.GetResponseStream());
-					string file = reader.ReadLine();
-					bool ExtensionsFlag = false;
-
-					while (file != null)
+					if (CheckFileConflict(fileInfo))
 					{
-						//Checking AllowedExtensions
-						string[] fileExtension = file.Split('.');
-						foreach (string item in AllowedExtensions)
+						//Get files with allowed extensions only.
+						if (AllowedExtensions.Contains(fileInfo["Name"].Split('.')[1], StringComparer.OrdinalIgnoreCase))
 						{
-							if (fileExtension[fileExtension.Length - 1].ToLower().Equals(item.ToLower()))
-								continue;
-							ExtensionsFlag = true;
+							string SourceUrl = FtpServer + "/" + fileInfo["Name"];
+
+							System.ServiceModel.ChannelFactory<Edge.Core.Scheduling.IScheduleManager> c = new System.ServiceModel.ChannelFactory<Core.Scheduling.IScheduleManager>();
+							c.Open();
+							IScheduleManager s = c.CreateChannel();
+							Core.SettingsCollection options = new Core.SettingsCollection();
+							this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
+							this.Instance.Configuration.Options["FileSize"] = fileInfo["Size"];
+							this.Instance.Configuration.Options["FileName"] = fileInfo["Name"];
+
+							s.AddToSchedule(this.Instance.Configuration.Options["FtpService"], this.Instance.AccountID, this.Instance.TimeScheduled, this.Instance.Configuration.Options);
 						}
-						if (!ExtensionsFlag) 
-							files.Add(file); //Get only matched extension files
-						file = reader.ReadLine();
+
 					}
-					reader.Close();
-					response.Close();
 
-					if (files.Count == 0)
-					{
-						Core.Utilities.Log.Write("No files in FTP directory for account id " + this.Instance.AccountID.ToString(), Core.Utilities.LogMessageType.Information);
-					}
-					else
-						//creating Delivery File foreach file in ftp
-						foreach (string fileName in files)
-						{
-							FtpWebRequest sizeRequest;
-							sizeRequest = (FtpWebRequest)FtpWebRequest.Create(new Uri(FtpServer + "/" + fileName));
-							sizeRequest.Credentials = new NetworkCredential(UserId, Password);
-							sizeRequest.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
-							FtpWebResponse sizeResponse = (FtpWebResponse)sizeRequest.GetResponse();
-							long size = sizeResponse.ContentLength;
-
-							this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
-							{
-								Name = "FTP_" + fileName,
-								SourceUrl = FtpServer + "/" + fileName,
-							}
-							);
-
-							this.Delivery.Files["FTP_" + fileName].Parameters.Add("Size", size);
-							sizeResponse.Close();
-
-						}
+					fileInfoAsString = reader.ReadLine();
+					filesCounter++;
 				}
-				catch (Exception e)
+				reader.Close();
+				response.Close();
+
+				if (filesCounter == 0)
 				{
-					Core.Utilities.Log.Write(
-						string.Format("Cannot connect FTP server for account ID:{0}  Exception: {1}",
-						this.Instance.AccountID.ToString(), e.Message),
-						Core.Utilities.LogMessageType.Information);
-					return Edge.Core.Services.ServiceOutcome.Failure;
+					Core.Utilities.Log.Write("No files in FTP directory for account id " + this.Instance.AccountID.ToString(), Core.Utilities.LogMessageType.Information);
 				}
-
-				this.Delivery.Parameters["FtpServer"] = FtpServer;
-				this.Delivery.Parameters["AllowedExtensions"] = AllowedExtensions;
-				this.Delivery.Parameters["UserID"] = UserId;
-				this.Delivery.Parameters["Password"] = Password;
-				this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Instance.Configuration.Options["DirectoryWatcherLocation"];
 
 			}
+			catch (Exception e)
+			{
+				Core.Utilities.Log.Write(
+					string.Format("Cannot connect FTP server for account ID:{0}  Exception: {1}",
+					this.Instance.AccountID.ToString(), e.Message),
+					Core.Utilities.LogMessageType.Information);
+				return Edge.Core.Services.ServiceOutcome.Failure;
+			}
+
 			return Core.Services.ServiceOutcome.Success;
+		}
+
+		private bool CheckFileConflict(Dictionary<string, string> fileInfo)
+		{
+			string fileSignature = string.Format("{0}-{1}-{2}", fileInfo["Name"], fileInfo["ModifyDate"], fileInfo["Size"]);
+
+			SqlConnection connection;
+			connection = new SqlConnection(AppSettings.GetConnectionString(typeof(FtpImporterPreInitializerService), "StagingDatabase"));
+			try
+			{
+				using (connection)
+				{
+					SqlCommand cmd = DataManager.CreateCommand(@"DeliveryFile_GetBySignature()", System.Data.CommandType.StoredProcedure);
+					cmd.Connection = connection;
+					connection.Open();
+					using (SqlDataReader reader = cmd.ExecuteReader())
+					{
+						if (reader.Read())
+						{
+							return false;
+						}
+						else
+						{
+							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature),Core.Utilities.LogMessageType.Warning);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get files signature from DB", ex);
+			}
+
+			return true;
+
+		}
+
+		private Dictionary<string, string> GetFileInfo(string fileInfoAsString)
+		{
+			Dictionary<string, string> fileInfo = new Dictionary<string, string>();
+
+			string[] fileInfoAsArray = fileInfoAsString.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+
+			fileInfo.Add("Name", fileInfoAsArray.Last());
+			string month = fileInfoAsArray[5];
+			string day = fileInfoAsArray[6];
+			string year = fileInfoAsArray[7];
+			fileInfo.Add("ModifyDate", string.Format("{0}-{1}-{2}", day, month, year));
+			fileInfo.Add("Size", fileInfoAsArray[4]);
+			return fileInfo;
 		}
 	}
 }
