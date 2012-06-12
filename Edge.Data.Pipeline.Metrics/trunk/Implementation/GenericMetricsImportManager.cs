@@ -30,6 +30,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");				
 				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
+                public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char, size: 32, nullable: false);
 
 			}
 			public class MetricsDimensionSegment
@@ -76,6 +77,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 				{Tables.Metrics.TargetPeriodEnd, metrics.TimePeriodEnd},
 				{Tables.Metrics.Account_ID, metrics.Account.ID},
 				{Tables.Metrics.Account_OriginalID, metrics.Account.OriginalID == null ? (object)DBNull.Value : metrics.Account.OriginalID },
+                {Tables.Metrics.OutputID,metrics.Output.OutputID.ToString("N")},
 				{Tables.Metrics.Channel_ID, metrics.Channel.ID}
 			};
 
@@ -142,12 +144,12 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 
 		protected override void OnStage(Delivery delivery, int pass)
 		{
-			throw new NotImplementedException();
+            base.OnStage(delivery, pass);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			throw new NotImplementedException();
+            base.OnTransform(delivery,pass);
 		}
 	}
 }
