@@ -111,6 +111,7 @@ namespace Edge.Data.Pipeline
 									deliveryFile.Name = reader.Get<string>("Name");
 									deliveryFile.Location = reader.Get<string>("Location");
 									deliveryFile.Status = reader.Get<DeliveryFileStatus>("Status");
+									deliveryFile.FileSignature = reader.Get<string>("FileSignature");
 									delivery.Files.Add(deliveryFile);
 								}
 
@@ -347,7 +348,8 @@ namespace Edge.Data.Pipeline
 								[FileCompression],
 								[SourceUrl],
 								[Location],
-								[Status]
+								[Status],
+								[FileSignature]
 							)
 							VALUES (
 								@deliveryID:Char,
@@ -358,7 +360,8 @@ namespace Edge.Data.Pipeline
 								@fileCompression:Int,
 								@sourceUrl:NVarChar,
 								@location:NVarChar,
-								@status:Int
+								@status:Int,
+								@fileSignature:NVarChar
 							)", System.Data.CommandType.Text);
 						cmd.Connection = client;
 						cmd.Transaction = transaction;
@@ -372,6 +375,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@sourceUrl"].Value = file.SourceUrl == null ? (object)DBNull.Value : file.SourceUrl;
 						cmd.Parameters["@location"].Value = file.Location == null ? (object)DBNull.Value : file.Location;
 						cmd.Parameters["@status"].Value = file.Status;
+						cmd.Parameters["@fileSignature"].Value = file.FileSignature;
 
 						cmd.ExecuteNonQuery();
 					}
