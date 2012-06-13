@@ -73,7 +73,10 @@ namespace Edge.Data.Pipeline
 			get { return _parameters ?? (_parameters = new Dictionary<string, object>()); }
 			set { _parameters = value; }
 		}
-
+		/// <summary>
+		/// Describe the name+size+modifiedday
+		/// </summary>
+		public string FileSignature { get; set; }
 		/// <summary>
 		/// Opens the file contents as a readable stream.
 		/// </summary>
