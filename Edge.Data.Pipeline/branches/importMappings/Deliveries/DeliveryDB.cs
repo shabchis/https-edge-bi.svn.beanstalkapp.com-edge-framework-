@@ -375,7 +375,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@sourceUrl"].Value = file.SourceUrl == null ? (object)DBNull.Value : file.SourceUrl;
 						cmd.Parameters["@location"].Value = file.Location == null ? (object)DBNull.Value : file.Location;
 						cmd.Parameters["@status"].Value = file.Status;
-						cmd.Parameters["@fileSignature"].Value = file.FileSignature;
+                        cmd.Parameters["@fileSignature"].Value = file.FileSignature==null ? (object)DBNull.Value : file.FileSignature;
 
 						cmd.ExecuteNonQuery();
 					}
