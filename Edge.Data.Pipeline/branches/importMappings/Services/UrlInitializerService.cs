@@ -7,129 +7,87 @@ using Edge.Data.Pipeline.Services;
 using Edge.Data.Objects;
 using System.Net;
 using System.IO;
-using System.Text.RegularExpressions;
 
 namespace Edge.Data.Pipeline.Services
 {
-    public class UrlInitializerService : PipelineService
-    {
-        protected override Core.Services.ServiceOutcome DoPipelineWork()
-        {
-            if (this.Delivery == null)
-            {
-                this.Delivery = NewDelivery();
-                this.Delivery.TimePeriodDefinition = this.TimePeriod;
-                this.Delivery.Account = this.Instance.AccountID != -1 ? new Account() { ID = this.Instance.AccountID } : null; // no account means there is no permission validation
-                this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.TargetLocationDirectory);
+	public class UrlInitializerService : PipelineService
+	{
+		protected override Core.Services.ServiceOutcome DoPipelineWork()
+		{
+			if (this.Delivery == null)
+			{
+				this.Delivery = NewDelivery();
+				this.Delivery.TimePeriodDefinition = this.TimePeriod;
+				this.Delivery.Account = this.Instance.AccountID != -1 ? new Account() { ID = this.Instance.AccountID } : null; // no account means there is no permission validation
+				this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.TargetLocationDirectory);
 
-                int channelID = this.Instance.Configuration.GetOption<int>("ChannelID", emptyIsError: false, defaultValue: -1);
-                if (channelID != -1)
-                    this.Delivery.Channel = new Channel()
-                    {
-                        ID = channelID
-                    };
-            }
+				int channelID = this.Instance.Configuration.GetOption<int>("ChannelID", emptyIsError: false, defaultValue: -1);
+				if (channelID != -1)
+					this.Delivery.Channel = new Channel()
+					{
+						ID = channelID
+					};
+			}
 
-            /*------------------------------------------------------------------------------------------*/
-            #region FTP Configuration
-            /*===============================================================================================*/
-            if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FtpServer"]))
-                throw new Exception("Missing Configuration Param , FtpServer");
-            string FtpServer = this.Instance.Configuration.Options["FtpServer"];
+			/*------------------------------------------------------------------------------------------*/
+			#region FTP Configuration
+			/*===============================================================================================*/
 
+			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
+				throw new Exception("Missing Configuration Param , UsePassive");
+			this.Delivery.Parameters.Add("UsePassive", bool.Parse(this.Instance.Configuration.Options["UsePassive"]));
 
-            //Get AllowedExtensions
-            if (String.IsNullOrEmpty(this.Instance.Configuration.Options["AllowedExtensions"]))
-                throw new Exception("Missing Configuration Param , AllowedExtensions");
-            string[] AllowedExtensions = this.Instance.Configuration.Options["AllowedExtensions"].Split('|');
+			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
+				throw new Exception("Missing Configuration Param , UsePassive");
+			this.Delivery.Parameters.Add("UseBinary", bool.Parse(this.Instance.Configuration.Options["UseBinary"]));
 
-            if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
-                throw new Exception("Missing Configuration Param , UsePassive");
-            this.Delivery.Parameters.Add("UsePassive", bool.Parse(this.Instance.Configuration.Options["UsePassive"]));
-
-            if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
-                throw new Exception("Missing Configuration Param , UsePassive");
-            this.Delivery.Parameters.Add("UseBinary", bool.Parse(this.Instance.Configuration.Options["UseBinary"]));
-
-            //Get Permissions
-            if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
-                throw new Exception("Missing Configuration Param , UserID");
-            string UserId = this.Instance.Configuration.Options["UserID"];
+			//Get Permissions
+			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
+				throw new Exception("Missing Configuration Param , UserID");
+			string UserId = this.Instance.Configuration.Options["UserID"];
 
 
-            if (String.IsNullOrEmpty(this.Instance.Configuration.Options["Password"]))
-                throw new Exception("Missing Configuration Param , Password");
-            string Password = Core.Utilities.Encryptor.Dec(this.Instance.Configuration.Options["Password"]);
-            /*===============================================================================================*/
-            #endregion
+			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["Password"]))
+				throw new Exception("Missing Configuration Param , Password");
+			string Password = Core.Utilities.Encryptor.Dec(this.Instance.Configuration.Options["Password"]);
+			/*===============================================================================================*/
+			#endregion
 
-            if (!String.IsNullOrEmpty(FtpServer))
-            {
-                this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
-                {
-                    Name = "FTP_" + this.Instance.Configuration.Options["FileName"],
-                    SourceUrl = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl],
-                });
+			WebRequest request = FileWebRequest.Create(this.Instance.Configuration.Options["SourceUrl"]);
 
-                this.Delivery.Files["FTP_" + this.Instance.Configuration.Options["FileName"]].Parameters.Add("Size", this.Instance.Configuration.Options["Size"]);
-                this.Delivery.Parameters["FtpServer"] = FtpServer;
-                this.Delivery.Parameters["AllowedExtensions"] = AllowedExtensions;
-                this.Delivery.Parameters["UserID"] = UserId;
-                this.Delivery.Parameters["Password"] = Password;
-                this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Instance.Configuration.Options["DirectoryWatcherLocation"];
+			/* FTP */
+			if (request.GetType().Equals(typeof(FtpWebRequest)))
+			{
+				this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
+				{
+					Name = "FTP_" + this.Instance.Configuration.Options["FileName"],
+					SourceUrl = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl],
+				});
 
-            }
-            else
-            {
-                DeliveryFile file = new DeliveryFile()
-                {
-                    Name = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.DeliveryFileName] ?? "File",
-                    SourceUrl = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.SourceUrl)
+				var fileSignature = string.Format("{0}-{1}-{2}", this.Instance.Configuration.Options["FileName"],
+											this.Instance.Configuration.Options["FileModifyDate"],
+											this.Instance.Configuration.Options["FileSize"]);
 
-
-                };
-                int? utcoffset = null;
-                int? timeZone = null;
-                if (this.Instance.Configuration.Options.ContainsKey(Const.DeliveryServiceConfigurationOptions.UtcOffset))
-                    utcoffset = int.Parse(this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.UtcOffset]);
-
-                if (this.Instance.Configuration.Options.ContainsKey(Const.DeliveryServiceConfigurationOptions.TimeZone))
-                    timeZone = int.Parse(this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.TimeZone]);
-                Regex parmetersFinder = new Regex(@"\{(?<Param>[A-Z]+)[^\}]*\}", RegexOptions.IgnoreCase);
-                MatchCollection matchCollection = parmetersFinder.Matches(file.SourceUrl);
-
-                foreach (Match match in matchCollection)
-                {
-                    Group group = match.Groups["Param"];
-                    if (group.Success)
-                        if (Instance.Configuration.Options.ContainsKey(group.Value))
-                        {
-                            file.SourceUrl = Regex.Replace(file.SourceUrl, string.Format("{{0}}", group.Value), Instance.Configuration.Options[group.Value].ToString());
-                        }
-                        else if (group.Value == "From")
-                        {
-
-                            DateTime from=TimePeriod.Start.ToDateTime();
-
-                            if (utcoffset.Value != null && utcoffset.Value > 0)
-                               from= from.AddHours(utcoffset.Value);
-                            if (timeZone.Value != null && timeZone.Value > 0)
-                               from= from.AddHours(-timeZone.Value);
-                        }
+				this.Delivery.Files["FTP_" + this.Instance.Configuration.Options["FileName"]].Parameters.Add("Size", this.Instance.Configuration.Options["Size"]);
+				this.Delivery.Parameters["SourceUrl"] = this.Instance.Configuration.Options["SourceUrl"];
+				this.Delivery.Parameters["UserID"] = UserId;
+				this.Delivery.Parameters["Password"] = Password;
+				this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Instance.Configuration.Options["DirectoryWatcherLocation"];
+				this.Delivery.Files["FTP_" + this.Instance.Configuration.Options["FileName"]].FileSignature = fileSignature;
+			}
+			else
+			{
+				this.Delivery.Files.Add(new DeliveryFile()
+				{
+					Name = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.DeliveryFileName] ?? "File",
+					SourceUrl = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.SourceUrl)
+				});
+			}
 
 
+			this.Delivery.Save();
 
-
-                }
-
-
-                this.Delivery.Files.Add(file);
-            }
-
-
-            this.Delivery.Save();
-
-            return Core.Services.ServiceOutcome.Success;
-        }
-    }
+			return Core.Services.ServiceOutcome.Success;
+		}
+	}
 }
