@@ -16,7 +16,8 @@ namespace Edge.Data.Pipeline.Services
 {
 	class FtpImporterPreInitializerService : Service
 	{
-		protected override Core.Services.ServiceOutcome DoPipelineWork()
+		
+		protected override Core.Services.ServiceOutcome DoWork()
 		{
 			#region FTP Configuration
 			/*===============================================================================================*/
@@ -69,21 +70,24 @@ namespace Edge.Data.Pipeline.Services
 					//Checking AllowedExtensions
 					Dictionary<string, string> fileInfo = GetFileInfo(fileInfoAsString);
 
-					if (CheckFileConflict(fileInfo))
+					if (!CheckFileConflict(fileInfo))
 					{
 						//Get files with allowed extensions only.
-						if (AllowedExtensions.Contains(fileInfo["Name"].Split('.')[1], StringComparer.OrdinalIgnoreCase))
+
+						if (AllowedExtensions.Contains(Path.GetExtension(fileInfo["Name"]), StringComparer.OrdinalIgnoreCase))
 						{
 							string SourceUrl = FtpServer + "/" + fileInfo["Name"];
 
-							System.ServiceModel.ChannelFactory<Edge.Core.Scheduling.IScheduleManager> c = new System.ServiceModel.ChannelFactory<Core.Scheduling.IScheduleManager>();
+							System.ServiceModel.ChannelFactory<Edge.Core.Scheduling.IScheduleManager> c = new System.ServiceModel.ChannelFactory<Core.Scheduling.IScheduleManager>("shaybarchen");
 							c.Open();
 							IScheduleManager s = c.CreateChannel();
 							Core.SettingsCollection options = new Core.SettingsCollection();
+
 							this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
 							this.Instance.Configuration.Options["FileSize"] = fileInfo["Size"];
 							this.Instance.Configuration.Options["FileName"] = fileInfo["Name"];
-
+							this.Instance.Configuration.Options["FileModifyDate"] = fileInfo["ModifyDate"];
+							
 							s.AddToSchedule(this.Instance.Configuration.Options["FtpService"], this.Instance.AccountID, this.Instance.TimeScheduled, this.Instance.Configuration.Options);
 						}
 
@@ -118,24 +122,24 @@ namespace Edge.Data.Pipeline.Services
 			string fileSignature = string.Format("{0}-{1}-{2}", fileInfo["Name"], fileInfo["ModifyDate"], fileInfo["Size"]);
 
 			SqlConnection connection;
-			connection = new SqlConnection(AppSettings.GetConnectionString(typeof(FtpImporterPreInitializerService), "StagingDatabase"));
+			connection = new SqlConnection(AppSettings.GetConnectionString(typeof(FtpImporterPreInitializerService), "DeliveryDB"));
 			try
 			{
 				using (connection)
 				{
 					SqlCommand cmd = DataManager.CreateCommand(@"DeliveryFile_GetBySignature()", System.Data.CommandType.StoredProcedure);
+					SqlParameter fileSig = new SqlParameter("signature",fileSignature);
+					cmd.Parameters.Add(fileSig);
 					cmd.Connection = connection;
 					connection.Open();
 					using (SqlDataReader reader = cmd.ExecuteReader())
 					{
 						if (reader.Read())
 						{
-							return false;
+							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature), Core.Utilities.LogMessageType.Warning);
+							return true;
 						}
-						else
-						{
-							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature),Core.Utilities.LogMessageType.Warning);
-						}
+						
 					}
 				}
 			}
@@ -144,7 +148,7 @@ namespace Edge.Data.Pipeline.Services
 				throw new Exception("Error while trying to get files signature from DB", ex);
 			}
 
-			return true;
+			return false;
 
 		}
 
