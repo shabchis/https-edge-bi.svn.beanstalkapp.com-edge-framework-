@@ -16,9 +16,14 @@ namespace Edge.Data.Pipeline.Services
 {
 	class FtpImporterPreInitializerService : Service
 	{
-		
+
 		protected override Core.Services.ServiceOutcome DoWork()
 		{
+			string fileConflictBehavior = "Ignore";
+
+			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
+				fileConflictBehavior = this.Instance.Configuration.Options["FileConflictBehavior"];
+
 			#region FTP Configuration
 			/*===============================================================================================*/
 			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FtpServer"]))
@@ -69,8 +74,9 @@ namespace Edge.Data.Pipeline.Services
 				{
 					//Checking AllowedExtensions
 					Dictionary<string, string> fileInfo = GetFileInfo(fileInfoAsString);
+					
 
-					if (!CheckFileConflict(fileInfo))
+					if ((fileConflictBehavior.Equals("Ignore"))||(!CheckFileConflict(fileInfo)))
 					{
 						//Get files with allowed extensions only.
 
@@ -128,7 +134,7 @@ namespace Edge.Data.Pipeline.Services
 				using (connection)
 				{
 					SqlCommand cmd = DataManager.CreateCommand(@"DeliveryFile_GetBySignature()", System.Data.CommandType.StoredProcedure);
-					SqlParameter fileSig = new SqlParameter("signature",fileSignature);
+					SqlParameter fileSig = new SqlParameter("signature", fileSignature);
 					cmd.Parameters.Add(fileSig);
 					cmd.Connection = connection;
 					connection.Open();
@@ -139,7 +145,7 @@ namespace Edge.Data.Pipeline.Services
 							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature), Core.Utilities.LogMessageType.Warning);
 							return true;
 						}
-						
+
 					}
 				}
 			}
