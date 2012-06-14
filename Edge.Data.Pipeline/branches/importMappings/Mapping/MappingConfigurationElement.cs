@@ -29,8 +29,10 @@ namespace Edge.Data.Pipeline.Mapping
 		{
 			using (XmlTextReader reader = new XmlTextReader(new StringReader(this.RawXml)))
 			{
+				reader.ReadToFollowing(MappingConfigurationElement.ExtensionName);
 				string path = reader.GetAttribute("Path");
 				if (!string.IsNullOrEmpty(path))
+					//mapping.Load(Path.IsPathRooted(path) ? path :  Path.Combine(Environment.CurrentDirectory, path));
 					mapping.Load(path);
 				else
 					mapping.Load(reader);
