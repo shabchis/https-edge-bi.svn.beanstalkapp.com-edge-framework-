@@ -164,10 +164,10 @@ namespace Edge.Data.Pipeline.Metrics
 		#region Prepare
 		/*=========================*/
 		
-		SqlCommand _prepareCommand = null;
+		SqlCommand _transformCommand = null;
 		SqlCommand _validateCommand = null;
-		const int Prepare_PREPARE_PASS = 0;
-		const int Prepare_VALIDATE_PASS = 1;
+		const int Transform_TRANSFORM_PASS = 0;
+		const int Transform_VALIDATE_PASS = 1;
 		const string ValidationTable = "Commit_FinalMetrics";
 
 		protected override int TransformPassCount
@@ -195,36 +195,36 @@ namespace Edge.Data.Pipeline.Metrics
 			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
 			string deliveryId = delivery.DeliveryID.ToString("N");
 
-			if (pass == Prepare_PREPARE_PASS)
+			if (pass == Transform_TRANSFORM_PASS)
 			{
 				// ...........................
 				// PREPARE data
 
-				_prepareCommand = _prepareCommand ?? DataManager.CreateCommand(this.Options.SqlPrepareCommand, CommandType.StoredProcedure);
-				_prepareCommand.Connection = _sqlConnection;
+				_transformCommand = _transformCommand ?? DataManager.CreateCommand(this.Options.SqlPrepareCommand, CommandType.StoredProcedure);
+				_transformCommand.Connection = _sqlConnection;
 
-				_prepareCommand.Parameters["@DeliveryID"].Size = 4000;
-				_prepareCommand.Parameters["@DeliveryID"].Value = deliveryId;
-				_prepareCommand.Parameters["@DeliveryTablePrefix"].Size = 4000;
-				_prepareCommand.Parameters["@DeliveryTablePrefix"].Value = tablePerfix;
-				_prepareCommand.Parameters["@MeasuresNamesSQL"].Size = 4000;
-				_prepareCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
-				_prepareCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
-				_prepareCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
-				_prepareCommand.Parameters["@CommitTableName"].Size = 4000;
-				_prepareCommand.Parameters["@CommitTableName"].Direction = ParameterDirection.Output;
+				_transformCommand.Parameters["@DeliveryID"].Size = 4000;
+				_transformCommand.Parameters["@DeliveryID"].Value = deliveryId;
+				_transformCommand.Parameters["@DeliveryTablePrefix"].Size = 4000;
+				_transformCommand.Parameters["@DeliveryTablePrefix"].Value = tablePerfix;
+				_transformCommand.Parameters["@MeasuresNamesSQL"].Size = 4000;
+				_transformCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
+				_transformCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
+				_transformCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
+				_transformCommand.Parameters["@CommitTableName"].Size = 4000;
+				_transformCommand.Parameters["@CommitTableName"].Direction = ParameterDirection.Output;
 
-				try { _prepareCommand.ExecuteNonQuery(); }
+				try { _transformCommand.ExecuteNonQuery(); }
 				catch (Exception ex)
 				{
-					throw new Exception(String.Format("Delivery {0} failed during Prepare.", deliveryId), ex);
+					throw new Exception(String.Format("Delivery {0} failed during Transform.", deliveryId), ex);
 				}
 
-				delivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
+				delivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _transformCommand.Parameters["@CommitTableName"].Value;
 				foreach (var output in delivery.Outputs)
-					output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _prepareCommand.Parameters["@CommitTableName"].Value;
+					output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _transformCommand.Parameters["@CommitTableName"].Value;
 			}
-			else if (pass == Prepare_VALIDATE_PASS)
+			else if (pass == Transform_VALIDATE_PASS)
 			{
 
 				foreach (DeliveryOutput outPut in delivery.Outputs)
