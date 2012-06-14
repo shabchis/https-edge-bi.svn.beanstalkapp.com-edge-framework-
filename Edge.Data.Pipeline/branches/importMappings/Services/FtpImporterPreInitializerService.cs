@@ -85,7 +85,7 @@ namespace Edge.Data.Pipeline.Services
 
 							this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
 							this.Instance.Configuration.Options["FileSize"] = fileInfo["Size"];
-							this.Instance.Configuration.Options["FileName"] = fileInfo["Name"];
+							this.Instance.Configuration.Options["DeliveryFileName"] = fileInfo["Name"];
 							this.Instance.Configuration.Options["FileModifyDate"] = fileInfo["ModifyDate"];
 							
 							s.AddToSchedule(this.Instance.Configuration.Options["FtpService"], this.Instance.AccountID, this.Instance.TimeScheduled, this.Instance.Configuration.Options);
