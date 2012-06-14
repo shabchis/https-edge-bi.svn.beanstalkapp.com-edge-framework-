@@ -19,6 +19,8 @@ namespace Edge.Data.Pipeline
 		DateTimeSpecification _start;
 		[JsonProperty(PropertyName = "end")]
 		DateTimeSpecification _end;
+		[JsonProperty(PropertyName = "timezone")]
+		public string TimeZone;
 
 		public DateTimeSpecification Start
 		{
@@ -50,6 +52,41 @@ namespace Edge.Data.Pipeline
 					Alignment = DateTimeSpecificationAlignment.End
 				}
 			};
+		}
+
+		public DateTimeRange[] ToAbsoluteSplit(DateTimeRangeSplitResolution resolution)
+		{
+			// TODO: support split by hour
+			if (resolution != DateTimeRangeSplitResolution.Day)
+				throw new NotImplementedException("Only split by day is currently implemented.");
+
+			DateTimeRange absolute = this.ToAbsolute();
+			var split = new List<DateTimeRange>();
+
+			for (DateTime fromTime = this.Start.ToDateTime(), toTime = this.End.ToDateTime(); fromTime <= toTime; fromTime = fromTime.AddDays(1))
+			{
+				// {start: {base : '2009-01-01', h:0}, end: {base: '2009-01-01', h:'*'}}
+				var subRange = new DateTimeRange()
+				{
+					Start = new DateTimeSpecification()
+					{
+						BaseDateTime = fromTime,
+						Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Exact, Value = 0 },
+						Alignment = DateTimeSpecificationAlignment.Start
+					},
+					End = new DateTimeSpecification()
+					{
+						BaseDateTime = fromTime,
+						Hour = new DateTimeTransformation() { Type = DateTimeTransformationType.Max },
+						Alignment = DateTimeSpecificationAlignment.End
+					}
+				};
+
+				split.Add(subRange);
+
+			}
+
+			return split.ToArray();
 		}
 
 		#region Serialization
@@ -129,6 +166,14 @@ namespace Edge.Data.Pipeline
 		#endregion
 	}
 
+
+
+	public enum DateTimeRangeSplitResolution
+	{
+		Day = 1,
+		Hour = 2
+	}
+
 	public enum DateTimeSpecificationAlignment
 	{
 		Start,
@@ -140,6 +185,9 @@ namespace Edge.Data.Pipeline
 	{
 		#region Fields
 		/*=========================*/
+
+		[JsonProperty(PropertyName="timezone")]
+		public string TimeZone;
 
 		[JsonProperty(PropertyName="align"), JsonConverter(typeof(StringEnumConverter))]
 		public DateTimeSpecificationAlignment Alignment;

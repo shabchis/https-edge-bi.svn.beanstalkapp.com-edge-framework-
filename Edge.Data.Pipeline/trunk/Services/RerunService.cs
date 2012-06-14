@@ -15,21 +15,19 @@ namespace Edge.Data.Pipeline.Services
 {
 	class RerunService : PipelineService	
 	{
-		protected override DateTimeRangeLimitation TargetPeriodLimitation
+		protected override DateTimeRangeLimitation TimePeriodLimitation
 		{
 			get { return DateTimeRangeLimitation.None; }
 		}
 
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			string serviceName = Instance.Configuration.Options["ServiceToRun"];
-			if (String.IsNullOrWhiteSpace(serviceName))
-				throw new ConfigurationErrorsException("ServiceToRun parameter is not defined on Rerun service.", Instance.Configuration.ElementInformation.Source, Instance.Configuration.ElementInformation.LineNumber);
+			string serviceName = Instance.Configuration.GetOption("ServiceToRun");
 
 			using (ServiceClient<IScheduleManager> scheduleManager = new ServiceClient<IScheduleManager>())
 			{
-				DateTime fromDate = this.TargetPeriod.Start.ToDateTime();
-				DateTime toDate = this.TargetPeriod.End.ToDateTime();
+				DateTime fromDate = this.TimePeriod.Start.ToDateTime();
+				DateTime toDate = this.TimePeriod.End.ToDateTime();
 				
 
 				
@@ -53,7 +51,7 @@ namespace Edge.Data.Pipeline.Services
 					};
 
 					SettingsCollection options = new SettingsCollection();
-					options.Add(PipelineService.ConfigurationOptionNames.TargetPeriod, subRange.ToAbsolute().ToString());
+					options.Add(PipelineService.ConfigurationOptionNames.TimePeriod, subRange.ToAbsolute().ToString());
 					options.Add(PipelineService.ConfigurationOptionNames.ConflictBehavior, DeliveryConflictBehavior.Ignore.ToString());
 					foreach (var option in Instance.Configuration.Options)
 					{

@@ -95,45 +95,52 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Deliveries\Common\Classes.cs" />
-    <Compile Include="Deliveries\Common\Const.cs" />
+    <Compile Include="Deliveries\DeliveryFileDownloadOperation.cs" />
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
+    <Compile Include="Deliveries\DeliveryChildList.cs" />
+    <Compile Include="Deliveries\Enums.cs" />
+    <Compile Include="Deliveries\DeliveryOutput.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
-    <Compile Include="Objects\TargetingMetricsUnit.cs" />
-    <Compile Include="Objects\SegmentMetricsUnit.cs" />
+    <Compile Include="Mapping\Exceptions.cs" />
+    <Compile Include="Mapping\MapCommand.cs" />
+    <Compile Include="Mapping\MappingConfiguration.cs" />
+    <Compile Include="Mapping\MappingConfigurationElement.cs" />
+    <Compile Include="Mapping\MappingContainer.cs" />
+    <Compile Include="Mapping\MappingContext.cs" />
+    <Compile Include="Mapping\ReadCommand.cs" />
+    <Compile Include="Mapping\ValueFormat.cs" />
     <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
+    <Compile Include="Objects\Signature.cs" />
+    <Compile Include="Readers\Base\ReaderAdapter.cs" />
+    <Compile Include="Readers\CsvDynamicReaderAdapter.cs" />
+    <Compile Include="Readers\XmlDynamicReaderAdapter.cs" />
     <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
-    <Compile Include="Services\Common\Validation\DbDbChecksumBaseService.cs" />
-    <Compile Include="Services\Common\Validation\DeliveryDBChecksumBaseService.cs" />
     <Compile Include="Services\Const.cs" />
-    <Compile Include="Services\GenericInitializerService.cs" />
+    <Compile Include="Services\FtpImporterPreInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
+    <Compile Include="Services\UrlInitializerService.cs" />
+    <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
-    <Compile Include="Utilities\Configuration\AutoSegmentsConfiguration.cs" />
     <Compile Include="Deliveries\Delivery.cs" />
-    <Compile Include="Deliveries\DeliveryFileList.cs" />
     <Compile Include="FileSystem\FileManager.cs" />
     <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
-    <Compile Include="Deliveries\DeliveryHistory.cs" />
     <Compile Include="Deliveries\DeliveryImportManager.cs" />
     <Compile Include="Objects\Account.cs" />
     <Compile Include="Objects\Ad.cs" />
-    <Compile Include="Objects\AdMetricsUnit.cs" />
+    <Compile Include="Objects\MetricsUnit.cs" />
     <Compile Include="Objects\Channel.cs" />
     <Compile Include="Objects\Currency.cs" />
     <Compile Include="Objects\Measure.cs" />
     <Compile Include="Objects\Reflection\ExtraField.cs" />
     <Compile Include="Objects\Reflection\MappedType.cs" />
     <Compile Include="Objects\Targets.cs" />
-    <Compile Include="Objects\Campaign.cs" />
     <Compile Include="Objects\Creative.cs" />
     <Compile Include="Objects\Segment.cs" />
-    <Compile Include="Utilities\AutoSegments.cs" />
     <Compile Include="Readers\Base\DynamicDictionaryObject.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
@@ -168,13 +175,13 @@
   <ItemGroup>
     <None Include="Edge.Data.Pipeline.snk" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
       <Name>Edge.Core</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
   <Target Name="BeforeCompile">

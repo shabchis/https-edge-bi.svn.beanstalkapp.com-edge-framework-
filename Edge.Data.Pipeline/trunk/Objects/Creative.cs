@@ -6,7 +6,7 @@ using Edge.Data.Objects.Reflection;
 
 namespace Edge.Data.Objects
 {
-	public abstract class Creative: MappedType
+	public abstract class Creative: MappedObject
 	{
 		public string OriginalID;
 
@@ -15,7 +15,7 @@ namespace Edge.Data.Objects
 		/// <summary>
 		/// Extra fields for use by channels which have additional metadata per creative.
 		/// </summary>
-		public Dictionary<Segment, SegmentValue> Segments = new Dictionary<Segment, SegmentValue>();
+		public Dictionary<Segment, SegmentObject> Segments = new Dictionary<Segment, SegmentObject>();
 
 		/// <summary>
 		/// Extra fields for use by channels which have additional metadata per creative.
@@ -23,38 +23,38 @@ namespace Edge.Data.Objects
 		public Dictionary<ExtraField, object> ExtraFields = new Dictionary<ExtraField, object>();
 	}
 
-	[TypeID(1)]
+	[MappedObjectTypeID(1)]
 	public class TextCreative : Creative
 	{
 		/// <summary>
 		/// Title,Body or displayUrl
 		/// </summary>
-		[FieldIndex(1)]
+		[MappedObjectFieldIndex(1)]
 		public TextCreativeType TextType;
 
 
-		[FieldIndex(2)]
+		[MappedObjectFieldIndex(2)]
 		public string Text;
 
-		[FieldIndex(3)]
+		[MappedObjectFieldIndex(3)]
 		public string Text2;
 
 
 	}
 
-	[TypeID(2)]
+	[MappedObjectTypeID(2)]
 	public class ImageCreative : Creative
 	{
 		/// <summary>
 		/// Title,Body or displayUrl
 		/// </summary>
-		[FieldIndex(1)]
+		[MappedObjectFieldIndex(1)]
 		public string AdUnitType;
 
-		[FieldIndex(2)]
+		[MappedObjectFieldIndex(2)]
 		public string ImageUrl;
 
-		[FieldIndex(3)]
+		[MappedObjectFieldIndex(3)]
 		public string ImageSize;
 	}
 

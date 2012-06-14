@@ -33,8 +33,7 @@ namespace Edge.Data.Pipeline.Services
 			batch.Start();
 			batch.Wait();
 
-			// Add a retrieved history entry for the entire delivery
-			this.Delivery.History.Add(DeliveryOperation.Retrieved, this.Instance.InstanceID);
+			
 			this.Delivery.Save();
 
 			return Core.Services.ServiceOutcome.Success;
@@ -43,7 +42,7 @@ namespace Edge.Data.Pipeline.Services
 		void download_Ended(object sender, EventArgs e)
 		{
 			// Add a retrieved history entry to every file
-			((DeliveryFileDownloadOperation)sender).DeliveryFile.History.Add(DeliveryOperation.Retrieved, this.Instance.InstanceID);
+			
 		}
 	}
 }

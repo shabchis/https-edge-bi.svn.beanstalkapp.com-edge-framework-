@@ -10,63 +10,60 @@ namespace Edge.Data.Pipeline
 	/// <summary>
 	/// Represents a raw data file that belongs to a delivery.
 	/// </summary>
-	public class DeliveryFile
+	public class DeliveryFile: IDeliveryChild
 	{
-		Delivery _parentDelivery = null;
-		Guid _fileID;
-		DateTime _dateCreated = DateTime.Now;
-		DateTime _dateModified = DateTime.Now;
 		Dictionary<string, object> _parameters;
-		DeliveryHistory _history;
+
+		public DeliveryFile()
+		{
+			this.DateCreated = DateTime.Now;
+			this.DateModified = DateTime.Now;
+		}
 
 		/// <summary>
 		/// The delivery this file belongs to.
 		/// </summary>
-		public Delivery Delivery
-		{
-			get { return _parentDelivery; }
-			internal set { _parentDelivery = value; }
-		}
+		public Delivery Delivery { get; internal set; }
 
 		/// <summary>
-		/// Gets the unique ID of the file (-1 if unsaved).
+		/// Gets the unique ID of the file;
 		/// </summary>
-		public Guid FileID
-		{
-			get { return _fileID; }
-			internal set { _fileID = value; }
-		}
+		public Guid FileID { get; internal set; }
 
-		public FileCompression FileFormat { get; set; }
+		/// <summary>
+		/// 
+		/// </summary>
+		public FileCompression FileCompression { get; set; }
 
 		/// <summary>
 		/// Gets or sets the name of the delivery file.
 		/// </summary>
-		public string Name
-		{
-			get;
-			set;
-		}
-
+		public string Name { get; set; }
 
 		/// <summary>
 		/// Gets or sets the URL from which the file is downloaded.
 		/// </summary>
-		public string SourceUrl
-		{
-			get;
-			set;
-		}
+		public string SourceUrl { get; set; }
 
 		/// <summary>
 		/// Once it is downloaded, gets the location of the file in the FileManager-managed storage.
 		/// </summary>
-		public string Location
-		{
-			get;
-			internal set;
-		}
+		public string Location { get; internal set; }
 
+		/// <summary>
+		/// Gets the date the delivery file was created.
+		/// </summary>
+		public DateTime DateCreated { get; internal set; }
+
+		/// <summary>
+		/// Gets the date the delivery file was last modified.
+		/// </summary>
+		public DateTime DateModified { get; internal set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public DeliveryFileStatus Status { get; set; }
 
 		/// <summary>
 		/// Gets general parameters for use by services processing this delivery file.
@@ -76,57 +73,13 @@ namespace Edge.Data.Pipeline
 			get { return _parameters ?? (_parameters = new Dictionary<string, object>()); }
 			set { _parameters = value; }
 		}
-
 		/// <summary>
-		/// Represents the history of operations on the delivery file. Each service that does an operation related to this file
-		/// should add itself with the corresponding action.
+		/// Describe the name+size+modifiedday
 		/// </summary>
-		public DeliveryHistory History
-		{
-			get { return _history ?? (_history = new DeliveryHistory()); }
-		}
-
-		public Account Account
-		{
-			get;
-			set;
-		}
-
-		/// <summary>
-		/// Gets the date the delivery file was created.
-		/// </summary>
-		public DateTime DateCreated
-		{
-			get { return _dateCreated; }
-		}
-
-		/// <summary>
-		/// Gets the date the delivery file was last modified.
-		/// </summary>
-		public DateTime DateModified
-		{
-			get { return _dateModified; }
-		}
-
-		public void Save()
-		{
-			throw new NotImplementedException();
-		}
-
-		// <summary>
-		// Gets the full path of the file after it was saved by FileManager to the internal file storage.
-		// </summary>
-		//public FileInfo GetFileInfo()
-		//{
-		//	return FileManager.GetInfo(this.Parameters["FileRelativePath"].ToString());
-		//}
-
+		public string FileSignature { get; set; }
 		/// <summary>
 		/// Opens the file contents as a readable stream.
 		/// </summary>
-		/// <param name="subLocation"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
 		public Stream OpenContents(string subLocation = null, FileCompression compression = FileCompression.None, ArchiveType archiveType = ArchiveType.None)
 		{
 			if (string.IsNullOrEmpty(this.Location))
@@ -174,15 +127,15 @@ namespace Edge.Data.Pipeline
 		{
 			StringBuilder locationBuilder = new StringBuilder();
 			string location = string.Empty;
-			locationBuilder.AppendFormat(@"{0}\", this.Delivery.TargetLocationDirectory);
+			locationBuilder.AppendFormat(@"{0}\", this.Delivery.FileDirectory);
 			if (this.Delivery.Account != null)
 				locationBuilder.AppendFormat(@"{0}\", this.Delivery.Account.ID);
 
-			locationBuilder.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", _parentDelivery.DateCreated.ToString("yyyy-MM")/*0*/,
-			_parentDelivery.DateCreated.ToString("dd")/*1*/,
-				_parentDelivery.DateCreated.ToString("HHmm")/*2*/,
+			locationBuilder.AppendFormat(@"{0}\{1}\{2}-{3}\{4}-{5}-{6}", this.Delivery.DateCreated.ToString("yyyy-MM")/*0*/,
+			this.Delivery.DateCreated.ToString("dd")/*1*/,
+				this.Delivery.DateCreated.ToString("HHmm")/*2*/,
 				this.Delivery.DeliveryID.ToString("N")/*3*/,
-				this.Delivery.TargetPeriod.Start.ToDateTime().ToString("yyyyMMdd")/*4*/,
+				this.Delivery.TimePeriodDefinition.Start.ToDateTime().ToString("yyyyMMdd")/*4*/,
 				this.FileID.ToString("N")/*5*/,
 				this.Name == null ? string.Empty : this.Name);
 
@@ -210,49 +163,29 @@ namespace Edge.Data.Pipeline
 
 			return FileManager.GetInfo(this.Location, archiveType);
 		}
+
+		#region IDeliveryChild Members
+
+		string IDeliveryChild.Key
+		{
+			get { return this.Name; }
+		}
+
+		Delivery IDeliveryChild.Delivery
+		{
+			get
+			{
+				return this.Delivery;
+			}
+			set
+			{
+				this.Delivery = value;
+			}
+		}
+
+		#endregion
 	}
 
-	/// <summary>
-	/// Contains information on an ongoing download operation of a delivery file.
-	/// </summary>
-	public class DeliveryFileDownloadOperation : FileDownloadOperation
-	{
-		private void Init(DeliveryFile file, string targetLocation)
-		{
-			this.DeliveryFile = file;
-			this.SetTargetLocation(targetLocation);
-			this.Ended += new EventHandler(this.OnEnded);
-		}
-
-		internal DeliveryFileDownloadOperation(DeliveryFile file, string sourceUrl, string targetLocation)
-			: base(sourceUrl, targetLocation)
-		{
-			Init(file, targetLocation);
-		}
-
-		internal DeliveryFileDownloadOperation(DeliveryFile file, WebRequest request, string targetLocation, long length = -1)
-			: base(request, targetLocation, length)
-		{
-			Init(file, targetLocation);
-		}
-
-		internal DeliveryFileDownloadOperation(DeliveryFile file, Stream sourceStream, string targetLocation, long length = -1)
-			: base(sourceStream, targetLocation, length)
-		{
-			Init(file, targetLocation);
-		}
-
-		public DeliveryFile DeliveryFile
-		{
-			get;
-			private set;
-		}
-
-		void OnEnded(object sender, EventArgs e)
-		{
-			this.DeliveryFile.Location = this.FileInfo.Location;
-		}
-
-	}
+	
 
 }
