@@ -60,20 +60,20 @@ namespace Edge.Data.Pipeline.Services
 			{
 				this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
 				{
-					Name = "FTP_" + this.Instance.Configuration.Options["FileName"],
+					Name =this.Instance.Configuration.Options["DeliveryFileName"],
 					SourceUrl = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl],
 				});
 
-				var fileSignature = string.Format("{0}-{1}-{2}", this.Instance.Configuration.Options["FileName"],
+				var fileSignature = string.Format("{0}-{1}-{2}", this.Instance.Configuration.Options["DeliveryFileName"],
 											this.Instance.Configuration.Options["FileModifyDate"],
 											this.Instance.Configuration.Options["FileSize"]);
 
-				this.Delivery.Files["FTP_" + this.Instance.Configuration.Options["FileName"]].Parameters.Add("Size", this.Instance.Configuration.Options["Size"]);
+				this.Delivery.Files[this.Instance.Configuration.Options["DeliveryFileName"]].Parameters.Add("Size", this.Instance.Configuration.Options["Size"]);
 				this.Delivery.Parameters["SourceUrl"] = this.Instance.Configuration.Options["SourceUrl"];
 				this.Delivery.Parameters["UserID"] = UserId;
 				this.Delivery.Parameters["Password"] = Password;
 				this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Instance.Configuration.Options["DirectoryWatcherLocation"];
-				this.Delivery.Files["FTP_" + this.Instance.Configuration.Options["FileName"]].FileSignature = fileSignature;
+				this.Delivery.Files[this.Instance.Configuration.Options["DeliveryFileName"]].FileSignature = fileSignature;
 			}
 			else
 			{
