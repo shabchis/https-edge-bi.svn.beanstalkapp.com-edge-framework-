@@ -73,7 +73,7 @@
     <Compile Include="ServicePerProfileAvgExecutionTimeCash.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
+    <ProjectReference Include="..\..\Edge.Core\trunk\Edge.Core.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
       <Name>Edge.Core</Name>
     </ProjectReference>

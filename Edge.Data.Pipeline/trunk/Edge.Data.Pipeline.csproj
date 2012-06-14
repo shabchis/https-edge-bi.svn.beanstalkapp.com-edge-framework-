@@ -61,20 +61,20 @@
   <ItemGroup>
     <Reference Include="DataStreams, Version=5.15.0.0, Culture=neutral, PublicKeyToken=9c9b03c227e1bea6, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\CsvReader.com\DotNet 4.0\DataStreams.dll</HintPath>
+      <HintPath>..\..\..\thirdparty\CsvReader.com\DotNet 4.0\DataStreams.dll</HintPath>
     </Reference>
     <Reference Include="GotDotNet.XPath, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\GotDotNet.XPath\Compiled\GotDotNet.XPath.dll</HintPath>
+      <HintPath>..\..\..\thirdparty\GotDotNet.XPath\Compiled\GotDotNet.XPath.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\..\..\thirdparty\SharpZipLib\net-20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Newtonsoft.Json, Version=4.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\(third party)\Json.net\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\..\thirdparty\Json.net\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
@@ -177,7 +177,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="..\Edge.Core\Edge.Core.csproj">
+    <ProjectReference Include="..\..\Edge.Core\trunk\Edge.Core.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
       <Name>Edge.Core</Name>
     </ProjectReference>
