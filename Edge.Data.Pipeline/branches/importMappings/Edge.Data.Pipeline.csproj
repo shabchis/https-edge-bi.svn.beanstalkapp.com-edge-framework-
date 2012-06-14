@@ -121,6 +121,7 @@
     <Compile Include="Readers\JsonObjectReader.cs" />
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\FtpImporterPreInitializerService.cs" />
+    <Compile Include="Services\GenericRetrieverService.cs" />
     <Compile Include="Services\UrlInitializerService.cs" />
     <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
