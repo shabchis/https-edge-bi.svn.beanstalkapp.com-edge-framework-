@@ -157,7 +157,7 @@
     <SvnVersion LocalPath=".">
       <Output TaskParameter="Revision" PropertyName="SvnRevision" />
     </SvnVersion>
-    <FormatVersion Version="2.9.0.%2a" Revision="$(SvnRevision)">
+    <FormatVersion Version="2.9.1.%2a" Revision="$(SvnRevision)">
       <Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
     </FormatVersion>
   </Target>
