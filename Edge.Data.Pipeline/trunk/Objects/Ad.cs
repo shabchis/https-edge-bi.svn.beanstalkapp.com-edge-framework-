@@ -7,18 +7,17 @@ namespace Edge.Data.Objects
 {
 	public class Ad
 	{
-		public Campaign Campaign;
+		public Account Account;
+		public Channel Channel;
+
 		public string Name;
 		public string OriginalID;
 		public string DestinationUrl;
+		public ObjectStatus Status = ObjectStatus.Unknown;
+
 		public List<Creative> Creatives = new List<Creative>();
 		public List<Target> Targets = new List<Target>();
-		public ObjectStatus Status;
-
-		/// <summary>
-		/// Extra fields for use by channels which have extra metadata per target.
-		/// </summary>
-		public Dictionary<Segment, SegmentValue> Segments = new Dictionary<Segment, SegmentValue>();
+		public Dictionary<Segment, SegmentObject> Segments = new Dictionary<Segment, SegmentObject>();
 
 		/// <summary>
 		/// Extra fields for use by channels which have extra metadata per target.

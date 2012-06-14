@@ -3,14 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Dynamic;
+using System.Runtime.Serialization;
 
 namespace Edge.Data.Pipeline
 {
-	public class DynamicDictionaryObject: DynamicObject
+	[Serializable]
+	public class DynamicDictionaryObject: DynamicObject, ISerializable
 	{
 		public bool CaseSensitive = true;
 		internal protected Dictionary<string, object> Values { get; private set; }
-		
+
+		public DynamicDictionaryObject()
+		{
+		}
+
 		public override IEnumerable<string> GetDynamicMemberNames()
 		{
 			return base.GetDynamicMemberNames();
@@ -67,5 +73,21 @@ namespace Edge.Data.Pipeline
 			this.SetMember(indexes[0] as string, value);
 			return true;
 		}
+
+		#region ISerializable Members
+
+		public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
+		{
+			info.AddValue("Values", this.Values);
+			info.AddValue("CaseSensitive", this.CaseSensitive);
+		}
+
+		private DynamicDictionaryObject(SerializationInfo info, StreamingContext context)
+		{
+			this.Values = (Dictionary<string, object>) info.GetValue("Values", typeof(Dictionary<string, object>));
+			this.CaseSensitive = info.GetBoolean("CaseSensitive");
+		}
+
+		#endregion
 	}
 }

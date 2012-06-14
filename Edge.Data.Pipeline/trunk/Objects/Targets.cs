@@ -10,12 +10,15 @@ namespace Edge.Data.Objects
 	//==================================================================================
 	// BASE CLASSES
 
-	public abstract class Target : MappedType
+	public abstract class Target : MappedObject
 	{
+		public Account Account;
+		public Channel Channel;
+
 		public string OriginalID;
 		public string DestinationUrl;
 
-		public ObjectStatus Status;
+		public ObjectStatus Status = ObjectStatus.Unknown;
 
 		/// <summary>
 		/// Extra fields for use by channels which have extra metadata per target.
@@ -25,22 +28,22 @@ namespace Edge.Data.Objects
 		/// <summary>
 		/// Segments per target, e.g. tracker on a keyword.
 		/// </summary>
-		public Dictionary<Segment, SegmentValue> Segments=new Dictionary<Segment,SegmentValue>();
+		public Dictionary<Segment, SegmentObject> Segments = new Dictionary<Segment,SegmentObject>();
 	}
 
 	//==================================================================================
 	// TARGET TYPES
 
-	[TypeID(2)]
+	[MappedObjectTypeID(2)]
 	public class KeywordTarget : Target
 	{
-		[FieldIndex(1)]
+		[MappedObjectFieldIndex(1)]
 		public string Keyword;
 
-		[FieldIndex(2)]
+		[MappedObjectFieldIndex(2)]
 		public KeywordMatchType MatchType;
 
-		[FieldIndex(3)]
+		[MappedObjectFieldIndex(3)]
 		public string QualityScore;
 	}
 
@@ -53,13 +56,13 @@ namespace Edge.Data.Objects
 	};
 
 
-	[TypeID(5)]
+	[MappedObjectTypeID(5)]
 	public class PlacementTarget : Target
 	{
-		[FieldIndex(1)]
+		[MappedObjectFieldIndex(1)]
 		public string Placement;
 
-		[FieldIndex(2)]
+		[MappedObjectFieldIndex(2)]
 		public PlacementType PlacementType;
 	}
 
@@ -71,10 +74,10 @@ namespace Edge.Data.Objects
 	}
 
 
-	[TypeID(3)]
+	[MappedObjectTypeID(3)]
 	public class GenderTarget : Target
 	{
-		[FieldIndex(1)]
+		[MappedObjectFieldIndex(1)]
 		public Gender Gender;
 	}
 
@@ -85,12 +88,12 @@ namespace Edge.Data.Objects
 		Female = 2
 	}
 
-	[TypeID(4)]
+	[MappedObjectTypeID(4)]
 	public class AgeTarget : Target
 	{
-		[FieldIndex(1)]
+		[MappedObjectFieldIndex(1)]
 		public int FromAge;
-		[FieldIndex(2)]
+		[MappedObjectFieldIndex(2)]
 		public int ToAge;
 	}
 }
