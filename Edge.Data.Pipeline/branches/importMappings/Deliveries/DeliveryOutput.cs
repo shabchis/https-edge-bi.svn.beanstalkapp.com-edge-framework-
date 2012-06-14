@@ -131,9 +131,11 @@ namespace Edge.Data.Pipeline
 			conflicting= DeliveryDB.GetOutputsBySignature(this.Signature, exclude: this.OutputID);
 			if (conflicting != null)
 			{
-
 				foreach (DeliveryOutput conflict in conflicting)
-					conflict.PipelineInstanceIsRunning = DeliveryDB.GetRuning(conflict.PipelineInstanceID.Value);				
+				{
+					if (conflict.PipelineInstanceID != null)
+						conflict.PipelineInstanceIsRunning = DeliveryDB.GetRuning(conflict.PipelineInstanceID.Value);
+				}
 			}
 			return conflicting;
 		}

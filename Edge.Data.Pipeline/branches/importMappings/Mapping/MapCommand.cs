@@ -108,6 +108,13 @@ namespace Edge.Data.Pipeline.Mapping
 				Match match = matches[i];
 
 				// ...................................
+				// READ COMMANDS
+
+				if (implicitRead != null)
+					map.ReadCommands.Add(implicitRead);
+				map.Inherit();
+
+				// ...................................
 				// MEMBER
 
 				Group memberGroup = match.Groups["member"];
@@ -160,7 +167,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (indexer.StartsWith("{") && indexer.EndsWith("}"))
 					{
 						// This is an eval indexer
-						map.Indexer = new EvalComponent(map, indexer.Substring(1, indexer.Length-2), xml);
+						map.Indexer = new EvalComponent(map, indexer.Substring(1, indexer.Length-2), xml, inheritedReadOnly: true);
 					}
 					else if (indexer.Length > 0)
 					{
@@ -180,13 +187,6 @@ namespace Edge.Data.Pipeline.Mapping
 						map.Indexer = MapCommand.ListAddingMode;
 					}
 				}
-
-				// ...................................
-				// READ COMMANDS
-
-				if (implicitRead != null)
-					map.ReadCommands.Add(implicitRead);
-				map.Inherit();
 
 				// ...................................
 				// VALUE TYPE
