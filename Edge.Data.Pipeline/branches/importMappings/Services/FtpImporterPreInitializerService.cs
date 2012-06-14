@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override Core.Services.ServiceOutcome DoWork()
 		{
-			string fileConflictBehavior = "Ignore";
+			string fileConflictBehavior = "Abort";
 
 			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
 				fileConflictBehavior = this.Instance.Configuration.Options["FileConflictBehavior"];
