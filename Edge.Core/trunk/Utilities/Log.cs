@@ -48,102 +48,6 @@ namespace Edge.Core.Utilities
 		public string Message = null;
 		public bool IsException = false;
 		public string ExceptionDetails = null;
-
-		string ConnectionString
-		{
-			get { return AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase", configFile: EdgeServicesConfiguration.Current.ConfigurationFile); }
-		}
-
-		public void Save()
-		{
-			/*Fixed buy alon 30/3/2001- bug-when  data manager.currecnt.openconnection() is starting transaction and 
-			 * on the log.save you create transaction you get error message:"ther transaction is either not associete with the current connection
-			 or has been commited.
-			 the fix is to create the comand not using the datamatanger.createCommand so the transaction will not be associte withe the log connection*/
-			SqlCommand cmd = new SqlCommand();
-			cmd.CommandType = System.Data.CommandType.Text;
-			cmd.CommandText = @"insert into Log
-				(
-					MachineName,
-					ProcessID,
-					Source,
-					MessageType,
-					ServiceInstanceID,
-					AccountID,
-					Message,
-					IsException,
-					ExceptionDetails
-				)
-				values
-				(
-					@MachineName,
-					@ProcessID,
-					@Source,
-					@MessageType,
-					@ServiceInstanceID,
-					@AccountID,
-					@Message,
-					@IsException,
-					@ExceptionDetails
-				)";
-
-
-			cmd.Parameters.AddWithValue("@MachineName", this.MachineName);
-			cmd.Parameters.AddWithValue("@ProcessID", this.ProcessID);
-			cmd.Parameters.AddWithValue("@Source", this.Source);
-			cmd.Parameters.AddWithValue("@MessageType", this.MessageType);
-			cmd.Parameters.AddWithValue("@ServiceInstanceID", this.ServiceInstanceID);
-			cmd.Parameters.AddWithValue("@AccountID", this.AccountID);
-			cmd.Parameters.AddWithValue("@Message", Null(this.Message));
-			cmd.Parameters.AddWithValue("@IsException", this.IsException);
-			cmd.Parameters.AddWithValue("@ExceptionDetails", Null(this.ExceptionDetails));
-
-			try
-			{
-				using (SqlConnection connection = new SqlConnection(ConnectionString))
-				{
-					connection.Open();
-					cmd.Connection = connection;
-					cmd.ExecuteNonQuery();
-
-				}
-			}
-			catch (Exception ex)
-			{
-
-				try
-				{
-					if (!EventLog.SourceExists("Edge.Core.Utilities.Log"))
-					{
-						EventLog.CreateEventSource(new EventSourceCreationData("Edge.Core.Utilities.Log", "Edge"));
-					}
-					EventLog eventLog = new EventLog();
-					eventLog.Source = "Edge.Core.Utilities.Log";
-					eventLog.WriteEntry(string.Format("Source:Log.Save\nerror: {0}", ex.Message), EventLogEntryType.Error);
-
-				}
-				catch (Exception)
-				{
-
-
-				}
-
-
-
-			}
-
-
-
-
-		}
-
-		object Null(object obj)
-		{
-			if (obj == null)
-				return DBNull.Value;
-			else
-				return obj;
-		}
 	}
 
 
@@ -151,60 +55,26 @@ namespace Edge.Core.Utilities
 	/// <summary>
 	/// A class which writes events into the windows event viewer.
 	/// </summary>
-	public class Log
+	public static class Log
 	{
-		//public static string LogName = AppSettings.Get(typeof(Log), "LogName");
-		//private EventLog _log = new EventLog(LogName);
-		private string _source;
-
-		private IServiceInstance _instance;
-		private Queue<LogEntry> _logQueue = new Queue<LogEntry>();
-		private log4net.ILog logg = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+		private static string _source;
+		private static IServiceInstance _instance;
+		private static Queue<LogEntry> _logQueue = new Queue<LogEntry>();
+		private static log4net.ILog logg = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 		private static IAsyncResult _asyncResult;
 		private static Action _save;
 		private static bool _stopThread;
-		/*
+
 		static Log()
 		{
-			bool check;
-			if (bool.TryParse(AppSettings.Get(typeof(Log), "AllowNoOverwrite", false), out check) && check)
-				return;
-
-			EventLog log = new EventLog(LogName);
-
-			// See if the log source name exists and check the OverflowAction status.
-			// If the log is not decalred as OverwriteAsNeeded we throw a LoggingException.
-			if (EventLog.SourceExists(LogName) && log.OverflowAction != OverflowAction.OverwriteAsNeeded)
-				throw new LoggingException(
-					"Event log requires the \"overwrite as needed\" setting. " +
-					"Configure this via the Windows Event Viewer. " +
-					"If you want more contol over event log settings," +
-					"set Edge.Core.Utilities.Log.AllowNoOverwrite " +
-					"to true in the application settings.");
-		}
-		 */
-
-		internal Log(IServiceInstance instance)
-		{
-			if (instance == null)
-				throw new ArgumentNullException("instance");
-
-			_instance = instance;
-
-			//_log.Source = instance.Configuration.Name;
-			_source = instance.Configuration.Name;
+			if (Service.Current != null)
+			{
+				_instance = Service.Current.Instance;
+				_source = _instance.Configuration.Name;
+			}
 		}
 
-		internal Log(string source)
-		{
-			if (String.IsNullOrEmpty(source))
-				throw new ArgumentNullException("source");
-
-			//_log.Source = source;
-			_source = source;
-		}
-
-		internal void InternalWrite(string message, Exception ex, LogMessageType messageType, int accountID = -1)
+		internal static void InternalWrite(string message, Exception ex, LogMessageType messageType, int accountID = -1)
 		{
 			LogEntry entry = new LogEntry();
 			entry.Source = _source;
@@ -227,28 +97,19 @@ namespace Edge.Core.Utilities
 				_logQueue.Enqueue(entry);
 			}
 
-			if (_asyncResult == null)
-			{
-				_save = new Action(Save);				
-				_asyncResult = _save.BeginInvoke(null, null);
-				
-			}
-
-
-
-
-
-
-
-
-
-
-
-
-			//entry.Save();
+			StartPump();
 		}
 
-		public static void Stop()
+		public static void StartPump()
+		{
+			if (_asyncResult == null)
+			{
+				_save = new Action(Pump);
+				_asyncResult = _save.BeginInvoke(null, null);
+			}
+		}
+
+		public static void StopPump()
 		{
 			_stopThread = true;
 			if (_asyncResult != null)
@@ -257,32 +118,29 @@ namespace Edge.Core.Utilities
 			}
 		}
 
+		#region Public write methods
+		// ---------------------------------
 		public static void Write(string message, Exception ex, LogMessageType messageType, int accountID = -1)
 		{
 
 			if (Service.Current == null)
 				throw new InvalidOperationException("Source parameter must be specified when writing to the log outside of a service context.");
 
-			Service.Current.Log.InternalWrite(message, ex, messageType, accountID);
+			InternalWrite(message, ex, messageType, accountID);
 		}
 
 		public static void Write(string message, LogMessageType messageType)
 		{
-
-
 			Write(message, (Exception)null, messageType);
 		}
 
 		public static void Write(string message, Exception ex)
 		{
-
-
 			Write(message, ex, LogMessageType.Error);
 		}
 
 		public static void Write(string source, string message, Exception ex, LogMessageType messageType)
 		{
-
 
 			// Use source-less version when source is null
 			if (String.IsNullOrEmpty(source))
@@ -291,62 +149,36 @@ namespace Edge.Core.Utilities
 			if (Service.Current != null)
 				throw new InvalidOperationException("Cannot specify source when writing to the log within a service context.");
 
-			Log log = new Log(source);
-			log.InternalWrite(message, ex, messageType);
+			InternalWrite(message, ex, messageType);
 		}
 
 		public static void Write(string source, string message, LogMessageType messageType)
 		{
-
-
 			Write(source, message, null, messageType);
 		}
 
 		public static void Write(string source, string message, Exception ex)
 		{
-
-
 			Write(source, message, ex, LogMessageType.Error);
 		}
+		// ---------------------------------
+		#endregion
 
-
-		/*
-		static EventLogEntryType GetEventEntryType(LogMessageType type)
-		{
-			if (type == LogMessageType.Error)
-				return EventLogEntryType.Error;
-
-			if (type == LogMessageType.Information)
-				return EventLogEntryType.Information;
-
-			if (type == LogMessageType.Warning)
-				return EventLogEntryType.Warning;
-
-			return EventLogEntryType.Information;
-		}
-		*/
-
-
-		public void Save()
+		public static void Pump()
 		{
 			while (_stopThread!=true)
 			{
-
-
 				while (_logQueue.Count > 0)
 				{
 					WriteToDb();
 				}
 				Thread.Sleep(100);
 			}
-			if (_logQueue.Count > 0)
+			while (_logQueue.Count > 0)
 				WriteToDb();
-	
-			
-
 		}
 
-		private void WriteToDb()
+		private static void WriteToDb()
 		{
 			LogEntry entry;
 			lock (_logQueue)
@@ -379,15 +211,4 @@ namespace Edge.Core.Utilities
 			}
 		}
 	}
-
-	//[AttributeUsage(AttributeTargets.Class, Inherited=true, AllowMultiple=false)]
-	//public sealed class LoggingSourceAttribute: Attribute
-	//{
-	//    string _name = null;
-	//    public string Name
-	//    {
-	//        get { return _name; }
-	//        set { _name = value; }
-	//    }
-	//}
 }

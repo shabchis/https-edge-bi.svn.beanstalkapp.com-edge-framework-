@@ -29,6 +29,7 @@ namespace Edge.Core.Services
 
 		ActiveServiceElement _config;
 		SchedulingRuleElement _activeRule;
+		string _logSource;
 		
 		EventHandler<ServiceStateChangedEventArgs> _childStateHandler;
 		EventHandler _childOutcomeHandler;
@@ -38,7 +39,6 @@ namespace Edge.Core.Services
 		ServiceEngineCommChannel _commChannel;
 
 		Dictionary<ServiceInstance, int> _childServices = new Dictionary<ServiceInstance, int>();
-		Log Log;
 
 		/*=========================*/
 		#endregion
@@ -65,6 +65,7 @@ namespace Edge.Core.Services
 			this.Guid = Guid.NewGuid();
 			ActiveConfigurationProperty.SetValue(this, activeConfiguration);
 			ParentInstanceProperty.SetValue(this, parentInstance);
+			_logSource = activeConfiguration.Name;
 
 			if (accountID > -1)
 				AccountIDProperty.SetValue(this, accountID);
@@ -72,8 +73,6 @@ namespace Edge.Core.Services
 			_childStateHandler = new EventHandler<ServiceStateChangedEventArgs>(ChildStateChanged);
 			_childOutcomeHandler = new EventHandler(ChildOutcomeReported);
 			_childProgressHandler = new EventHandler(ChildProgressReported);
-
-			Log = new Log(this);
 		}
 
 		/// <summary>
@@ -624,6 +623,8 @@ namespace Edge.Core.Services
 			StateProperty.SetValue(this, state);
 			if (state == ServiceState.Ended)
 				TimeEndedProperty.SetValue(this, DateTime.Now);
+
+		
 
             if (save)
 			    this.Save();

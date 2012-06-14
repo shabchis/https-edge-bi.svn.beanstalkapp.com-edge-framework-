@@ -41,7 +41,6 @@ namespace Edge.Core.Services
 		EventHandler _processEndHandler;
 		
 		ServiceHost _wcfHost;
-		Log _log;
 
 		List<EvaluatorVariable> _globalConditionVars;
 
@@ -79,10 +78,10 @@ namespace Edge.Core.Services
 			get { return _current; }
 		}
 
-		internal Log Log
-		{
-			get { return _log; }
-		}
+		//internal Log Log
+		//{
+		//    get { return _log; }
+		//}
 
 		public ServiceInstanceInfo Instance
 		{
@@ -191,7 +190,6 @@ namespace Edge.Core.Services
 		internal void Init(ServiceInstanceInfo instance)
 		{
 			_instance = instance;
-			_log = new Log(instance);
 
 			if (_wcfHost == null)
 			{
@@ -720,7 +718,7 @@ namespace Edge.Core.Services
 				OnEnded(_outcome);
 
 				// Wait for all log messageds to be written
-				Log.Stop();
+				Log.StopPump();
 
 				// Notify subscribers
 				if (_subscribers.ContainsKey(ServiceEventType.OutcomeReported))
