@@ -241,6 +241,19 @@ namespace Edge.Data.Pipeline.Mapping
 
 		protected override void OnApply(object target, MappingContext context)
 		{
+            // .......................................
+            // Process inherited read commands only
+            foreach (ReadCommand read in this.InheritedReads.Values)
+            {
+                if (this.ReadCommands.Contains(read))
+                    continue;
+
+                read.Read(context);
+            }
+
+            // .......................................
+            // Check condition - only external read commands are available here
+
 			if (this.Condition != null)
 			{
 				var condition = (bool)this.Condition.GetOuput(context, inheritedOnly: true);
@@ -249,8 +262,8 @@ namespace Edge.Data.Pipeline.Mapping
 			}
 
 			// .......................................
-			// Process read commands
-			foreach (ReadCommand read in this.InheritedReads.Values)
+			// Process inner read commands only
+			foreach (ReadCommand read in this.ReadCommands)
 				read.Read(context);
 
 			// .......................................
