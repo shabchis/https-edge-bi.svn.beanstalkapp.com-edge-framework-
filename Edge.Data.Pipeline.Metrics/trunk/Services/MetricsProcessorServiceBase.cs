@@ -151,7 +151,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						{
 							Account account = new Account()
 							{
-								ID = Convert.ToInt16(reader[1]),
+								ID = Convert.ToInt32(reader[1]),
 								Name = Convert.ToString(reader[0])
 							};
 							accounts.Add(account.Name, account);
