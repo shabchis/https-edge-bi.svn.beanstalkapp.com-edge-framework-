@@ -11,18 +11,16 @@ namespace Edge.Data.Pipeline.Metrics
 		{
 			public const string TablePerfix = "TablePerfix";
 			public const string MeasureNamesSql = "MeasureNamesSql";
-			public const string MeasureOltpFieldsSql = "MeasureOltpFieldsSql";
+			public const string MeasureFieldsSql = "MeasureFieldsSql";
 			public const string MeasureValidateSql = "MeasureValidateSql";
 			public const string CommitTableName = "CommitTableName";
-			public const string ChecksumTotals = "ChecksumTotals";
-			public const string ChecksumInputs = "ChecksumInputs";
 		}
 
 		public static class AppSettings
 		{
 			public const string BufferSize = "BufferSize";
-			public const string SqlPrepareCommand = "Sql.PrepareCommand";
-			public const string SqlCommitCommand = "Sql.CommitCommand";
+			public const string SqlTransformCommand = "Sql.TransformCommand";
+			public const string SqlStageCommand = "Sql.StageCommand";
 			public const string SqlRollbackCommand = "Sql.RollbackCommand";
 			
 		}

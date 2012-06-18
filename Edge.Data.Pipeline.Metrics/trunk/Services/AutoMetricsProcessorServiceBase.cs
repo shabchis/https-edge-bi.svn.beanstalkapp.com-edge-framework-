@@ -20,8 +20,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
 			var importManagerOptions = new MetricsImportManagerOptions()
 			{
-				SqlPrepareCommand = Instance.Configuration.Options[Consts.AppSettings.SqlPrepareCommand],
-				SqlCommitCommand = Instance.Configuration.Options[Consts.AppSettings.SqlCommitCommand],
+				SqlTransformCommand = Instance.Configuration.Options[Consts.AppSettings.SqlPrepareCommand],
+				SqlStageCommand = Instance.Configuration.Options[Consts.AppSettings.SqlStageCommand],
 				SqlRollbackCommand = Instance.Configuration.Options[Consts.AppSettings.SqlRollbackCommand],
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
