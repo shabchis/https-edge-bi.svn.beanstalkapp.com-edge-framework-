@@ -21,7 +21,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			
 			MetricsImportManagerOptions options = new MetricsImportManagerOptions()
 			{
-				SqlTransformCommand = Instance.Configuration.Options[Consts.AppSettings.SqlPrepareCommand],
+				SqlTransformCommand = Instance.Configuration.Options[Consts.AppSettings.SqlTransformCommand],
 				SqlStageCommand = Instance.Configuration.Options[Consts.AppSettings.SqlStageCommand],
 				SqlRollbackCommand = Instance.Configuration.Options[Consts.AppSettings.SqlRollbackCommand],
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
