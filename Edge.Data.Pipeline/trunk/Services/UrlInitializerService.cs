@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Services
 				this.Delivery = NewDelivery();
 				this.Delivery.TimePeriodDefinition = this.TimePeriod;
 				this.Delivery.Account = this.Instance.AccountID != -1 ? new Account() { ID = this.Instance.AccountID } : null; // no account means there is no permission validation
-				this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.TargetLocationDirectory);
+				this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.FileDirectory);
 
 				int channelID = this.Instance.Configuration.GetOption<int>("ChannelID", emptyIsError: false, defaultValue: -1);
 				if (channelID != -1)
