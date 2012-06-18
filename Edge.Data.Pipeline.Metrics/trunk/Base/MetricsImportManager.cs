@@ -36,8 +36,8 @@ namespace Edge.Data.Pipeline.Metrics
 		{
 			options = options ?? new MetricsImportManagerOptions();
 			options.StagingConnectionString = options.StagingConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.StagingDatabase);
-			options.SqlPrepareCommand = options.SqlPrepareCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlPrepareCommand, throwException: false);
-			options.SqlCommitCommand = options.SqlCommitCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlCommitCommand, throwException: false);
+			options.SqlTransformCommand = options.SqlTransformCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlPrepareCommand, throwException: false);
+			options.SqlStageCommand = options.SqlStageCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlStageCommand, throwException: false);
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
 			
 			this.Options = options;
@@ -116,7 +116,7 @@ namespace Edge.Data.Pipeline.Metrics
 				count++;
 			}
 
-			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql, measuresFieldNamesSQL.ToString());
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureFieldsSql, measuresFieldNamesSQL.ToString());
 			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
 			if (string.IsNullOrEmpty(measuresValidationSQL.ToString()))
 				Log.Write("No measures marked for checksum validation; there will be no validation before the final commit.", LogMessageType.Warning);
@@ -177,7 +177,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnBeginTransform()
 		{
-			if (String.IsNullOrWhiteSpace(this.Options.SqlPrepareCommand))
+			if (String.IsNullOrWhiteSpace(this.Options.SqlTransformCommand))
 				throw new ConfigurationException("Options.SqlPrepareCommand is empty.");
 
 			_sqlConnection = NewDeliveryDbConnection();
@@ -189,7 +189,7 @@ namespace Edge.Data.Pipeline.Metrics
 			
 
 			// get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
+			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureFieldsSql].ToString();
 			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
 
 			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
@@ -200,9 +200,8 @@ namespace Edge.Data.Pipeline.Metrics
 				// ...........................
 				// PREPARE data
 
-				_transformCommand = _transformCommand ?? DataManager.CreateCommand(this.Options.SqlPrepareCommand, CommandType.StoredProcedure);
+				_transformCommand = _transformCommand ?? DataManager.CreateCommand(this.Options.SqlTransformCommand, CommandType.StoredProcedure);
 				_transformCommand.Connection = _sqlConnection;
-
 				_transformCommand.Parameters["@DeliveryID"].Size = 4000;
 				_transformCommand.Parameters["@DeliveryID"].Value = deliveryId;
 				_transformCommand.Parameters["@DeliveryTablePrefix"].Size = 4000;
@@ -302,8 +301,8 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnBeginStage()
 		{
-			if (String.IsNullOrWhiteSpace(this.Options.SqlCommitCommand))
-				throw new ConfigurationException("Options.SqlCommitCommand is empty.");
+			if (String.IsNullOrWhiteSpace(this.Options.SqlStageCommand))
+				throw new ConfigurationException("Options.SqlStageCommand is empty.");
 
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
@@ -314,7 +313,7 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void  OnStage(Delivery delivery, int pass)
 		{
 			// get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureOltpFieldsSql].ToString();
+			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureFieldsSql].ToString();
 			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
 
 			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
@@ -324,7 +323,7 @@ namespace Edge.Data.Pipeline.Metrics
 			// ...........................
 			// COMMIT data to OLTP
 
-			_commitCommand = _commitCommand ?? DataManager.CreateCommand(this.Options.SqlCommitCommand, CommandType.StoredProcedure);
+			_commitCommand = _commitCommand ?? DataManager.CreateCommand(this.Options.SqlStageCommand, CommandType.StoredProcedure);
 			_commitCommand.Connection = _sqlConnection;
 			_commitCommand.Transaction = _commitTransaction;
 

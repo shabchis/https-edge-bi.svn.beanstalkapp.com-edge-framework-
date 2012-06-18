@@ -14,8 +14,8 @@ namespace Edge.Data.Pipeline.Common.Importing
 	public class MetricsImportManagerOptions
 	{
 		public string StagingConnectionString { get; set; }
-		public string SqlPrepareCommand { get; set; }
-		public string SqlCommitCommand { get; set; }
+		public string SqlTransformCommand { get; set; }
+		public string SqlStageCommand { get; set; }
 		public string SqlRollbackCommand { get; set; }
 		public double ChecksumThreshold { get; set; }
 		public MeasureOptions MeasureOptions { get; set; }
