@@ -234,13 +234,14 @@ namespace Edge.Data.Pipeline.Services
 					{
 						AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
 						if (!account.Extensions.TryGetValue(MappingConfigurationElement.ExtensionName, out extension))
-							throw new MappingConfigurationException("No mapping configuration found.");
+							extension = null;
 					}
 					_mapping = new MappingConfiguration();
 					_mapping.Usings.Add("System.{0}, mscorlib");
 					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Pipeline");
 
-					((MappingConfigurationElement)extension).LoadInto(_mapping);
+					if (extension != null)
+						((MappingConfigurationElement)extension).LoadInto(_mapping);
 				}
 
 				return _mapping;
