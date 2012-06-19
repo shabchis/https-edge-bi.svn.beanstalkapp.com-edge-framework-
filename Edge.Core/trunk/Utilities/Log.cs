@@ -207,6 +207,9 @@ namespace Edge.Core.Utilities
 				case LogMessageType.Information:
 					logg.Info(string.Empty);
 					break;
+				case LogMessageType.Debug:
+					logg.Debug(string.Empty);
+					break;
 
 			}
 		}
