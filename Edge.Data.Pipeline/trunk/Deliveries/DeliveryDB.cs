@@ -812,21 +812,20 @@ namespace Edge.Data.Pipeline
 
 
 		}
-		public static DeliveryOutput[] GetOutputsByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end, bool exact)
+		public static DeliveryOutput[] GetOutputsByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end)
 		{
 			List<DeliveryOutput> outputs = new List<DeliveryOutput>();
 			List<string> outputsIds = new List<string>();
 
 			using (var client = DeliveryDBClient.Connect())
 			{
-				using (SqlCommand cmd = DataManager.CreateCommand("Output_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = DataManager.CreateCommand("Output_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
 					cmd.Parameters["@channelID"].Value = channelID;
 					cmd.Parameters["@accountID"].Value = accountID;
 					cmd.Parameters["@targetPeriodStart"].Value = start;
 					cmd.Parameters["@targetPeriodEnd"].Value = end;
-					cmd.Parameters["@exact"].Value = exact;
 
 					using (SqlDataReader reader = cmd.ExecuteReader())
 					{
