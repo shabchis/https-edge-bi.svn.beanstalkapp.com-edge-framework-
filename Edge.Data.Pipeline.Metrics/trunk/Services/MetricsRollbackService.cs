@@ -15,10 +15,14 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-
-
-			string[] deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
-			string[] ouputsIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
+			string[] deliveriesIds=null;
+			string[] ouputsIds=null;
+			if (Instance.Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackDeliveries))
+				deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
+			else if (Instance.Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackOutputs))
+				ouputsIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
+			else
+				throw new Exception("Option RollbackDeliveries or RollbackOutputs must be defined");
 			string spRolebackbyDeliveries = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByDeliverisStoredProc);
 			string spRolebackbyOutputs = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByOutputsStoredProc);
 			string tableName = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
@@ -53,7 +57,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					foreach (string outputID in ouputsIds)
 					{
 
-						cmd.Parameters["@outputID"].Value = outputID;
+						cmd.Parameters["@DeliveryOutputID"].Value = outputID;
 						cmd.Parameters["@TableName"].Value = tableName;
 						cmd.ExecuteNonQuery();
 					}
