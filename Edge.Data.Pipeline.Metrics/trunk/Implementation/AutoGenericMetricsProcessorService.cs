@@ -17,9 +17,10 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 	/// <summary>
 	/// Base class for ad metrics processors.
 	/// </summary>
-	public abstract class GenericMetricsProcessorBase : AutoMetricsProcessorServiceBase
+	public class AutoGenericMetricsProcessorService : AutoMetricsProcessorServiceBase
 	{
 		MappingContainer _metricsMappings;
+		MappingContainer _signatureMappings;
 
 		public new GenericMetricsImportManager ImportManager
 		{
@@ -35,12 +36,43 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 		{
 			if (!this.Mappings.Objects.TryGetValue(typeof(AdMetricsUnit), out _metricsMappings))
 				throw new MappingConfigurationException("Missing mapping definition for AdMetricsUnit.", "Object");
+			
+			if (!this.Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
+				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
 
 		protected override void OnRead()
 		{
 			var metrics = new GenericMetricsUnit();
 			_metricsMappings.Apply(metrics);
+
+			var signature = new Signature();
+			_signatureMappings.Apply(signature);
+
+			//checking if signature is already exists in delivery outputs
+			var outputs = from output in this.Delivery.Outputs
+						  where output.Signature.Equals(signature.ToString())
+						  select output;
+
+			DeliveryOutput op = outputs.FirstOrDefault<DeliveryOutput>();
+			if (op != null)
+				//Attaching output to Metrics
+				(metrics as GenericMetricsUnit).Output = op;
+			else
+			{
+				DeliveryOutput deliveryOutput = new DeliveryOutput()
+				{
+					Signature = signature.Value,
+					TimePeriodStart = metrics.TimePeriodStart,
+					TimePeriodEnd = metrics.TimePeriodEnd,
+					Account = metrics.Account,
+					Channel = metrics.Channel
+				};
+				this.Delivery.Outputs.Add(deliveryOutput);
+				//Attaching output to Metrics
+				(metrics as GenericMetricsUnit).Output = deliveryOutput;
+			}
+
 			this.ImportManager.ImportMetrics(metrics);
 		}
 	}
