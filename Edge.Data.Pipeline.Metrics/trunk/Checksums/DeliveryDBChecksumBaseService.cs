@@ -119,7 +119,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 					foreach (DeliveryOutput output in outputToCheck)
 					{
-						if (output.Status == DeliveryOutputStatus.Committed && output.Checksum != null && output.Checksum.Count > 0)
+						if (output.Status == DeliveryOutputStatus.Committed || output.Status==DeliveryOutputStatus.Staged && output.Checksum != null && output.Checksum.Count > 0)
 						{
 							//Check Delivery data vs OLTP
 							yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
