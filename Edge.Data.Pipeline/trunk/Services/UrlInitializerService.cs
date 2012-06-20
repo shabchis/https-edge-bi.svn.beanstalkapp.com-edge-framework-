@@ -28,39 +28,39 @@ namespace Edge.Data.Pipeline.Services
 						ID = channelID
 					};
 			}
-
-			/*------------------------------------------------------------------------------------------*/
-			#region FTP Configuration
-			/*===============================================================================================*/
-
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
-				throw new Exception("Missing Configuration Param , UsePassive");
-			this.Delivery.Parameters.Add("UsePassive", bool.Parse(this.Instance.Configuration.Options["UsePassive"]));
-
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
-				throw new Exception("Missing Configuration Param , UsePassive");
-			this.Delivery.Parameters.Add("UseBinary", bool.Parse(this.Instance.Configuration.Options["UseBinary"]));
-
-			//Get Permissions
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
-				throw new Exception("Missing Configuration Param , UserID");
-			string UserId = this.Instance.Configuration.Options["UserID"];
-
-
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["Password"]))
-				throw new Exception("Missing Configuration Param , Password");
-			string Password = Core.Utilities.Encryptor.Dec(this.Instance.Configuration.Options["Password"]);
-			/*===============================================================================================*/
-			#endregion
-
 			WebRequest request = FileWebRequest.Create(this.Instance.Configuration.Options["SourceUrl"]);
 
 			/* FTP */
 			if (request.GetType().Equals(typeof(FtpWebRequest)))
 			{
+				/*------------------------------------------------------------------------------------------*/
+				#region FTP Configuration
+				/*===============================================================================================*/
+
+				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
+					throw new Exception("Missing Configuration Param , UsePassive");
+				this.Delivery.Parameters.Add("UsePassive", bool.Parse(this.Instance.Configuration.Options["UsePassive"]));
+
+				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
+					throw new Exception("Missing Configuration Param , UsePassive");
+				this.Delivery.Parameters.Add("UseBinary", bool.Parse(this.Instance.Configuration.Options["UseBinary"]));
+
+				//Get Permissions
+				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
+					throw new Exception("Missing Configuration Param , UserID");
+				string UserId = this.Instance.Configuration.Options["UserID"];
+
+
+				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["Password"]))
+					throw new Exception("Missing Configuration Param , Password");
+				string Password = Core.Utilities.Encryptor.Dec(this.Instance.Configuration.Options["Password"]);
+				/*===============================================================================================*/
+				#endregion
+
+
 				this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
 				{
-					Name =this.Instance.Configuration.Options["DeliveryFileName"],
+					Name = this.Instance.Configuration.Options["DeliveryFileName"],
 					SourceUrl = this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl],
 				});
 
