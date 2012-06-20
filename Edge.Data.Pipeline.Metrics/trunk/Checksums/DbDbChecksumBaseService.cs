@@ -107,6 +107,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 						alerts.Add(measure.Key,diff);
 				}
 				
+				
 				//Checking for errors
 				if (alerts.Count > 0)
 				{

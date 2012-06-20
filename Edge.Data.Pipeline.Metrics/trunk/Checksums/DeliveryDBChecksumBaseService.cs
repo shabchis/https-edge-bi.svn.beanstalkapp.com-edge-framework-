@@ -119,9 +119,10 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 					foreach (DeliveryOutput output in outputToCheck)
 					{
-						if (output.Status == DeliveryOutputStatus.Committed || output.Status==DeliveryOutputStatus.Staged && output.Checksum != null && output.Checksum.Count > 0)
+						if ((output.Status == DeliveryOutputStatus.Committed || output.Status==DeliveryOutputStatus.Staged) && output.Checksum != null && output.Checksum.Count > 0)
 						{
 							//Check Delivery data vs OLTP
+							foundCommited = true;
 							yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
 						}
 
@@ -136,7 +137,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 							AccountID = deliveryOutput.Account.ID,
 							TargetPeriodStart = deliveryOutput.TimePeriodStart,
 							TargetPeriodEnd = deliveryOutput.TimePeriodEnd,
-							Message = "Cannot find deliveries in DB",
+							Message = "Cannot find outputs in DB",
 							ChannelID = deliveryOutput.Channel.ID,
 							CheckType = this.Instance.Configuration.Name
 						};
@@ -149,7 +150,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 							AccountID = deliveryOutput.Account.ID,
 							TargetPeriodStart = deliveryOutput.TimePeriodStart,
 							TargetPeriodEnd = deliveryOutput.TimePeriodEnd,
-							Message = "Cannot find Commited deliveries in DB",
+							Message = "Cannot find Commited output in DB",
 							ChannelID = deliveryOutput.Channel.ID,
 							CheckType = this.Instance.Configuration.Name
 						};
@@ -164,7 +165,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 				foreach (DeliveryOutput output in this.Delivery.Outputs)
 				{
-					if (output.Status == DeliveryOutputStatus.Committed && output.Checksum != null && output.Checksum.Count > 0)
+					if ((output.Status == DeliveryOutputStatus.Committed || output.Status==DeliveryOutputStatus.Staged )&& output.Checksum != null && output.Checksum.Count > 0)
 					{
 						yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
 					}
