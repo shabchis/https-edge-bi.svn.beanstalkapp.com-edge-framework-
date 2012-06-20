@@ -21,7 +21,7 @@ namespace Edge.Data.Pipeline.Services
 		{
 			string fileConflictBehavior = "Abort";
 
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
+			if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
 				fileConflictBehavior = this.Instance.Configuration.Options["FileConflictBehavior"];
 
 			#region FTP Configuration
