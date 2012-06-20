@@ -955,6 +955,7 @@ namespace Edge.Data.Pipeline
 							#region DeliveryOutput
 							output = new DeliveryOutput()
 							{
+								DeliveryID=reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)),
 								OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
 								Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null),
 								Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
@@ -1008,6 +1009,23 @@ namespace Edge.Data.Pipeline
 
 					}
 				}
+				using (SqlCommand sqlCommand = DataManager.CreateCommand(@"SELECT Account_OriginalID
+																	  from Delivery
+																	  where DeliveryID= @DeliveryID:Char", System.Data.CommandType.Text))
+				{
+
+					sqlCommand.Connection = client;
+					sqlCommand.Parameters["@DeliveryID"].Value = output.DeliveryID.ToString("N");
+					using (SqlDataReader reader = sqlCommand.ExecuteReader())
+					{
+						reader.Read();
+						output.Account.OriginalID = reader.Get<string>("Account_OriginalID");
+
+					}
+				}
+				
+
+				
 			}
 			return output;
 

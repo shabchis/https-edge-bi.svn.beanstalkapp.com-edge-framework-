@@ -48,6 +48,11 @@ namespace Edge.Data.Pipeline
 		public Guid OutputID { get; internal set; }
 
 		/// <summary>
+		/// Gets the Delivery ID of the file;
+		/// </summary>
+		public Guid DeliveryID { get; internal set; }
+
+		/// <summary>
 		/// 
 		/// </summary>
 		public Delivery Delivery { get; set; }
