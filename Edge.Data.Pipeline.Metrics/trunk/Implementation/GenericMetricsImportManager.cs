@@ -62,6 +62,13 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 		public GenericMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
 			: base(serviceInstanceID, options)
 		{
+			bool hasMeasureOptions = this.Options.MeasureOptions != MeasureOptions.None;
+			this.Options.MeasureOptions = hasMeasureOptions ? this.Options.MeasureOptions :MeasureOptions.IsBackOffice;
+			this.Options.MeasureOptionsOperator = hasMeasureOptions ? this.Options.MeasureOptionsOperator : OptionsOperator.Or;
+
+			bool hasSegmentOptions = this.Options.SegmentOptions != SegmentOptions.None;
+			this.Options.SegmentOptions = hasSegmentOptions ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
+			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsOperator.And;
 		}
 
 		public override void ImportMetrics(GenericMetricsUnit metrics)
