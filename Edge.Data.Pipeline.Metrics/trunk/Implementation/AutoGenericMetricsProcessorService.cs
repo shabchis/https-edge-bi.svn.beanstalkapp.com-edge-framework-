@@ -34,8 +34,8 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 
 		protected override void LoadConfiguration()
 		{
-			if (!this.Mappings.Objects.TryGetValue(typeof(AdMetricsUnit), out _metricsMappings))
-				throw new MappingConfigurationException("Missing mapping definition for AdMetricsUnit.", "Object");
+			if (!this.Mappings.Objects.TryGetValue(typeof(GenericMetricsUnit), out _metricsMappings))
+				throw new MappingConfigurationException("Missing mapping definition for GenericMetricsUnit.", "Object");
 			
 			if (!this.Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
