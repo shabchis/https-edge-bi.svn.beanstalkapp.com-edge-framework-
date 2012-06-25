@@ -7,6 +7,7 @@ using Edge.Data.Objects;
 using Edge.Data.Pipeline;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Metrics.Checksums
 {
@@ -93,7 +94,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
         }
         public ValidationResult IsEqual(Dictionary<string, string> Params, Dictionary<string, double> sourceTotals, Dictionary<string, double> targetTotals, string sourceDbName, string targeDbtName)
         {
-           
+			
             if (sourceTotals.Count > 0 && targetTotals.Count > 0)
             {
 
@@ -173,7 +174,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
             }
 
             return new ValidationResult()
-            {
+            {				
                 ResultType = ValidationResultType.Information,
                 AccountID = Convert.ToInt32(Params["AccountID"]),
                 Message = "Validation Success - no differences",
