@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using Newtonsoft.Json;
+using Edge.Core.Services;
 
 
 namespace Edge.Core.Scheduling.Objects
@@ -47,12 +48,14 @@ namespace Edge.Core.Scheduling.Objects
 	public class HistoryItem
 	{
 		public int ID { get; set; }
+		public Guid Guid { get; set; }
+		public ServiceOutcome ServiceOutcome { get; set; }
 		public string ServiceName { get; set; }
 		public int AccountID { get; set; }
 		public SchedulingResult SchedulingResult { get; set; }
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime TimeToRun { get; set; }
-		public HistoryItem(int id, string serviceName, int accountID, SchedulingResult schedulingResult, TimeSpan maxDeviationAfter, DateTime timeToRun)
+		public HistoryItem(int id, string serviceName, int accountID, SchedulingResult schedulingResult, TimeSpan maxDeviationAfter, DateTime timeToRun,Guid guid,ServiceOutcome outcome)
 		{
 			ID = id;
 			ServiceName = serviceName;
@@ -60,6 +63,8 @@ namespace Edge.Core.Scheduling.Objects
 			SchedulingResult = schedulingResult;
 			MaxDeviationAfter = maxDeviationAfter;
 			TimeToRun = timeToRun;
+			Guid = guid;
+			ServiceOutcome = outcome;
 		}
 	}
 	public enum SchedulingResult
