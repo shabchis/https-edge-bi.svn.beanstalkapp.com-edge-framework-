@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -583,13 +584,29 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Abort()
 		{
-			ThrowIfServiceUnavailable();
-			_commChannel.Engine.Abort();
+			if (this.State == ServiceState.Uninitialized)
+			{
+				this.OnStateChanged(ServiceState.Ended);
+				this.OnOutcomeReported(ServiceOutcome.Aborted);
+			}
+			else if (this.State == ServiceState.Aborting)
+			{
+				throw new InvalidOperationException("Service cannot be aborted because it is already aborting.");
+			}
+			else if (this.State == ServiceState.Ended)
+			{
+				throw new InvalidOperationException("Service cannot be aborted because it is already ended.");
+			}
+			else
+			{
+				ThrowIfServiceUnavailable();
+				_commChannel.Engine.Abort();
+			}
 		}
 
 		public IsAlive IsAlive()
 		{
-			return new IsAlive() { OutCome = this.Outcome.ToString(), Progress = this.Progress.ToString(), State = this.State.ToString() };
+			return new IsAlive() { OutCome = this.Outcome, Progress = this.Progress.ToString(), State = this.State.ToString(), Guid= this.Guid };
 		}
 
 		/*=========================*/
@@ -635,7 +652,8 @@ namespace Edge.Core.Services
 			// Abort child services that are still running
 			if (state == ServiceState.Aborting)
 			{
-				foreach (ServiceInstance instance in _childServices.Keys)
+				ServiceInstance[] children = _childServices.Keys.ToArray();
+				foreach (ServiceInstance instance in children)
 				{
 					if (instance.State != ServiceState.Aborting && instance.State != ServiceState.Ended)
 						instance.Abort();

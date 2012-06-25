@@ -647,7 +647,10 @@ namespace Edge.Core.Services
 		{
 			// Abort when time is up
 			if (State != ServiceState.Aborting && State != ServiceState.Ended)
+			{
+				Log.Write(String.Format("Max execution time elapsed, aborting the service. (Running time: {0})", e.SignalTime.ToShortTimeString()), LogMessageType.Error);
 				this.Abort();
+			}
 
 			_executionTimer.Stop();
 		}
