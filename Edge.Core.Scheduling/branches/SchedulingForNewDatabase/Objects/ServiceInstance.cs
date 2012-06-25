@@ -75,4 +75,5 @@ namespace Edge.Core.Scheduling.Objects
 		Running,
 		Ended
 	}
+	
 }
