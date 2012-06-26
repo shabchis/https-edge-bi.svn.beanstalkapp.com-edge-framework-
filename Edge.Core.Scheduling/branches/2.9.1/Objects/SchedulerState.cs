@@ -27,6 +27,7 @@ namespace Edge.Core.Scheduling.Objects
 				jsonSerializer.Serialize(writer, HistoryItems);
 			}
 		}
+
 		public  void Load()
 		{
 			JsonSerializerSettings settings = new JsonSerializerSettings();
@@ -55,6 +56,7 @@ namespace Edge.Core.Scheduling.Objects
 		public SchedulingResult SchedulingResult { get; set; }
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime TimeToRun { get; set; }
+
 		public HistoryItem(int id, string serviceName, int accountID, SchedulingResult schedulingResult, TimeSpan maxDeviationAfter, DateTime timeToRun,Guid guid,ServiceOutcome outcome)
 		{
 			ID = id;
@@ -66,11 +68,16 @@ namespace Edge.Core.Scheduling.Objects
 			Guid = guid;
 			ServiceOutcome = outcome;
 		}
+
+		public HistoryItem FromSchedulingData(SchedulingData data, ServiceInstance instance)
+		{
+			throw new NotImplementedException();
+		}
 	}
 	public enum SchedulingResult
 	{
 		Ended,
-		Deleted
+		Canceled
 	}
 
 }

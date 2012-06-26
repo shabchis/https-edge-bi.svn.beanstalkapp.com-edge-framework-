@@ -11,7 +11,7 @@ namespace Edge.Core.Scheduling.Objects
 		public Guid GuidForUnplaned;
 		public SchedulingScope Scope { get; set; }
 		public List<int> Days { get; set; }
-		public List<TimeSpan> Hours { get; set; }		
+		public List<TimeSpan> Times { get; set; }		
 		public TimeSpan MaxDeviationBefore { get; set; }
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime SpecificDateTime { get; set; }		
@@ -21,7 +21,7 @@ namespace Edge.Core.Scheduling.Objects
 		internal Guid Guid;
 		public ServiceConfiguration Configuration;
 		public SchedulingRule Rule;
-		public int profileID;
+		public int ProfileID;
 		public int SelectedDay;
 		public TimeSpan SelectedHour;
 		public DateTime TimeToRun;
@@ -34,8 +34,8 @@ namespace Edge.Core.Scheduling.Objects
 		public override string ToString()
 		{
 			string uniqueKey = string.Empty;			
-			if (Rule.Scope != SchedulingScope.UnPlanned)
-				uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Configuration.Name);
+			if (Rule.Scope != SchedulingScope.Unplanned)
+				uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, ProfileID, Configuration.Name);
 			else				
 				uniqueKey = Guid.ToString();			
 			return uniqueKey;
@@ -75,6 +75,6 @@ namespace Edge.Core.Scheduling.Objects
 		Day,
 		Week,
 		Month,
-		UnPlanned
+		Unplanned
 	}
 }
