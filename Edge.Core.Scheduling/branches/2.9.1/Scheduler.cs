@@ -139,10 +139,10 @@ namespace Edge.Core.Scheduling
 							#region FindFirstFreeTimeForTheService
 							//Find the first available time this service with specific service and profile
 							ServiceInstance serviceInstance = null;
-							TimeSpan executionTimeInMin = GetAverageExecutionTime(schedulingData.Configuration.Name, schedulingData.Configuration.SchedulingProfile.ID, _percentile);
+							TimeSpan avgExecutionTime = GetAverageExecutionTime(schedulingData.Configuration.Name, schedulingData.Configuration.SchedulingProfile.ID, _percentile);
 
 							DateTime baseStartTime = (schedulingData.TimeToRun < DateTime.Now) ? DateTime.Now : schedulingData.TimeToRun;
-							DateTime baseEndTime = baseStartTime.Add(executionTimeInMin);
+							DateTime baseEndTime = baseStartTime.Add(avgExecutionTime);
 							DateTime calculatedStartTime = baseStartTime;
 							DateTime calculatedEndTime = baseEndTime;
 							bool found = false;
@@ -183,8 +183,8 @@ namespace Edge.Core.Scheduling
 											serviceInstance.LegacyInstance = schedulingData.Configuration.Instance;
 										serviceInstance.LegacyInstance.TimeScheduled = calculatedStartTime;
 										serviceInstance.ServiceName = schedulingData.Configuration.Name;
-										TimeSpan maxExecutionTimeInSeconds = new TimeSpan(0, Convert.ToInt32(Math.Round(executionTimeInMin.Minutes * double.Parse(AppSettings.Get(this, "MaxExecutionTimeProduct")))), 0);
-										serviceInstance.LegacyInstance.Configuration.MaxExecutionTime = maxExecutionTimeInSeconds;
+										TimeSpan maxExecutionTime = TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds * double.Parse(AppSettings.Get(this, "MaxExecutionTimeProduct")));
+										serviceInstance.LegacyInstance.Configuration.MaxExecutionTime = maxExecutionTime;
 										found = true;
 									}
 									else
@@ -193,7 +193,7 @@ namespace Edge.Core.Scheduling
 										if (calculatedStartTime < DateTime.Now)
 											calculatedStartTime = DateTime.Now;
 										//Get end time
-										calculatedEndTime = calculatedStartTime.Add(executionTimeInMin);
+										calculatedEndTime = calculatedStartTime.Add(avgExecutionTime);
 										////remove unfree time from servicePerConfiguration and servicePerProfile							
 										if (calculatedStartTime <= _timeLineTo)
 										{
@@ -215,7 +215,7 @@ namespace Edge.Core.Scheduling
 									if (calculatedStartTime < DateTime.Now)
 										calculatedStartTime = DateTime.Now;
 									//Get end time
-									calculatedEndTime = calculatedStartTime.Add(executionTimeInMin);
+									calculatedEndTime = calculatedStartTime.Add(avgExecutionTime);
 									////remove unfree time from servicePerConfiguration and servicePerProfile							
 									if (calculatedStartTime <= _timeLineTo)
 									{
@@ -236,13 +236,12 @@ namespace Edge.Core.Scheduling
 							KeyValuePair<SchedulingData, ServiceInstance> serviceInstanceAndSchedulingRule = new KeyValuePair<SchedulingData, ServiceInstance>(schedulingData, serviceInstance);
 							if (serviceInstanceAndSchedulingRule.Value.ActualDeviation <= serviceInstanceAndSchedulingRule.Value.MaxDeviationAfter || serviceInstanceAndSchedulingRule.Key.Rule.Scope != SchedulingScope.UnPlanned)
 								_scheduledServices.Add(serviceInstanceAndSchedulingRule.Key, serviceInstanceAndSchedulingRule.Value);
+
 							#endregion
 						}
 					}
 					#endregion
 					OnNewScheduleCreated(new ScheduledInformationEventArgs() { ScheduleInformation = _scheduledServices });
-
-
 				}
 			}
 
@@ -536,42 +535,44 @@ namespace Edge.Core.Scheduling
 			{
 				averageExacutionTime = 180;
 			}
-			return TimeSpan.FromMinutes(Math.Ceiling(TimeSpan.FromSeconds(averageExacutionTime).TotalMinutes));
+			return TimeSpan.FromSeconds(averageExacutionTime);
 		}
 		/// <summary>
 		/// start the timers of new scheduling and services required to run
 		/// </summary>
 		public void Start()
 		{
-			if (!_started)
-			{
-				_started = true;
-				Schedule(false);
-				NotifyServicesToRun();
-				_newSchedulethread = new Thread(new ThreadStart(delegate()
-				{
-					while (true)
-					{
-						Thread.Sleep(_intervalBetweenNewSchedule);
-						Schedule(false);
-					}
-				}
-				));
+			if (_started)
+				return;
 
-				_findRequiredServicesthread = new Thread(new ThreadStart(delegate()
+			_started = true;
+			Schedule(false);
+			NotifyServicesToRun();
+			_newSchedulethread = new Thread(new ThreadStart(delegate()
+			{
+				while (true)
 				{
-					while (true)
-					{
-						Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
-						NotifyServicesToRun();
-					}
-				}));
-				_newSchedulethread.IsBackground = true;
-				_newSchedulethread.Start();
-				_findRequiredServicesthread.IsBackground = true;
-				_findRequiredServicesthread.Start();
+					Thread.Sleep(_intervalBetweenNewSchedule);
+					Schedule(false);
+				}
 			}
+			));
+
+			_findRequiredServicesthread = new Thread(new ThreadStart(delegate()
+			{
+				while (true)
+				{
+					Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
+					NotifyServicesToRun();
+				}
+			}));
+			_newSchedulethread.IsBackground = true;
+			_newSchedulethread.Start();
+			_findRequiredServicesthread.IsBackground = true;
+			_findRequiredServicesthread.Start();
+
 		}
+
 		private void NotifyServicesToRun()
 		{
 			//DO some checks
@@ -683,6 +684,9 @@ namespace Edge.Core.Scheduling
 		public void OnNewScheduleCreated(ScheduledInformationEventArgs e)
 		{
 			NewScheduleCreatedEvent(this, e);
+			
+			// temp
+			NotifyServicesToRun();
 		}
 		/// <summary>
 		/// abort runing service
