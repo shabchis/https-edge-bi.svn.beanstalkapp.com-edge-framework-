@@ -62,7 +62,7 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan SuitableHour;
 		public SchedulingData Service;
 	}
-	public class AccounServiceInformation
+	public class AccountServiceInformation
 	{
 		public int ID { get; set; }
 		public string AccountName { get; set; }

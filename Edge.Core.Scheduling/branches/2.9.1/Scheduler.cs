@@ -656,7 +656,7 @@ namespace Edge.Core.Scheduling
 					{
 						HistoryItem historyItem = item.ToList()[0].Value;
 						alive.Guid = historyItem.Guid;
-						alive.OutCome = historyItem.ServiceOutcome;
+						alive.Outcome = historyItem.ServiceOutcome;
 					}
 					else
 						alive.State = string.Format("Service with Guid {0} not found", guid);					
@@ -710,13 +710,13 @@ namespace Edge.Core.Scheduling
 			}
 		}
 
-		public List<AccounServiceInformation> GetServicesConfigurations()
+		public List<AccountServiceInformation> GetServicesConfigurations()
 		{
-			List<AccounServiceInformation> accounsServiceInformation = new List<AccounServiceInformation>();
+			List<AccountServiceInformation> accounsServiceInformation = new List<AccountServiceInformation>();
 			foreach (AccountElement account in EdgeServicesConfiguration.Current.Accounts)
 			{
-				AccounServiceInformation accounServiceInformation;
-				accounServiceInformation = new AccounServiceInformation() { AccountName = account.Name, ID = account.ID };
+				AccountServiceInformation accounServiceInformation;
+				accounServiceInformation = new AccountServiceInformation() { AccountName = account.Name, ID = account.ID };
 				accounServiceInformation.Services = new List<string>();
 				foreach (AccountServiceElement service in account.Services)
 					accounServiceInformation.Services.Add(service.Name);
