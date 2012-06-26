@@ -60,7 +60,29 @@ namespace Edge.Core.Scheduling.Objects
         {
             return _guid.GetHashCode();
         }
-       
+
+
+		public static ServiceConfiguration FromLegacy(ActiveServiceElement activeServiceElement, Dictionary<string, string> options)
+		{
+			ServiceConfiguration myServiceConfiguration = new ServiceConfiguration();
+			ServiceConfiguration baseConfiguration = new ServiceConfiguration();
+			if (options != null)
+			{
+				foreach (string option in options.Keys)
+					activeServiceElement.Options[option] = options[option];
+			}
+			baseConfiguration.Name = activeServiceElement.Name;
+			baseConfiguration.MaxConcurrent = activeServiceElement.MaxInstances;
+			baseConfiguration.MaxCuncurrentPerProfile = activeServiceElement.MaxInstancesPerAccount;
+
+			myServiceConfiguration.Name = activeServiceElement.Name;
+			myServiceConfiguration.MaxConcurrent = (activeServiceElement.MaxInstances == 0) ? 9999 : activeServiceElement.MaxInstances;
+			myServiceConfiguration.MaxCuncurrentPerProfile = (activeServiceElement.MaxInstancesPerAccount == 0) ? 9999 : activeServiceElement.MaxInstancesPerAccount;
+			myServiceConfiguration.LegacyConfiguration = activeServiceElement;
+			myServiceConfiguration.BaseConfiguration = baseConfiguration;
+
+			return myServiceConfiguration;
+		}
 		
 	}
 

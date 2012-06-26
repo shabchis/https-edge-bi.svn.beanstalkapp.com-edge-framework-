@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Interfaces.cs" />
     <Compile Include="Objects\SchedulerState.cs" />
     <Compile Include="Objects\SchedulingRule.cs" />
     <Compile Include="Objects\ServiceInstance.cs" />
