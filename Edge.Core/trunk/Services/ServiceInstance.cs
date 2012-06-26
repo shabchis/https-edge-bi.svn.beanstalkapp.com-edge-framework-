@@ -606,7 +606,7 @@ namespace Edge.Core.Services
 
 		public IsAlive IsAlive()
 		{
-			return new IsAlive() { OutCome = this.Outcome, Progress = this.Progress.ToString(), State = this.State.ToString(), Guid= this.Guid };
+			return new IsAlive() { Outcome = this.Outcome, Progress = this.Progress.ToString(), State = this.State.ToString(), Guid= this.Guid };
 		}
 
 		/*=========================*/
