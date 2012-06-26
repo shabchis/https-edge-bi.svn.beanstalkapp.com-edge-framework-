@@ -46,7 +46,7 @@ namespace Edge.Core.Services
 	public struct IsAlive
 	{
 		public string State { get; set; }
-		public ServiceOutcome OutCome { get; set; }
+		public ServiceOutcome Outcome { get; set; }
 		public string Progress { get; set; }
 		public Guid Guid { get; set; }
 	}
