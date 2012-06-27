@@ -11,9 +11,9 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulerState
 	{
-		public  Dictionary<int, HistoryItem> HistoryItems = new Dictionary<int, HistoryItem>();
-		private  string _path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"schedulerHistory.json");
-		public  void Save()
+		public Dictionary<int, HistoryItem> HistoryItems = new Dictionary<int, HistoryItem>();
+		private string _path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "schedulerHistory.json");
+		public void Save()
 		{
 
 			JsonSerializerSettings settings = new JsonSerializerSettings();
@@ -28,7 +28,7 @@ namespace Edge.Core.Scheduling.Objects
 			}
 		}
 
-		public  void Load()
+		public void Load()
 		{
 			JsonSerializerSettings settings = new JsonSerializerSettings();
 			settings.TypeNameHandling = TypeNameHandling.All;
@@ -57,21 +57,26 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime TimeToRun { get; set; }
 
-		public HistoryItem(int id, string serviceName, int accountID, SchedulingResult schedulingResult, TimeSpan maxDeviationAfter, DateTime timeToRun,Guid guid,ServiceOutcome outcome)
+		public HistoryItem()
 		{
-			ID = id;
-			ServiceName = serviceName;
-			AccountID = accountID;
-			SchedulingResult = schedulingResult;
-			MaxDeviationAfter = maxDeviationAfter;
-			TimeToRun = timeToRun;
-			Guid = guid;
-			ServiceOutcome = outcome;
+
 		}
 
-		public HistoryItem FromSchedulingData(SchedulingData data, ServiceInstance instance)
+		public static HistoryItem FromSchedulingData(SchedulingData data, ServiceInstance instance, SchedulingResult schedulingResult)
 		{
-			throw new NotImplementedException();
+			return new HistoryItem()
+			{
+				ID = data.GetHashCode(),
+				ServiceName = instance.ServiceName,
+				AccountID = data.ProfileID,
+				SchedulingResult = schedulingResult,
+				MaxDeviationAfter = data.Rule.MaxDeviationAfter,
+				TimeToRun = data.TimeToRun,
+				Guid = data.Guid,
+				ServiceOutcome = instance.Outcome
+
+			};
+
 		}
 	}
 	public enum SchedulingResult
