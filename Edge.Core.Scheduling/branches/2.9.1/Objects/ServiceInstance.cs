@@ -53,6 +53,7 @@ namespace Edge.Core.Scheduling.Objects
 		public double Progress { get; set; }
 		public ServiceState State { get; set; }
 		public ServiceOutcome Outcome { get; set; }
+		public string Options { get; set; }
 		public string TargetPeriod { get; set; }
 		public Guid ParentInstanceID { get; set; }
 		public DateTime BaseScheduleTime { get; set; }

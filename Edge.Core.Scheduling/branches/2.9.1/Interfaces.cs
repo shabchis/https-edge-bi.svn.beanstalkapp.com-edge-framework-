@@ -34,6 +34,9 @@ namespace Edge.Core.Scheduling
 
 		[OperationContract]
 		List<AccountServiceInformation> GetServicesConfigurations();
+
+		[OperationContract]
+		void UnSubscribe();
 	}
 
 	public interface ISchedulingHostSubscriber
