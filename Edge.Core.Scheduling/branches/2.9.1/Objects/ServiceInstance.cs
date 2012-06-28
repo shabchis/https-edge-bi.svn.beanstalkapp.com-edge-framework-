@@ -33,7 +33,15 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceOutcome Outcome
 		{
 			get { return this.LegacyInstance.Outcome; }
-		}		
+		}
+
+		private ServiceInstance()
+		{
+		}
+
+		public static ServiceInstance FromLegacyInstance(Legacy.ServiceInstance instance, ServiceConfiguration configuration)
+		{
+		}
 	}
 	/// <summary>
 	/// service-hour 

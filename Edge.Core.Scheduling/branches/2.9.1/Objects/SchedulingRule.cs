@@ -2,19 +2,46 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Edge.Core.Configuration;
+using Legacy = Edge.Core.Configuration;
 
 namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRule
 	{
-		public Guid GuidForUnplaned;
+		public Guid GuidForUnplanned;
 		public SchedulingScope Scope { get; set; }
 		public List<int> Days { get; set; }
 		public List<TimeSpan> Times { get; set; }		
 		public TimeSpan MaxDeviationBefore { get; set; }
 		public TimeSpan MaxDeviationAfter { get; set; }
-		public DateTime SpecificDateTime { get; set; }		
+		public DateTime SpecificDateTime { get; set; }
+
+		private SchedulingRule()
+		{
+		}
+
+		public static SchedulingRule FromLegacyRule(Legacy.SchedulingRuleElement legacyRule)
+		{
+			SchedulingRule rule = new SchedulingRule();
+			switch (legacyRule.CalendarUnit)
+			{
+				case Legacy.CalendarUnit.Day:
+					rule.Scope = SchedulingScope.Day;
+					break;
+				case Legacy.CalendarUnit.Month:
+					rule.Scope = SchedulingScope.Month;
+					break;
+				case Legacy.CalendarUnit.Week:
+					rule.Scope = SchedulingScope.Week;
+					break;
+			}
+			//subunits= weekday,monthdays
+			rule.Days = legacyRule.SubUnits.ToList();
+			rule.Times = legacyRule.ExactTimes.ToList();
+			rule.MaxDeviationAfter = legacyRule.MaxDeviation;
+
+			return rule;
+		}
 	}
 	public class SchedulingData
 	{
@@ -25,7 +52,7 @@ namespace Edge.Core.Scheduling.Objects
 		public int SelectedDay;
 		public TimeSpan SelectedHour;
 		public DateTime TimeToRun;
-		public ActiveServiceElement LegacyConfiguration;
+		public Legacy.ActiveServiceElement LegacyConfiguration;
 		public int Priority;
 		public SchedulingData()
 		{
