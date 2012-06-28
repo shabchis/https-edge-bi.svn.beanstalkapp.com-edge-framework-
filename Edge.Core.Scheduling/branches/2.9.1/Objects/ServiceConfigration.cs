@@ -60,6 +60,11 @@ namespace Edge.Core.Scheduling.Objects
 
 		public static ServiceConfiguration FromLegacyConfiguration(NamedConfigurationElement legacyConfiguration, ServiceConfiguration baseConfiguration = null, Profile profile = null, Dictionary<string, string> options = null)
 		{
+			return FromLegacyConfiguration<ServiceConfiguration>(legacyConfiguration, baseConfiguration, profile, options);
+		}
+
+		protected static T FromLegacyConfiguration<T>(NamedConfigurationElement legacyConfiguration, ServiceConfiguration baseConfiguration = null, Profile profile = null, Dictionary<string, string> options = null) where T: ServiceConfiguration, new()
+		{
 			if (legacyConfiguration is AccountServiceElement || legacyConfiguration is WorkflowStepElement || legacyConfiguration is ActiveServiceElement)
 			{
 				if (baseConfiguration == null)
@@ -93,13 +98,14 @@ namespace Edge.Core.Scheduling.Objects
 				}
 			}
 			
-			ServiceConfiguration serviceConfiguration = new ServiceConfiguration()
+			T serviceConfiguration = new T()
 			{
 				Name = legacy.Name,
 				MaxConcurrent = (legacy.MaxInstances == 0) ? 9999 : legacy.MaxInstances,
 				MaxConcurrentPerProfile = (legacy.MaxInstancesPerAccount == 0) ? 9999 : legacy.MaxInstancesPerAccount,
 				LegacyConfiguration = legacy,
-				BaseConfiguration = baseConfiguration
+				BaseConfiguration = baseConfiguration,
+				SchedulingProfile = profile
 			};
 
 			if (legacy.Options.ContainsKey("ServicePriority"))
@@ -119,5 +125,21 @@ namespace Edge.Core.Scheduling.Objects
 		
 	}
 
+	public class UnplannedServiceConfiguration: ServiceConfiguration
+	{
+		public ServiceInstance UnplannedInstance;
+
+		public static UnplannedServiceConfiguration FromLegacyConfiguration(Legacy.ServiceInstance legacyInstance, ServiceConfiguration baseConfiguration = null, Profile profile = null, Dictionary<string, string> options = null)
+		{
+			UnplannedServiceConfiguration configuration = ServiceConfiguration.FromLegacyConfiguration<UnplannedServiceConfiguration>(
+				legacyInstance.Configuration,
+				baseConfiguration,
+				profile,
+				options
+				);
+			configuration.SchedulingRules.Clear();
+			return configuration;
+		}
+	}
 
 }
