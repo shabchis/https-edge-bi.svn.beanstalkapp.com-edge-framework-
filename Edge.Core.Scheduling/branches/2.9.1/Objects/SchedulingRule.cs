@@ -61,7 +61,7 @@ namespace Edge.Core.Scheduling.Objects
 		internal Guid Guid;
 		public ServiceConfiguration Configuration;
 		public SchedulingRule Rule;
-		public int ProfileID;
+		public Profile Profile;
 		public int SelectedDay;
 		public TimeSpan SelectedHour;
 		public DateTime TimeToRun;

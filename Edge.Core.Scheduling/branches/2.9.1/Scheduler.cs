@@ -135,7 +135,7 @@ namespace Edge.Core.Scheduling
 							var servicesWithSameProfile =
 								from s in _scheduledServices
 								where
-									s.Value.ProfileID == schedulingData.Configuration.SchedulingProfile.ID &&
+									s.Value.Configuration.Profile == schedulingData.Configuration.SchedulingProfile &&
 									s.Key.Configuration.Name == schedulingData.Configuration.BaseConfiguration.Name &&
 									s.Value.LegacyInstance.State != Legacy.ServiceState.Ended &&
 									s.Value.Canceled == false //not deleted
@@ -167,38 +167,33 @@ namespace Edge.Core.Scheduling
 										}
 										else
 										{
-											serviceInstance = ServiceInstance.FromLegacyInstance( Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.)
+											serviceInstance = ServiceInstance.FromLegacyInstance(
+												Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, (int)schedulingData.Profile.Settings["AccountID"]),
+												schedulingData.Configuration
+											);
 										}
 
-										serviceInstance = new ServiceInstance()
-										{
-											ScheduledID = schedulingData.GetHashCode(),
-											StartTime = calculatedStartTime,
-											EndTime = calculatedEndTime,
-											Odds = _percentile,
-											ActualDeviation = calculatedStartTime.Subtract(schedulingData.TimeToRun),
-											Priority = schedulingData.Priority,
-											BaseConfigurationID = schedulingData.Configuration.BaseConfiguration.ID,
-											ID = schedulingData.Configuration.ID,
-											MaxConcurrentPerConfiguration = schedulingData.Configuration.MaxConcurrent,
-											MaxCuncurrentPerProfile = schedulingData.Configuration.MaxConcurrentPerProfile,
-											MaxDeviationAfter = schedulingData.Rule.MaxDeviationAfter,
-											MaxDeviationBefore = schedulingData.Rule.MaxDeviationBefore,
-											ProfileID = schedulingData.Configuration.SchedulingProfile.ID
-										};
+										serviceInstance.ScheduledID = schedulingData.GetHashCode();
+										serviceInstance.StartTime = calculatedStartTime;
+										serviceInstance.EndTime = calculatedEndTime;
+										serviceInstance.Odds = _percentile;
+										serviceInstance.ActualDeviation = calculatedStartTime.Subtract(schedulingData.TimeToRun);
+										serviceInstance.Priority = schedulingData.Priority;
+																	
 
-										if (_legacyInstanceBySchedulingID.ContainsKey(serviceInstance.ScheduledID))
-											serviceInstance.LegacyInstance = _legacyInstanceBySchedulingID[serviceInstance.ScheduledID];
-										else
-										{
-											serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
-											_legacyInstanceBySchedulingID.Add(serviceInstance.ScheduledID, serviceInstance.LegacyInstance);
-										}
+										//if (_legacyInstanceBySchedulingID.ContainsKey(serviceInstance.ScheduledID))
+										//    serviceInstance.LegacyInstance = _legacyInstanceBySchedulingID[serviceInstance.ScheduledID];
+										//else
+										//{
+										//    serviceInstance.LegacyInstance = Legacy.Service.CreateInstance(schedulingData.LegacyConfiguration, serviceInstance.ProfileID);
+										//    _legacyInstanceBySchedulingID.Add(serviceInstance.ScheduledID, serviceInstance.LegacyInstance);
+										//}
 
-										serviceInstance.LegacyInstance.TimeScheduled = calculatedStartTime;
-										serviceInstance.ServiceName = schedulingData.Configuration.Name;
+										// Legacy stuff
 										TimeSpan maxExecutionTime = TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds * double.Parse(AppSettings.Get(this, "MaxExecutionTimeProduct")));
 										serviceInstance.LegacyInstance.Configuration.MaxExecutionTime = maxExecutionTime;
+										serviceInstance.LegacyInstance.TimeScheduled = calculatedStartTime;			
+
 										found = true;
 									}
 									else

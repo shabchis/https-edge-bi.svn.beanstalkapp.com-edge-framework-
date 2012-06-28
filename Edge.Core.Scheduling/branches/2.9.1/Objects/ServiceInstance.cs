@@ -14,15 +14,14 @@ namespace Edge.Core.Scheduling.Objects
 	[Serializable]
 	public class ServiceInstance
 	{
+		//public int ID;
 		public int ScheduledID;
-		public int ID;
+
 		public string ServiceName;
-		public int BaseConfigurationID;
-		public int ProfileID;
+		public ServiceConfiguration Configuration;
 		public DateTime StartTime;
 		public DateTime EndTime;
-		public int MaxConcurrentPerConfiguration;
-		public int MaxCuncurrentPerProfile;
+		
 		public int Priority;
 		public TimeSpan MaxDeviationBefore;
 		public TimeSpan MaxDeviationAfter;
@@ -41,6 +40,13 @@ namespace Edge.Core.Scheduling.Objects
 
 		public static ServiceInstance FromLegacyInstance(Legacy.ServiceInstance instance, ServiceConfiguration configuration)
 		{
+			var serviceInstance = new ServiceInstance()
+			{
+				ServiceName = configuration.Name,
+				Configuration = configuration,
+				LegacyInstance = instance
+			};
+			return serviceInstance;
 		}
 	}
 	/// <summary>
