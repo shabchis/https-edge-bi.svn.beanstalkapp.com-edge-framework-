@@ -8,7 +8,7 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRule
 	{
-		public Guid GuidForUnplanned;
+		public Guid GuidForUnplanned { get; private set; }
 		public SchedulingScope Scope { get; set; }
 		public List<int> Days { get; set; }
 		public List<TimeSpan> Times { get; set; }		
@@ -41,6 +41,19 @@ namespace Edge.Core.Scheduling.Objects
 			rule.MaxDeviationAfter = legacyRule.MaxDeviation;
 
 			return rule;
+		}
+
+		public static SchedulingRule CreateUnplanned()
+		{
+			return new SchedulingRule()
+			{
+				Scope = SchedulingScope.Unplanned,
+				MaxDeviationAfter = new TimeSpan(0, 3, 0),
+				Days = new List<int>(),
+				Times = new List<TimeSpan>() { new TimeSpan(0, 0, 0, 0) },
+				GuidForUnplanned = Guid.NewGuid(),
+				SpecificDateTime = DateTime.Now
+			};
 		}
 	}
 	public class SchedulingData
