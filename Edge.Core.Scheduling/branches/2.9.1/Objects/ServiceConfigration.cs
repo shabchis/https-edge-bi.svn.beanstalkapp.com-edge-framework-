@@ -76,7 +76,7 @@ namespace Edge.Core.Scheduling.Objects
 			{
 				if (baseConfiguration != null)
 					throw new ArgumentException("baseConfiguration", "When creating a configuration from a Legacy.ServiceInstance, baseConfiguration must be null.");
-				if (profile == null)
+				if (profile != null)
 					throw new ArgumentException("profile", "When creating a configuration from a Legacy.ServiceInstance, profile must be null.");
 			}
 
@@ -137,7 +137,7 @@ namespace Edge.Core.Scheduling.Objects
 				profile,
 				options
 				);
-			configuration.SchedulingRules.Clear();
+			configuration.SchedulingRules.Clear();			
 			return configuration;
 		}
 	}
