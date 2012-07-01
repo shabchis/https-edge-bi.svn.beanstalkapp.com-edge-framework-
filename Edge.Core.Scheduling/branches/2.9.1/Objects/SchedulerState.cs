@@ -68,7 +68,7 @@ namespace Edge.Core.Scheduling.Objects
 			{
 				ID = data.GetHashCode(),
 				ServiceName = instance.ServiceName,
-				AccountID = data.ProfileID,
+				AccountID = data.Profile.ID,
 				SchedulingResult = schedulingResult,
 				MaxDeviationAfter = data.Rule.MaxDeviationAfter,
 				TimeToRun = data.TimeToRun,

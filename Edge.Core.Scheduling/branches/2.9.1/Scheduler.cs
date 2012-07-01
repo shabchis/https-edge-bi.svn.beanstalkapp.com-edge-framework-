@@ -135,7 +135,7 @@ namespace Edge.Core.Scheduling
 							var servicesWithSameProfile =
 								from s in _scheduledServices
 								where
-									s.Value.Configuration.Profile == schedulingData.Configuration.SchedulingProfile &&
+									s.Value.Configuration.SchedulingProfile == schedulingData.Configuration.SchedulingProfile &&
 									s.Key.Configuration.Name == schedulingData.Configuration.BaseConfiguration.Name &&
 									s.Value.LegacyInstance.State != Legacy.ServiceState.Ended &&
 									s.Value.Canceled == false //not deleted
@@ -373,12 +373,13 @@ namespace Edge.Core.Scheduling
 									SchedulingData schedulingdata = new SchedulingData()
 									{
 										Configuration = service,
-										ProfileID = service.SchedulingProfile.ID,
+										Profile = new Profile() { ID = service.SchedulingProfile.ID },
 										Rule = schedulingRule,
 										SelectedDay = (int)(DateTime.Now.DayOfWeek) + 1,
 										SelectedHour = time,
 										Priority = service.Priority,
-										LegacyConfiguration = service.LegacyConfiguration,
+										///TODO:ActiveServiceElement cast not sure if it's right
+										LegacyConfiguration = (ActiveServiceElement)service.LegacyConfiguration,
 										TimeToRun = timeToRun
 									};
 
@@ -584,16 +585,16 @@ namespace Edge.Core.Scheduling
 																   s.Value.LegacyInstance.State != Legacy.ServiceState.Aborting &&
 																   s.Value.Canceled == false);
 						//cant run!!!!
-						if (countedServicesWithSameConfiguration >= instance.Value.MaxConcurrentPerConfiguration)
+						if (countedServicesWithSameConfiguration >= instance.Value.Configuration.MaxConcurrent)
 							continue;
-						int countedServicesWithSameProfile = _scheduledServices.Count(s => instance.Value.ProfileID == s.Key.Configuration.SchedulingProfile.ID &&
+						int countedServicesWithSameProfile = _scheduledServices.Count(s => instance.Value.Configuration.SchedulingProfile.ID == s.Key.Configuration.SchedulingProfile.ID &&
 							instance.Key.Configuration.BaseConfiguration.Name == s.Key.Configuration.Name && //should be id but no id yet
 																	s.Value.LegacyInstance.State != Legacy.ServiceState.Uninitialized &&
 																	s.Value.LegacyInstance.State != Legacy.ServiceState.Ended &&
 																   s.Value.LegacyInstance.State != Legacy.ServiceState.Aborting &&
 																	s.Value.Canceled == false);
 						//cant run!!!
-						if (countedServicesWithSameProfile >= instance.Value.MaxCuncurrentPerProfile)
+						if (countedServicesWithSameProfile >= instance.Value.Configuration.MaxConcurrentPerProfile)
 							continue;
 						OnTimeToRun(new TimeToRunEventArgs() { ServicesToRun = new ServiceInstance[] { instance.Value } });
 					}

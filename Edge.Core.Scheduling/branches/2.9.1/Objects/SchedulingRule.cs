@@ -75,7 +75,7 @@ namespace Edge.Core.Scheduling.Objects
 		{
 			string uniqueKey = string.Empty;			
 			if (Rule.Scope != SchedulingScope.Unplanned)
-				uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, ProfileID, Configuration.Name);
+				uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, Profile.ID, Configuration.Name);
 			else				
 				uniqueKey = Guid.ToString();			
 			return uniqueKey;
