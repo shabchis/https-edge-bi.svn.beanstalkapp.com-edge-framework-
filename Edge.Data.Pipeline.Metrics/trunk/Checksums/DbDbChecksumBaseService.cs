@@ -101,11 +101,11 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 				Dictionary<string, double> alerts = new Dictionary<string, double>();
 				
 				//Compare results
-				foreach (var measure in sourceTotals)
+				foreach (var sourceMeasure in sourceTotals)
 				{
 					double diff;
-					if ((diff = Math.Abs(measure.Value - sourceTotals[measure.Key])) > 1)
-						alerts.Add(measure.Key,diff);
+					if ((diff = Math.Abs(sourceMeasure.Value - targetTotals[sourceMeasure.Key])) > 1)
+						alerts.Add(sourceMeasure.Key,diff);
 				}
 				
 				
