@@ -288,13 +288,13 @@ namespace Edge.Data.Pipeline.Metrics
 		/*=========================*/
 		#endregion
 
-		#region Commit
+		#region Staging
 		/*=========================*/
 
-		SqlTransaction _commitTransaction = null;
-		SqlCommand _commitCommand = null;
+		SqlTransaction _stageTransaction = null;
+		SqlCommand _stageCommand = null;
 
-		protected override int CommitPassCount
+		protected override int StagePassCount
 		{
 			get { return 1; }
 		}
@@ -307,7 +307,7 @@ namespace Edge.Data.Pipeline.Metrics
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 
-			_commitTransaction = _sqlConnection.BeginTransaction("Delivery Commit");
+			_stageTransaction = _sqlConnection.BeginTransaction("Delivery Staging");
 		}
 
 		protected override void  OnStage(Delivery delivery, int pass)
@@ -323,35 +323,35 @@ namespace Edge.Data.Pipeline.Metrics
 			// ...........................
 			// COMMIT data to OLTP
 
-			_commitCommand = _commitCommand ?? DataManager.CreateCommand(this.Options.SqlStageCommand, CommandType.StoredProcedure);
-			_commitCommand.Connection = _sqlConnection;
-			_commitCommand.Transaction = _commitTransaction;
+			_stageCommand = _stageCommand ?? DataManager.CreateCommand(this.Options.SqlStageCommand, CommandType.StoredProcedure);
+			_stageCommand.Connection = _sqlConnection;
+			_stageCommand.Transaction = _stageTransaction;
 
-			_commitCommand.Parameters["@DeliveryFileName"].Size = 4000;
-			_commitCommand.Parameters["@DeliveryFileName"].Value = tablePerfix;
-			_commitCommand.Parameters["@CommitTableName"].Size = 4000;
-			_commitCommand.Parameters["@CommitTableName"].Value = delivery.Parameters["CommitTableName"];
-			_commitCommand.Parameters["@MeasuresNamesSQL"].Size = 4000;
-			_commitCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
-			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
-			_commitCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
-			_commitCommand.Parameters["@OutputIDsPerSignature"].Size = 4000;
-			_commitCommand.Parameters["@OutputIDsPerSignature"].Direction = ParameterDirection.Output;
-			_commitCommand.Parameters["@DeliveryID"].Size = 4000;
-			_commitCommand.Parameters["@DeliveryID"].Value = deliveryId;
+			_stageCommand.Parameters["@DeliveryFileName"].Size = 4000;
+			_stageCommand.Parameters["@DeliveryFileName"].Value = tablePerfix;
+			_stageCommand.Parameters["@CommitTableName"].Size = 4000;
+			_stageCommand.Parameters["@CommitTableName"].Value = delivery.Parameters["CommitTableName"];
+			_stageCommand.Parameters["@MeasuresNamesSQL"].Size = 4000;
+			_stageCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
+			_stageCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
+			_stageCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
+			_stageCommand.Parameters["@OutputIDsPerSignature"].Size = 4000;
+			_stageCommand.Parameters["@OutputIDsPerSignature"].Direction = ParameterDirection.Output;
+			_stageCommand.Parameters["@DeliveryID"].Size = 4000;
+			_stageCommand.Parameters["@DeliveryID"].Value = deliveryId;
 
 
 			try
 			{
-				_commitCommand.ExecuteNonQuery();
+				_stageCommand.ExecuteNonQuery();
 				//	_commitTransaction.Commit();
 
-				string outPutsIDsPerSignature = _commitCommand.Parameters["@OutputIDsPerSignature"].Value.ToString();
+				string outPutsIDsPerSignature = _stageCommand.Parameters["@OutputIDsPerSignature"].Value.ToString();
 
 				string[] existsOutPuts;
 				if ((!string.IsNullOrEmpty(outPutsIDsPerSignature) && outPutsIDsPerSignature != "0"))
 				{
-					_commitTransaction.Rollback();
+					_stageTransaction.Rollback();
 					existsOutPuts = outPutsIDsPerSignature.Split(',');
 					List<DeliveryOutput> outputs = new List<DeliveryOutput>();
 					foreach (string existOutput in existsOutPuts)
@@ -361,7 +361,7 @@ namespace Edge.Data.Pipeline.Metrics
 						outputs.Add(o);
 						
 					}
-					throw new DeliveryConflictException(string.Format("Deliveries with the same signature are already committed in the database\n Deliveries:\n {0}:", outPutsIDsPerSignature)) { ConflictingOutputs = outputs.ToArray() };
+					throw new DeliveryConflictException(string.Format("DeliveryOutputs with the same signature are already committed in the database\n Deliveries:\n {0}:", outPutsIDsPerSignature)) { ConflictingOutputs = outputs.ToArray() };
 				}
 				else
 					//already updated by sp, this is so we don't override it
@@ -380,12 +380,12 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnEndStage(Exception ex)
 		{
-			if (_commitTransaction != null)
+			if (_stageTransaction != null)
 			{
 				if (ex == null)
-					_commitTransaction.Commit();
+					_stageTransaction.Commit();
 				else
-					_commitTransaction.Rollback();
+					_stageTransaction.Rollback();
 			}
 			this.State = DeliveryImportManagerState.Idle;
 			
@@ -393,8 +393,8 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnDisposeStage()
 		{
-			if (_commitTransaction != null)
-				_commitTransaction.Dispose();
+			if (_stageTransaction != null)
+				_stageTransaction.Dispose();
 		}
 
 		/*=========================*/
