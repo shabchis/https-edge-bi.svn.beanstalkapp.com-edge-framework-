@@ -52,7 +52,7 @@ namespace Edge.Core.Scheduling.Objects
 		public Guid Guid { get; set; }
 		public ServiceOutcome ServiceOutcome { get; set; }
 		public string ServiceName { get; set; }
-		public int AccountID { get; set; }
+		public int ProfileID { get; set; }
 		public SchedulingResult SchedulingResult { get; set; }
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime TimeToRun { get; set; }
@@ -62,16 +62,16 @@ namespace Edge.Core.Scheduling.Objects
 
 		}
 
-		public static HistoryItem FromSchedulingData(SchedulingData data, ServiceInstance instance, SchedulingResult schedulingResult)
+		public static HistoryItem FromSchedulingData(SchedulingRequest data, ServiceInstance instance, SchedulingResult schedulingResult)
 		{
 			return new HistoryItem()
 			{
 				ID = data.GetHashCode(),
-				ServiceName = instance.ServiceName,
-				AccountID = data.Profile.ID,
+				ServiceName = instance.Configuration.Name,
+				ProfileID = data.Configuration.Profile.ID,
 				SchedulingResult = schedulingResult,
 				MaxDeviationAfter = data.Rule.MaxDeviationAfter,
-				TimeToRun = data.TimeToRun,
+				TimeToRun = data.RequestedTime,
 				Guid = data.Guid,
 				ServiceOutcome = instance.Outcome
 
