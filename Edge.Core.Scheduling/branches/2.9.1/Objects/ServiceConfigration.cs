@@ -10,24 +10,40 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class ServiceConfiguration
 	{
-		private int _maxConcurrent = 1;
-		private int _maxCuncurrentPerProfile = 1;
-        private Guid _guid;
-		public int ID;
-		public ServiceConfiguration BaseConfiguration;			
-		public string Name;
-		public Profile SchedulingProfile;
-		public List<SchedulingRule> SchedulingRules=new List<SchedulingRule>();
-		public bool Scheduled = false;
-		public TimeSpan AverageExecutionTime=new TimeSpan(0,30,0);
-		public TimeSpan MaxExecutionTime = new TimeSpan(0,60, 0);
-		public ServiceElement LegacyConfiguration;
-		public int Priority;
+
+		private int _id;
+		private ServiceConfiguration _baseConfiguration;
+		private string _name;
+		private Profile _schedulingProfile;
+		private TimeSpan _averageExecutionTime = TimeSpan.FromMinutes(30);
+		private ServiceElement _legacyConfiguration;
+		private int _priority;
+		int _maxConcurrent = 1;
+		int _maxCuncurrentPerProfile = 1;
+        Guid _guid;
 
         public ServiceConfiguration()
         {
             _guid = new Guid();
+			this.SchedulingRules = new List<SchedulingRule>();
         }
+
+		public bool IsLocked
+		{
+			get;
+			private set;
+		}
+
+		public void Lock()
+		{
+			this.IsLocked = true;
+		}
+
+		public void EnsureUnlocked()
+		{
+			if (this.IsLocked)
+				throw new InvalidOperationException("Service configuration is locked.");
+		}
 
         public override int GetHashCode()
         {
@@ -39,6 +55,7 @@ namespace Edge.Core.Scheduling.Objects
 			get { return _maxConcurrent; }
 			set
 			{
+				EnsureUnlocked();
 				if (value != 0)
 					_maxConcurrent = value;
 				else
@@ -46,15 +63,76 @@ namespace Edge.Core.Scheduling.Objects
 			}
 		}
 
+		public int ID
+		{
+			get { return _id; }
+			set { EnsureUnlocked(); _id = value; }
+		}
+
+		public ServiceConfiguration BaseConfiguration
+		{
+			get { return _baseConfiguration; }
+			set { EnsureUnlocked(); _baseConfiguration = value; }
+		}
+
+		public string Name
+		{
+			get { return _name; }
+			set { EnsureUnlocked(); _name = value; }
+		}
+
+		public Profile Profile
+		{
+			get { return _schedulingProfile; }
+			set { EnsureUnlocked(); _schedulingProfile = value; }
+		}
+
+		public TimeSpan AverageExecutionTime
+		{
+			get { return _averageExecutionTime; }
+			set { EnsureUnlocked(); _averageExecutionTime = value; }
+		}
+
+		public ServiceElement LegacyConfiguration
+		{
+			get { return _legacyConfiguration; }
+			set { EnsureUnlocked(); _legacyConfiguration = value; }
+		}
+
+		public int Priority
+		{
+			get { return _priority; }
+			set { EnsureUnlocked(); _priority = value; }
+		}
+
+		public List<SchedulingRule> SchedulingRules
+		{
+			get;
+			private set;
+		}
+
 		public int MaxConcurrentPerProfile
 		{
 			get { return _maxCuncurrentPerProfile; }
 			set
 			{
+				EnsureUnlocked();
 				if (value != 0)
 					_maxCuncurrentPerProfile = value;
 				else
 					value = 999;
+			}
+		}
+
+		public TimeSpan MaxExecutionTime
+		{
+			get { return this._legacyConfiguration != null ? this._legacyConfiguration.MaxExecutionTime : TimeSpan.FromMinutes(45); }
+			set
+			{
+				EnsureUnlocked();
+				if (this._legacyConfiguration != null)
+					throw new InvalidOperationException("Cannot set max execution time because LegacyConfiguration is not set.");
+				this._legacyConfiguration.MaxExecutionTime = value;
 			}
 		}
 
@@ -100,16 +178,16 @@ namespace Edge.Core.Scheduling.Objects
 			
 			T serviceConfiguration = new T()
 			{
-				Name = legacy.Name,
+				_name = legacy.Name,
 				MaxConcurrent = (legacy.MaxInstances == 0) ? 9999 : legacy.MaxInstances,
 				MaxConcurrentPerProfile = (legacy.MaxInstancesPerAccount == 0) ? 9999 : legacy.MaxInstancesPerAccount,
-				LegacyConfiguration = legacy,
-				BaseConfiguration = baseConfiguration,
-				SchedulingProfile = profile
+				_legacyConfiguration = legacy,
+				_baseConfiguration = baseConfiguration,
+				_schedulingProfile = profile
 			};
 
 			if (legacy.Options.ContainsKey("ServicePriority"))
-				serviceConfiguration.Priority = int.Parse(legacy.Options["ServicePriority"]);
+				serviceConfiguration._priority = int.Parse(legacy.Options["ServicePriority"]);
 
 			//scheduling rules 
 			foreach (SchedulingRuleElement schedulingRuleElement in legacy.SchedulingRules)
@@ -125,13 +203,13 @@ namespace Edge.Core.Scheduling.Objects
 		
 	}
 
-	public class UnplannedServiceConfiguration: ServiceConfiguration
+	public class ServiceInstanceConfiguration: ServiceConfiguration
 	{
-		public ServiceInstance UnplannedInstance;
+		public ServiceInstance Instance;
 
-		public static UnplannedServiceConfiguration FromLegacyConfiguration(Legacy.ServiceInstance legacyInstance, ServiceConfiguration baseConfiguration = null, Profile profile = null, Dictionary<string, string> options = null)
+		public static ServiceInstanceConfiguration FromLegacyConfiguration(Legacy.ServiceInstance legacyInstance, ServiceConfiguration baseConfiguration = null, Profile profile = null, Dictionary<string, string> options = null)
 		{
-			UnplannedServiceConfiguration configuration = ServiceConfiguration.FromLegacyConfiguration<UnplannedServiceConfiguration>(
+			ServiceInstanceConfiguration configuration = ServiceConfiguration.FromLegacyConfiguration<ServiceInstanceConfiguration>(
 				legacyInstance.Configuration,
 				baseConfiguration,
 				profile,

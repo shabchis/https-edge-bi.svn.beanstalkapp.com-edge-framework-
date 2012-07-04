@@ -48,7 +48,7 @@ namespace Edge.Core.Scheduling.Objects
 			return new SchedulingRule()
 			{
 				Scope = SchedulingScope.Unplanned,
-				MaxDeviationAfter = new TimeSpan(0, 3, 0),
+				MaxDeviationAfter = TimeSpan.FromMinutes(30),
 				Days = new List<int>(),
 				Times = new List<TimeSpan>() { new TimeSpan(0, 0, 0, 0) },
 				GuidForUnplanned = Guid.NewGuid(),
@@ -56,60 +56,7 @@ namespace Edge.Core.Scheduling.Objects
 			};
 		}
 	}
-	public class SchedulingData
-	{
-		internal Guid Guid;
-		public ServiceConfiguration Configuration;
-		public SchedulingRule Rule;
-		public Profile Profile;
-		public int SelectedDay;
-		public TimeSpan SelectedHour;
-		public DateTime TimeToRun;
-		public Legacy.ActiveServiceElement LegacyConfiguration;
-		public int Priority;
-		public SchedulingData()
-		{
-			Guid = Guid.NewGuid();
-		}
-		public override string ToString()
-		{
-			string uniqueKey = string.Empty;			
-			if (Rule.Scope != SchedulingScope.Unplanned)
-				uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, Profile.ID, Configuration.Name);
-			else				
-				uniqueKey = Guid.ToString();			
-			return uniqueKey;
-		}
-		public override int GetHashCode()
-		{
-			int returnType = this.ToString().GetHashCode();
-			return returnType;
-		}
-		public override bool Equals(object obj)
-		{
-			if ((object)obj == null)
-				return false; 
-			if (obj is SchedulingData)
-				return obj.GetHashCode() == this.GetHashCode();
-			else
-				return false;
-		}
-		public static bool operator ==(SchedulingData sd1, SchedulingData sd2)
-		{			
-			return sd1.Equals(sd2);
-		}
-		public static bool operator !=(SchedulingData sd1, SchedulingData sd2)
-		{
-			return !sd1.Equals(sd2);
-		}
-		public static bool IsNull(SchedulingData obj)
-		{
-			if ((object)obj == null)
-				return true;
-			else
-				return false;
-		}
-	}
+
 	public enum SchedulingScope
 	{
 		Day,

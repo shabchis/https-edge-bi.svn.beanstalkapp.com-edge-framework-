@@ -15,37 +15,50 @@ namespace Edge.Core.Scheduling.Objects
 	public class ServiceInstance
 	{
 		//public int ID;
-		public int ScheduledID;
+		//public int ScheduledID;
 
-		public string ServiceName;
-		public ServiceConfiguration Configuration;
-		public DateTime StartTime;
-		public DateTime EndTime;
-		
-		public int Priority;
-		public TimeSpan MaxDeviationBefore;
-		public TimeSpan MaxDeviationAfter;
-		public TimeSpan ActualDeviation;
-		public double Odds;		
-		public bool Canceled;		
-		public Legacy.ServiceInstance LegacyInstance;		
-		public ServiceOutcome Outcome
-		{
-			get { return this.LegacyInstance.Outcome; }
-		}
+		//public string ServiceName;
+		private DateTime _expectedStartTime;
+		public bool Canceled;
 
 		private ServiceInstance()
 		{
 		}
 
-		public static ServiceInstance FromLegacyInstance(Legacy.ServiceInstance instance, ServiceConfiguration configuration)
+		public ServiceInstanceConfiguration Configuration { get; private set; }
+		public Legacy.ServiceInstance LegacyInstance { get; private set; }
+
+		public SchedulingRequest SchedulingRequest { get; set; }
+		public double SchedulingAccuracy { get; set; }
+
+		public DateTime ExpectedStartTime
+		{
+			get { return _expectedStartTime; }
+			set { _expectedStartTime = value; this.LegacyInstance.TimeScheduled = value; }
+		}
+
+		public DateTime ExpectedEndTime { get; set; }
+		
+		public ServiceOutcome Outcome
+		{
+			get { return this.LegacyInstance.Outcome; }
+		}
+
+		public TimeSpan ActualDeviation
+		{
+			get { return this.ExpectedStartTime.Subtract(this.SchedulingRequest.RequestedTime); }
+		}
+
+		public static ServiceInstance FromLegacyInstance(Legacy.ServiceInstance legacyInstance, ServiceConfiguration configuration, Profile profile = null)
 		{
 			var serviceInstance = new ServiceInstance()
 			{
-				ServiceName = configuration.Name,
-				Configuration = configuration,
-				LegacyInstance = instance
+				Configuration = ServiceInstanceConfiguration.FromLegacyConfiguration(legacyInstance, configuration, profile ?? configuration.Profile),
+				LegacyInstance = legacyInstance
 			};
+
+			serviceInstance.Configuration.Instance = serviceInstance;
+
 			return serviceInstance;
 		}
 	}
@@ -75,7 +88,7 @@ namespace Edge.Core.Scheduling.Objects
 	public struct ServiceHourStruct
 	{
 		public TimeSpan SuitableHour;
-		public SchedulingData Service;
+		public SchedulingRequest Service;
 	}
 	public class AccountServiceInformation
 	{
