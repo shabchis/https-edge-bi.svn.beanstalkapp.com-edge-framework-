@@ -33,7 +33,7 @@ namespace Edge.Data.Pipeline
 		{
 			get { return 1; }
 		}
-		protected virtual int CommitPassCount
+		protected virtual int StagePassCount
 		{
 			get { return 1; }
 		}
@@ -99,7 +99,7 @@ namespace Edge.Data.Pipeline
 		public void Stage(Delivery[] deliveries)
 		{
 			this.Batch<Delivery>(deliveries,
-				this.CommitPassCount,
+				this.StagePassCount,
 				OnBeginStage,
 				ex =>
 				{
