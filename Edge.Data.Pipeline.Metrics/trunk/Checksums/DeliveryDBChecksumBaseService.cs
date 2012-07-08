@@ -65,7 +65,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 			//Get Sub Channel (for cases such as Google Search and GDN)
 			string subChannel = String.Empty;
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["SubChannel"]))
+			if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["SubChannel"]))
 			{
 				subChannel = this.Instance.Configuration.Options["SubChannel"].ToString();
 			}
