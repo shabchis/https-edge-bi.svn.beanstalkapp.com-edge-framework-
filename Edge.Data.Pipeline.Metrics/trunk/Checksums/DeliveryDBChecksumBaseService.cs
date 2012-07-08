@@ -125,7 +125,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 					progress += 0.3 * (1 - progress);
 					this.ReportProgress(progress);
 
-					if (!String.IsNullOrEmpty(subChannel))
+					//if (!String.IsNullOrEmpty(subChannel))
 					//var outputToCheck_withSubChannel = 
 					//									from o outputToCheck
 					//									where outputToCheck.
