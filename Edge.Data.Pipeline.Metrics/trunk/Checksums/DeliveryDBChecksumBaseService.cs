@@ -62,6 +62,14 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 				fromDate = Convert.ToDateTime(this.Instance.Configuration.Options["fromDate"]);
 				toDate = Convert.ToDateTime(this.Instance.Configuration.Options["toDate"]);
 			}
+
+			//Get Sub Channel (for cases such as Google Search and GDN)
+			string subChannel = String.Empty;
+			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["SubChannel"]))
+			{
+				subChannel = this.Instance.Configuration.Options["SubChannel"].ToString();
+			}
+
 			#endregion
 
 
@@ -117,14 +125,21 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 					progress += 0.3 * (1 - progress);
 					this.ReportProgress(progress);
 
+					if (!String.IsNullOrEmpty(subChannel))
+					//var outputToCheck_withSubChannel = 
+					//									from o outputToCheck
+					//									where outputToCheck.
+
+
 					foreach (DeliveryOutput output in outputToCheck)
 					{
-						if ((output.Status == DeliveryOutputStatus.Committed || output.Status==DeliveryOutputStatus.Staged) && output.Checksum != null && output.Checksum.Count > 0)
-						{
-							//Check Delivery data vs OLTP
-							foundCommited = true;
-							yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
-						}
+					//	if (output.Parameters.ContainsKey("SubChannel") && output.Parameters["SubChannel"].Equals(subChannel))
+							if ((output.Status == DeliveryOutputStatus.Committed || output.Status == DeliveryOutputStatus.Staged) && output.Checksum != null && output.Checksum.Count > 0)
+							{
+								//Check Delivery data vs OLTP
+								foundCommited = true;
+								yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
+							}
 
 					}
 
@@ -165,7 +180,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 
 				foreach (DeliveryOutput output in this.Delivery.Outputs)
 				{
-					if ((output.Status == DeliveryOutputStatus.Committed || output.Status==DeliveryOutputStatus.Staged )&& output.Checksum != null && output.Checksum.Count > 0)
+					if ((output.Status == DeliveryOutputStatus.Committed || output.Status == DeliveryOutputStatus.Staged) && output.Checksum != null && output.Checksum.Count > 0)
 					{
 						yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
 					}
