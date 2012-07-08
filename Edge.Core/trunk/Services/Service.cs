@@ -731,6 +731,7 @@ namespace Edge.Core.Services
 						try
 						{
 							subscriber.OutcomeReported(_outcome);
+						
 						}
 						catch (Exception ex)
 						{
@@ -739,7 +740,7 @@ namespace Edge.Core.Services
 					});
 				}
 
-				// Close WCF host
+				// Close WCF host				
 				if (_wcfHost != null)
 				{
 					if (_wcfHost.State == CommunicationState.Faulted)
