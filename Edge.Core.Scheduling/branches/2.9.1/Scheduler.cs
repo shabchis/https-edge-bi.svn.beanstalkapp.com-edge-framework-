@@ -49,6 +49,7 @@ namespace Edge.Core.Scheduling
 		private bool _started = false;
 		
 		#endregion
+
 		#region Properties
 		public IQueryable<ServiceInstance> ScheduledServices
 		{
