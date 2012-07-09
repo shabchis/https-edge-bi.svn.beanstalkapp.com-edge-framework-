@@ -7,7 +7,7 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRequest
 	{
-		internal Guid Guid;
+		public Guid Guid;
 		public ServiceConfiguration Configuration;
 		public SchedulingRule Rule;
 		public DateTime RequestedTime;
