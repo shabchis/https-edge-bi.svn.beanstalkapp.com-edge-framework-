@@ -130,7 +130,7 @@ namespace Edge.Core.Scheduling.Objects
 			set
 			{
 				EnsureUnlocked();
-				if (this._legacyConfiguration != null)
+				if (this._legacyConfiguration == null)
 					throw new InvalidOperationException("Cannot set max execution time because LegacyConfiguration is not set.");
 				this._legacyConfiguration.MaxExecutionTime = value;
 			}
