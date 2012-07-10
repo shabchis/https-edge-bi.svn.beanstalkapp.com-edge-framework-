@@ -604,9 +604,16 @@ namespace Edge.Core.Services
 			}
 		}
 
-		public IsAlive IsAlive()
+		public PingInfo Ping()
 		{
-			return new IsAlive() { Outcome = this.Outcome, Progress = this.Progress.ToString(), State = this.State.ToString(), Guid= this.Guid };
+			ThrowIfServiceUnavailable();
+			PingInfo info;
+			try { info = _commChannel.Engine.Ping(); }
+			catch (Exception ex)
+			{
+				info = new PingInfo() { Progress = this.Progress, State = this.State, Exception = ex, Timestamp = DateTime.Now, FromEngine = false };
+			}
+			return info;
 		}
 
 		/*=========================*/
