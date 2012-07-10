@@ -928,7 +928,7 @@ namespace Edge.Core.Services
 
 		public PingInfo Ping()
 		{
-			return new PingInfo() { Progress = _progress, State = this.State, Exception = _exception, Timestamp = DateTime.Now, FromEngine = true };
+			return new PingInfo() { InstanceGuid = Instance.Guid, Progress = _progress, State = this.State, Exception = _exception, Timestamp = DateTime.Now, FromEngine = true };
 		}
 
 		/*=========================*/

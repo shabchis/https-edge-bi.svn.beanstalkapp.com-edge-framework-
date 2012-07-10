@@ -41,7 +41,7 @@ namespace Edge.Core.Scheduling
 		private Thread _findRequiredServicesthread;
 		private TimeSpan _timeToDeleteServiceFromTimeLine;
 		private Thread _newSchedulethread;
-		public event EventHandler ServiceRunRequiredEvent;
+		public event EventHandler<ServicesToRunEventArgs> ServiceRunRequiredEvent;
 		public event EventHandler NewScheduleCreatedEvent;
 		private volatile bool _needReschedule = false;
 		private TimeSpan _executionTimeCashTimeOutAfter;
@@ -622,7 +622,7 @@ namespace Edge.Core.Scheduling
 						//cant run!!!
 						if (countedServicesWithSameProfile >= instance.Value.Configuration.MaxConcurrentPerProfile)
 							continue;
-						OnTimeToRun(new TimeToRunEventArgs() { ServicesToRun = new ServiceInstance[] { instance.Value } });
+						OnTimeToRun(new ServicesToRunEventArgs() { ServicesToRun = new ServiceInstance[] { instance.Value } });
 					}
 
 
@@ -633,7 +633,7 @@ namespace Edge.Core.Scheduling
 		/// send event for the services which need to be runing
 		/// </summary>
 		/// <param name="e"></param>
-		private void OnTimeToRun(TimeToRunEventArgs e)
+		private void OnTimeToRun(ServicesToRunEventArgs e)
 		{
 			foreach (ServiceInstance serviceToRun in e.ServicesToRun)
 			{
@@ -685,13 +685,9 @@ namespace Edge.Core.Scheduling
 	}
 
 	#region eventargs classes
-	public class TimeToRunEventArgs : EventArgs
+	public class ServicesToRunEventArgs : EventArgs
 	{
 		public ServiceInstance[] ServicesToRun;
-	}
-	public class ScheduledInformationEventArgs : EventArgs
-	{
-		public Dictionary<SchedulingRequest, ServiceInstance> ScheduleInformation;
 	}
 	public class WillNotRunEventArgs : EventArgs
 	{

@@ -611,7 +611,7 @@ namespace Edge.Core.Services
 			try { info = _commChannel.Engine.Ping(); }
 			catch (Exception ex)
 			{
-				info = new PingInfo() { Progress = this.Progress, State = this.State, Exception = ex, Timestamp = DateTime.Now, FromEngine = false };
+				info = new PingInfo() { InstanceGuid = this.Guid, Progress = this.Progress, State = this.State, Exception = ex, Timestamp = DateTime.Now, FromEngine = false };
 			}
 			return info;
 		}

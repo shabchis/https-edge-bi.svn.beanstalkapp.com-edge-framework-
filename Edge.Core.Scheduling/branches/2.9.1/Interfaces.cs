@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
 using System.ServiceModel;
+using System.Text;
+using System.Threading;
+using Edge.Core.Configuration;
 using Edge.Core.Scheduling;
 using Edge.Core.Scheduling.Objects;
-using Legacy = Edge.Core.Services;
 using Edge.Core.Utilities;
-using System.Data.SqlClient;
-using Edge.Core.Configuration;
-using Edge.Core.Services;
-using System.Threading;
+using Legacy = Edge.Core.Services;
 
 namespace Edge.Core.Scheduling
 {
@@ -21,22 +20,23 @@ namespace Edge.Core.Scheduling
 		void Subscribe();
 
 		[OperationContract]
-		Legacy.IsAlive IsAlive(Guid guid);
+		void Unsubscribe();
+
+		[OperationContract]
+		PingInfo Ping(Guid guid);
 
 		[OperationContract]
 		void Abort(Guid guid);
 
 		[OperationContract]
-		void ResetUnEnded();
+		void ResetUnended();
 
 		[OperationContract]
-		Guid AddUnplanedService(int accountID, string serviceName, Dictionary<string, string> options, DateTime targetDateTime);
+		Guid AddUnplannedService(int accountID, string serviceName, Dictionary<string, string> options, DateTime targetDateTime);
 
 		[OperationContract]
 		List<AccountServiceInformation> GetServicesConfigurations();
 
-		[OperationContract]
-		void UnSubscribe();
 	}
 
 	public interface ISchedulingHostSubscriber
