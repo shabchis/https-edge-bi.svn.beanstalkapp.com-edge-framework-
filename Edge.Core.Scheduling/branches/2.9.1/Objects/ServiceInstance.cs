@@ -61,6 +61,10 @@ namespace Edge.Core.Scheduling.Objects
 
 			return serviceInstance;
 		}
+
+		public ServiceInstanceInfo GetInfo()
+		{
+		}
 	}
 	/// <summary>
 	/// service-hour 
@@ -73,7 +77,7 @@ namespace Edge.Core.Scheduling.Objects
 		public string InstanceID { get; set; }
 		public string ServiceName { get; set; }
 		public int AccountID { get; set; }
-		public DateTime SchdeuleStartTime { get; set; }
+		public DateTime ScheduleStartTime { get; set; }
 		public DateTime ScheduleEndTime { get; set; }
 		public DateTime ActualStartTime { get; set; }
 		public DateTime ActualEndTime { get; set; }
@@ -81,11 +85,10 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceState State { get; set; }
 		public ServiceOutcome Outcome { get; set; }
 		public string Options { get; set; }
-		public string TargetPeriod { get; set; }
 		public Guid ParentInstanceID { get; set; }
 		public DateTime BaseScheduleTime { get; set; }
 	}
-	public struct ServiceHourStruct
+	public struct ServiceHour
 	{
 		public TimeSpan SuitableHour;
 		public SchedulingRequest Service;
