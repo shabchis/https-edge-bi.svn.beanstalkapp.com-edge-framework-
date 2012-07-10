@@ -100,6 +100,7 @@
     <Compile Include="Data\Identity\IdentityManagerService.cs" />
     <Compile Include="Data\Identity\IdentityTable.cs" />
     <Compile Include="Scheduling\Interfaces.cs" />
+    <Compile Include="Services\PingInfo.cs" />
     <Compile Include="Services\ServiceWorkflowContext.cs" />
     <Compile Include="Utilities\Encryptor.cs" />
     <Compile Include="Utilities\Evaluator.cs" />

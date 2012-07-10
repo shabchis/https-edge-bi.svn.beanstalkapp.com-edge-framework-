@@ -49,7 +49,10 @@ namespace Edge.Core.Services
 		object _stopLock = new object();
 
 		bool _stopped = false;
-		bool _exceptionThrown = false;
+
+		Exception _exception = null;
+
+		double _progress = 0;
 
 		/*=========================*/
 		#endregion
@@ -578,25 +581,26 @@ namespace Edge.Core.Services
 		void UnhandledException(object sender, UnhandledExceptionEventArgs e)
 		{
 			// Mark the outcome as Failed
-			_exceptionThrown = true;
+			_exception = e.ExceptionObject as Exception;
 
 			// Log the exception
-			Log.Write("Unhandled exception occured.", e.ExceptionObject as Exception);
+			Log.Write("Unhandled exception occured.", _exception);
 		}
 
 		/// <summary>
 		// Instead of providing fault information, dispathes a 'failed' outcome and lets WCF continue handing the rest	
 		/// </summary>
-		void IErrorHandler.ProvideFault(Exception error, MessageVersion version, ref Message fault)
+		void IErrorHandler.ProvideFault(Exception ex, MessageVersion version, ref Message fault)
 		{
 			if (OperationContext.Current == null)
 			{
-				Log.Write("Unhandled exception occured outside of an operation context.", error);
+				_exception = ex;
+				Log.Write("Unhandled exception occured outside of an operation context.", ex);
 			}
 			else if (OperationContext.Current.EndpointDispatcher.ContractName == typeof(IServiceEngine).Name)
 			{
 				// Simulate an UnhandledException event using the cause of the fault
-				UnhandledException(AppDomain.CurrentDomain, new UnhandledExceptionEventArgs(error, false));
+				UnhandledException(AppDomain.CurrentDomain, new UnhandledExceptionEventArgs(ex, false));
 				Stop(ServiceOutcome.Unspecified);
 			}
 			else
@@ -605,7 +609,7 @@ namespace Edge.Core.Services
 					String.Format(
 						"Unhandled exception occured while performing a request made using the contract {0}.",
 						OperationContext.Current.EndpointDispatcher.ContractName),
-					error);
+					ex);
 			}
 
 			// Returning null resumes automatic error handling
@@ -706,7 +710,7 @@ namespace Edge.Core.Services
 				{
 					_outcome = ServiceOutcome.Aborted;
 				}
-				else if (_exceptionThrown)
+				else if (_exception != null)
 				{
 					_outcome = ServiceOutcome.Failure;
 				}
@@ -908,6 +912,8 @@ namespace Edge.Core.Services
 			if (progress < 0 || progress > 1)
 				throw new ArgumentException("Progress should be between 0.0 (started) to 1.0 (done).", "progress");
 
+			_progress = progress;
+
 			List<IServiceSubscriber> subscribers;
 			if (!_subscribers.TryGetValue(ServiceEventType.ProgressReported, out subscribers))
 				return;
@@ -920,18 +926,13 @@ namespace Edge.Core.Services
 		{
 		}
 
-		/*=========================*/
-		#endregion
-
-
-
-
-		public IsAlive IsAlive()
+		public PingInfo Ping()
 		{
-			return IsAlive();
+			return new PingInfo() { Progress = _progress, State = this.State, Exception = _exception, Timestamp = DateTime.Now, FromEngine = true };
 		}
 
-
+		/*=========================*/
+		#endregion
 	}
 
 	/// <summary>
