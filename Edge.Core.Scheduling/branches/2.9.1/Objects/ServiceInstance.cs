@@ -64,6 +64,25 @@ namespace Edge.Core.Scheduling.Objects
 
 		public ServiceInstanceInfo GetInfo()
 		{
+			return new ServiceInstanceInfo()
+			{
+				LegacyInstanceGuid = this.LegacyInstance.Guid,
+				AccountID = Convert.ToInt32(this.Configuration.Profile.Settings["AccountID"]),
+				LegacyInstanceID = this.LegacyInstance.InstanceID.ToString(),
+				LegacyOutcome = this.LegacyInstance.Outcome,
+				ScheduleStartTime = this.ExpectedStartTime,
+				ScheduleEndTime = this.ExpectedEndTime,
+				BaseScheduleTime = this.SchedulingRequest.RequestedTime,
+				LegacyActualStartTime = this.LegacyInstance.TimeStarted,
+				LegacyActualEndTime = this.LegacyInstance.TimeEnded,
+				ServiceName = this.Configuration.Name,
+				LegacyState = this.LegacyInstance.State,
+				// ScheduledID =this.ScheduledID,
+				Options = this.LegacyInstance.Configuration.Options,
+				LegacyParentInstanceID = this.LegacyInstance.ParentInstance != null ? this.LegacyInstance.ParentInstance.Guid : Guid.Empty,
+				LegacyProgress = this.LegacyInstance.State == Legacy.ServiceState.Ended ? 100 : this.LegacyInstance.Progress
+			};
+		
 		}
 	}
 	/// <summary>
@@ -74,18 +93,18 @@ namespace Edge.Core.Scheduling.Objects
 	{
 		public Guid LegacyInstanceGuid { get; set; }
 		public int ScheduledID { get; set; }
-		public string InstanceID { get; set; }
+		public string LegacyInstanceID { get; set; }
 		public string ServiceName { get; set; }
 		public int AccountID { get; set; }
 		public DateTime ScheduleStartTime { get; set; }
 		public DateTime ScheduleEndTime { get; set; }
-		public DateTime ActualStartTime { get; set; }
-		public DateTime ActualEndTime { get; set; }
-		public double Progress { get; set; }
-		public ServiceState State { get; set; }
-		public ServiceOutcome Outcome { get; set; }
-		public string Options { get; set; }
-		public Guid ParentInstanceID { get; set; }
+		public DateTime LegacyActualStartTime { get; set; }
+		public DateTime LegacyActualEndTime { get; set; }
+		public double LegacyProgress { get; set; }
+		public ServiceState LegacyState { get; set; }
+		public ServiceOutcome LegacyOutcome { get; set; }
+		public Edge.Core.SettingsCollection Options { get; set; }
+		public Guid LegacyParentInstanceID { get; set; }
 		public DateTime BaseScheduleTime { get; set; }
 	}
 	public struct ServiceHour
