@@ -42,7 +42,7 @@ namespace Edge.Core.Scheduling
 		private TimeSpan _timeToDeleteServiceFromTimeLine;
 		private Thread _newSchedulethread;
 		public event EventHandler<ServicesToRunEventArgs> ServiceRunRequiredEvent;
-		public event EventHandler NewScheduleCreatedEvent;
+		public event EventHandler<SchedulingInformationEventArgs> NewScheduleCreatedEvent;
 		private volatile bool _needReschedule = false;
 		private TimeSpan _executionTimeCashTimeOutAfter;
 		private object _sync;
@@ -384,7 +384,15 @@ namespace Edge.Core.Scheduling
 						}
 					}
 					#endregion
-					OnNewScheduleCreated(new ScheduledInformationEventArgs() { ScheduleInformation = _scheduledServices });
+
+					SchedulingInformationEventArgs args = new SchedulingInformationEventArgs();
+					args.ScheduleInformation = new Dictionary<SchedulingRequest, ServiceInstanceInfo>();
+					foreach (var scheduleService in _scheduledServices)
+					{
+						args.ScheduleInformation.Add(scheduleService.Key, scheduleService.Value.GetInfo());
+						
+					}
+					OnNewScheduleCreated(args);
 					NotifyServicesToRun();
 				}
 			}
@@ -645,7 +653,7 @@ namespace Edge.Core.Scheduling
 		/// set event new schedule created
 		/// </summary>
 		/// <param name="e"></param>
-		private void OnNewScheduleCreated(ScheduledInformationEventArgs e)
+		private void OnNewScheduleCreated(SchedulingInformationEventArgs e)
 		{
 			NewScheduleCreatedEvent(this, e);
 
