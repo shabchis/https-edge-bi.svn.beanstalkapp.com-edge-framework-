@@ -48,7 +48,7 @@ namespace Edge.Core.Scheduling.Objects
 		{
 			get { return this.ExpectedStartTime.Subtract(this.SchedulingRequest.RequestedTime); }
 		}
-
+		 
 		public static ServiceInstance FromLegacyInstance(Legacy.ServiceInstance legacyInstance, ServiceConfiguration configuration, Profile profile = null)
 		{
 			var serviceInstance = new ServiceInstance()
