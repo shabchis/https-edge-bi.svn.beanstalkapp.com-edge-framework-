@@ -17,6 +17,7 @@ using System.IO;
 
 
 
+
 namespace Edge.Core.Scheduling
 {
 	/// <summary>
@@ -251,14 +252,14 @@ namespace Edge.Core.Scheduling
 						// clear services from history that already ran and their maxdiviation pass -> this is to enable to run them again if their is another schedule
 						_state.HistoryItems.RemoveAll(k => k.Value.TimeToRun.Add(k.Value.MaxDeviationAfter) < DateTime.Now);
 
-						foreach (var scheduleService in _scheduledServices.RemoveAll(k => k.Value.Canceled == true || k.Value.LegacyInstance.State == Legacy.ServiceState.Ended))
-							_state.HistoryItems.Add(scheduleService.Key.GetHashCode(), HistoryItem.FromSchedulingData(scheduleService.Key, scheduleService.Value, SchedulingResult.Canceled));
+						foreach (var scheduleService in _scheduledServices.RemoveAll(k => k.Canceled == true || k.LegacyInstance.State == Legacy.ServiceState.Ended))
+							_state.HistoryItems.Add(scheduleService.SchedulingRequest.GetHashCode(), HistoryItem.FromSchedulingData(scheduleService.SchedulingRequest, scheduleService, SchedulingResult.Canceled));
 
 						_state.Save();
 					}
 
 					// Remove pending uninitialized services so they can be rescheduled
-					_scheduledServices.RemoveAll(k => k.Value.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.Key.RequestedTime.Add(k.Key.Rule.MaxDeviationAfter) > DateTime.Now);
+					_scheduledServices.RemoveAll(k => k.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.SchedulingRequest.RequestedTime.Add(k.SchedulingRequest.Rule.MaxDeviationAfter) > DateTime.Now);
 
 					//Get Services for next time line					
 					IEnumerable<SchedulingRequest> servicesForNextTimeLine = GetServicesForTimeLine(reschedule);
@@ -308,7 +309,7 @@ namespace Edge.Core.Scheduling
 							bool found = false;
 							while (!found)
 							{
-								IOrderedEnumerable<KeyValuePair<SchedulingRequest, ServiceInstance>> whereToLookNext = null;
+								IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
 
 								int countedPerConfiguration = servicesWithSameConfiguration.Count(s => (calculatedStartTime >= s.ExpectedStartTime && calculatedStartTime <= s.ExpectedEndTime) || (calculatedEndTime >= s.ExpectedStartTime && calculatedEndTime <= s.ExpectedEndTime));
 								if (countedPerConfiguration < schedulingData.Configuration.MaxConcurrent)
@@ -356,7 +357,7 @@ namespace Edge.Core.Scheduling
 									if (whereToLookNext == null)
 										throw new Exception("This should not have happened.");
 
-									calculatedStartTime = whereToLookNext.Where(s => s.Value.ExpectedEndTime >= calculatedStartTime).Min(s => s.Value.ExpectedEndTime);
+									calculatedStartTime = whereToLookNext.Where(s => s.ExpectedEndTime >= calculatedStartTime).Min(s => s.ExpectedEndTime);
 									if (calculatedStartTime < DateTime.Now)
 										calculatedStartTime = DateTime.Now;
 
@@ -784,6 +785,9 @@ namespace Edge.Core.Scheduling
 					
 		}
 
+		
+		
+
 		#endregion
 
 		#region IEnumerable<ServiceInstance> Members
@@ -803,6 +807,8 @@ namespace Edge.Core.Scheduling
 		}
 
 		#endregion
+
+		
 	}
 
 	#region eventargs classes
@@ -833,6 +839,19 @@ namespace Edge.Core.Scheduling
 			}
 		}
 	}
+	public static class ScheduledServicesExtensions
+	{
+		public static IEnumerable<ServiceInstance> RemoveAll(this ScheduledServices ins,
+									 Func<ServiceInstance, bool> condition)
+		{
+			foreach (var cur in ins.Where(condition).ToList())
+			{
+				ins.Remove(cur);
+				yield return cur;
+			}
+		}
+	}
+	
 	
 	public static class DateTimeExtenstions
 	{
