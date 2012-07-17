@@ -72,7 +72,7 @@ namespace Edge.Core.Scheduling.Objects
 				SchedulingResult = schedulingResult,
 				MaxDeviationAfter = data.Rule.MaxDeviationAfter,
 				TimeToRun = data.RequestedTime,
-				Guid = data.Guid,
+				Guid = data.Rule.GuidForUnplanned,
 				ServiceOutcome = instance.Outcome
 
 			};

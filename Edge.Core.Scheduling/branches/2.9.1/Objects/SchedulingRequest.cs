@@ -7,15 +7,9 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRequest
 	{
-		public Guid Guid;
 		public ServiceConfiguration Configuration;
 		public SchedulingRule Rule;
 		public DateTime RequestedTime;
-
-		public SchedulingRequest()
-		{
-			Guid = Guid.NewGuid();
-		}
 
 		public override string ToString()
 		{
@@ -23,14 +17,16 @@ namespace Edge.Core.Scheduling.Objects
 			if (Rule.Scope != SchedulingScope.Unplanned)
 				uniqueKey = String.Format("profile:{0},base:{1},name:{2},scope:{3},time:{4}", this.Configuration.Profile.ID, Configuration.BaseConfiguration.Name, Configuration.Name, Rule.Scope, RequestedTime);
 			else
-				uniqueKey = Guid.ToString();
+				uniqueKey = Rule.GuidForUnplanned.ToString() ;
 
 			return uniqueKey;
 		}
 
 		public override int GetHashCode()
 		{
-			int returnType = this.ToString().GetHashCode();
+			int returnType = Rule.Scope != SchedulingScope.Unplanned ?
+				this.ToString().GetHashCode() :
+				Rule.GuidForUnplanned.GetHashCode();
 			return returnType;
 		}
 

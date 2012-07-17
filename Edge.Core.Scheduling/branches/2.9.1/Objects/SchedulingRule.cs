@@ -50,7 +50,7 @@ namespace Edge.Core.Scheduling.Objects
 				Scope = SchedulingScope.Unplanned,
 				MaxDeviationAfter = TimeSpan.FromMinutes(30),
 				Days = new List<int>(),
-				Times = new List<TimeSpan>() { new TimeSpan(0, 0, 0, 0) },
+				Times = new List<TimeSpan>() { TimeSpan.Zero },
 				GuidForUnplanned = Guid.NewGuid(),
 				SpecificDateTime = DateTime.Now
 			};

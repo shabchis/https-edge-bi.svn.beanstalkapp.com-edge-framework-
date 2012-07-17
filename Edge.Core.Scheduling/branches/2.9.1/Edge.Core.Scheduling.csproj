@@ -49,9 +49,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ScheduledServiceCollection.cs" />
     <Compile Include="Interfaces.cs" />
     <Compile Include="Objects\SchedulerState.cs" />
-    <Compile Include="Objects\SchedulingData.cs" />
+    <Compile Include="Objects\SchedulingRequest.cs" />
     <Compile Include="Objects\SchedulingRule.cs" />
     <Compile Include="Objects\ServiceInstance.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />

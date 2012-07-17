@@ -33,7 +33,7 @@ namespace Edge.Core.Scheduling
 		void ResetUnended();
 
 		[OperationContract]
-		Guid AddUnplannedService(int accountID, string serviceName, Dictionary<string, string> options, DateTime targetDateTime);
+		Guid AddUnplannedService(int accountID, string serviceName,  DateTime targetDateTime, Dictionary<string, string> options = null);
 
 		[OperationContract]
 		List<AccountServiceInformation> GetServicesConfigurations();

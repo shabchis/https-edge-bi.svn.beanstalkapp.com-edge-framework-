@@ -10,8 +10,6 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class ServiceConfiguration
 	{
-
-		private int _id;
 		private ServiceConfiguration _baseConfiguration;
 		private string _name;
 		private Profile _schedulingProfile;
@@ -20,11 +18,9 @@ namespace Edge.Core.Scheduling.Objects
 		private int _priority;
 		int _maxConcurrent = 1;
 		int _maxCuncurrentPerProfile = 1;
-        Guid _guid;
 
         public ServiceConfiguration()
         {
-            _guid = new Guid();
 			this.SchedulingRules = new List<SchedulingRule>();
         }
 
@@ -47,15 +43,9 @@ namespace Edge.Core.Scheduling.Objects
 
         public override int GetHashCode()
         {
-            return _guid.GetHashCode();
+			throw new NotImplementedException("GetHashCode");
+            //return _guid.GetHashCode();
         }
-		public Guid Guid
-		{
-			get
-			{
-				return _guid;
-			}
-		}
 
 		public int MaxConcurrent
 		{
@@ -68,12 +58,6 @@ namespace Edge.Core.Scheduling.Objects
 				else
 					value = 999;
 			}
-		}
-
-		public int ID
-		{
-			get { return _id; }
-			set { EnsureUnlocked(); _id = value; }
 		}
 
 		public ServiceConfiguration BaseConfiguration
@@ -207,12 +191,24 @@ namespace Edge.Core.Scheduling.Objects
 
 			return serviceConfiguration;
 		}
-		
+
+		public virtual ServiceConfiguration Clone(bool includeSchedulingRules = true)
+		{
+			var cloned = (ServiceConfiguration) this.MemberwiseClone();
+			if (!includeSchedulingRules)
+				cloned.SchedulingRules.Clear();
+			return cloned;
+		}
 	}
 
 	public class ServiceInstanceConfiguration: ServiceConfiguration
 	{
 		public ServiceInstance Instance;
+
+		public override ServiceConfiguration Clone(bool includeSchedulingRules = true)
+		{
+			throw new InvalidOperationException("Cannot clone ServiceInstanceConfiguration.");
+		}
 
 		public static ServiceInstanceConfiguration FromLegacyConfiguration(Legacy.ServiceInstance legacyInstance, ServiceConfiguration baseConfiguration = null, Profile profile = null, Dictionary<string, string> options = null)
 		{
