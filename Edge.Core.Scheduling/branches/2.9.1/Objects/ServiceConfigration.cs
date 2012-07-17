@@ -49,6 +49,13 @@ namespace Edge.Core.Scheduling.Objects
         {
             return _guid.GetHashCode();
         }
+		public Guid Guid
+		{
+			get
+			{
+				return _guid;
+			}
+		}
 
 		public int MaxConcurrent
 		{
