@@ -27,7 +27,7 @@ namespace Edge.Core.Scheduling
 	{
 		#region members
 		private SchedulerState _state;
-		private List<string> _tempCompletedServices;
+		private List<Guid> _tempCompletedServices;
 		private Dictionary<int, Profile> _profiles = new Dictionary<int, Profile>();
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
 		private List<ServiceConfiguration> _serviceConfigurationsToSchedule = new List<ServiceConfiguration>(); //all services from configuration file load to this var		
@@ -57,10 +57,7 @@ namespace Edge.Core.Scheduling
 		{
 			get { return _scheduledServices; }
 		}
-		public IQueryable<ServiceConfiguration> ServiceConfigurations
-		{
-			get { return _serviceConfigurationsToSchedule.AsQueryable(); }
-		}
+
 		public SchedulerState SchedulerState
 		{
 			get { return _state; }
@@ -403,11 +400,12 @@ namespace Edge.Core.Scheduling
 		void LegacyInstance_OutcomeReported(object sender, EventArgs e)
 		{
 			Legacy.ServiceInstance instance = (Edge.Core.Services.ServiceInstance)sender;
-			if (_tempCompletedServices == null)
-				_tempCompletedServices = new List<string>();
 			lock (_tempCompletedServices)
 			{
-				_tempCompletedServices.Add(instance.InstanceID.ToString());
+			if (_tempCompletedServices == null)
+				_tempCompletedServices = new List<string>();
+			
+				_tempCompletedServices.Add(instance.Co;
 			}
 
 
@@ -556,7 +554,8 @@ namespace Edge.Core.Scheduling
 				_serviceConfigurationsToSchedule.Add(serviceConfiguration);
 				lock (_tempCompletedServices)
 				{
-					_tempCompletedServices.Add(serviceConfiguration.Name);
+					
+					_tempCompletedServices.Add(serviceConfiguration.Guid);
 				}
 			}
 			_needReschedule = true;
