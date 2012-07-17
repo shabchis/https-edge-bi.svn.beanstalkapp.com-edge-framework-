@@ -27,7 +27,7 @@ namespace Edge.Core.Scheduling
 	{
 		#region members
 		private SchedulerState _state;
-		private List<Guid> _tempCompletedServices;
+		private List<ServiceConfiguration> _tempCompletedServices;
 		private Dictionary<int, Profile> _profiles = new Dictionary<int, Profile>();
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
 		private List<ServiceConfiguration> _serviceConfigurationsToSchedule = new List<ServiceConfiguration>(); //all services from configuration file load to this var		
@@ -57,7 +57,10 @@ namespace Edge.Core.Scheduling
 		{
 			get { return _scheduledServices; }
 		}
-
+		public IQueryable<ServiceConfiguration> ServiceConfigurations
+		{
+			get { return _serviceConfigurationsToSchedule.AsQueryable(); }
+		}
 		public SchedulerState SchedulerState
 		{
 			get { return _state; }
@@ -103,8 +106,8 @@ namespace Edge.Core.Scheduling
 				  if yes run schedule again and update next schedule to 10 min
 				  if not minus 5 seconds from the interval of newschedule
 				 */
-
-				_tempCompletedServices = new List<string>();
+				if (_tempCompletedServices == null)
+					_tempCompletedServices = new List<ServiceConfiguration>();
 
 				TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
 				while (true)
@@ -116,7 +119,12 @@ namespace Edge.Core.Scheduling
 						Schedule(false);
 						lock (_tempCompletedServices)
 						{
-							_tempCompletedServices.Clear();
+							foreach (var configuration in _tempCompletedServices)
+							{
+								if (_serviceConfigurationsToSchedule.Contains(configuration))
+								_serviceConfigurationsToSchedule.Remove(configuration);
+								
+							}
 						}
 
 						calcTimeInterval = _intervalBetweenNewSchedule;
@@ -400,13 +408,20 @@ namespace Edge.Core.Scheduling
 		void LegacyInstance_OutcomeReported(object sender, EventArgs e)
 		{
 			Legacy.ServiceInstance instance = (Edge.Core.Services.ServiceInstance)sender;
-			lock (_tempCompletedServices)
+			lock (_scheduledServices)
 			{
-			if (_tempCompletedServices == null)
-				_tempCompletedServices = new List<string>();
-			
-				_tempCompletedServices.Add(instance.Co;
+				if (_scheduledServices.ContainsKey(instance.Guid))
+				{
+					if (_scheduledServices[instance.Guid].SchedulingRequest.Rule.Scope == SchedulingScope.Unplanned)
+					{
+						if (_tempCompletedServices == null)
+							_tempCompletedServices = new List<ServiceConfiguration>();
+						_tempCompletedServices.Add(_scheduledServices[instance.Guid].Configuration);
+					}
+
+				}
 			}
+
 
 
 		}
@@ -552,11 +567,7 @@ namespace Edge.Core.Scheduling
 			lock (this)
 			{
 				_serviceConfigurationsToSchedule.Add(serviceConfiguration);
-				lock (_tempCompletedServices)
-				{
-					
-					_tempCompletedServices.Add(serviceConfiguration.Guid);
-				}
+				
 			}
 			_needReschedule = true;
 		}
@@ -656,38 +667,9 @@ namespace Edge.Core.Scheduling
 		/// <param name="e"></param>
 		private void OnNewScheduleCreated(SchedulingInformationEventArgs e)
 		{
-			NewScheduleCreatedEvent(this, e);
-
-			// temp
-			//NotifyServicesToRun();
+			NewScheduleCreatedEvent(this, e);			
 		}
-		public void CleandEndedUnplaned(Legacy.ServiceInstance instance)
-		{
-			if (instance.State != Legacy.ServiceState.Ended)
-				throw new NotSupportedException("You can't clean unplaned service that not ended");
-			List<ServiceConfiguration> toRemove = new List<ServiceConfiguration>();
-			lock (_scheduledServices)
-			{
-				foreach (var scheduleEndedService in _scheduledServices)
-				{
-					if (scheduleEndedService.LegacyInstance.Guid == instance.Guid && scheduleEndedService.SchedulingRequest.Rule.Scope == SchedulingScope.Unplanned)
-					{
-						toRemove.Add(scheduleEndedService.Configuration);
-					}
-				}
-				lock (_serviceConfigurationsToSchedule)
-				{
-					foreach (var item in toRemove)
-					{
-						if (_serviceConfigurationsToSchedule.Contains(item))
-							_serviceConfigurationsToSchedule.Remove(item);
-
-
-					}
-				}
-
-			}
-		}
+		
 		//==================================
 
 		#endregion
