@@ -388,10 +388,10 @@ namespace Edge.Core.Scheduling
 					#endregion
 
 					SchedulingInformationEventArgs args = new SchedulingInformationEventArgs();
-					args.ScheduleInformation = new Dictionary<SchedulingRequest, ServiceInstanceInfo>();
+					args.ScheduleInformation = new Dictionary<SchedulingRequest, ServiceInstance>();
 					foreach (var scheduleService in _scheduledServices)
 					{
-						args.ScheduleInformation.Add(scheduleService.SchedulingRequest, scheduleService.GetInfo());
+						args.ScheduleInformation.Add(scheduleService.SchedulingRequest, scheduleService);
 
 					}
 					OnNewScheduleCreated(args);
@@ -714,15 +714,16 @@ namespace Edge.Core.Scheduling
 			}
 		}
 
-		
+
 		#region ICollection<ServiceInstance> Members
 
 		public void Add(ServiceInstance serviceInstance)
 		{
 			_instanceCollection.Add(serviceInstance);
 			_instanceByGuid.Add(serviceInstance.LegacyInstance.Guid, serviceInstance);
-			if (serviceInstance.SchedulingRequest != null)
-				_instanceBySchedulingRequest.Add(serviceInstance.SchedulingRequest, serviceInstance);
+			if (serviceInstance.SchedulingRequest == null)
+				throw new Exception("Debug only, should find solution for this");
+			_instanceBySchedulingRequest.Add(serviceInstance.SchedulingRequest, serviceInstance);
 		}
 
 		public void Clear()
@@ -734,7 +735,7 @@ namespace Edge.Core.Scheduling
 
 		public bool Contains(ServiceInstance serviceInstance)
 		{
-			 return (_instanceByGuid.ContainsKey(serviceInstance.LegacyInstance.Guid));
+			return (_instanceByGuid.ContainsKey(serviceInstance.LegacyInstance.Guid));
 		}
 		public bool ContainsKey(SchedulingRequest schedulingRequest)
 		{
@@ -764,7 +765,7 @@ namespace Edge.Core.Scheduling
 
 		public bool Remove(ServiceInstance serviceInstance)
 		{
-			bool removed=false;
+			bool removed = false;
 			if (_instanceCollection.Contains(serviceInstance))
 			{
 				_instanceCollection.Remove(serviceInstance);
@@ -782,11 +783,11 @@ namespace Edge.Core.Scheduling
 			}
 
 			return removed;
-					
+
 		}
 
-		
-		
+
+
 
 		#endregion
 
@@ -808,7 +809,7 @@ namespace Edge.Core.Scheduling
 
 		#endregion
 
-		
+
 	}
 
 	#region eventargs classes
@@ -822,7 +823,7 @@ namespace Edge.Core.Scheduling
 	}
 	public class SchedulingInformationEventArgs : EventArgs
 	{
-		public Dictionary<SchedulingRequest, ServiceInstanceInfo> ScheduleInformation;
+		public Dictionary<SchedulingRequest, ServiceInstance> ScheduleInformation;
 	}
 	#endregion
 
@@ -851,8 +852,8 @@ namespace Edge.Core.Scheduling
 			}
 		}
 	}
-	
-	
+
+
 	public static class DateTimeExtenstions
 	{
 		public static DateTime RemoveSeconds(this DateTime time)

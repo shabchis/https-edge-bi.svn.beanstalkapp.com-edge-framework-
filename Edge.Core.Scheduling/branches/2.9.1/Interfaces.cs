@@ -42,10 +42,9 @@ namespace Edge.Core.Scheduling
 
 	public interface ISchedulingHostSubscriber
 	{
-		[OperationContract(IsOneWay = true)]
-		void ScheduleCreated(Edge.Core.Scheduling.Objects.ServiceInstanceInfo[] scheduleAndStateInfo);
+		
 
 		[OperationContract(IsOneWay = true)]
-		void InstanceEvent(Edge.Core.Scheduling.Objects.ServiceInstanceInfo StateOutcomerInfo);
+		void InstancesEvents(List<Edge.Core.Scheduling.Objects.ServiceInstanceInfo> instancesEvents);
 	}
 }
