@@ -11,6 +11,6 @@ namespace Edge.Core.Scheduling.Objects
 		public string Name;
 		public Dictionary<string,object> Settings;
 
-		//public List<ServiceConfiguration> ServiceConfigurations;
+		public List<ServiceConfiguration> ServiceConfigurations;
 	}
 }

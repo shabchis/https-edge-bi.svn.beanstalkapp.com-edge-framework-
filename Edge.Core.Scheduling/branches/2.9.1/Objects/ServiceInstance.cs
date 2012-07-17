@@ -79,7 +79,7 @@ namespace Edge.Core.Scheduling.Objects
 				LegacyState = this.LegacyInstance.State,
 				// ScheduledID =this.ScheduledID,
 				Options = this.LegacyInstance.Configuration.Options,
-				LegacyParentInstanceID = this.LegacyInstance.ParentInstance != null ? this.LegacyInstance.ParentInstance.Guid : Guid.Empty,
+				LegacyParentInstanceGuid = this.LegacyInstance.ParentInstance != null ? this.LegacyInstance.ParentInstance.Guid : Guid.Empty,
 				LegacyProgress = this.LegacyInstance.State == Legacy.ServiceState.Ended ? 100 : this.LegacyInstance.Progress
 			};
 		
@@ -104,7 +104,7 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceState LegacyState { get; set; }
 		public ServiceOutcome LegacyOutcome { get; set; }
 		public Edge.Core.SettingsCollection Options { get; set; }
-		public Guid LegacyParentInstanceID { get; set; }
+		public Guid LegacyParentInstanceGuid { get; set; }
 		public DateTime BaseScheduleTime { get; set; }
 	}
 	public struct ServiceHour
