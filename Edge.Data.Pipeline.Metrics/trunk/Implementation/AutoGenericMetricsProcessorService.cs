@@ -46,6 +46,12 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			var metrics = new GenericMetricsUnit();
 			_metricsMappings.Apply(metrics);
 
+            //Writing to Log 
+            if (metrics.Output.Checksum.Count() == 0)
+            {
+                Edge.Core.Utilities.Log.Write("Output checksum is empty",Core.Utilities.LogMessageType.Information);
+            }
+
 			var signature = new Signature();
 			_signatureMappings.Apply(signature);
 
