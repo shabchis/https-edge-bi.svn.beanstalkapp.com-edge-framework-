@@ -284,7 +284,7 @@ namespace Edge.Data.Pipeline
 
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.Parameters["@account_ID"].Value = delivery.Account != null ? delivery.Account.ID : -1;
-					cmd.Parameters["@account_originalID"].Value = delivery.Account == null ? null : delivery.Account.OriginalID == null ? (object)DBNull.Value : delivery.Account.OriginalID;
+                    cmd.Parameters["@account_originalID"].Value = delivery.Account == null ? (object)DBNull.Value : delivery.Account.OriginalID == null ? (object)DBNull.Value : delivery.Account.OriginalID;
 					cmd.Parameters["@channelID"].Value = delivery.Channel != null ? delivery.Channel.ID : -1; ;
 					cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
 					cmd.Parameters["@dateModified"].Value = delivery.DateModified;
