@@ -64,9 +64,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					using (this.ImportManager = CreateImportManager(Instance.InstanceID, importManagerOptions))
 					{
 						this.ImportManager.BeginImport(this.Delivery);
+                        bool readSuccess = false;
+                        while (this.ReaderAdapter.Reader.Read())
+                        {
+                            readSuccess = true;
+                            OnRead();
+                        }
 
-						while (this.ReaderAdapter.Reader.Read())
-							OnRead();
+                        if (!readSuccess)
+                            Edge.Core.Utilities.Log.Write("Could Not read data from file!, check file mapping and configuration", Core.Utilities.LogMessageType.Warning);
 							
 						this.ImportManager.EndImport();
 					}
