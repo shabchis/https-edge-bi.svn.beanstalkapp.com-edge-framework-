@@ -49,6 +49,8 @@ namespace Edge.Core.Scheduling
 		private TimeSpan _executionTimeCashTimeOutAfter;
 		private object _sync;
 		private bool _started = false;
+		Action _schedulerTimer;
+		Action _RequiredServicesTimer;
 
 		#endregion
 
@@ -99,89 +101,92 @@ namespace Edge.Core.Scheduling
 		public void Start()
 		{
 			if (_started)
-				return;
+				return;			
+			_schedulerTimer = StartSchedulerTimer;
+			_schedulerTimer.BeginInvoke(result =>
+				{
+					try
+					{
+						_schedulerTimer.EndInvoke(result);
+					}
+					catch (Exception ex)
+					{
+						Log.Write(this.ToString(), ex.Message, ex, LogMessageType.Error);
+					}
+				}, null);
+			_RequiredServicesTimer = StartRequiredServicesTimer;
+			_RequiredServicesTimer.BeginInvoke(result =>
+				{
+					try
+					{
+						_RequiredServicesTimer.EndInvoke(result);
 
-			// TODO: proper way to do async thread
-			Action startFunc = this.Stop;
-			// startFunc();
-			// startFunc.Invoke();
-			// startFunc.BeginInvoke(null, null);
-			//startFunc.BeginInvoke(
-			//	result => {
-			//		try { startFunc.EndInvoke(result); }
-			//		catch (Exception ex) { }
-			//	},
-			//	null);
+					}
+					catch (Exception ex)
+					{
 
-			_started = true;
-			Schedule(false);
-			//NotifyServicesToRun();
-			_newSchedulethread = new Thread(new ThreadStart(delegate()
+						Log.Write(this.ToString(), ex.Message, ex, LogMessageType.Error);
+					}
+				}, null);
+		}
+
+		private void StartSchedulerTimer()
+		{
+			if (_tempCompletedServices == null)
+				_tempCompletedServices = new List<ServiceConfiguration>();
+
+			TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
+			while (_started)
 			{
-				/* 1) every 5 seconds check if atleast 1 service finished: 
-				  if yes run schedule again and update next schedule to 10 min
-				  if not minus 5 seconds from the interval of newschedule
-				 */
-				if (_tempCompletedServices == null)
-					_tempCompletedServices = new List<ServiceConfiguration>();
 
-				TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
-				while (_started)
+				Thread.Sleep(TimeSpan.FromSeconds(5));
+				if (_tempCompletedServices.Count > 0)
 				{
 
-					Thread.Sleep(TimeSpan.FromSeconds(5));
-					if (_tempCompletedServices.Count > 0)
+					Schedule(false);
+					lock (_tempCompletedServices)
 					{
-						Schedule(false);
-						lock (_tempCompletedServices)
+						foreach (var configuration in _tempCompletedServices)
 						{
-							foreach (var configuration in _tempCompletedServices)
-							{
-								if (_serviceConfigurationsToSchedule.Contains(configuration))
+							if (_serviceConfigurationsToSchedule.Contains(configuration))
 								_serviceConfigurationsToSchedule.Remove(configuration);
-								
-							}
-							_tempCompletedServices.Clear();
 
 						}
-
-						calcTimeInterval = _intervalBetweenNewSchedule;
+						_tempCompletedServices.Clear();
 
 					}
-					else
-					{
-						calcTimeInterval = calcTimeInterval.Subtract(TimeSpan.FromSeconds(5));
-					}
 
-					if (calcTimeInterval == TimeSpan.Zero)
-					{
-						Schedule(false);
-						calcTimeInterval = _intervalBetweenNewSchedule;
-					}
+					calcTimeInterval = _intervalBetweenNewSchedule;
+
+				}
+				else
+				{
+					calcTimeInterval = calcTimeInterval.Subtract(TimeSpan.FromSeconds(5));
+				}
+
+				if (calcTimeInterval == TimeSpan.Zero)
+				{
+					Schedule(false);
+					calcTimeInterval = _intervalBetweenNewSchedule;
 				}
 			}
-			));
-
-			_findRequiredServicesthread = new Thread(new ThreadStart(delegate()
+			return;
+		}
+		public void StartRequiredServicesTimer()
+		{
+			while (_started)
 			{
-				while (true)
-				{
-					Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
+				Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
 
-					if (_needReschedule)
-						Schedule(true);
+				if (_needReschedule)
+					Schedule(true);
 
-					NotifyServicesToRun();
-				}
-			}));
-
-
-			_newSchedulethread.IsBackground = true;
-			_newSchedulethread.Start();
-			_findRequiredServicesthread.IsBackground = true;
-			_findRequiredServicesthread.Start();
+				NotifyServicesToRun();
+			}
+			return;
 
 		}
+
 
 		/// <summary>
 		///  stop the timers of new scheduling and services required to run
@@ -189,11 +194,7 @@ namespace Edge.Core.Scheduling
 		public void Stop()
 		{
 			_started = false;
-			if (_findRequiredServicesthread != null)
-				_findRequiredServicesthread.Abort();
-
-			if (_newSchedulethread != null)
-				_newSchedulethread.Abort();
+			
 		}
 		#endregion
 
@@ -342,14 +343,14 @@ namespace Edge.Core.Scheduling
 									int countedPerProfile = servicesWithSameProfile.Count(s => (calculatedStartTime >= s.ExpectedStartTime && calculatedStartTime <= s.ExpectedEndTime) || (calculatedEndTime >= s.ExpectedStartTime && calculatedEndTime <= s.ExpectedEndTime));
 									if (countedPerProfile < schedulingData.Configuration.MaxConcurrentPerProfile)
 									{
-										
+
 										if (schedulingData.Configuration is ServiceInstanceConfiguration)
 										{
 											// This is the case of a child service
 											var unplannedConfiguration = (ServiceInstanceConfiguration)schedulingData.Configuration;
 											serviceInstance = unplannedConfiguration.Instance;
 										}
-										
+
 										if (serviceInstance == null)
 										{
 											serviceInstance = ServiceInstance.FromLegacyInstance(
@@ -590,7 +591,7 @@ namespace Edge.Core.Scheduling
 			lock (this)
 			{
 				_serviceConfigurationsToSchedule.Add(serviceConfiguration);
-				
+
 			}
 			_needReschedule = true;
 		}
@@ -690,12 +691,18 @@ namespace Edge.Core.Scheduling
 		/// <param name="e"></param>
 		private void OnNewScheduleCreated(SchedulingInformationEventArgs e)
 		{
-			NewScheduleCreatedEvent(this, e);			
+			NewScheduleCreatedEvent(this, e);
 		}
-		
+
 		//==================================
 
 		#endregion
+
+
+
+
+
+		
 	}
 
 	#region eventargs classes
