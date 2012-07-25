@@ -730,20 +730,36 @@ namespace Edge.Core.Scheduling
 				_newSchedulethread = new Thread(new ThreadStart(delegate()
 				{
 
-					while (true)
+					try
 					{
-						Thread.Sleep(_intervalBetweenNewSchedule);
-						Schedule(false);
+						while (true)
+						{
+							Thread.Sleep(_intervalBetweenNewSchedule);
+							Schedule(false);
+						}
+					}
+					catch (Exception ex)
+					{
+
+						Log.Write(this.ToString(), string.Format("newSchedulethread EXCEPTION:{0}", ex.Message), ex, LogMessageType.Error);
 					}
 				}
 				));
 
 				_findRequiredServicesthread = new Thread(new ThreadStart(delegate()
 				{
-					while (true)
+					try
 					{
-						Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
-						NotifyServicesToRun();
+						while (true)
+						{
+							Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
+							NotifyServicesToRun();
+						}
+					}
+					catch (Exception ex)
+					{
+
+						Log.Write(this.ToString(), string.Format("findRequiredServicesthread EXCEPTION:{0}", ex.Message), ex, LogMessageType.Error);
 					}
 				}));
 				_newSchedulethread.IsBackground = true;
