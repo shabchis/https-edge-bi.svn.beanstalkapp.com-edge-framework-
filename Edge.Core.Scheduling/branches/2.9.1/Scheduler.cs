@@ -223,6 +223,7 @@ namespace Edge.Core.Scheduling
 
 			foreach (AccountElement account in EdgeServicesConfiguration.Current.Accounts)
 			{
+				
 				// Create matching profile
 				Profile profile = new Profile()
 				{
@@ -230,7 +231,8 @@ namespace Edge.Core.Scheduling
 					ID = account.ID,
 					Settings = new Dictionary<string, object>()
 					{
-						{"AccountID", account.ID}
+						{"AccountID", account.ID},
+						{"AccountName",account.Name},
 					},
 					ServiceConfigurations = new List<ServiceConfiguration>()
 				};
@@ -521,12 +523,8 @@ namespace Edge.Core.Scheduling
 									(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
 									)
 								{
-									SchedulingRequest request = new SchedulingRequest()
-									{
-										Configuration = service, // TODO: 
-										Rule = schedulingRule,
-										RequestedTime = requestedTime
-									};
+									SchedulingRequest request = new SchedulingRequest(service,schedulingRule,requestedTime);
+									
 
 									// special for unplanned
 									if (schedulingRule.Scope == SchedulingScope.Unplanned)

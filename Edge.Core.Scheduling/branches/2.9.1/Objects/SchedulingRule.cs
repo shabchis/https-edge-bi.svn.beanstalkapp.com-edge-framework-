@@ -8,7 +8,7 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRule
 	{
-		//public Guid GuidForUnplanned { get; private set; }
+		public Guid GuidForUnplanned { get; private set; }
 		public SchedulingScope Scope { get; set; }
 		public List<int> Days { get; set; }
 		public List<TimeSpan> Times { get; set; }		

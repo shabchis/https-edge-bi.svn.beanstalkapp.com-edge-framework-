@@ -18,7 +18,7 @@ namespace Edge.Core.Scheduling
 			{
 				for (int i = 0; i < _profiles.Count; i++)
 				{
-					ProfileInfo p = new ProfileInfo() { AccountID = int.Parse(_profiles[i].Settings["AccountID"].ToString()), AccountName = _profiles[i].Name };
+					ProfileInfo p = new ProfileInfo() { AccountID = int.Parse(_profiles[i].Settings["AccountID"].ToString()), AccountName = _profiles[i].Settings["AccountName"].ToString() };
 					foreach (var item in _profiles[i].ServiceConfigurations)
 					{
 						p.Services.Add(item.Name);
