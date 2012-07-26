@@ -299,10 +299,11 @@ namespace Edge.Core.Scheduling
 
 						_state.Save();
 					}
+					 * */
 
 					// Remove pending uninitialized services so they can be rescheduled
 					_schedulingRequests.RemoveAll(k => k.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.SchedulingRequest.RequestedTime.Add(k.SchedulingRequest.Rule.MaxDeviationAfter) > DateTime.Now);
-					*/
+					
 
 					//Get Services for next time line					
 					IEnumerable<SchedulingRequest> servicesForNextTimeLine = GetServicesForTimeLine(reschedule);
@@ -327,7 +328,6 @@ namespace Edge.Core.Scheduling
 								from s in _schedulingRequests
 								where
 									s.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name && //should be id but no id yet
-									s.Instance != null &&
 									s.Instance.LegacyInstance.State != Legacy.ServiceState.Ended &&
 									s.Instance.Canceled == false //runnig or not started yet
 								orderby s.Instance.ExpectedStartTime ascending
@@ -374,15 +374,15 @@ namespace Edge.Core.Scheduling
 											schedulingRequest.Configuration = serviceInstance.Configuration;
 										}
 
-										serviceInstance.SchedulingRequest = schedulingRequest;
-										serviceInstance.SchedulingAccuracy = _percentile;
-										serviceInstance.ExpectedStartTime = calculatedStartTime;
-										serviceInstance.ExpectedEndTime = calculatedEndTime;
-										serviceInstance.LegacyInstance.OutcomeReported += new EventHandler(LegacyInstance_OutcomeReported);
+										schedulingRequest.Instance.SchedulingRequest = schedulingRequest;
+										schedulingRequest.Instance.SchedulingAccuracy = _percentile;
+										schedulingRequest.Instance.ExpectedStartTime = calculatedStartTime;
+										schedulingRequest.Instance.ExpectedEndTime = calculatedEndTime;
+										schedulingRequest.Instance.LegacyInstance.OutcomeReported += new EventHandler(LegacyInstance_OutcomeReported);
 
 										// Legacy stuff
 										TimeSpan maxExecutionTime = TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds * double.Parse(AppSettings.Get(this, "MaxExecutionTimeProduct")));
-										serviceInstance.Configuration.MaxExecutionTime = maxExecutionTime;
+										schedulingRequest.Configuration.MaxExecutionTime = maxExecutionTime;
 
 										found = true;
 									}
