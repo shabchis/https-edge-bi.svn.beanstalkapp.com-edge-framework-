@@ -36,7 +36,7 @@ namespace Edge.Core.Scheduling
 		Guid AddUnplannedService(int accountID, string serviceName,  DateTime targetDateTime, Dictionary<string, string> options = null);
 
 		[OperationContract]
-		List<Profile> GetSchedulingProfiles();
+		ProfileInfo[] GetSchedulingProfiles();
 
 	}
 
