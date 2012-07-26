@@ -3,17 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Edge.Core.Configuration;
-using Legacy = Edge.Core.Services; 
+using Legacy = Edge.Core.Services;
+using System.ServiceModel;
+using System.Runtime.Serialization;
 
 
 namespace Edge.Core.Scheduling.Objects
 {
 	public class ServiceConfiguration
 	{
+		
 		private ServiceConfiguration _baseConfiguration;
 		private string _name;
 		private Profile _schedulingProfile;
 		private TimeSpan _averageExecutionTime = TimeSpan.FromMinutes(30);
+		
 		private ServiceElement _legacyConfiguration;
 		private int _priority;
 		int _maxConcurrent = 1;
@@ -41,11 +45,11 @@ namespace Edge.Core.Scheduling.Objects
 				throw new InvalidOperationException("Service configuration is locked.");
 		}
 
-        public override int GetHashCode()
-        {
-			throw new NotImplementedException("GetHashCode");
-            //return _guid.GetHashCode();
-        }
+		//public override int GetHashCode()
+		//{
+		//    throw new NotImplementedException("GetHashCode");
+		//    //return _guid.GetHashCode();
+		//}
 
 		public int MaxConcurrent
 		{
@@ -59,7 +63,7 @@ namespace Edge.Core.Scheduling.Objects
 					value = 999;
 			}
 		}
-
+		[IgnoreDataMember]
 		public ServiceConfiguration BaseConfiguration
 		{
 			get { return _baseConfiguration; }
@@ -84,6 +88,7 @@ namespace Edge.Core.Scheduling.Objects
 			set { EnsureUnlocked(); _averageExecutionTime = value; }
 		}
 
+		[IgnoreDataMember]
 		public ServiceElement LegacyConfiguration
 		{
 			get { return _legacyConfiguration; }
