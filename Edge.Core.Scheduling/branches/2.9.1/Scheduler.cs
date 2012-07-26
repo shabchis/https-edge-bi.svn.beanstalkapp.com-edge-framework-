@@ -698,7 +698,7 @@ namespace Edge.Core.Scheduling
 		/// <param name="e"></param>
 		private void OnTimeToRun(ServicesToRunEventArgs e)
 		{
-			foreach (ServiceInstance serviceToRun in e.ServicesToRun)
+			foreach (SchedulingRequest  serviceToRun in e.ServicesToRun)
 			{
 				Log.Write(this.ToString(), string.Format("Service {0} required to run", serviceToRun.Configuration.Name), LogMessageType.Information);
 			}
