@@ -7,10 +7,23 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRequest
 	{
+		public Guid RequestID;
 		public ServiceConfiguration Configuration;
 		public SchedulingRule Rule;
 		public DateTime RequestedTime;
 
+		public ServiceInstance Instance
+		{
+			get
+			{
+				if (this.Configuration is ServiceInstanceConfiguration)
+					return ((ServiceInstanceConfiguration)Configuration).Instance;
+				else
+					return null;
+			}
+		}
+
+		/*
 		public override string ToString()
 		{
 			string uniqueKey;
@@ -49,5 +62,6 @@ namespace Edge.Core.Scheduling.Objects
 		{
 			return !sd1.Equals(sd2);
 		}
+		*/
 	}
 }
