@@ -7,10 +7,22 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRequest
 	{
-		public Guid RequestID;
-		public ServiceConfiguration Configuration;
-		public SchedulingRule Rule;
-		public DateTime RequestedTime;
+		public Guid RequestID { get; private set; }
+		public ServiceConfiguration Configuration { get;  set; }
+		public SchedulingRule Rule { get; private set; }
+		public DateTime RequestedTime { get; private set; }
+
+		public SchedulingRequest(ServiceConfiguration configuration, SchedulingRule rule, DateTime requestedTime)
+		{
+			this.Configuration = configuration;
+			this.Rule = rule;
+			this.RequestedTime = requestedTime;
+
+			if (rule.Scope == SchedulingScope.Unplanned)
+				this.RequestID = rule.GuidForUnplanned;
+			else
+				this.RequestID = Guid.NewGuid();
+		}
 
 		public ServiceInstance Instance
 		{
