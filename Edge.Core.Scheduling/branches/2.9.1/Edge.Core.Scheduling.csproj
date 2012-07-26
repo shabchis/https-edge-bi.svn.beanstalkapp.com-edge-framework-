@@ -50,6 +50,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ProfileInfo.cs" />
+    <Compile Include="ProfilesCollection.cs" />
     <Compile Include="ScheduledServiceCollection.cs" />
     <Compile Include="Interfaces.cs" />
     <Compile Include="Objects\SchedulerState.cs" />

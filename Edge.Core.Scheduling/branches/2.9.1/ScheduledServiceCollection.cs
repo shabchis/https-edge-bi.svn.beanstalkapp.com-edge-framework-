@@ -15,6 +15,67 @@ namespace Edge.Core.Scheduling
 		{
 			throw new NotImplementedException();
 		}
+		public void SetDelete(SchedulingRequest request)
+		{
+			throw new NotImplementedException();
+		}
+
+		#region ICollection<SchedulingRequest> Members
+
+		public void Add(SchedulingRequest item)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Clear()
+		{
+			throw new NotImplementedException();
+		}
+
+		public bool Contains(SchedulingRequest item)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void CopyTo(SchedulingRequest[] array, int arrayIndex)
+		{
+			throw new NotImplementedException();
+		}
+
+		public int Count
+		{
+			get { throw new NotImplementedException(); }
+		}
+
+		public bool IsReadOnly
+		{
+			get { throw new NotImplementedException(); }
+		}
+
+		public bool Remove(SchedulingRequest item)
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
+
+		#region IEnumerable<SchedulingRequest> Members
+
+		public IEnumerator<SchedulingRequest> GetEnumerator()
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
+
+		#region IEnumerable Members
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
 	}
 
 	public class ScheduledServiceCollection : ICollection<ServiceInstance>
