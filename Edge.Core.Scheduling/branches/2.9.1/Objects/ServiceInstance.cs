@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Edge.Core.Services;
-using Legacy = Edge.Core.Services; 
+using Legacy = Edge.Core.Services;
 using Edge.Core.Configuration;
 
 namespace Edge.Core.Scheduling.Objects
@@ -19,26 +19,55 @@ namespace Edge.Core.Scheduling.Objects
 
 		//public string ServiceName;
 		private DateTime _expectedStartTime;
+		private Legacy.ServiceInstance _legacyInstance;
 		public bool Canceled;
+		public event EventHandler ProgressReported;
+		public event EventHandler StateChanged;
+		public event EventHandler OutcomeReported;
+		public event EventHandler<ServiceRequestedEventArgs> ChildServiceRequested;
 
 		private ServiceInstance()
 		{
 		}
 
 		public ServiceInstanceConfiguration Configuration { get; private set; }
-		public Legacy.ServiceInstance LegacyInstance { get; private set; }
+		public Legacy.ServiceInstance LegacyInstance
+		{
+			get
+			{
+				return _legacyInstance;
+			}
+			private set
+			{
+				value.ChildServiceRequested -= new EventHandler<ServiceRequestedEventArgs>(LegacyInstance_ChildServiceRequested);
+				value.ChildServiceRequested += new EventHandler<ServiceRequestedEventArgs>(LegacyInstance_ChildServiceRequested);
+				value.OutcomeReported -= new EventHandler(LegacyInstance_OutcomeReported);
+				value.OutcomeReported += new EventHandler(LegacyInstance_OutcomeReported);
+				value.StateChanged -= new EventHandler<ServiceStateChangedEventArgs>(LegacyInstance_StateChanged);
+				value.StateChanged += new EventHandler<ServiceStateChangedEventArgs>(LegacyInstance_StateChanged);
+				value.ProgressReported -= new EventHandler(LegacyInstance_ProgressReported);
+				value.ProgressReported += new EventHandler(LegacyInstance_ProgressReported);
+
+			}
+		}
 
 		public SchedulingRequest SchedulingRequest { get; set; }
 		public double SchedulingAccuracy { get; set; }
-
 		public DateTime ExpectedStartTime
 		{
 			get { return _expectedStartTime; }
 			set { _expectedStartTime = value; this.LegacyInstance.TimeScheduled = value; }
 		}
+		public Double Progress
+		{
+			get
+			{
+				return _legacyInstance.Progress;
+			}
+		}
 
 		public DateTime ExpectedEndTime { get; set; }
-		
+
 		public ServiceOutcome Outcome
 		{
 			get { return this.LegacyInstance.Outcome; }
@@ -48,7 +77,7 @@ namespace Edge.Core.Scheduling.Objects
 		{
 			get { return this.ExpectedStartTime.Subtract(this.SchedulingRequest.RequestedTime); }
 		}
-		 
+
 		public static ServiceInstance FromLegacyInstance(Legacy.ServiceInstance legacyInstance, ServiceConfiguration configuration, Profile profile = null)
 		{
 			var serviceInstance = new ServiceInstance()
@@ -58,8 +87,27 @@ namespace Edge.Core.Scheduling.Objects
 			};
 
 			serviceInstance.Configuration.Instance = serviceInstance;
-
 			return serviceInstance;
+		}
+
+		void LegacyInstance_ProgressReported(object sender, EventArgs e)
+		{
+			ProgressReported(this, new EventArgs());
+		}
+
+		void LegacyInstance_StateChanged(object sender, ServiceStateChangedEventArgs e)
+		{
+			StateChanged(this, new EventArgs());
+		}
+
+		void LegacyInstance_OutcomeReported(object sender, EventArgs e)
+		{
+			OutcomeReported(this, new EventArgs());
+		}
+
+		void LegacyInstance_ChildServiceRequested(object sender, ServiceRequestedEventArgs e)
+		{
+			ChildServiceRequested(this, e);
 		}
 
 		public ServiceInstanceInfo GetInfo()
@@ -82,7 +130,27 @@ namespace Edge.Core.Scheduling.Objects
 				LegacyParentInstanceGuid = this.LegacyInstance.ParentInstance != null ? this.LegacyInstance.ParentInstance.Guid : Guid.Empty,
 				LegacyProgress = this.LegacyInstance.State == Legacy.ServiceState.Ended ? 100 : this.LegacyInstance.Progress
 			};
-		
+
+		}
+
+		public void Initialize()
+		{
+			_legacyInstance.Initialize();
+		}
+
+		public ServiceState State
+		{
+			get
+			{
+				return _legacyInstance.State;
+			}
+
+
+		}
+
+		public void Start()
+		{
+			_legacyInstance.Start();
 		}
 	}
 	/// <summary>
@@ -118,12 +186,21 @@ namespace Edge.Core.Scheduling.Objects
 		public string AccountName { get; set; }
 		public List<string> Services { get; set; }
 	}
-	
+	public class ChildServiceEventArgs : EventArgs
+	{
+		public ChildServiceEventArgs(ServiceInstance serviceInstance)
+		{
+
+		}
+		public ServiceInstance RequestedService { get;private  set; }
+
+	}
+
 	public enum ServiceStatus
 	{
 		Scheduled,
 		Running,
 		Ended
 	}
-	
+
 }

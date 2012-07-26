@@ -112,6 +112,7 @@ namespace Edge.Core.Scheduling
 
 		internal bool TryGetValue(int accountID, out Profile profile)
 		{
+			profile = null;
 			bool exist = false;
 			if (_profileByAccountId.ContainsKey(accountID))
 			{
