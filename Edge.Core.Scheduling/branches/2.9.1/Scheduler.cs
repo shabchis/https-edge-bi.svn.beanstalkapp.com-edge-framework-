@@ -101,7 +101,8 @@ namespace Edge.Core.Scheduling
 		public void Start()
 		{
 			if (_started)
-				return;			
+				return;
+			_started = true;
 			_schedulerTimer = StartSchedulerTimer;
 			_schedulerTimer.BeginInvoke(result =>
 				{
