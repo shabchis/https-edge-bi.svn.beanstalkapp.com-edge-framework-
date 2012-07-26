@@ -6,6 +6,17 @@ using Edge.Core.Scheduling.Objects;
 
 namespace Edge.Core.Scheduling
 {
+	public class SchedulingRequestCollection : ICollection<SchedulingRequest>
+	{
+		Dictionary<Guid, SchedulingRequest> _requestsByGuid;
+		Dictionary<string, SchedulingRequest> _requestsByUniqueness;
+
+		public bool ContainsSimilar(SchedulingRequest requestToCheck)
+		{
+			throw new NotImplementedException();
+		}
+	}
+
 	public class ScheduledServiceCollection : ICollection<ServiceInstance>
 	{
 		Dictionary<SchedulingRequest, ServiceInstance> _instanceBySchedulingRequest = new Dictionary<SchedulingRequest, ServiceInstance>();

@@ -28,11 +28,17 @@ namespace Edge.Core.Scheduling
 		#region members
 		private SchedulerState _state;
 		private List<ServiceConfiguration> _tempCompletedServices;
+
 		private Dictionary<int, Profile> _profiles = new Dictionary<int, Profile>();
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
-		private List<ServiceConfiguration> _serviceConfigurationsToSchedule = new List<ServiceConfiguration>(); //all services from configuration file load to this var		
-		//private Dictionary<SchedulingRequest, ServiceInstance> _scheduledServices = new Dictionary<SchedulingRequest, ServiceInstance>();
-		private ScheduledServiceCollection _scheduledServices = new ScheduledServiceCollection();
+
+		// Configurations from config file or from unplanned - 'Schedule' method goes over this to find things that need scheduling
+		private List<ServiceConfiguration> _serviceConfigurationsToSchedule = new List<ServiceConfiguration>();
+
+		// Scheduled instances that are added by the 'Schedule' method
+		//private ScheduledServiceCollection _scheduledServices = new ScheduledServiceCollection();
+		private SchedulingRequestCollection _schedulingRequests = new SchedulingRequestCollection();
+
 		private Dictionary<string, ServicePerProfileAvgExecutionTimeCash> _servicePerProfileAvgExecutionTimeCash = new Dictionary<string, ServicePerProfileAvgExecutionTimeCash>();
 		DateTime _timeLineFrom;
 		DateTime _timeLineTo;
@@ -57,7 +63,7 @@ namespace Edge.Core.Scheduling
 		#region Properties
 		public ScheduledServiceCollection ScheduledServices
 		{
-			get { return _scheduledServices; }
+			get { return _schedulingRequests; }
 		}
 		public IQueryable<ServiceConfiguration> ServiceConfigurations
 		{
@@ -241,6 +247,13 @@ namespace Edge.Core.Scheduling
 
 					profile.ServiceConfigurations.Add(serviceConfiguration);
 					_serviceConfigurationsToSchedule.Add(serviceConfiguration);
+
+					// TODO: load relevant history for this service
+					foreach (SchedulingRule rule in serviceConfiguration.SchedulingRules)
+					{
+						// TODO: select the saved scheduling requests from the DB according to the scope of the fule
+						throw new NotImplementedException();
+					}
 				}
 			}
 		}
@@ -265,7 +278,7 @@ namespace Edge.Core.Scheduling
 		{
 			lock (_serviceConfigurationsToSchedule)
 			{
-				lock (_scheduledServices)
+				lock (_schedulingRequests)
 				{
 					// Set need reschedule to false in order to avoid more schedule from other threads
 					_needReschedule = false;
@@ -273,20 +286,23 @@ namespace Edge.Core.Scheduling
 					#region Manage history and find services to schedule
 					// ------------------------------------
 
+					// TODO: this is PROBABALY unnecessary but check
+					/*
 					// Move to history ended/canceled items
 					lock (_state.HistoryItems)
 					{
 						// clear services from history that already ran and their maxdiviation pass -> this is to enable to run them again if their is another schedule
 						_state.HistoryItems.RemoveAll(k => k.Value.TimeToRun.Add(k.Value.MaxDeviationAfter) < DateTime.Now);
 
-						foreach (var scheduleService in _scheduledServices.RemoveAll(k => k.Canceled == true || k.LegacyInstance.State == Legacy.ServiceState.Ended))
+						foreach (var scheduleService in _schedulingRequests.RemoveAll(k => k.Canceled == true || k.LegacyInstance.State == Legacy.ServiceState.Ended))
 							_state.HistoryItems.Add(scheduleService.SchedulingRequest.GetHashCode(), HistoryItem.FromSchedulingData(scheduleService.SchedulingRequest, scheduleService, SchedulingResult.Canceled));
 
 						_state.Save();
 					}
 
 					// Remove pending uninitialized services so they can be rescheduled
-					_scheduledServices.RemoveAll(k => k.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.SchedulingRequest.RequestedTime.Add(k.SchedulingRequest.Rule.MaxDeviationAfter) > DateTime.Now);
+					_schedulingRequests.RemoveAll(k => k.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.SchedulingRequest.RequestedTime.Add(k.SchedulingRequest.Rule.MaxDeviationAfter) > DateTime.Now);
+					*/
 
 					//Get Services for next time line					
 					IEnumerable<SchedulingRequest> servicesForNextTimeLine = GetServicesForTimeLine(reschedule);
@@ -298,37 +314,40 @@ namespace Edge.Core.Scheduling
 					// ------------------------------------
 
 					//Same services or same services with same profile
-					foreach (SchedulingRequest schedulingData in servicesForNextTimeLine)
+					foreach (SchedulingRequest schedulingRequest in servicesForNextTimeLine)
 					{
+						// NOT NEEDED because we already checked this in GetServicesForTimeLine
+						/*
 						//if key exist then this service is runing or ended and should nt be schedule again
-						if (!_scheduledServices.ContainsKey(schedulingData))
-						{
+						//if (!_schedulingRequests.ContainsKey(schedulingRequest))
+						//{
+						*/
 							//Get all services with same configurationID
 							var servicesWithSameConfiguration =
-								from s in _scheduledServices
+								from s in _schedulingRequests
 								where
-									s.SchedulingRequest.Configuration.Name == schedulingData.Configuration.BaseConfiguration.Name && //should be id but no id yet
-									s.LegacyInstance.State != Legacy.ServiceState.Ended &&
-									s.Canceled == false //runnig or not started yet
-								orderby s.ExpectedStartTime ascending
+									s.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name && //should be id but no id yet
+									s.Instance != null &&
+									s.Instance.LegacyInstance.State != Legacy.ServiceState.Ended &&
+									s.Instance.Canceled == false //runnig or not started yet
+								orderby s.Instance.ExpectedStartTime ascending
 								select s;
 
 							//Get all services with same profileID
 							var servicesWithSameProfile =
-								from s in _scheduledServices
+								from s in _schedulingRequests
 								where
-									s.Configuration.Profile == schedulingData.Configuration.Profile &&
-									s.SchedulingRequest.Configuration.Name == schedulingData.Configuration.BaseConfiguration.Name &&
+									s.Configuration.Profile == schedulingRequest.Configuration.Profile &&
+									s.SchedulingRequest.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name &&
 									s.LegacyInstance.State != Legacy.ServiceState.Ended &&
 									s.Canceled == false //not deleted
 								orderby s.ExpectedStartTime ascending
 								select s;
 
 							//Find the first available time this service with specific service and profile
-							ServiceInstance serviceInstance = null;
-							TimeSpan avgExecutionTime = GetAverageExecutionTime(schedulingData.Configuration.Name, schedulingData.Configuration.Profile.ID, _percentile);
+							TimeSpan avgExecutionTime = GetAverageExecutionTime(schedulingRequest.Configuration.Name, schedulingRequest.Configuration.Profile.ID, _percentile);
 
-							DateTime baseStartTime = (schedulingData.RequestedTime < DateTime.Now) ? DateTime.Now : schedulingData.RequestedTime;
+							DateTime baseStartTime = (schedulingRequest.RequestedTime < DateTime.Now) ? DateTime.Now : schedulingRequest.RequestedTime;
 							DateTime baseEndTime = baseStartTime.Add(avgExecutionTime);
 							DateTime calculatedStartTime = baseStartTime;
 							DateTime calculatedEndTime = baseEndTime;
@@ -339,28 +358,23 @@ namespace Edge.Core.Scheduling
 								IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
 
 								int countedPerConfiguration = servicesWithSameConfiguration.Count(s => (calculatedStartTime >= s.ExpectedStartTime && calculatedStartTime <= s.ExpectedEndTime) || (calculatedEndTime >= s.ExpectedStartTime && calculatedEndTime <= s.ExpectedEndTime));
-								if (countedPerConfiguration < schedulingData.Configuration.MaxConcurrent)
+								if (countedPerConfiguration < schedulingRequest.Configuration.MaxConcurrent)
 								{
 									int countedPerProfile = servicesWithSameProfile.Count(s => (calculatedStartTime >= s.ExpectedStartTime && calculatedStartTime <= s.ExpectedEndTime) || (calculatedEndTime >= s.ExpectedStartTime && calculatedEndTime <= s.ExpectedEndTime));
-									if (countedPerProfile < schedulingData.Configuration.MaxConcurrentPerProfile)
+									if (countedPerProfile < schedulingRequest.Configuration.MaxConcurrentPerProfile)
 									{
 
-										if (schedulingData.Configuration is ServiceInstanceConfiguration)
+										if (!(schedulingRequest.Configuration is ServiceInstanceConfiguration))
 										{
-											// This is the case of a child service
-											var unplannedConfiguration = (ServiceInstanceConfiguration)schedulingData.Configuration;
-											serviceInstance = unplannedConfiguration.Instance;
-										}
-
-										if (serviceInstance == null)
-										{
-											serviceInstance = ServiceInstance.FromLegacyInstance(
-												Legacy.Service.CreateInstance(schedulingData.Configuration.LegacyConfiguration, int.Parse(schedulingData.Configuration.Profile.Settings["AccountID"].ToString())),
-												schedulingData.Configuration
+											ServiceInstance serviceInstance = ServiceInstance.FromLegacyInstance(
+												Legacy.Service.CreateInstance(schedulingRequest.Configuration.LegacyConfiguration, int.Parse(schedulingRequest.Configuration.Profile.Settings["AccountID"].ToString())),
+												schedulingRequest.Configuration
 											);
+
+											schedulingRequest.Configuration = serviceInstance.Configuration;
 										}
 
-										serviceInstance.SchedulingRequest = schedulingData;
+										serviceInstance.SchedulingRequest = schedulingRequest;
 										serviceInstance.SchedulingAccuracy = _percentile;
 										serviceInstance.ExpectedStartTime = calculatedStartTime;
 										serviceInstance.ExpectedEndTime = calculatedEndTime;
@@ -411,15 +425,15 @@ namespace Edge.Core.Scheduling
 							}
 
 
-							if (serviceInstance.ActualDeviation <= schedulingData.Rule.MaxDeviationAfter || schedulingData.Rule.MaxDeviationAfter == TimeSpan.Zero)
-								_scheduledServices.Add(serviceInstance);
+							if (serviceInstance.ActualDeviation <= schedulingRequest.Rule.MaxDeviationAfter || schedulingRequest.Rule.MaxDeviationAfter == TimeSpan.Zero)
+								_schedulingRequests.Add(serviceInstance);
 						}
 					}
 					#endregion
 
 					SchedulingInformationEventArgs args = new SchedulingInformationEventArgs();
 					args.ScheduleInformation = new Dictionary<SchedulingRequest, ServiceInstance>();
-					foreach (var scheduleService in _scheduledServices)
+					foreach (var scheduleService in _schedulingRequests)
 					{
 						args.ScheduleInformation.Add(scheduleService.SchedulingRequest, scheduleService);
 
@@ -433,15 +447,15 @@ namespace Edge.Core.Scheduling
 		void LegacyInstance_OutcomeReported(object sender, EventArgs e)
 		{
 			Legacy.ServiceInstance instance = (Edge.Core.Services.ServiceInstance)sender;
-			lock (_scheduledServices)
+			lock (_schedulingRequests)
 			{
-				if (_scheduledServices.ContainsKey(instance.Guid))
+				if (_schedulingRequests.ContainsKey(instance.Guid))
 				{
-					if (_scheduledServices[instance.Guid].SchedulingRequest.Rule.Scope == SchedulingScope.Unplanned)
+					if (_schedulingRequests[instance.Guid].SchedulingRequest.Rule.Scope == SchedulingScope.Unplanned)
 					{
 						if (_tempCompletedServices == null)
 							_tempCompletedServices = new List<ServiceConfiguration>();
-						_tempCompletedServices.Add(_scheduledServices[instance.Guid].Configuration);
+						_tempCompletedServices.Add(_schedulingRequests[instance.Guid].Configuration);
 					}
 
 				}
@@ -466,6 +480,7 @@ namespace Edge.Core.Scheduling
 
 			List<SchedulingRequest> potentialSchedulingdata = new List<SchedulingRequest>();
 			List<SchedulingRequest> finalSchedulingdata = new List<SchedulingRequest>();
+
 			lock (_serviceConfigurationsToSchedule)
 			{
 				for (int i = 0; i < _serviceConfigurationsToSchedule.Count; i++)
@@ -509,9 +524,9 @@ namespace Edge.Core.Scheduling
 									(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
 									)
 								{
-									SchedulingRequest schedulingdata = new SchedulingRequest()
+									SchedulingRequest request = new SchedulingRequest()
 									{
-										Configuration = service,
+										Configuration = service, // TODO: 
 										Rule = schedulingRule,
 										RequestedTime = requestedTime
 									};
@@ -520,10 +535,10 @@ namespace Edge.Core.Scheduling
 									if (schedulingRule.Scope == SchedulingScope.Unplanned)
 									{
 										//schedulingdata.GuidForUnplanned = schedulingRule.GuidForUnplanned;
-										schedulingdata.Rule.MaxDeviationAfter = TimeSpan.FromHours(8);
+										request.Rule.MaxDeviationAfter = TimeSpan.FromHours(8);
 									}
 
-									potentialSchedulingdata.Add(schedulingdata);
+									potentialSchedulingdata.Add(request);
 								}
 								requestedTime = requestedTime.AddDays(1);
 							}
@@ -535,15 +550,17 @@ namespace Edge.Core.Scheduling
 
 			}
 			// Move potential to final only if its not already scheduled and if its not in the history
-			foreach (var schedulingdata in potentialSchedulingdata)
+			foreach (SchedulingRequest request in potentialSchedulingdata)
 			{
-				if (!_scheduledServices.ContainsKey(schedulingdata) && !_state.HistoryItems.ContainsKey(schedulingdata.GetHashCode()))
-					finalSchedulingdata.Add(schedulingdata);
+				//if (!_schedulingRequests.ContainsKey(schedulingdata) && !_state.HistoryItems.ContainsKey(schedulingdata.GetHashCode()))
+				if (!_schedulingRequests.ContainsSimilar(request))
+					finalSchedulingdata.Add(request);
 
 			}
 
 			return finalSchedulingdata.OrderBy(schedulingdata => schedulingdata.RequestedTime).ThenByDescending(schedulingdata => schedulingdata.Configuration.Priority);
 		}
+
 		/// <summary>
 		/// Get the average time of service run by configuration id and wanted percentile
 		/// </summary>
@@ -589,7 +606,7 @@ namespace Edge.Core.Scheduling
 		/// <param name="serviceConfiguration"></param>
 		public void AddServiceToSchedule(ServiceConfiguration serviceConfiguration)
 		{
-			lock (this)
+			lock (_serviceConfigurationsToSchedule)
 			{
 				_serviceConfigurationsToSchedule.Add(serviceConfiguration);
 
@@ -620,7 +637,7 @@ namespace Edge.Core.Scheduling
 		/// <param name="schedulingRequest"></param>
 		public void CancelSchedulingRequest(SchedulingRequest schedulingRequest)
 		{
-			_scheduledServices[schedulingRequest].Canceled = true;
+			_schedulingRequests[schedulingRequest].Canceled = true;
 		}
 		private void NotifyServicesToRun()
 		{
@@ -628,9 +645,9 @@ namespace Edge.Core.Scheduling
 			var instancesShouldRun = new Dictionary<SchedulingRequest, ServiceInstance>();
 			List<ServiceInstance> instancesToRun = new List<ServiceInstance>();
 
-			lock (_scheduledServices)
+			lock (_schedulingRequests)
 			{
-				foreach (var scheduleService in _scheduledServices.OrderBy(s => s.ExpectedStartTime))
+				foreach (var scheduleService in _schedulingRequests.OrderBy(s => s.ExpectedStartTime))
 				{
 					if (scheduleService.ExpectedStartTime.Day == DateTime.Now.Day) //same day
 					{
@@ -650,7 +667,7 @@ namespace Edge.Core.Scheduling
 					var shouldRun = instancesShouldRun.OrderBy(s => s.Value.ExpectedStartTime);
 					foreach (var instance in shouldRun)
 					{
-						int countedServicesWithSameConfiguration = _scheduledServices.Count(s => instance.Key.Configuration.BaseConfiguration.Name == s.SchedulingRequest.Configuration.Name &&
+						int countedServicesWithSameConfiguration = _schedulingRequests.Count(s => instance.Key.Configuration.BaseConfiguration.Name == s.SchedulingRequest.Configuration.Name &&
 																   s.LegacyInstance.State == Legacy.ServiceState.Running &&
 																   s.LegacyInstance.State == Legacy.ServiceState.Initializing &&
 																   s.LegacyInstance.State != Legacy.ServiceState.Aborting &&
@@ -658,7 +675,7 @@ namespace Edge.Core.Scheduling
 						//cant run!!!!
 						if (countedServicesWithSameConfiguration >= instance.Value.Configuration.MaxConcurrent)
 							continue;
-						int countedServicesWithSameProfile = _scheduledServices.Count(s => instance.Value.Configuration.Profile.ID == s.SchedulingRequest.Configuration.Profile.ID &&
+						int countedServicesWithSameProfile = _schedulingRequests.Count(s => instance.Value.Configuration.Profile.ID == s.SchedulingRequest.Configuration.Profile.ID &&
 							instance.Key.Configuration.BaseConfiguration.Name == s.SchedulingRequest.Configuration.Name && //should be id but no id yet
 																	s.LegacyInstance.State != Legacy.ServiceState.Uninitialized &&
 																	s.LegacyInstance.State != Legacy.ServiceState.Ended &&
