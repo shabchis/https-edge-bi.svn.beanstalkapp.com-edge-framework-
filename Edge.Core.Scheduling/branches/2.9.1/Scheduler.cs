@@ -27,7 +27,7 @@ namespace Edge.Core.Scheduling
 	{
 		#region members
 		private SchedulerState _state;
-		private List<ServiceConfiguration> _tempCompletedServices;
+		private List<SchedulingRequest> _tempCompletedRequests;
 		private ProfilesCollection _profiles = new ProfilesCollection();
 
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
@@ -45,15 +45,12 @@ namespace Edge.Core.Scheduling
 		private TimeSpan _neededScheduleTimeLine; //scheduling for the next xxx min....
 		private int _percentile = 80; //execution time of specifc service on sprcific Percentile
 		private TimeSpan _intervalBetweenNewSchedule;
-		private TimeSpan _findServicesToRunInterval;
-		private Thread _findRequiredServicesthread;
-		private TimeSpan _timeToDeleteServiceFromTimeLine;
-		private Thread _newSchedulethread;
+		private TimeSpan _findServicesToRunInterval;		
+		private TimeSpan _timeToDeleteServiceFromTimeLine;	
 		public event EventHandler<ServicesToRunEventArgs> ServiceRunRequiredEvent;
 		public event EventHandler<SchedulingInformationEventArgs> NewScheduleCreatedEvent;
 		private volatile bool _needReschedule = false;
-		private TimeSpan _executionTimeCashTimeOutAfter;
-		private object _sync;
+		private TimeSpan _executionTimeCashTimeOutAfter;		
 		private bool _started = false;
 		Action _schedulerTimer;
 		Action _RequiredServicesTimer;
@@ -98,7 +95,7 @@ namespace Edge.Core.Scheduling
 			_findServicesToRunInterval = TimeSpan.Parse(AppSettings.Get(this, "FindServicesToRunInterval"));
 			_timeToDeleteServiceFromTimeLine = TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
 			_executionTimeCashTimeOutAfter = TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
-			_sync = new object();
+			
 		}
 
 		/// <summary>
@@ -139,25 +136,25 @@ namespace Edge.Core.Scheduling
 
 		private void StartSchedulerTimer()
 		{
-			if (_tempCompletedServices == null)
-				_tempCompletedServices = new List<ServiceConfiguration>();
+			if (_tempCompletedRequests == null)
+				_tempCompletedRequests = new List<SchedulingRequest>();
 			Schedule(true);
 			TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
 			while (_started)
 			{
 
 				Thread.Sleep(TimeSpan.FromSeconds(5));
-				if (_tempCompletedServices.Count > 0 || _needReschedule==true || calcTimeInterval == TimeSpan.Zero)
+				if (_tempCompletedRequests.Count > 0 || _needReschedule==true || calcTimeInterval == TimeSpan.Zero)
 				{
 					Schedule(false);
-					lock (_tempCompletedServices)
+					lock (_tempCompletedRequests)
 					{
-						foreach (var configuration in _tempCompletedServices)
+						foreach (var request in _tempCompletedRequests)
 						{
-							if (_serviceConfigurationsToSchedule.Contains(configuration))
-								_serviceConfigurationsToSchedule.Remove(configuration);
+							if (_serviceConfigurationsToSchedule.Contains(request.Configuration) && request.Rule.Scope==SchedulingScope.Unplanned)
+								_serviceConfigurationsToSchedule.Remove(request.Configuration);
 						}
-						_tempCompletedServices.Clear();
+						_tempCompletedRequests.Clear();
 					}
 					calcTimeInterval = _intervalBetweenNewSchedule;
 				}
@@ -364,8 +361,7 @@ namespace Edge.Core.Scheduling
 									schedulingRequest.Instance.SchedulingAccuracy = _percentile;
 									schedulingRequest.Instance.ExpectedStartTime = calculatedStartTime;
 									schedulingRequest.Instance.ExpectedEndTime = calculatedEndTime;
-									schedulingRequest.Instance.LegacyInstance.OutcomeReported += new EventHandler(LegacyInstance_OutcomeReported);
-
+									schedulingRequest.Instance.OutcomeReported += new EventHandler(Instance_OutcomeReported);
 									// Legacy stuff
 									TimeSpan maxExecutionTime = TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds * double.Parse(AppSettings.Get(this, "MaxExecutionTimeProduct")));
 									schedulingRequest.Configuration.MaxExecutionTime = maxExecutionTime;
@@ -412,7 +408,17 @@ namespace Edge.Core.Scheduling
 
 
 						if (schedulingRequest.Instance.ActualDeviation <= schedulingRequest.Rule.MaxDeviationAfter || schedulingRequest.Rule.MaxDeviationAfter == TimeSpan.Zero)
+						{
 							_schedulingRequests.Add(schedulingRequest);
+							schedulingRequest.SchedulingStatus = SchedulingStatus.Scheduled;
+							schedulingRequest.Save();
+						}
+						else
+						{
+							schedulingRequest.SchedulingStatus = SchedulingStatus.WillNotRun;
+							schedulingRequest.Save();
+
+						}
 					}
 				}
 					#endregion
@@ -429,24 +435,17 @@ namespace Edge.Core.Scheduling
 			}
 		}
 
-
-		void LegacyInstance_OutcomeReported(object sender, EventArgs e)
+		void Instance_OutcomeReported(object sender, EventArgs e)
 		{
-			//Legacy.ServiceInstance instance = (Edge.Core.Services.ServiceInstance)sender;
-			//lock (_schedulingRequests)
-			//{
-			//    if (_schedulingRequests.ContainsKey(instance.Guid))
-			//    {
-			//        if (_schedulingRequests[instance.Guid].SchedulingRequest.Rule.Scope == SchedulingScope.Unplanned)
-			//        {
-			//            if (_tempCompletedServices == null)
-			//                _tempCompletedServices = new List<ServiceConfiguration>();
-			//            _tempCompletedServices.Add(_schedulingRequests[instance.Guid].Configuration);
-			//        }
+			ServiceInstance instance=(ServiceInstance)sender;
+			_tempCompletedRequests.Add(instance.SchedulingRequest);
+			instance.SchedulingRequest.SchedulingStatus = SchedulingStatus.Done;
+			instance.SchedulingRequest.Save();
 
-			//    }
-			//}
 		}
+
+
+		
 		/// <summary>
 		/// Get this time line services 
 		/// </summary>
@@ -530,8 +529,7 @@ namespace Edge.Core.Scheduling
 			}
 			// Move potential to final only if its not already scheduled and if its not in the history
 			foreach (SchedulingRequest request in potentialSchedulingdata)
-			{
-				//if (!_schedulingRequests.ContainsKey(schedulingdata) && !_state.HistoryItems.ContainsKey(schedulingdata.GetHashCode()))
+			{				
 				if (!_schedulingRequests.ContainsSimilar(request))
 					finalSchedulingdata.Add(request);
 
