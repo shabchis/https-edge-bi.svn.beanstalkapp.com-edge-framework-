@@ -47,6 +47,7 @@ namespace Edge.Core.Scheduling.Objects
 				value.StateChanged += new EventHandler<ServiceStateChangedEventArgs>(LegacyInstance_StateChanged);
 				value.ProgressReported -= new EventHandler(LegacyInstance_ProgressReported);
 				value.ProgressReported += new EventHandler(LegacyInstance_ProgressReported);
+				_legacyInstance = value;
 
 			}
 		}

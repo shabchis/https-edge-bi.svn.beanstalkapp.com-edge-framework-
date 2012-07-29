@@ -11,7 +11,6 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceConfiguration Configuration { get;  set; }
 		public SchedulingRule Rule { get; private set; }
 		public DateTime RequestedTime { get; private set; }
-
 		public SchedulingRequest(ServiceConfiguration configuration, SchedulingRule rule, DateTime requestedTime)
 		{
 			this.Configuration = configuration;
@@ -23,7 +22,6 @@ namespace Edge.Core.Scheduling.Objects
 			else
 				this.RequestID = Guid.NewGuid();
 		}
-
 		public ServiceInstance Instance
 		{
 			get
@@ -32,6 +30,13 @@ namespace Edge.Core.Scheduling.Objects
 					return ((ServiceInstanceConfiguration)Configuration).Instance;
 				else
 					return null;
+			}
+		}
+		public string UniqueKey
+		{
+			get
+			{
+				return String.Format("profile:{0},base:{1},name:{2},scope:{3},time:{4}", this.Configuration.Profile.ID, Configuration.BaseConfiguration.Name, Configuration.Name, Rule.Scope, RequestedTime);
 			}
 		}
 

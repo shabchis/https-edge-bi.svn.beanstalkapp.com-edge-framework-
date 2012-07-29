@@ -141,15 +141,14 @@ namespace Edge.Core.Scheduling
 		{
 			if (_tempCompletedServices == null)
 				_tempCompletedServices = new List<ServiceConfiguration>();
-
+			Schedule(true);
 			TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
 			while (_started)
 			{
 
 				Thread.Sleep(TimeSpan.FromSeconds(5));
-				if (_tempCompletedServices.Count > 0)
+				if (_tempCompletedServices.Count > 0 || _needReschedule==true || calcTimeInterval == TimeSpan.Zero)
 				{
-
 					Schedule(false);
 					lock (_tempCompletedServices)
 					{
@@ -157,25 +156,15 @@ namespace Edge.Core.Scheduling
 						{
 							if (_serviceConfigurationsToSchedule.Contains(configuration))
 								_serviceConfigurationsToSchedule.Remove(configuration);
-
 						}
 						_tempCompletedServices.Clear();
-
 					}
-
 					calcTimeInterval = _intervalBetweenNewSchedule;
-
 				}
-				else
+				else 
 				{
 					calcTimeInterval = calcTimeInterval.Subtract(TimeSpan.FromSeconds(5));
-				}
-
-				if (calcTimeInterval == TimeSpan.Zero)
-				{
-					Schedule(false);
-					calcTimeInterval = _intervalBetweenNewSchedule;
-				}
+				}				
 			}
 			return;
 		}
@@ -184,14 +173,9 @@ namespace Edge.Core.Scheduling
 			while (_started)
 			{
 				Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
-
-				if (_needReschedule)
-					Schedule(true);
-
 				NotifyServicesToRun();
 			}
 			return;
-
 		}
 
 
