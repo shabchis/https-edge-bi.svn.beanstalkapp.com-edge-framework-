@@ -13,11 +13,7 @@ namespace Edge.Core.Scheduling.Objects
 	/// </summary>
 	[Serializable]
 	public class ServiceInstance
-	{
-		//public int ID;
-		//public int ScheduledID;
-
-		//public string ServiceName;
+	{		
 		private DateTime _expectedStartTime;
 		private Legacy.ServiceInstance _legacyInstance;
 		public bool Canceled;
