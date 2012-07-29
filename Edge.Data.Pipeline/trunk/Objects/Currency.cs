@@ -7,7 +7,14 @@ namespace Edge.Data.Objects
 {
 	public class Currency
 	{
-		public string ID;
 		public string Code;
+	}
+
+	public class CurrencyRate
+	{
+		public Currency Currency;
+		public DateTime RateDate;
+		public double RateValue;
+		public DateTime DateCreated;
 	}
 }
