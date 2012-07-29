@@ -8,53 +8,59 @@ namespace Edge.Core.Scheduling
 {
 	public class SchedulingRequestCollection : ICollection<SchedulingRequest>
 	{
-		Dictionary<Guid, SchedulingRequest> _requestsByGuid;
-		Dictionary<string, SchedulingRequest> _requestsByUniqueness;
+		Dictionary<Guid, SchedulingRequest> _requestsByGuid=new Dictionary<Guid,SchedulingRequest>();
+		Dictionary<string, SchedulingRequest> _requestsByUniqueness=new Dictionary<string,SchedulingRequest>();
 
 		public bool ContainsSimilar(SchedulingRequest requestToCheck)
 		{
-			throw new NotImplementedException();
+			return _requestsByUniqueness.ContainsKey(requestToCheck.UniqueKey);
 		}
 		public void SetDelete(SchedulingRequest request)
 		{
-			throw new NotImplementedException();
+			_requestsByUniqueness.Remove(request.UniqueKey);
+			_requestsByGuid.Remove(request.RequestID);
 		}
 
 		#region ICollection<SchedulingRequest> Members
 
 		public void Add(SchedulingRequest item)
 		{
-			throw new NotImplementedException();
+			_requestsByGuid.Add(item.RequestID, item);
+			_requestsByUniqueness.Add(item.UniqueKey, item);
 		}
 
 		public void Clear()
 		{
-			throw new NotImplementedException();
+			_requestsByUniqueness.Clear();
+			_requestsByGuid.Clear();
 		}
 
 		public bool Contains(SchedulingRequest item)
 		{
-			throw new NotImplementedException();
+			return _requestsByGuid.ContainsKey(item.RequestID);
 		}
 
 		public void CopyTo(SchedulingRequest[] array, int arrayIndex)
 		{
-			throw new NotImplementedException();
+			_requestsByGuid.Values.CopyTo(array, arrayIndex);
+			
 		}
 
 		public int Count
 		{
-			get { throw new NotImplementedException(); }
+			get { return _requestsByGuid.Count;}
 		}
 
 		public bool IsReadOnly
 		{
-			get { throw new NotImplementedException(); }
+			get { return false; }
 		}
 
 		public bool Remove(SchedulingRequest item)
 		{
-			throw new NotImplementedException();
+			_requestsByUniqueness.Remove(item.UniqueKey);
+			_requestsByGuid.Remove(item.RequestID);
+			return true;
 		}
 
 		#endregion
@@ -63,7 +69,7 @@ namespace Edge.Core.Scheduling
 
 		public IEnumerator<SchedulingRequest> GetEnumerator()
 		{
-			throw new NotImplementedException();
+			return _requestsByUniqueness.Values.GetEnumerator();
 		}
 
 		#endregion
@@ -72,7 +78,7 @@ namespace Edge.Core.Scheduling
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			throw new NotImplementedException();
+			return this.GetEnumerator();
 		}
 
 		#endregion
