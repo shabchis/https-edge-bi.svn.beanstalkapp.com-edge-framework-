@@ -142,19 +142,26 @@ namespace Edge.Core.Scheduling
 			TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
 			while (_started)
 			{
-
+				if (_needReschedule)
+					Schedule(false);
 				Thread.Sleep(TimeSpan.FromSeconds(5));
 				if (_tempCompletedRequests.Count > 0 || _needReschedule==true || calcTimeInterval == TimeSpan.Zero)
 				{
-					Schedule(false);
+					
+					
 					lock (_tempCompletedRequests)
 					{
-						foreach (var request in _tempCompletedRequests)
+						if (_tempCompletedRequests.Count > 0)
 						{
-							if (_serviceConfigurationsToSchedule.Contains(request.Configuration) && request.Rule.Scope==SchedulingScope.Unplanned)
-								_serviceConfigurationsToSchedule.Remove(request.Configuration);
+							_needReschedule = true;
+							foreach (var request in _tempCompletedRequests)
+							{
+
+								//if (_serviceConfigurationsToSchedule.Contains(request.Configuration) && request.Rule.Scope == SchedulingScope.Unplanned)
+								//    _serviceConfigurationsToSchedule.Remove(request.Configuration);
+							}
+							_tempCompletedRequests.Clear();
 						}
-						_tempCompletedRequests.Clear();
 					}
 					calcTimeInterval = _intervalBetweenNewSchedule;
 				}
@@ -285,7 +292,7 @@ namespace Edge.Core.Scheduling
 					 * */
 
 					// Remove pending uninitialized services so they can be rescheduled
-					_schedulingRequests.RemoveAll(k => k.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.RequestedTime.Add(k.Rule.MaxDeviationAfter) > DateTime.Now);
+					_schedulingRequests.RemovePending();
 
 
 					//Get Services for next time line					
@@ -307,25 +314,25 @@ namespace Edge.Core.Scheduling
 						//{
 						*/
 						//Get all services with same configurationID
-						var servicesWithSameConfiguration =
-							from s in _schedulingRequests
-							where
-								s.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name && //should be id but no id yet
-								s.Instance.LegacyInstance.State != Legacy.ServiceState.Ended &&
-								s.Instance.Canceled == false //runnig or not started yet
-							orderby s.Instance.ExpectedStartTime ascending
-							select s;
+						var servicesWithSameConfiguration = _schedulingRequests.GetServicesWithSameConfiguration(schedulingRequest);
+							//from s in _schedulingRequests
+							//where
+							//    s.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name && //should be id but no id yet
+							//    s.Instance.State != Legacy.ServiceState.Ended &&
+							//    s.Instance.Canceled == false //runnig or not started yet
+							//orderby s.Instance.ExpectedStartTime ascending
+							//select s;
 
 						//Get all services with same profileID
-						var servicesWithSameProfile =
-							from s in _schedulingRequests
-							where
-								s.Configuration.Profile == schedulingRequest.Configuration.Profile &&
-								s.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name &&
-								s.Instance.LegacyInstance.State != Legacy.ServiceState.Ended &&
-								s.Instance.Canceled == false //not deleted
-							orderby s.Instance.ExpectedStartTime ascending
-							select s;
+						var servicesWithSameProfile = _schedulingRequests.GetServicesWithSameProfile(schedulingRequest);
+							//from s in _schedulingRequests
+							//where
+							//    s.Configuration.Profile == schedulingRequest.Configuration.Profile &&
+							//    s.Configuration.Name == schedulingRequest.Configuration.BaseConfiguration.Name &&
+							//    s.Instance.LegacyInstance.State != Legacy.ServiceState.Ended &&
+							//    s.Instance.Canceled == false //not deleted
+							//orderby s.Instance.ExpectedStartTime ascending
+							//select s;
 
 						//Find the first available time this service with specific service and profile
 						TimeSpan avgExecutionTime = GetAverageExecutionTime(schedulingRequest.Configuration.Name, schedulingRequest.Configuration.Profile.ID, _percentile);
@@ -438,7 +445,12 @@ namespace Edge.Core.Scheduling
 		void Instance_OutcomeReported(object sender, EventArgs e)
 		{
 			ServiceInstance instance=(ServiceInstance)sender;
-			_tempCompletedRequests.Add(instance.SchedulingRequest);
+			lock (_tempCompletedRequests)
+			{
+				_tempCompletedRequests.Add(instance.SchedulingRequest);
+
+			}
+		
 			instance.SchedulingRequest.SchedulingStatus = SchedulingStatus.Done;
 			instance.SchedulingRequest.Save();
 
@@ -512,7 +524,7 @@ namespace Edge.Core.Scheduling
 									// special for unplanned
 									if (schedulingRule.Scope == SchedulingScope.Unplanned)
 									{
-										//schedulingdata.GuidForUnplanned = schedulingRule.GuidForUnplanned;
+										//request.RequestID = schedulingRule.GuidForUnplanned;
 										request.Rule.MaxDeviationAfter = TimeSpan.FromHours(8);
 									}
 
@@ -530,8 +542,9 @@ namespace Edge.Core.Scheduling
 			// Move potential to final only if its not already scheduled and if its not in the history
 			foreach (SchedulingRequest request in potentialSchedulingdata)
 			{				
-				if (!_schedulingRequests.ContainsSimilar(request))
+				if (!(_schedulingRequests.ContainsSimilar(request) && !_schedulingRequests.Contains(request)) || request.Rule.Scope==SchedulingScope.Unplanned)
 					finalSchedulingdata.Add(request);
+
 
 			}
 
@@ -732,18 +745,18 @@ namespace Edge.Core.Scheduling
 	//        }
 	//    }
 	//}
-	public static class SchedulingRequestCollectionExtensions
-	{
-		public static IEnumerable<SchedulingRequest> RemoveAll(this SchedulingRequestCollection req,
-									 Func<SchedulingRequest, bool> condition)
-		{
-			foreach (var cur in req.Where(condition))
-			{
-				req.Remove(cur);
-				yield return cur;
-			}
-		}
-	}
+	//public static class SchedulingRequestCollectionExtensions
+	//{
+	//    public static IEnumerable<SchedulingRequest> RemoveAll(this SchedulingRequestCollection req,
+	//                                 Func<SchedulingRequest, bool> condition)
+	//    {
+	//        foreach (var cur in req.Where(condition))
+	//        {
+	//            req.Remove(cur);
+	//            yield return cur;
+	//        }
+	//    }
+	//}
 
 
 	public static class DateTimeExtenstions
