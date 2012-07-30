@@ -49,6 +49,7 @@ namespace Edge.Core.Scheduling
 		private TimeSpan _executionTimeCashTimeOutAfter;
 		private object _sync;
 		private bool _started = false;
+		private bool _stopThread = false;
 		#endregion
 
 		/// <summary>
@@ -719,10 +720,11 @@ namespace Edge.Core.Scheduling
 		/// </summary>
 		public void Start()
 		{
-
+			
 			if (!_started)
 			{
 				_started = true;
+				_stopThread = false;
 				Schedule(false);
 				NotifyServicesToRun();
 
@@ -732,10 +734,20 @@ namespace Edge.Core.Scheduling
 
 					try
 					{
-						while (true)
+						int loop =Convert.ToInt32(_intervalBetweenNewSchedule.TotalSeconds / 5);
+						TimeSpan sleepFor = TimeSpan.FromSeconds(Convert.ToInt32(_intervalBetweenNewSchedule.TotalSeconds / loop));
+						while (!_stopThread)
 						{
-							Thread.Sleep(_intervalBetweenNewSchedule);
-							Schedule(false);
+
+							for (int i = 0; i < loop; i++)
+							{
+								if (_stopThread)
+									break;
+								Thread.Sleep(sleepFor);
+															
+							}
+							Schedule(false);	
+							
 						}
 					}
 					catch (Exception ex)
@@ -750,9 +762,17 @@ namespace Edge.Core.Scheduling
 				{
 					try
 					{
-						while (true)
+						int loop = Convert.ToInt32(_findServicesToRunInterval.TotalSeconds / 5);
+						TimeSpan sleepFor = TimeSpan.FromSeconds(Convert.ToInt32(_findServicesToRunInterval.TotalSeconds / loop));
+						while (!_stopThread)
 						{
-							Thread.Sleep(_findServicesToRunInterval);//TODO: ADD CONST
+							for (int i = 0; i < loop; i++)
+							{
+								if (_stopThread)
+									break;
+								Thread.Sleep(sleepFor);//TODO: ADD CONST
+								
+							}
 							NotifyServicesToRun();
 						}
 					}
@@ -813,12 +833,10 @@ namespace Edge.Core.Scheduling
 		/// </summary>
 		public void Stop()
 		{
+			Log.Write("Scheduler", "Threads stops stack:\n" + Environment.StackTrace, LogMessageType.Information);
+			_stopThread = true;
 			_started = false;
-			if (_findRequiredServicesthread != null)
-				_findRequiredServicesthread.Abort();
-
-			if (_newSchedulethread != null)
-				_newSchedulethread.Abort();
+			
 		}
 
 		/// <summary>
