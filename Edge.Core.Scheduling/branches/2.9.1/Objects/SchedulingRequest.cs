@@ -63,7 +63,8 @@ namespace Edge.Core.Scheduling.Objects
            ,[LegacyInstanceID]
            ,[Outcome]
 		   ,[SchedulingScope]
-		   ,[SchedulingStatus])
+		   ,[SchedulingStatus]
+		   ,[ExpectedStartTime])
      VALUES
            (@RequestID:char,
            @UniqueKey:nvarchar,
@@ -73,7 +74,8 @@ namespace Edge.Core.Scheduling.Objects
            @LegacyInstanceID:bigint,
            @Outcome:int,
 		   @SchedulingScope:int,
-		   @SchedulingStatus:int)");
+		   @SchedulingStatus:int,
+		   @ExpectedStartTime:datetime)");
 				}
 				else
 				{
@@ -87,6 +89,7 @@ namespace Edge.Core.Scheduling.Objects
            ,[Outcome]=@Outcome:int
 		   ,[SchedulingScope]=@SchedulingScope:int
 		   ,[SchedulingStatus]=@SchedulingStatus:int
+		   ,[ExpectedStartTime]=@ExpectedStartTime:datetime
 			WHERE RequestID=@RequestID:char");
 				}
 				command.Parameters["@UniqueKey"].Value = this.UniqueKey;
@@ -98,6 +101,7 @@ namespace Edge.Core.Scheduling.Objects
 				command.Parameters["@RequestID"].Value = this.RequestID.ToString("N");
 				command.Parameters["@SchedulingStatus"].Value=this.SchedulingStatus;
 				command.Parameters["@SchedulingScope"].Value = this.Rule.Scope;
+				command.Parameters["@ExpectedStartTime"].Value = this.Instance.ExpectedStartTime == DateTime.MinValue ? (object)DBNull.Value : this.Instance.ExpectedStartTime;
 				conn.Open();
 				command.Connection = conn;
 				if (command.ExecuteNonQuery() < 0)

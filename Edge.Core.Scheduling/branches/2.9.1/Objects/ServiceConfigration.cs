@@ -164,13 +164,15 @@ namespace Edge.Core.Scheduling.Objects
 				if (options != null)
 				{
 					legacy = new ActiveServiceElement((ServiceElement)legacyConfiguration);
-					legacy.Options.Merge(options);
+					
 				}
 				else
 				{
 					legacy = (ServiceElement)legacyConfiguration;
 				}
 			}
+			if (options != null)
+				legacy.Options.Merge(options);
 			
 			T serviceConfiguration = new T()
 			{
