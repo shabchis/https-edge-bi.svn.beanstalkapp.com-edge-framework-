@@ -14,6 +14,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
     abstract public class DbDbChecksumBaseService : ValidationService
     {
         public double progress = 0;
+		public double Threshold = 1;
         public Dictionary<string, string> Params = new Dictionary<string, string>();
 
         protected override IEnumerable<ValidationResult> Validate()
@@ -42,6 +43,12 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
             if (String.IsNullOrEmpty(this.Instance.Configuration.Options["ChannelList"]))
                 throw new Exception("Missing Configuration option ChannelList");
             string[] channels = this.Instance.Configuration.Options["ChannelList"].Split(',');
+
+			
+			if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["Threshold"]))
+				Threshold = Convert.ToDouble(this.Instance.Configuration.Options["Threshold"]);
+
+
 
             //Getting TimePeriod
             DateTime fromDate, toDate;
@@ -104,7 +111,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 				foreach (var sourceMeasure in sourceTotals)
 				{
 					double diff;
-					if ((diff = Math.Abs(sourceMeasure.Value - targetTotals[sourceMeasure.Key])) > 1)
+					if ((diff = Math.Abs(sourceMeasure.Value - targetTotals[sourceMeasure.Key])) > Threshold)
 						alerts.Add(sourceMeasure.Key,diff);
 				}
 				
