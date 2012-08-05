@@ -125,7 +125,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 					progress += 0.3 * (1 - progress);
 					this.ReportProgress(progress);
 
-					//Get Relevant Outputs by db table  ( source table )
+					//Get Relevant Outputs by  source table 
 					var outputToCheck_withSubChannel =
 													   from o in outputToCheck
 													   where o.Parameters.ContainsKey("CommitTableName") && o.Parameters["CommitTableName"].Equals(comparisonTable.Split('.')[1])
