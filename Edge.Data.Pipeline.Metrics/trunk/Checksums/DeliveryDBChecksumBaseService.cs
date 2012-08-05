@@ -64,11 +64,11 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 			}
 
 			//Get Sub Channel (for cases such as Google Search and GDN)
-			string subChannel = String.Empty;
-			if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["SubChannel"]))
-			{
-				subChannel = this.Instance.Configuration.Options["SubChannel"].ToString();
-			}
+			//string subChannel = String.Empty;
+			//if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["SubChannel"]))
+			//{
+			//    subChannel = this.Instance.Configuration.Options["SubChannel"].ToString();
+			//}
 
 			#endregion
 
@@ -125,25 +125,24 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 					progress += 0.3 * (1 - progress);
 					this.ReportProgress(progress);
 
-					var outputToCheck_withSubChannel = new Object();
-					if (!String.IsNullOrEmpty(subChannel))
-					{
-						 outputToCheck_withSubChannel = 
-															from o in outputToCheck
-															where o.Parameters.ContainsKey("SubChannel") && o.Parameters["SubChannel"].Equals(subChannel)
-															select o;
-					}
+					//Get Relevant Outputs by db table  ( source table )
+					var outputToCheck_withSubChannel =
+													   from o in outputToCheck
+													   where o.Parameters.ContainsKey("CommitTableName") && o.Parameters["CommitTableName"].Equals(comparisonTable.Split('.')[1])
+													   select o;
 
+					outputToCheck = outputToCheck_withSubChannel.ToArray<DeliveryOutput>();
+					
 
 					foreach (DeliveryOutput output in outputToCheck)
 					{
-					//	if (output.Parameters.ContainsKey("SubChannel") && output.Parameters["SubChannel"].Equals(subChannel))
-							if ((output.Status == DeliveryOutputStatus.Committed || output.Status == DeliveryOutputStatus.Staged) && output.Checksum != null && output.Checksum.Count > 0)
-							{
-								//Check Delivery data vs OLTP
-								foundCommited = true;
-								yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
-							}
+						//	if (output.Parameters.ContainsKey("SubChannel") && output.Parameters["SubChannel"].Equals(subChannel))
+						if ((output.Status == DeliveryOutputStatus.Committed || output.Status == DeliveryOutputStatus.Staged) && output.Checksum != null && output.Checksum.Count > 0)
+						{
+							//Check Delivery data vs OLTP
+							foundCommited = true;
+							yield return (DeliveryDbCompare(output, output.Checksum, "OltpDB", comparisonTable));
+						}
 
 					}
 
