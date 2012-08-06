@@ -146,7 +146,11 @@ namespace Edge.Data.Pipeline
 									{
 
 										OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
-										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null),
+										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() 
+										{ 
+											ID = id.Value,
+ 											OriginalID = reader.Get<string>("AccountOriginalID")
+										} : null),
 										Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
 										Signature = reader.Get<string>("Signature"),
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
@@ -433,6 +437,7 @@ namespace Edge.Data.Pipeline
 								[DeliveryID],
 								[OutputID],
 								[AccountID],
+								[AccountOriginalID],
 								[ChannelID],
 								[Signature],
 								[Status] ,								
@@ -446,6 +451,7 @@ namespace Edge.Data.Pipeline
 								@deliveryID:Char,
 								@outputID:Char,
 								@accountID:Int,
+								@accountOriginalID:NVarChar,
 								@channelID:Int,
 								@signature:NVarChar,
 								@status:Int,								
@@ -461,6 +467,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 						cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
+						cmd.Parameters["@accountOriginalID"].Value = output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value;
 						cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 						cmd.Parameters["@signature"].Value = output.Signature;
 						cmd.Parameters["@status"].Value = output.Status;
@@ -968,6 +975,8 @@ namespace Edge.Data.Pipeline
 								TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
 								PipelineInstanceID = reader.Get<long?>("PipelineInstanceID")
 							};
+
+							output.Account.OriginalID = reader.Get<string>("AccountOriginalID");
 							#endregion
 
 							#region DeliveryOutputParameters
@@ -1012,20 +1021,10 @@ namespace Edge.Data.Pipeline
 
 					}
 				}
-				using (SqlCommand sqlCommand = DataManager.CreateCommand(@"SELECT Account_OriginalID
-																	  from Delivery
-																	  where DeliveryID= @DeliveryID:Char", System.Data.CommandType.Text))
-				{
 
-					sqlCommand.Connection = client;
-					sqlCommand.Parameters["@DeliveryID"].Value = output.DeliveryID.ToString("N");
-					using (SqlDataReader reader = sqlCommand.ExecuteReader())
-					{
-						reader.Read();
-						output.Account.OriginalID = reader.Get<string>("Account_OriginalID");
 
-					}
-				}
+
+//                
 				
 
 				
