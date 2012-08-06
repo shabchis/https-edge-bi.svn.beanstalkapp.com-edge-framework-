@@ -608,6 +608,7 @@ namespace Edge.Data.Pipeline
 								[DeliveryID],
 								[OutputID],
 								[AccountID],
+								[AccountOriginalID],
 								[ChannelID],
 								[Signature],
 								[Status] ,								
@@ -621,6 +622,7 @@ namespace Edge.Data.Pipeline
 								@deliveryID:Char,
 								@outputID:Char,
 								@accountID:Int,
+								@accountOriginalID::NVarChar,
 								@channelID:Int,
 								@signature:NVarChar,
 								@status:Int,								
@@ -636,6 +638,7 @@ namespace Edge.Data.Pipeline
 					 cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID;
 					cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 					cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
+					cmd.Parameters["@accountOriginalID"].Value = output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value;
 					cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 					cmd.Parameters["@signature"].Value = output.Signature;
 					cmd.Parameters["@status"].Value = output.Status;
