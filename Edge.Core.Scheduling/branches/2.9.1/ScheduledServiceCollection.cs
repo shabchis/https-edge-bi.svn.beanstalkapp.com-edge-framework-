@@ -12,14 +12,6 @@ namespace Edge.Core.Scheduling
 		Dictionary<Guid, SchedulingRequest> _requestsByGuid = new Dictionary<Guid, SchedulingRequest>();
 		Dictionary<string, SchedulingRequest> _requestsByUniqueness = new Dictionary<string, SchedulingRequest>();
 
-		public SchedulingRequest this[int index]
-		{
-			get
-			{
-				return _requestsByGuid.Values.ElementAt(index);
-			}
-		
-		}
 		public SchedulingRequest this[Guid guid]
 		{
 			get
@@ -29,14 +21,12 @@ namespace Edge.Core.Scheduling
 		}
 		public bool ContainsSimilar(SchedulingRequest requestToCheck)
 		{
+			if (requestToCheck.Rule.Scope == SchedulingScope.Unplanned)
+				return false;
+
 			return _requestsByUniqueness.ContainsKey(requestToCheck.UniqueKey);
 		}
-		public void SetDelete(SchedulingRequest request)
-		{
-			_requestsByUniqueness.Remove(request.UniqueKey);
-			_requestsByGuid.Remove(request.RequestID);
-		}
-
+		
 		#region ICollection<SchedulingRequest> Members
 
 		public void Add(SchedulingRequest item)

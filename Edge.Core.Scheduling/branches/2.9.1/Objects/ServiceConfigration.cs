@@ -12,7 +12,6 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class ServiceConfiguration
 	{
-		
 		private ServiceConfiguration _baseConfiguration;
 		private string _name;
 		private Profile _schedulingProfile;
@@ -27,6 +26,8 @@ namespace Edge.Core.Scheduling.Objects
         {
 			this.SchedulingRules = new List<SchedulingRule>();
         }
+
+		internal volatile bool UnplannedHasStarted = false;
 
 		public bool IsLocked
 		{
@@ -44,12 +45,6 @@ namespace Edge.Core.Scheduling.Objects
 			if (this.IsLocked)
 				throw new InvalidOperationException("Service configuration is locked.");
 		}
-
-		//public override int GetHashCode()
-		//{
-		//    throw new NotImplementedException("GetHashCode");
-		//    //return _guid.GetHashCode();
-		//}
 
 		public int MaxConcurrent
 		{
@@ -105,6 +100,11 @@ namespace Edge.Core.Scheduling.Objects
 		{
 			get;
 			private set;
+		}
+
+		public bool IsUnplanned
+		{
+			get { return this.SchedulingRules.Count == 1 && this.SchedulingRules[0].Scope == SchedulingScope.Unplanned; }
 		}
 
 		public int MaxConcurrentPerProfile
