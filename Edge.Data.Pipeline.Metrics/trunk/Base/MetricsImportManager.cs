@@ -15,7 +15,7 @@ namespace Edge.Data.Pipeline.Metrics
 	/// <summary>
 	/// Base class for metrics import managers.
 	/// </summary>
-	public abstract class MetricsImportManager:DeliveryImportManager
+	public abstract class MetricsImportManager : DeliveryImportManager
 	{
 		#region Fields
 		/*=========================*/
@@ -32,14 +32,15 @@ namespace Edge.Data.Pipeline.Metrics
 		#region Constructors
 		/*=========================*/
 
-		public MetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID)
+		public MetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
+			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsImportManagerOptions();
 			options.StagingConnectionString = options.StagingConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.StagingDatabase);
 			options.SqlTransformCommand = options.SqlTransformCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlTransformCommand, throwException: false);
 			options.SqlStageCommand = options.SqlStageCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlStageCommand, throwException: false);
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
-			
+
 			this.Options = options;
 		}
 
@@ -163,7 +164,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 		#region Prepare
 		/*=========================*/
-		
+
 		SqlCommand _transformCommand = null;
 		SqlCommand _validateCommand = null;
 		const int Transform_TRANSFORM_PASS = 0;
@@ -184,9 +185,9 @@ namespace Edge.Data.Pipeline.Metrics
 			_sqlConnection.Open();
 		}
 
-		protected override void  OnTransform(Delivery delivery, int pass)
+		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			
+
 
 			// get this from last 'Processed' history entry
 			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureFieldsSql].ToString();
@@ -228,11 +229,11 @@ namespace Edge.Data.Pipeline.Metrics
 
 				foreach (DeliveryOutput outPut in delivery.Outputs)
 				{
-					
 
-					if (outPut.Checksum!=null && outPut.Checksum.Count>0)
+
+					if (outPut.Checksum != null && outPut.Checksum.Count > 0)
 					{
-						
+
 
 						object sql;
 						if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.MeasureValidateSql, out sql))
@@ -256,7 +257,7 @@ namespace Edge.Data.Pipeline.Metrics
 										{
 
 											if (total.Value == 0)
-												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}-{3}", total.Key, ValidationTable, outPut.TimePeriodStart,outPut.TimePeriodEnd), LogMessageType.Information);
+												Log.Write(string.Format("[zero totals] {0} has no data or total is 0 in table {1} for target period {2}-{3}", total.Key, ValidationTable, outPut.TimePeriodStart, outPut.TimePeriodEnd), LogMessageType.Information);
 											else
 												results.AppendFormat("{0} is null in table {1}\n but {2} in measure {3}", total.Key, ValidationTable, total.Key, total.Value);
 										}
@@ -279,7 +280,7 @@ namespace Edge.Data.Pipeline.Metrics
 									throw new Exception(String.Format("Commit validation (checksum) did not find any data matching this delivery in {0}.", ValidationTable));
 							}
 						}
-						
+
 					}
 				}
 			}
@@ -310,7 +311,7 @@ namespace Edge.Data.Pipeline.Metrics
 			_stageTransaction = _sqlConnection.BeginTransaction("Delivery Staging");
 		}
 
-		protected override void  OnStage(Delivery delivery, int pass)
+		protected override void OnStage(Delivery delivery, int pass)
 		{
 			// get this from last 'Processed' history entry
 			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureFieldsSql].ToString();
@@ -359,7 +360,7 @@ namespace Edge.Data.Pipeline.Metrics
 						DeliveryOutput o = DeliveryOutput.Get(Guid.Parse(existOutput));
 						o.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
 						outputs.Add(o);
-						
+
 					}
 					throw new DeliveryConflictException(string.Format("DeliveryOutputs with the same signature are already committed in the database\n Deliveries:\n {0}:", outPutsIDsPerSignature)) { ConflictingOutputs = outputs.ToArray() };
 				}
@@ -368,13 +369,13 @@ namespace Edge.Data.Pipeline.Metrics
 					foreach (var output in delivery.Outputs)
 					{
 						output.Status = DeliveryOutputStatus.Staged;
-						
+
 					}
 			}
 			finally
 			{
 				this.State = DeliveryImportManagerState.Idle;
-				
+
 			}
 		}
 
@@ -388,7 +389,7 @@ namespace Edge.Data.Pipeline.Metrics
 					_stageTransaction.Rollback();
 			}
 			this.State = DeliveryImportManagerState.Idle;
-			
+
 		}
 
 		protected override void OnDisposeStage()
@@ -440,13 +441,39 @@ namespace Edge.Data.Pipeline.Metrics
 			_rollbackCommand.Transaction = _rollbackTransaction;
 
 			_rollbackCommand.Parameters["@DeliveryOutputID"].Value = guid;
-			_rollbackCommand.Parameters["@TableName"].Value =output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+			_rollbackCommand.Parameters["@TableName"].Value = output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
 
 			_rollbackCommand.ExecuteNonQuery();
+			
+
+
 
 			// This is redundant (SP already does this) but to sync our objects in memory we do it here also
 			output.Status = DeliveryOutputStatus.RolledBack;
-			
+
+			//For new db
+			/*string guid = output.OutputID.ToString("N");
+			if (output.Status == DeliveryOutputStatus.Staged)
+			{
+				_rollbackCommand = _rollbackCommand ?? DataManager.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
+				_rollbackCommand.Connection = _sqlConnection;
+				_rollbackCommand.Transaction = _rollbackTransaction;
+
+				_rollbackCommand.Parameters["@DeliveryOutputID"].Value = guid;
+				_rollbackCommand.Parameters["@TableName"].Value = output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+
+				_rollbackCommand.ExecuteNonQuery();
+			}
+			else if (output.Status == DeliveryOutputStatus.Committed)
+			{
+				output.Status = DeliveryOutputStatus.PendingRoleBack;
+			}
+			else
+			{
+				throw new Exception("It should not happend");
+			} */
+			 
+
 		}
 
 		protected override void OnEndRollback(Exception ex)
@@ -483,7 +510,7 @@ namespace Edge.Data.Pipeline.Metrics
 		/*=========================*/
 		#endregion
 
-		
+
 	}
 
 	/// <summary>
@@ -492,7 +519,8 @@ namespace Edge.Data.Pipeline.Metrics
 	/// <typeparam name="MetricsUnitT"></typeparam>
 	public abstract class MetricsImportManager<MetricsUnitT> : MetricsImportManager where MetricsUnitT : MetricsUnit
 	{
-		public MetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null) : base(serviceInstanceID, options)
+		public MetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
+			: base(serviceInstanceID, options)
 		{
 		}
 
