@@ -11,12 +11,20 @@ namespace Edge.Core.Scheduling
 	{
 		Dictionary<Guid, SchedulingRequest> _requestsByGuid = new Dictionary<Guid, SchedulingRequest>();
 		Dictionary<string, SchedulingRequest> _requestsByUniqueness = new Dictionary<string, SchedulingRequest>();
+		Dictionary<string, SchedulingRequest> _recycledRequestsByUniqueness = new Dictionary<string, SchedulingRequest>();
 
 		public SchedulingRequest this[Guid guid]
 		{
 			get
 			{
 				return _requestsByGuid[guid];
+			}
+		}
+		public Dictionary<string, SchedulingRequest> RecycledRequestsByUniqueness
+		{
+			get
+			{
+				return _recycledRequestsByUniqueness;
 			}
 		}
 		public bool ContainsSimilar(SchedulingRequest requestToCheck)
@@ -92,7 +100,12 @@ namespace Edge.Core.Scheduling
 
 		public void RemovePending()
 		{
-			_requestsByGuid.RemoveAll(k => k.Value.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.Value.RequestedTime.Add(k.Value.Rule.MaxDeviationAfter) > DateTime.Now);
+			foreach (var request in _requestsByGuid.RemoveAll(k => k.Value.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.Value.RequestedTime.Add(k.Value.Rule.MaxDeviationAfter) > DateTime.Now))
+			{
+				if (!request.Value.Activated && request.Value.RequestedTime.Add(request.Value.Rule.MaxDeviationAfter) > DateTime.Now && request.Value.Rule.Scope != SchedulingScope.Unplanned)
+					_recycledRequestsByUniqueness.Add(request.Value.UniqueKey, request.Value);
+
+			}
 			_requestsByUniqueness.RemoveAll(k => k.Value.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.Value.RequestedTime.Add(k.Value.Rule.MaxDeviationAfter) > DateTime.Now);
 		}
 		public IOrderedEnumerable<SchedulingRequest> GetServicesWithSameConfiguration(SchedulingRequest currentRequest)
@@ -237,12 +250,13 @@ namespace Edge.Core.Scheduling
 	//}
 	public static class DictionaryExtensions
 	{
-		public static void RemoveAll<TKey, TValue>(this Dictionary<TKey, TValue> dict,
+		public static IEnumerable<KeyValuePair<TKey, TValue>> RemoveAll<TKey, TValue>(this Dictionary<TKey, TValue> dict,
 									 Func<KeyValuePair<TKey, TValue>, bool> condition)
 		{
 			foreach (var cur in dict.Where(condition).ToList())
 			{
 				dict.Remove(cur.Key);
+				yield  return  cur;
 			}
 		}
 
