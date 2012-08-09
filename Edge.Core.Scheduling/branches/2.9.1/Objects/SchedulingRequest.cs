@@ -36,7 +36,7 @@ namespace Edge.Core.Scheduling.Objects
 					return null;
 			}
 		}
-
+		internal volatile bool Activated = false;
 		public string UniqueKey
 		{
 			get
