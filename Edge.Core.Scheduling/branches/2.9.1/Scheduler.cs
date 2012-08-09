@@ -131,7 +131,7 @@ namespace Edge.Core.Scheduling
 
 		private void StartSchedulerTimer()
 		{
-			Schedule(true);
+			Schedule(false);
 			TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
 
 			while (_started)
@@ -221,6 +221,7 @@ namespace Edge.Core.Scheduling
 					{
 						// TODO: select the saved scheduling requests from the DB according to the scope of the fule
 						//throw new NotImplementedException();
+						
 					}
 				}
 			}
@@ -483,7 +484,7 @@ namespace Edge.Core.Scheduling
 									case SchedulingScope.Day:
 									case SchedulingScope.Week:
 										int dayOfWeek = (int)requestedTime.DayOfWeek + 1;
-										if (!schedulingRule.Days.Contains(dayOfWeek))
+										if (!schedulingRule.Days.Contains(dayOfWeek) && requestedTime.DayOfWeek!=DateTime.Now.Date.DayOfWeek)
 											continue;
 										break;
 									case SchedulingScope.Month:

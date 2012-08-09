@@ -181,7 +181,8 @@ namespace Edge.Core.Scheduling.Objects
 				MaxConcurrentPerProfile = (legacy.MaxInstancesPerAccount == 0) ? 9999 : legacy.MaxInstancesPerAccount,
 				_legacyConfiguration = legacy,
 				_baseConfiguration = baseConfiguration,
-				_schedulingProfile = profile
+				_schedulingProfile = profile,
+				
 			};
 
 			if (legacy.Options.ContainsKey("ServicePriority"))
