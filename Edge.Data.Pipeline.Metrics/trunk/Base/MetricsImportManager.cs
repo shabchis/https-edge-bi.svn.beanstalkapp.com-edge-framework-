@@ -56,7 +56,7 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void OnBeginImport()
 		{
 			this._tablePrefix = string.Format("{0}_{1}_{2}_{3}", this.TablePrefixType, this.CurrentDelivery.Account.ID, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
-			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this._tablePrefix);
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryOutputParameters.TablePerfix, this._tablePrefix);
 
 			int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
 
@@ -117,12 +117,12 @@ namespace Edge.Data.Pipeline.Metrics
 				count++;
 			}
 
-			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureFieldsSql, measuresFieldNamesSQL.ToString());
-			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureNamesSql, measuresNamesSQL.ToString());
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryOutputParameters.MeasureFieldsSql, measuresFieldNamesSQL.ToString());
+			this.CurrentDelivery.Parameters.Add(Consts.DeliveryOutputParameters.MeasureNamesSql, measuresNamesSQL.ToString());
 			if (string.IsNullOrEmpty(measuresValidationSQL.ToString()))
 				Log.Write("No measures marked for checksum validation; there will be no validation before the final commit.", LogMessageType.Warning);
 			else
-				this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.MeasureValidateSql, measuresValidationSQL.ToString());
+				this.CurrentDelivery.Parameters.Add(Consts.DeliveryOutputParameters.MeasureValidateSql, measuresValidationSQL.ToString());
 
 			// Create the tables
 			StringBuilder createTableCmdText = new StringBuilder();
@@ -190,10 +190,10 @@ namespace Edge.Data.Pipeline.Metrics
 
 
 			// get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureFieldsSql].ToString();
-			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
+			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryOutputParameters.MeasureFieldsSql].ToString();
+			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryOutputParameters.MeasureNamesSql].ToString();
 
-			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			string tablePerfix = delivery.Parameters[Consts.DeliveryOutputParameters.TablePerfix].ToString();
 			string deliveryId = delivery.DeliveryID.ToString("N");
 
 			if (pass == Transform_TRANSFORM_PASS)
@@ -220,9 +220,9 @@ namespace Edge.Data.Pipeline.Metrics
 					throw new Exception(String.Format("Delivery {0} failed during Transform.", deliveryId), ex);
 				}
 
-				delivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _transformCommand.Parameters["@CommitTableName"].Value;
+				delivery.Parameters[Consts.DeliveryOutputParameters.CommitTableName] = _transformCommand.Parameters["@CommitTableName"].Value;
 				foreach (var output in delivery.Outputs)
-					output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = _transformCommand.Parameters["@CommitTableName"].Value;
+					output.Parameters[Consts.DeliveryOutputParameters.CommitTableName] = _transformCommand.Parameters["@CommitTableName"].Value;
 			}
 			else if (pass == Transform_VALIDATE_PASS)
 			{
@@ -236,7 +236,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 
 						object sql;
-						if (delivery.Parameters.TryGetValue(Consts.DeliveryHistoryParameters.MeasureValidateSql, out sql))
+						if (delivery.Parameters.TryGetValue(Consts.DeliveryOutputParameters.MeasureValidateSql, out sql))
 						{
 
 							string measuresValidateSQL = (string)sql;
@@ -314,10 +314,10 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void OnStage(Delivery delivery, int pass)
 		{
 			// get this from last 'Processed' history entry
-			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureFieldsSql].ToString();
-			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryHistoryParameters.MeasureNamesSql].ToString();
+			string measuresFieldNamesSQL = delivery.Parameters[Consts.DeliveryOutputParameters.MeasureFieldsSql].ToString();
+			string measuresNamesSQL = delivery.Parameters[Consts.DeliveryOutputParameters.MeasureNamesSql].ToString();
 
-			string tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			string tablePerfix = delivery.Parameters[Consts.DeliveryOutputParameters.TablePerfix].ToString();
 			string deliveryId = delivery.DeliveryID.ToString("N");
 
 
@@ -358,7 +358,7 @@ namespace Edge.Data.Pipeline.Metrics
 					foreach (string existOutput in existsOutPuts)
 					{
 						DeliveryOutput o = DeliveryOutput.Get(Guid.Parse(existOutput));
-						o.Parameters[Consts.DeliveryHistoryParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
+						o.Parameters[Consts.DeliveryOutputParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
 						outputs.Add(o);
 
 					}
@@ -423,7 +423,7 @@ namespace Edge.Data.Pipeline.Metrics
 			_rollbackCommand.Transaction = _rollbackTransaction;
 
 			_rollbackCommand.Parameters["@DeliveryID"].Value = guid;
-			_rollbackCommand.Parameters["@TableName"].Value = this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+			_rollbackCommand.Parameters["@TableName"].Value = this.CurrentDelivery.Parameters[Consts.DeliveryOutputParameters.CommitTableName];
 
 			_rollbackCommand.ExecuteNonQuery();
 
@@ -441,7 +441,7 @@ namespace Edge.Data.Pipeline.Metrics
 			_rollbackCommand.Transaction = _rollbackTransaction;
 
 			_rollbackCommand.Parameters["@DeliveryOutputID"].Value = guid;
-			_rollbackCommand.Parameters["@TableName"].Value = output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
+			_rollbackCommand.Parameters["@TableName"].Value = output.Parameters[Consts.DeliveryOutputParameters.CommitTableName];
 
 			_rollbackCommand.ExecuteNonQuery();
 			
@@ -463,6 +463,7 @@ namespace Edge.Data.Pipeline.Metrics
 				_rollbackCommand.Parameters["@TableName"].Value = output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
 
 				_rollbackCommand.ExecuteNonQuery();
+				output.Status=DeliveryOutputStatus.Canceled;
 			}
 			else if (output.Status == DeliveryOutputStatus.Committed)
 			{
