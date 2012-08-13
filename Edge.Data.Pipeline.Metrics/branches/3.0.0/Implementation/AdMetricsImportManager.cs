@@ -79,7 +79,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				public static ColumnDef MetricsUsid = new ColumnDef("MetricsUsid", size: 32, type: SqlDbType.Char, nullable: false);
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
-				public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char,size:32, nullable: false);
+				public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char, size: 32, nullable: false);
 				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
 				public static ColumnDef Currency = new ColumnDef("Currency", size: 10);
@@ -235,7 +235,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		public override void ImportMetrics(AdMetricsUnit metrics)
 		{
 			EnsureBeginImport();
-			
+
 			if (metrics.Output == null)
 				throw new InvalidOperationException("Cannot import a metrics unit that is not associated with a delivery output.");
 			if (metrics.Ad == null)
@@ -243,10 +243,10 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 			string adUsid = GetAdIdentity(metrics.Ad);
 			string metricsUsid = metrics.Usid.ToString("N");
-			
-			
+
+
 			// Metrics
-		var metricsRow = new Dictionary<ColumnDef, object>()
+			var metricsRow = new Dictionary<ColumnDef, object>()
 			{
 				{Tables.Metrics.MetricsUsid, metricsUsid},
 				{Tables.Metrics.OutputID,metrics.Output.OutputID.ToString("N")},
@@ -256,16 +256,19 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				{Tables.Metrics.Currency, metrics.Currency == null ? null : metrics.Currency.Code}
 			};
 
-		foreach (KeyValuePair<Measure, double> measure in metrics.MeasureValues)
-		{
-			metricsRow[new ColumnDef(measure.Key.Name)] = measure.Value;
-
-			//TO DO : If "Currency to USD is checked" Add new column "Cost_USD", and value by CLR
-			if (measure.Key.IsUSD)
+			foreach (KeyValuePair<Measure, double> measure in metrics.MeasureValues)
 			{
-				metricsRow[new ColumnDef(measure.Key.Name+"_USD")] = measure.Key.GetValueInUSD();
+				metricsRow[new ColumnDef(measure.Key.Name)] = measure.Value;
+
+				//TO DO : If "Currency to USD is checked" Add new column "***_USD", and value in USD by CLR
+				if (measure.Key.USDRequired)
+				{
+					using (SqlConnection oltpConnection = new SqlConnection(this.Options.StagingConnectionString))
+					{
+						metricsRow[new ColumnDef(measure.Key.Name + "_USD")] = measure.Key.GetValueInUSD(oltpConnection, measure.Value);
+					}
+				}
 			}
-		}
 
 			Bulk<Tables.Metrics>().SubmitRow(metricsRow);
 
@@ -313,7 +316,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			base.OnTransform(delivery,pass);
+			base.OnTransform(delivery, pass);
 		}
 	}
 }
