@@ -77,7 +77,7 @@ namespace Edge.Data.Objects
 		}
 
 
-		public object GetValueInUSD(SqlConnection connection,object valueToConvert)
+		public double GetValueInUSD(SqlConnection connection,object valueToConvert)
 		{
 			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure), "GetMeasuresValueUSD.SP"),
 				System.Data.CommandType.StoredProcedure);
@@ -87,7 +87,7 @@ namespace Edge.Data.Objects
 			using (SqlDataReader reader = cmd.ExecuteReader())
 			{
 				if (reader.Read())
-					return reader[0];
+					return Convert.ToDouble(reader[0]);
 				else
 					throw new Exception("Could not convert value to USD");
 			}
