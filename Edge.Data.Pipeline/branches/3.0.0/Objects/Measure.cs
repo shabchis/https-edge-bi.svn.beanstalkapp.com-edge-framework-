@@ -34,6 +34,7 @@ namespace Edge.Data.Objects
         public string StringFormat;
         public int? AcquisitionNum;
 		public MeasureOptions Options;
+		public bool USDRequired;
 
 		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions? options = null,OptionsOperator @operator = OptionsOperator.Or, bool includeBase = false)
 		{
@@ -64,7 +65,8 @@ namespace Edge.Data.Objects
 						OltpName = reader["FieldName"] is DBNull ? string.Empty : (string)reader["FieldName"],
                         StringFormat = reader["StringFormat"] is DBNull ? string.Empty : (string)reader["StringFormat"],
                         AcquisitionNum = reader["AcquisitionNum"] is DBNull ? null : (int?)reader["AcquisitionNum"],
-						Options = (MeasureOptions)reader["Flags"]
+						Options = (MeasureOptions)reader["Flags"],
+						USDRequired = reader.Get<bool>("Required_USD_Convert"),
 					};
 
 					measures.Add(m);
