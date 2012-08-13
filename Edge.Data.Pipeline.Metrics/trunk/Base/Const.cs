@@ -7,7 +7,7 @@ namespace Edge.Data.Pipeline.Metrics
 {
 	public static class Consts
 	{
-		public static class DeliveryHistoryParameters
+		public static class DeliveryOutputParameters
 		{
 			public const string TablePerfix = "TablePerfix";
 			public const string MeasureNamesSql = "MeasureNamesSql";
