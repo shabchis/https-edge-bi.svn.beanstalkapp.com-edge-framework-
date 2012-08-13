@@ -263,7 +263,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			//TO DO : If "Currency to USD is checked" Add new column "Cost_USD", and value by CLR
 			if (measure.Key.IsUSD)
 			{
-				metricsRow[new ColumnDef(measure.Key.Name+"_USD")] = measure.key.GetValueInUSD();
+				metricsRow[new ColumnDef(measure.Key.Name+"_USD")] = measure.Key.GetValueInUSD();
 			}
 		}
 
