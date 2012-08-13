@@ -256,8 +256,16 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				{Tables.Metrics.Currency, metrics.Currency == null ? null : metrics.Currency.Code}
 			};
 
-			foreach (KeyValuePair<Measure, double> measure in metrics.MeasureValues)
-				metricsRow[new ColumnDef(measure.Key.Name)] = measure.Value;
+		foreach (KeyValuePair<Measure, double> measure in metrics.MeasureValues)
+		{
+			metricsRow[new ColumnDef(measure.Key.Name)] = measure.Value;
+
+			//TO DO : If "Currency to USD is checked" Add new column "Cost_USD", and value by CLR
+			if (measure.Key.IsUSD)
+			{
+				metricsRow[new ColumnDef(measure.Key.Name+"_USD")] = measure.key.GetValueInUSD();
+			}
+		}
 
 			Bulk<Tables.Metrics>().SubmitRow(metricsRow);
 
