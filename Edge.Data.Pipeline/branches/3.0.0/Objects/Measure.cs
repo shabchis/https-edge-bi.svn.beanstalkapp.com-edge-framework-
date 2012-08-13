@@ -76,7 +76,22 @@ namespace Edge.Data.Objects
 			return measures.ToDictionary(m => m.Name);
 		}
 
-		
+
+		public object GetValueInUSD(SqlConnection connection,object valueToConvert)
+		{
+			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure), "GetMeasuresValueUSD.SP"),
+				System.Data.CommandType.StoredProcedure);
+			cmd.Connection = connection;
+			cmd.Parameters["@Currency"].Value = valueToConvert;
+
+			using (SqlDataReader reader = cmd.ExecuteReader())
+			{
+				if (reader.Read())
+					return reader[0];
+				else
+					throw new Exception("Could not convert value to USD");
+			}
+		}
 	}
 
 	[Flags]
