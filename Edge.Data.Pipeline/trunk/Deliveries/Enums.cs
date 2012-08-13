@@ -27,6 +27,6 @@ namespace Edge.Data.Pipeline
 		Committed	= 4,
 		RolledBack	= 5,
 		Canceled	= 6,
-		PendingRoleBack=7
+		PendingRollBack=7
 	}
 }
