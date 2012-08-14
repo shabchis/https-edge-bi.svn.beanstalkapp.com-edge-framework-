@@ -11,7 +11,7 @@ namespace Edge.Core.Scheduling
 	{
 		Dictionary<Guid, SchedulingRequest> _requestsByGuid = new Dictionary<Guid, SchedulingRequest>();
 		Dictionary<string, SchedulingRequest> _requestsByUniqueness = new Dictionary<string, SchedulingRequest>();
-		Dictionary<string, SchedulingRequest> _recycledRequestsByUniqueness = new Dictionary<string, SchedulingRequest>();
+		Dictionary<string,SchedulingRequest> _recycledRequestsByUniqueness = new Dictionary<string, SchedulingRequest>();
 
 		public SchedulingRequest this[Guid guid]
 		{
@@ -100,13 +100,16 @@ namespace Edge.Core.Scheduling
 
 		public void RemovePending()
 		{
-			foreach (var request in _requestsByGuid.RemoveAll(k => k.Value.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.Value.RequestedTime.Add(k.Value.Rule.MaxDeviationAfter) > DateTime.Now))
+			_recycledRequestsByUniqueness.Clear();
+			
+			foreach (var request in _requestsByGuid.RemoveAll(k => (k.Value.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized) || (k.Value.Activated==true)))
 			{
-				if (!request.Value.Activated && request.Value.RequestedTime.Add(request.Value.Rule.MaxDeviationAfter) > DateTime.Now && request.Value.Rule.Scope != SchedulingScope.Unplanned)
+				if ((!request.Value.Activated  || request.Value.Instance.State==Legacy.ServiceState.Uninitialized) && (request.Value.Rule.Scope != SchedulingScope.Unplanned))
 					_recycledRequestsByUniqueness.Add(request.Value.UniqueKey, request.Value);
+				_requestsByUniqueness.Remove(request.Value.UniqueKey);
 
 			}
-			_requestsByUniqueness.RemoveAll(k => k.Value.Instance.LegacyInstance.State == Legacy.ServiceState.Uninitialized && k.Value.RequestedTime.Add(k.Value.Rule.MaxDeviationAfter) > DateTime.Now);
+			
 		}
 		public IOrderedEnumerable<SchedulingRequest> GetServicesWithSameConfiguration(SchedulingRequest currentRequest)
 		{
