@@ -27,8 +27,6 @@ namespace Edge.Core.Scheduling.Objects
 			this.SchedulingRules = new List<SchedulingRule>();
         }
 
-		internal volatile bool UnplannedHasStarted = false;
-
 		public bool IsLocked
 		{
 			get;
@@ -100,11 +98,6 @@ namespace Edge.Core.Scheduling.Objects
 		{
 			get;
 			private set;
-		}
-
-		public bool IsUnplanned
-		{
-			get { return this.SchedulingRules.Count == 1 && this.SchedulingRules[0].Scope == SchedulingScope.Unplanned; }
 		}
 
 		public int MaxConcurrentPerProfile
@@ -181,8 +174,7 @@ namespace Edge.Core.Scheduling.Objects
 				MaxConcurrentPerProfile = (legacy.MaxInstancesPerAccount == 0) ? 9999 : legacy.MaxInstancesPerAccount,
 				_legacyConfiguration = legacy,
 				_baseConfiguration = baseConfiguration,
-				_schedulingProfile = profile,
-				
+				_schedulingProfile = profile
 			};
 
 			if (legacy.Options.ContainsKey("ServicePriority"))

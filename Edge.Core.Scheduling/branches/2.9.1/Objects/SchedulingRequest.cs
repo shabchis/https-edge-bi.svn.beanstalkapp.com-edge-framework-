@@ -11,21 +11,33 @@ namespace Edge.Core.Scheduling.Objects
 {
 	public class SchedulingRequest
 	{
+		private bool _saved = false;
+		private object _saveLock = new object();
+
 		public Guid RequestID { get; private set; }
-		public ServiceConfiguration Configuration { get; set; }
+		public ServiceConfiguration Configuration { get; internal set; }
 		public SchedulingRule Rule { get; private set; }
 		public DateTime RequestedTime { get; private set; }
+		public DateTime ScheduledStartTime { get; internal set; }
+		public DateTime ScheduledEndTime { get; internal set; }
+		
+		public SchedulingStatus SchedulingStatus { get; set; }
+
+		public event EventHandler Rescheduled;
+		public event EventHandler Expired;
+
 		public SchedulingRequest(ServiceConfiguration configuration, SchedulingRule rule, DateTime requestedTime)
 		{
 			this.Configuration = configuration;
 			this.Rule = rule;
 			this.RequestedTime = requestedTime;
-
-			if (rule.Scope == SchedulingScope.Unplanned)
-				this.RequestID = rule.GuidForUnplanned;
-			else
-				this.RequestID = Guid.NewGuid();
+			this.RequestID = Guid.NewGuid();
 		}
+
+		public SchedulingRequest(ServiceInstance instance, SchedulingRule rule, DateTime requestedTime): this(instance.Configuration, rule, requestedTime)
+		{
+		}
+
 		public ServiceInstance Instance
 		{
 			get
@@ -36,8 +48,8 @@ namespace Edge.Core.Scheduling.Objects
 					return null;
 			}
 		}
-		internal volatile bool Activated = false;
-		public string UniqueKey
+
+		public string Signature
 		{
 			get
 			{
@@ -45,13 +57,16 @@ namespace Edge.Core.Scheduling.Objects
 			}
 		}
 
-		private bool _saved = false;
-		private object _saveLock = new object();
-		public SchedulingStatus SchedulingStatus { get;  set; }
-		
+		public TimeSpan ActualDeviation
+		{
+			get { return this.ScheduledStartTime.Subtract(this.RequestedTime); }
+		}
+
 
 		public void Save()
 		{
+			throw new NotImplementedException();
+
 			lock (_saveLock)
 			{
 				using (SqlConnection conn = new SqlConnection(AppSettings.GetConnectionString("Edge.Core.Services", "SystemDatabase")))
@@ -61,7 +76,7 @@ namespace Edge.Core.Scheduling.Objects
 					{
 						command = DataManager.CreateCommand(@"INSERT INTO [Scheduling]
 						   ([RequestID]
-						   ,[UniqueKey]
+						   ,[Signature]
 						   ,[RequestedTime]
 						   ,[InstanceName]
 						   ,[InstanceUses]
@@ -72,7 +87,7 @@ namespace Edge.Core.Scheduling.Objects
 						   ,[ExpectedStartTime])
 					 VALUES
 						   (@RequestID:char,
-						   @UniqueKey:nvarchar,
+						   @Signature:nvarchar,
 						   @RequestedTime:datetime,
 						   @InstanceName:nvarchar,
 						   @InstanceUses:nvarchar,
@@ -86,7 +101,7 @@ namespace Edge.Core.Scheduling.Objects
 					{
 						command = DataManager.CreateCommand(@"UPDATE [Scheduling]
 						SET
-							[UniqueKey]=@UniqueKey:nvarchar
+							[Signature]=@Signature:nvarchar
 						   ,[RequestedTime]=@RequestedTime:datetime
 						   ,[InstanceName]=@InstanceName:nvarchar
 						   ,[InstanceUses]=@InstanceUses:nvarchar
@@ -97,7 +112,7 @@ namespace Edge.Core.Scheduling.Objects
 						   ,[ExpectedStartTime]=@ExpectedStartTime:datetime
 							WHERE RequestID=@RequestID:char");
 					}
-					command.Parameters["@UniqueKey"].Value = this.UniqueKey;
+					command.Parameters["@Signature"].Value = this.Signature;
 					command.Parameters["@RequestedTime"].Value = this.RequestedTime;
 					command.Parameters["@InstanceName"].Value = this.Configuration.Name;
 					command.Parameters["@InstanceUses"].Value = this.Configuration.BaseConfiguration.Name;
@@ -106,7 +121,7 @@ namespace Edge.Core.Scheduling.Objects
 					command.Parameters["@RequestID"].Value = this.RequestID.ToString("N");
 					command.Parameters["@SchedulingStatus"].Value = this.SchedulingStatus;
 					command.Parameters["@SchedulingScope"].Value = this.Rule.Scope;
-					command.Parameters["@ExpectedStartTime"].Value = this.Instance.ExpectedStartTime == DateTime.MinValue ? (object)DBNull.Value : this.Instance.ExpectedStartTime;
+					command.Parameters["@ExpectedStartTime"].Value = this.ScheduledStartTime == DateTime.MinValue ? (object)DBNull.Value : this.ScheduledStartTime;
 					conn.Open();
 					command.Connection = conn;
 					if (command.ExecuteNonQuery() < 0)
@@ -160,9 +175,10 @@ namespace Edge.Core.Scheduling.Objects
 	}
 	public enum SchedulingStatus
 	{
-		Request,
-		Scheduled,
-		Done,
-		CouldNotBeScheduled
+		New = 0,
+		Scheduled = 1,
+		Activated = 2,
+		Expired = 7,
+		Canceled = 8
 	}
 }

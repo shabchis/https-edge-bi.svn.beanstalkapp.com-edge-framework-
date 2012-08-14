@@ -50,9 +50,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Objects\SchedulingRequestInfo.cs" />
     <Compile Include="ProfileInfo.cs" />
     <Compile Include="ProfilesCollection.cs" />
-    <Compile Include="ScheduledServiceCollection.cs" />
+    <Compile Include="SchedulingRequestCollection.cs" />
     <Compile Include="Interfaces.cs" />
     <Compile Include="Objects\SchedulingRequest.cs" />
     <Compile Include="Objects\SchedulingRule.cs" />
