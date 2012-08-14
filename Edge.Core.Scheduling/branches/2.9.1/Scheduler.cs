@@ -444,104 +444,36 @@ namespace Edge.Core.Scheduling
 				_timeLineTo = DateTime.Now.Add(_neededScheduleTimeLine);
 			}
 
-			List<SchedulingRequest> potentialSchedulingdata = new List<SchedulingRequest>();
+			Dictionary<string, SchedulingRequest> potentialSchedulingdataByUniqueID = new Dictionary<string, SchedulingRequest>();
 			List<SchedulingRequest> finalSchedulingdata = new List<SchedulingRequest>();
-
-			lock (_serviceConfigurationsToSchedule)
+			lock (_schedulingRequests)
 			{
-				for (int i = 0; i < _serviceConfigurationsToSchedule.Count; i++)
+				#region unplanned
+				lock (_unPlannedRequests)
 				{
-					ServiceConfiguration service = _serviceConfigurationsToSchedule[i];
-
-					// Ignore if...
-					//if (
-					//    // Child instance
-					//    (service is ServiceInstanceConfiguration && ((ServiceInstanceConfiguration)service).Instance.State != Legacy.ServiceState.Uninitialized)
-					//    ||
-					//    // Unplanned
-					//    (service.IsUnplanned && service.UnplannedHasStarted)
-					//    )
-					//    continue;
-
-					foreach (SchedulingRule schedulingRule in service.SchedulingRules)
+					_unPlannedRequests.RemoveAll(r => r.Activated || r.RequestedTime.Add(r.Rule.MaxDeviationAfter) < DateTime.Now);
+					foreach (var unPlannedRequest in _unPlannedRequests)
 					{
-						// this should never happen
-						if (schedulingRule == null)
-							continue;
-
-						foreach (TimeSpan time in schedulingRule.Times)
-						{
-							DateTime requestedTime;
-							if (schedulingRule.Scope != SchedulingScope.Unplanned)
-								requestedTime = (_timeLineFrom.Date + time).RemoveSeconds();
-							else
-								requestedTime = schedulingRule.SpecificDateTime;
-
-							while (requestedTime.Date <= _timeLineTo.Date)
-							{
-								switch (schedulingRule.Scope)
-								{
-									case SchedulingScope.Day:
-									case SchedulingScope.Week:
-										int dayOfWeek = (int)requestedTime.DayOfWeek + 1;
-										if (!schedulingRule.Days.Contains(dayOfWeek) && requestedTime.DayOfWeek!=DateTime.Now.Date.DayOfWeek)
-											continue;
-										break;
-									case SchedulingScope.Month:
-										int dayOfMonth = requestedTime.Day;
-										if (!schedulingRule.Days.Contains(dayOfMonth))
-											continue;
-										break;
-								}
-
-
-								if (
+						DateTime requestedTime = unPlannedRequest.Rule.SpecificDateTime;
+						SchedulingRule schedulingRule = unPlannedRequest.Rule;
+						//TODO: IF IT'S NOT ALREADY RUNING.....
+						if (
 									(requestedTime >= _timeLineFrom && requestedTime <= _timeLineTo) ||
 									(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
 									)
-								{
-									SchedulingRequest request = new SchedulingRequest(service, schedulingRule, requestedTime);
-
-
-									// check if we didn't have that kind of request
-									if (!_schedulingRequests.RecycledRequestsByUniqueness.ContainsKey(request.UniqueKey))
-										potentialSchedulingdata.Add(request);
-								}
-								requestedTime = requestedTime.AddDays(1);
-							}
+						{
+							//just to be sure
+							if (!unPlannedRequest.Activated)
+								potentialSchedulingdataByUniqueID.Add(unPlannedRequest.UniqueKey,unPlannedRequest);
 						}
 
 
 					}
 				}
+				#endregion
 
-			}
+				#region RECYCELED REQUESTS
 
-			//unplanned requests
-			lock (_unPlannedRequests)
-			{
-				_unPlannedRequests.RemoveAll(r => r.Activated || r.RequestedTime.Add(r.Rule.MaxDeviationAfter) < DateTime.Now);
-				foreach (var unPlannedRequest in _unPlannedRequests)
-				{
-					DateTime requestedTime = unPlannedRequest.Rule.SpecificDateTime;
-					SchedulingRule schedulingRule = unPlannedRequest.Rule;
-					//TODO: IF IT'S NOT ALREADY RUNING.....
-					if (
-								(requestedTime >= _timeLineFrom && requestedTime <= _timeLineTo) ||
-								(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
-								)
-					{
-						//just to be sure
-						if (!unPlannedRequest.Activated)
-							potentialSchedulingdata.Add(unPlannedRequest);
-					}
-
-
-				}
-			}
-
-			lock (_schedulingRequests.RecycledRequestsByUniqueness)
-			{
 				// recayceled requests
 				foreach (var recycledRequest in _schedulingRequests.RecycledRequestsByUniqueness.Values)
 				{
@@ -552,22 +484,100 @@ namespace Edge.Core.Scheduling
 										(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
 										)
 					{
-						potentialSchedulingdata.Add(recycledRequest);
+						potentialSchedulingdataByUniqueID.Add(recycledRequest.UniqueKey, recycledRequest);
 					}
 
 
 				}
-				_schedulingRequests.RecycledRequestsByUniqueness.Clear();
-			}
+				
 
 
-			// Move potential to final only if its not already scheduled and if its not in the history
-			foreach (SchedulingRequest request in potentialSchedulingdata)
-			{
-				if (!_schedulingRequests.ContainsSimilar(request))
-					finalSchedulingdata.Add(request);
-				else if (request.Rule.Scope == SchedulingScope.Unplanned && !_schedulingRequests.Contains(request))
-					finalSchedulingdata.Add(request);
+
+				#endregion
+				#region NEW SCHEDULE  REQUESTS
+				lock (_serviceConfigurationsToSchedule)
+				{
+					for (int i = 0; i < _serviceConfigurationsToSchedule.Count; i++)
+					{
+						ServiceConfiguration service = _serviceConfigurationsToSchedule[i];
+
+						// Ignore if...
+						//if (
+						//    // Child instance
+						//    (service is ServiceInstanceConfiguration && ((ServiceInstanceConfiguration)service).Instance.State != Legacy.ServiceState.Uninitialized)
+						//    ||
+						//    // Unplanned
+						//    (service.IsUnplanned && service.UnplannedHasStarted)
+						//    )
+						//    continue;
+
+
+						foreach (SchedulingRule schedulingRule in service.SchedulingRules)
+						{
+							// this should never happen
+							if (schedulingRule == null)
+								continue;
+
+							foreach (TimeSpan time in schedulingRule.Times)
+							{
+								DateTime requestedTime;
+								if (schedulingRule.Scope != SchedulingScope.Unplanned)
+									requestedTime = (_timeLineFrom.Date + time).RemoveSeconds();
+								else
+									requestedTime = schedulingRule.SpecificDateTime;
+
+								while (requestedTime.Date <= _timeLineTo.Date)
+								{
+									switch (schedulingRule.Scope)
+									{
+										case SchedulingScope.Day:
+										case SchedulingScope.Week:
+											int dayOfWeek = (int)requestedTime.DayOfWeek + 1;
+											if (!schedulingRule.Days.Contains(dayOfWeek) && requestedTime.DayOfWeek != DateTime.Now.Date.DayOfWeek)
+												continue;
+											break;
+										case SchedulingScope.Month:
+											int dayOfMonth = requestedTime.Day;
+											if (!schedulingRule.Days.Contains(dayOfMonth))
+												continue;
+											break;
+									}
+
+
+									if (
+										(requestedTime >= _timeLineFrom && requestedTime <= _timeLineTo) ||
+										(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
+										)
+									{
+										SchedulingRequest request = new SchedulingRequest(service, schedulingRule, requestedTime);
+
+
+										// check if we didn't have that kind of request
+										if (!potentialSchedulingdataByUniqueID.ContainsKey(request.UniqueKey))
+											potentialSchedulingdataByUniqueID.Add(request.UniqueKey, request);
+									}
+									requestedTime = requestedTime.AddDays(1);
+								}
+							}
+
+
+						}
+					}
+
+				}
+				#endregion
+
+
+
+
+				// Move potential to final only if its not already scheduled and if its not in the history
+				foreach (var request in potentialSchedulingdataByUniqueID)
+				{
+					if (!_schedulingRequests.ContainsSimilar(request.Value))
+						finalSchedulingdata.Add(request.Value);
+					else if (request.Value.Rule.Scope == SchedulingScope.Unplanned && !_schedulingRequests.Contains(request.Value))
+						finalSchedulingdata.Add(request.Value);
+				}
 			}
 
 			return finalSchedulingdata.OrderBy(schedulingdata => schedulingdata.RequestedTime).ThenByDescending(schedulingdata => schedulingdata.Configuration.Priority);
