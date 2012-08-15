@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core.Services2.Workflow
+namespace Edge.Core.Workflow
 {
 	public class WorkflowServiceConfiguration: ServiceConfiguration
 	{

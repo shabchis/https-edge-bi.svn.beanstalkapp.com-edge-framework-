@@ -5,7 +5,7 @@ using System.Text;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 
-namespace Edge.Core.Services2
+namespace Edge.Core
 {
 	[Serializable]
 	public class ServiceProfile: ILockable, ISerializable
@@ -50,6 +50,7 @@ namespace Edge.Core.Services2
 		}
 
 		#region Locking
+		//=================
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
@@ -66,15 +67,33 @@ namespace Edge.Core.Services2
 			((ILockable)AssignedServices).Lock(key);
 		}
 
+		//=================
 		#endregion
 
-		#region ISerializable Members
+		#region Serialization
+		//=================
 
 		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
-			throw new NotImplementedException();
+			info.AddValue("ID", ID);
+			info.AddValue("Name", Name);
+			info.AddValue("Parameters", Parameters);
+
+			info.AddValue("IsLocked", this.IsLocked);
 		}
 
+		private ServiceProfile(SerializationInfo info, StreamingContext context)
+		{
+			this.ID = (Guid)info.GetValue("ID", typeof(Guid));
+			this.Name = info.GetString("Name");
+			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
+
+			// Was locked before serialization? Lock 'em up and throw away the key!
+			if (info.GetBoolean("IsLocked"))
+				_lock.Lock(new object());
+		}
+
+		//=================
 		#endregion
 	}
 

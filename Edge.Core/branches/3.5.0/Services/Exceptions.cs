@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core.Services2
+namespace Edge.Core
 {
 	[Serializable]
 	public class ServiceException : Exception

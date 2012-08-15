@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
-using Edge.Core.Services2.Scheduling;
 using System.Diagnostics;
 
-namespace Edge.Core.Services2
+namespace Edge.Core
 {
 	[Serializable]
 	public class ServiceConfiguration : ILockable, ISerializable
@@ -19,98 +18,10 @@ namespace Edge.Core.Services2
 		string _assemblyPath;
 		string _serviceType;
 		string _serviceName;
-		ServicePriority _priority;
 		
 		//=================
 		#endregion
 		
-		#region Constructors
-		//=================
-		// Not only constructors, but methods used to create configuration objects
-
-		public ServiceConfiguration()
-		{
-			this.ConfigurationID = Guid.NewGuid();
-			this.Limits = new ServiceExecutionLimits();
-			this.ConfigurationLevel = ServiceConfigurationLevel.Template;
-			this.Parameters = new LockableDictionary<string, object>();
-			this.SchedulingRules = new LockableList<SchedulingRule>();
-		}
-
-		public ServiceConfiguration Derive()
-		{
-			return this.Derive(null);
-		}
-
-		internal ServiceConfiguration Derive(object parent)
-		{
-			if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
-				throw new ServiceConfigurationException("Cannot derive from an instance configuration.");
-
-			ServiceConfiguration config;
-			try { config = (ServiceConfiguration)Activator.CreateInstance(this.GetType()); }
-			catch (MissingMethodException) { throw new MissingMethodException("Sub-types of ServiceConfiguration require a parameterless constructor."); }
-
-			// Inherit from parent
-			config.ParentConfiguration = this;
-			config._isEnabled = true;
-			config._isPublic = this._isPublic;
-			config._assemblyPath = this._assemblyPath;
-			config._serviceType = this._serviceType;
-			config._serviceName = this._serviceName;
-			config._priority = this._priority;
-			this.Limits.CopyTo(config.Limits);
-			
-			// Merge parameters
-			foreach (var param in this.Parameters)
-				config.Parameters[param.Key] = param.Value;
-
-			// Associate with profile
-			ServiceProfile profile = parent as ServiceProfile;
-			if (this.Profile != null)
-			{
-				if (profile == null)
-				{
-					profile = this.Profile;
-				}
-				else if (profile != this.Profile)
-				{
-					// This should never happen because it is checked by ServiceProfile.DeriveConfiguration()
-					throw new ServiceConfigurationException("Profile mismatch - internal Derive should not be called this way");
-				}
-			}
-
-			if (profile != null)
-			{
-				config.Profile = profile;
-				config.ConfigurationLevel = ServiceConfigurationLevel.Profile;
-
-				// Deriving from a new profile, so merge parameters (if this.Profile is not null, parameters were already merged in a previous Derive())
-				if (this.Profile == null)
-				{
-					foreach (var param in profile.Parameters)
-						config.Parameters[param.Key] = param.Value;
-				}
-			}
-
-			// TODO: handle scheduling rules
-
-			// Parameter inheritance from parent service configuration
-			ServiceConfiguration parentInstanceConfig = parent as ServiceConfiguration;
-			if (parentInstanceConfig != null && parentInstanceConfig.ConfigurationLevel == ServiceConfigurationLevel.Instance)
-			{
-				// Ignore parameters that are already in the config
-				foreach (var param in parentInstanceConfig.Parameters)
-					if (!config.Parameters.ContainsKey(param.Key))
-						config.Parameters[param.Key] = param.Value;
-			}
-
-			return config;
-		}
-
-		//=================
-		#endregion
-
 		#region Properties
 		//=================
 
@@ -126,7 +37,7 @@ namespace Edge.Core.Services2
 			internal set;
 		}
 
-		public ServiceConfiguration ParentConfiguration
+		public ServiceConfiguration BaseConfiguration
 		{
 			get;
 			private set;
@@ -191,11 +102,90 @@ namespace Edge.Core.Services2
 			set { _lock.Ensure(); _isPublic = value; }
 		}
 
-		[DebuggerNonUserCode]
-		public ServicePriority Priority
+		//=================
+		#endregion
+
+		#region Constructors
+		//=================
+		// Not only constructors, but methods used to create configuration objects
+
+		public ServiceConfiguration()
 		{
-			get { return _priority; }
-			set { _lock.Ensure(); _priority = value; }
+			this.ConfigurationID = Guid.NewGuid();
+			this.Limits = new ServiceExecutionLimits();
+			this.ConfigurationLevel = ServiceConfigurationLevel.Template;
+			this.Parameters = new LockableDictionary<string, object>();
+			this.SchedulingRules = new LockableList<SchedulingRule>();
+		}
+
+		public ServiceConfiguration Derive()
+		{
+			return this.Derive(null);
+		}
+
+		internal ServiceConfiguration Derive(object parent)
+		{
+			if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+				throw new ServiceConfigurationException("Cannot derive from an instance configuration.");
+
+			ServiceConfiguration config;
+			try { config = (ServiceConfiguration)Activator.CreateInstance(this.GetType()); }
+			catch (MissingMethodException) { throw new MissingMethodException("Sub-types of ServiceConfiguration require a parameterless constructor."); }
+
+			// Inherit from parent
+			config.BaseConfiguration = this;
+			config._isEnabled = true;
+			config._isPublic = this._isPublic;
+			config._assemblyPath = this._assemblyPath;
+			config._serviceType = this._serviceType;
+			config._serviceName = this._serviceName;
+			this.Limits.CopyTo(config.Limits);
+			
+			// Merge parameters
+			foreach (var param in this.Parameters)
+				config.Parameters[param.Key] = param.Value;
+
+			// Associate with profile
+			ServiceProfile profile = parent as ServiceProfile;
+			if (this.Profile != null)
+			{
+				if (profile == null)
+				{
+					profile = this.Profile;
+				}
+				else if (profile != this.Profile)
+				{
+					// This should never happen because it is checked by ServiceProfile.DeriveConfiguration()
+					throw new ServiceConfigurationException("Profile mismatch - internal Derive should not be called this way");
+				}
+			}
+
+			if (profile != null)
+			{
+				config.Profile = profile;
+				config.ConfigurationLevel = ServiceConfigurationLevel.Profile;
+
+				// Deriving from a new profile, so merge parameters (if this.Profile is not null, parameters were already merged in a previous Derive())
+				if (this.Profile == null)
+				{
+					foreach (var param in profile.Parameters)
+						config.Parameters[param.Key] = param.Value;
+				}
+			}
+
+			// TODO: handle scheduling rules
+
+			// Parameter inheritance from parent service configuration
+			ServiceConfiguration parentInstanceConfig = parent as ServiceConfiguration;
+			if (parentInstanceConfig != null && parentInstanceConfig.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+			{
+				// Ignore parameters that are already in the config
+				foreach (var param in parentInstanceConfig.Parameters)
+					if (!config.Parameters.ContainsKey(param.Key))
+						config.Parameters[param.Key] = param.Value;
+			}
+
+			return config;
 		}
 
 		//=================
@@ -238,15 +228,15 @@ namespace Edge.Core.Services2
 					if (this.ConfigurationLevel == ServiceConfigurationLevel.Profile)
 						target = this;
 					else if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
-						target = this.ParentConfiguration;
+						target = this.BaseConfiguration;
 					else
 						target = null;
 					break;
 
 				case ServiceConfigurationLevel.Template:
 					target = this;
-					while (target.ConfigurationLevel != ServiceConfigurationLevel.Template && target.ParentConfiguration != null)
-						target = target.ParentConfiguration;
+					while (target.ConfigurationLevel != ServiceConfigurationLevel.Template && target.BaseConfiguration != null)
+						target = target.BaseConfiguration;
 					break;
 			}
 			return target;
@@ -275,12 +265,40 @@ namespace Edge.Core.Services2
 
 		public void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
-			throw new NotImplementedException();
+			info.AddValue("ConfigurationID", ConfigurationID);
+			info.AddValue("ConfigurationLevel", ConfigurationLevel);
+			info.AddValue("BaseConfiguration", BaseConfiguration);
+			info.AddValue("Profile", Profile);
+			info.AddValue("Limits", Limits);
+			info.AddValue("Parameters", Parameters);
+			info.AddValue("SchedulingRules", SchedulingRules);
+			info.AddValue("AssemblyPath", AssemblyPath);
+			info.AddValue("ServiceType", ServiceType);
+			info.AddValue("ServiceName", ServiceName);
+			info.AddValue("IsEnabled", IsEnabled);
+			info.AddValue("IsPublic", IsPublic);
+
+			info.AddValue("IsLocked", IsLocked);
 		}
 
 		private ServiceConfiguration(SerializationInfo info, StreamingContext context)
 		{
-			throw new NotImplementedException();
+			this.ConfigurationID = (Guid)info.GetValue("ConfigurationID", typeof(Guid));
+			this.ConfigurationLevel = (ServiceConfigurationLevel)info.GetValue("ConfigurationLevel", typeof(ServiceConfigurationLevel));
+			this.BaseConfiguration = (ServiceConfiguration)info.GetValue("BaseConfiguration", typeof(ServiceConfiguration));
+			this.Profile = (ServiceProfile)info.GetValue("Profile", typeof(ServiceProfile));
+			this.Limits = (ServiceExecutionLimits)info.GetValue("Limits", typeof(ServiceExecutionLimits));
+			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
+			this.SchedulingRules = (IList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(IList<SchedulingRule>));
+			this.AssemblyPath = info.GetString("AssemblyPath");
+			this.ServiceType =info.GetString("ServiceType");
+			this.ServiceName = info.GetString("ServiceName");
+			this.IsEnabled = info.GetBoolean("IsEnabled");
+			this.IsPublic = info.GetBoolean("IsPublic");
+
+			// Was locked before serialization? Lock 'em up and throw away the key!
+			if (info.GetBoolean("IsLocked"))
+				((ILockable)this).Lock(new object());
 		}
 		
 		//=================
