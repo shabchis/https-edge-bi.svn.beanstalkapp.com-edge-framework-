@@ -45,6 +45,6 @@ namespace Edge.Core.Scheduling
 		
 
 		[OperationContract(IsOneWay = true)]
-		void InstancesEvents(List<Edge.Core.Scheduling.Objects.ServiceInstanceInfo> instancesEvents);
+		void InstancesEvents(List<Edge.Core.Scheduling.Objects.SchedulingRequestInfo> requestInfo);
 	}
 }

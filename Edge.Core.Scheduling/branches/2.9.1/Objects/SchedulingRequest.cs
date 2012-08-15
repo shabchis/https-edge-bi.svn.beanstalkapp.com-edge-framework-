@@ -13,7 +13,7 @@ namespace Edge.Core.Scheduling.Objects
 	{
 		private bool _saved = false;
 		private object _saveLock = new object();
-
+		public Guid ParentRequestID { get; private set; }
 		public Guid RequestID { get; private set; }
 		public ServiceConfiguration Configuration { get; internal set; }
 		public SchedulingRule Rule { get; private set; }
@@ -172,6 +172,28 @@ namespace Edge.Core.Scheduling.Objects
 			return !sd1.Equals(sd2);
 		}
 		*/
+
+		public SchedulingRequestInfo GetInfo()
+		{
+			SchedulingRequestInfo requestInfo = new SchedulingRequestInfo();
+			requestInfo.ActualStartTime = this.Instance.LegacyInstance.TimeStarted;
+			requestInfo.ActualEndTime = this.Instance.LegacyInstance.TimeEnded;
+			requestInfo.LegacyInstanceID = this.Instance.LegacyInstance.InstanceID;
+			requestInfo.Options =this.Instance.LegacyInstance.Configuration.Options;
+			requestInfo.ParentRequestID = this.ParentRequestID;
+			requestInfo.ProfileID = Convert.ToInt32(this.Configuration.Profile.Settings["AccountID"]);
+			requestInfo.Progress = this.Instance.Progress;
+			requestInfo.RequestedTime = this.RequestedTime;
+			requestInfo.RequestID = this.RequestID;
+			requestInfo.ScheduledEndTime = this.ScheduledEndTime;
+			requestInfo.ScheduledStartTime = this.ScheduledStartTime;
+			requestInfo.SchedulingStatus = this.SchedulingStatus;
+			requestInfo.ServiceName = this.Instance.Configuration.Name;
+			requestInfo.ServiceOutcome = this.Instance.Outcome;
+			requestInfo.ServiceState = this.Instance.State;
+			return requestInfo;
+
+		}
 	}
 	public enum SchedulingStatus
 	{
