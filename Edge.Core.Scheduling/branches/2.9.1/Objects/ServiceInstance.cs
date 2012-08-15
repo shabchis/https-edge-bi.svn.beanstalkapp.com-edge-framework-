@@ -99,30 +99,30 @@ namespace Edge.Core.Scheduling.Objects
 			ChildServiceRequested(this, e);
 		}
 
-		/*
-		public ServiceInstanceInfo GetInfo()
-		{
-			return new ServiceInstanceInfo()
-			{
-				LegacyInstanceGuid = this.LegacyInstance.Guid,
-				AccountID = Convert.ToInt32(this.Configuration.Profile.Settings["AccountID"]),
-				LegacyInstanceID = this.LegacyInstance.InstanceID.ToString(),
-				LegacyOutcome = this.LegacyInstance.Outcome,
-				ScheduleStartTime = this.ExpectedStartTime,
-				ScheduleEndTime = this.ExpectedEndTime,
-				BaseScheduleTime = this.SchedulingRequest.RequestedTime,
-				LegacyActualStartTime = this.LegacyInstance.TimeStarted,
-				LegacyActualEndTime = this.LegacyInstance.TimeEnded,
-				ServiceName = this.Configuration.Name,
-				LegacyState = this.LegacyInstance.State,
-				// ScheduledID =this.ScheduledID,
-				Options = this.LegacyInstance.Configuration.Options,
-				LegacyParentInstanceGuid = this.LegacyInstance.ParentInstance != null ? this.LegacyInstance.ParentInstance.Guid : Guid.Empty,
-				LegacyProgress = this.LegacyInstance.State == Legacy.ServiceState.Ended ? 100 : this.LegacyInstance.Progress
-			};
+		
+		//public ServiceInstanceInfo GetInfo()
+		//{
+		//    return new ServiceInstanceInfo()
+		//    {
+		//        LegacyInstanceGuid = this.LegacyInstance.Guid,
+		//        AccountID = Convert.ToInt32(this.Configuration.Profile.Settings["AccountID"]),
+		//        LegacyInstanceID = this.LegacyInstance.InstanceID.ToString(),
+		//        LegacyOutcome = this.LegacyInstance.Outcome,
+		//        ScheduleStartTime = this.ExpectedStartTime,
+		//        ScheduleEndTime = this.ExpectedEndTime,
+		//        BaseScheduleTime = this.SchedulingRequest.RequestedTime,
+		//        LegacyActualStartTime = this.LegacyInstance.TimeStarted,
+		//        LegacyActualEndTime = this.LegacyInstance.TimeEnded,
+		//        ServiceName = this.Configuration.Name,
+		//        LegacyState = this.LegacyInstance.State,
+		//        // ScheduledID =this.ScheduledID,
+		//        Options = this.LegacyInstance.Configuration.Options,
+		//        LegacyParentInstanceGuid = this.LegacyInstance.ParentInstance != null ? this.LegacyInstance.ParentInstance.Guid : Guid.Empty,
+		//        LegacyProgress = this.LegacyInstance.State == Legacy.ServiceState.Ended ? 100 : this.LegacyInstance.Progress
+		//    };
 
-		}
-		*/
+		//}
+		
 
 		public void Initialize()
 		{

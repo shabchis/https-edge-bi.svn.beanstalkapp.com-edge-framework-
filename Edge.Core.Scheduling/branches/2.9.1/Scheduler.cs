@@ -132,7 +132,7 @@ namespace Edge.Core.Scheduling
 
 		private void StartSchedulerTimer()
 		{
-			Schedule(true);
+			Schedule(false);
 			TimeSpan calcTimeInterval = _intervalBetweenNewSchedule;
 
 			while (_started)
@@ -221,7 +221,7 @@ namespace Edge.Core.Scheduling
 					foreach (SchedulingRule rule in serviceConfiguration.SchedulingRules)
 					{
 						// TODO: select the saved scheduling requests from the DB according to the scope of the fule
-						throw new NotImplementedException();
+						//throw new NotImplementedException();
 					}
 				}
 			}
@@ -435,6 +435,7 @@ namespace Edge.Core.Scheduling
 
 					foreach (SchedulingRule schedulingRule in service.SchedulingRules)
 					{
+						bool ruleSuitable = false;
 						foreach (TimeSpan time in schedulingRule.Times)
 						{
 							DateTime requestedTime = (_timeLineFrom.Date + time).RemoveSeconds();
@@ -444,19 +445,21 @@ namespace Edge.Core.Scheduling
 								switch (schedulingRule.Scope)
 								{
 									case SchedulingScope.Day:
+											ruleSuitable=true;
+										break;
 									case SchedulingScope.Week:
 										int dayOfWeek = (int)requestedTime.DayOfWeek + 1;
-										if (!schedulingRule.Days.Contains(dayOfWeek))
-											continue;
+										if (schedulingRule.Days.Contains(dayOfWeek)) 
+											ruleSuitable=true;
 										break;
 									case SchedulingScope.Month:
 										int dayOfMonth = requestedTime.Day;
-										if (!schedulingRule.Days.Contains(dayOfMonth))
-											continue;
+										if (schedulingRule.Days.Contains(dayOfMonth))
+											ruleSuitable=true;
 										break;
 								}
 
-								if (
+								if ((ruleSuitable) &&
 									(requestedTime >= _timeLineFrom && requestedTime <= _timeLineTo) ||
 									(requestedTime <= _timeLineFrom && (schedulingRule.MaxDeviationAfter == TimeSpan.Zero || requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now))
 									)
@@ -538,7 +541,7 @@ namespace Edge.Core.Scheduling
 			ServiceInstance childInstance = ServiceInstance.FromLegacyInstance(legacyInstance, baseConfiguration, profile);
 
 			SchedulingRequest request = new SchedulingRequest(childInstance, new SchedulingRule()
-			{
+			{				
 				SpecificDateTime = DateTime.Now,
 				Scope = SchedulingScope.Unplanned,
 				MaxDeviationAfter = TimeSpan.FromHours(1)
