@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core.Services2.Scheduling
+namespace Edge.Core
 {
-	public enum SchedulingScope
+	public enum SchedulingStatus
 	{
-		SingleRun = -1,
-		Day = 1,
-		Week = 2,
-		Month = 3,
+		New = 0,
+		Scheduled = 1,
+		Activated = 2,
+		Expired = 7,
+		Canceled = 8
 	}
 }

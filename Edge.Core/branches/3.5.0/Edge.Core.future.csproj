@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{6919B522-1150-4F38-8DEB-6AEA7638CADB}</ProjectGuid>
+    <ProjectGuid>{76F5133E-50CD-4282-97E0-B431FACB3ACC}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Edge.Core</RootNamespace>
@@ -80,26 +80,29 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\ConfigurationElementCollections.cs" />
+    <Compile Include="Configuration\ConfigurationElements.cs" />
+    <Compile Include="Configuration\Converters.cs" />
+    <Compile Include="Configuration\EdgeServicesConfiguration.cs" />
+    <Compile Include="Configuration\General.cs" />
+    <Compile Include="Configuration\SettingsCollection.cs" />
     <Compile Include="Scheduling\Enums.cs" />
+    <Compile Include="Scheduling\SchedulingRequest.cs" />
+    <Compile Include="Scheduling\SchedulingRequestInfo.cs" />
     <Compile Include="Scheduling\SchedulingRule.cs" />
-    <Compile Include="Scheduling\ServiceScheduler.cs" />
-    <Compile Include="Services2\Configuration\AppSettings.cs" />
-    <Compile Include="Services2\Enums.cs" />
-    <Compile Include="Services2\Exceptions.cs" />
-    <Compile Include="Services2\IServiceConnection.cs" />
-    <Compile Include="Services2\LogMessage.cs" />
-    <Compile Include="Scheduling\SchedulingInfo.cs" />
-    <Compile Include="Services2\Service.cs" />
-    <Compile Include="Services2\ServiceConfiguration.cs" />
-    <Compile Include="Services2\ServiceExecutionContext.cs" />
-    <Compile Include="Services2\ServiceExecutionHost.cs" />
-    <Compile Include="Services2\ServiceHostingPermission.cs" />
-    <Compile Include="Services2\ServiceInstance.cs" />
-    <Compile Include="Services2\IServiceInfo.cs" />
-    <Compile Include="Services2\ServiceEnvironment.cs" />
-    <Compile Include="Services2\ServiceProfile.cs" />
-    <Compile Include="Services2\Workflow\WorkflowServiceConfiguration.cs" />
-    <Compile Include="Utilities\Encryptor.cs" />
+    <Compile Include="Services\Enums.cs" />
+    <Compile Include="Services\Exceptions.cs" />
+    <Compile Include="Services\IServiceConnection.cs" />
+    <Compile Include="Services\LogMessage.cs" />
+    <Compile Include="Services\Service.cs" />
+    <Compile Include="Services\ServiceConfiguration.cs" />
+    <Compile Include="Services\ServiceExecutionHost.cs" />
+    <Compile Include="Services\ServiceHostingPermission.cs" />
+    <Compile Include="Services\ServiceInstance.cs" />
+    <Compile Include="Services\IServiceInfo.cs" />
+    <Compile Include="Services\ServiceEnvironment.cs" />
+    <Compile Include="Services\ServiceProfile.cs" />
+    <Compile Include="Services\Workflow\WorkflowServiceConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\Locks.cs" />
   </ItemGroup>

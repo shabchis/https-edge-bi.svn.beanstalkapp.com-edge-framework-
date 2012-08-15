@@ -6,9 +6,8 @@ using System.Text;
 using System.Diagnostics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
-using Edge.Core.Services2.Scheduling;
 
-namespace Edge.Core.Services2
+namespace Edge.Core
 {
 	public abstract class Service : MarshalByRefObject, IServiceInfo
 	{
@@ -27,9 +26,8 @@ namespace Edge.Core.Services2
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
-		public ServiceExecutionContext Context { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingInfo SchedulingInfo { get; private set; }
+		public SchedulingRequest SchedulingInfo { get; private set; }
 		public System.Collections.ObjectModel.ReadOnlyObservableCollection<ServiceInstance> ChildInstances
 		{
 			get { throw new NotImplementedException(); }
@@ -41,9 +39,7 @@ namespace Edge.Core.Services2
 
 			this.InstanceID = instance.InstanceID;
 			this.Configuration = instance.Configuration;
-			this.Context = instance.Context;
 			this.ParentInstance = instance.ParentInstance;
-			this.SchedulingInfo = instance.SchedulingInfo;
 
 			// Monitor app domain-level events
 			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);

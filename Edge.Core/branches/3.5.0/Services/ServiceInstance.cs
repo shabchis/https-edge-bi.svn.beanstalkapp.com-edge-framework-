@@ -7,9 +7,8 @@ using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 using System.Diagnostics;
-using Edge.Core.Services2.Scheduling;
 
-namespace Edge.Core.Services2
+namespace Edge.Core
 {
 	[Serializable]
 	public class ServiceInstance: IServiceInfo, ISerializable, IDisposable
@@ -28,9 +27,8 @@ namespace Edge.Core.Services2
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
-		public ServiceExecutionContext Context { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingInfo SchedulingInfo { get; internal set; }
+		public SchedulingRequest SchedulingInfo { get; internal set; }
 		public ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; private set; }
 
 		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, ServiceInstance parentInstance)
@@ -320,9 +318,8 @@ namespace Edge.Core.Services2
 		{
 			info.AddValue("InstanceID", InstanceID);
 			info.AddValue("Configuration", Configuration);
-			info.AddValue("Context", Context);
 			info.AddValue("ParentInstanceID", ParentInstance == null ? _parentInstanceID : ParentInstance.InstanceID);
-			info.AddValue("SchedulingInfo", SchedulingInfo);
+			//info.AddValue("SchedulingInfo", SchedulingInfo);
 			info.AddValue("Connection", Connection); // this is strictly for internal use only
 		}
 
@@ -330,8 +327,7 @@ namespace Edge.Core.Services2
 		{
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
-			this.Context = (ServiceExecutionContext)info.GetValue("Context", typeof(ServiceExecutionContext));
-			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
+			//this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
 		}
 

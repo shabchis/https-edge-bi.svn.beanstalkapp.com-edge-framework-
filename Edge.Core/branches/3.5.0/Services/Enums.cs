@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core.Services2
+namespace Edge.Core
 {
 	/// <summary>
 	/// 
@@ -40,18 +40,6 @@ namespace Edge.Core.Services2
 		Failure = 2,
 		Aborted = 3,
 		Timeout = 4,
-		CouldNotBeScheduled = 5,
 		Error = 6
-	}
-
-	/// <summary>
-	/// 
-	/// </summary>
-	public enum ServicePriority
-	{
-		Low = 1,
-		Normal = 5,
-		High = 9,
-		Urgent = 10,
 	}
 }
