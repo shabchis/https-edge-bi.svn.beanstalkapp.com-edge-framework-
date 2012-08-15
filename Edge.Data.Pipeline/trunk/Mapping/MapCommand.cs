@@ -125,7 +125,7 @@ namespace Edge.Data.Pipeline.Mapping
 				string targetMemberName = memberGroup.Value;
 				MemberInfo[] possibleMembers = map.TargetType.GetMember(targetMemberName, BindingFlags.Instance | BindingFlags.Public);
 				if (possibleMembers == null || possibleMembers.Length < 1)
-					throw new MappingConfigurationException(String.Format("The member '{0}' could not be found on {1}. Make sure it is public and non-static.", targetMemberName, map.TargetType), "Map", xml);
+					throw new MappingConfigurationException(String.Format("The member '{0}' could not be found on {1}. Make sure this command is defined in the right place in the XML.", targetMemberName, map.TargetType), "Map", xml);
 				if (possibleMembers.Length > 1)
 					throw new MappingConfigurationException(String.Format("'{0}' matched more than one member in type {1}. Make sure it is a property or field.", targetMemberName, map.TargetType));
 				MemberInfo member = possibleMembers[0];
