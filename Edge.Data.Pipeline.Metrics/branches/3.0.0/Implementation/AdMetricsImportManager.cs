@@ -260,14 +260,14 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			{
 				metricsRow[new ColumnDef(measure.Key.Name)] = measure.Value;
 
-				//TO DO : If "Currency to USD is checked" Add new column "***_USD", and value in USD by CLR
-				if (measure.Key.USDRequired)
-				{
-					using (SqlConnection oltpConnection = new SqlConnection(this.Options.StagingConnectionString))
-					{
-						metricsRow[new ColumnDef(measure.Key.Name + "_USD")] = measure.Key.GetValueInUSD(oltpConnection, measure.Value);
-					}
-				}
+				////TO DO : If "Currency to USD is checked" Add new column "***_USD", and value in USD by CLR
+				//if (measure.Key.IsCurrency && metrics.Currency.Code != "USD")
+				//{
+				//    using (SqlConnection oltpConnection = new SqlConnection(this.Options.StagingConnectionString))
+				//    {
+				//        metricsRow[new ColumnDef(measure.Key.Name + "_USD")] = measure.Key.GetValueInUSD(oltpConnection, measure.Value);
+				//    }
+				//}
 			}
 
 			Bulk<Tables.Metrics>().SubmitRow(metricsRow);

@@ -108,6 +108,13 @@ namespace Edge.Data.Pipeline.Metrics
 					nullable: true
 					));
 
+				if( measure.IsCurrency) 
+					bulkMetrics.AddColumn(new ColumnDef(
+						name: measure.Name+"_USD",
+					type: SqlDbType.Float,
+					nullable: true
+					));
+
 				measuresFieldNamesSQL.AppendFormat("[{0}]{1}", measure.OltpName, count < this.Measures.Values.Count - 1 ? "," : null);
 				measuresNamesSQL.AppendFormat("[{0}]{1}", measure.Name, count < this.Measures.Values.Count - 1 ? "," : null);
 
