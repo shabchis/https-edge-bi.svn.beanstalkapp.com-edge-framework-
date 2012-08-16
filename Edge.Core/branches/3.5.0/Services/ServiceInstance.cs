@@ -43,7 +43,7 @@ namespace Edge.Core.Services
 			this.Environment = environment;
 			this.InstanceID = Guid.NewGuid();
 			this.Configuration = configuration.Derive(parentInstance);
-			this.ParentInstance = parentInstance;
+			//this.ParentInstance = parentInstance;
 			_owner = true;
 		}
 		
@@ -294,7 +294,7 @@ namespace Edge.Core.Services
 		private void SetOutcomeException(string message, Exception ex, bool throwEx = false)
 		{
 			State = ServiceState.Ended;
-			Outcome = ServiceOutcome.Error;
+			Outcome = ServiceOutcome.Failure;
 			Output = ex is ServiceException ? ex : new ServiceException(message, ex);
 			
 			if (throwEx || ThrowExceptionOnError)

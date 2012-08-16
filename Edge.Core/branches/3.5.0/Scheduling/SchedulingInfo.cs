@@ -7,10 +7,11 @@ using Edge.Core.Services;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class SchedulingInfo
+	public struct SchedulingInfo
 	{
 		public DateTime RequestedTime;
 		public DateTime ExpectedStartTime;
 		public DateTime ExpectedEndTime;
+		public SchedulingStatus SchedulingStatus;
 	}
 }

@@ -861,7 +861,7 @@ namespace Edge.Core.Services.Configuration
 
             s_calendarUnit = new ConfigurationProperty(
                 "CalendarUnit",
-                typeof(CalendarUnit),
+				typeof(SchedulingScope),
                 null,
                 ConfigurationPropertyOptions.IsRequired);
 
@@ -970,11 +970,11 @@ namespace Edge.Core.Services.Configuration
 			}
 		}
 
-        public CalendarUnit CalendarUnit
+        public SchedulingScope CalendarUnit
         {
             get
             {
-                return (CalendarUnit)base[s_calendarUnit];
+				return (SchedulingScope)base[s_calendarUnit];
             }
             set
             {

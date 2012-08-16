@@ -31,6 +31,8 @@ namespace Edge.Core.Services
 
 		public void ScheduleService(ServiceInstance instance)
 		{
+			//ServiceConfiguration config;
+			//config.GetBaseConfiguration(ServiceConfigurationLevel.Profile) == config.GetBaseConfiguration(ServiceConfigurationLevel.Profile)
 		}
 
 		internal IServiceConnection AcquireHostConnection(ServiceInstance instance)

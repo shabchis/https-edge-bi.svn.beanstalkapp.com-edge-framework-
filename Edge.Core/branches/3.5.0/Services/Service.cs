@@ -201,7 +201,7 @@ namespace Edge.Core.Services
 					catch (Exception ex)
 					{
 						ReportError("Error occured during execution.", ex);
-						Outcome = ServiceOutcome.Error;
+						Outcome = ServiceOutcome.Failure;
 					}
 				});
 				_doWork.Start();
@@ -210,7 +210,7 @@ namespace Edge.Core.Services
 				{
 					// Timeout, abort the thread and exit
 					_doWork.Abort();
-					Outcome = ServiceOutcome.Timeout;
+					Outcome = ServiceOutcome.TimedOut;
 				}
 
 				_doWork = null;
@@ -301,7 +301,7 @@ namespace Edge.Core.Services
 		{
 			// Log the exception
 			ReportError("Unhandled exception occured outside of DoWork.", e.ExceptionObject as Exception);
-			Outcome = ServiceOutcome.Error;
+			Outcome = ServiceOutcome.Failure;
 		}
 
 		protected ServiceInstance NewChildService(ServiceConfiguration child)
