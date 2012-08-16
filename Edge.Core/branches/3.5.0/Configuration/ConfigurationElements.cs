@@ -10,7 +10,7 @@ using System.Runtime.Serialization;
 using System.Net;
 using System.IO;
 
-namespace Edge.Core.Configuration
+namespace Edge.Core.Services.Configuration
 {
 	/// <summary>
 	/// Base class for elements that have properties referencing other elements within the services section.

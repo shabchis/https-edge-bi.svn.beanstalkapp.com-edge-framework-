@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	[Serializable]
 	public class LogMessage

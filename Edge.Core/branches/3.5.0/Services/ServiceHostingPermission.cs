@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Security;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	public class ServiceHostingPermission: CodeAccessPermission
 	{

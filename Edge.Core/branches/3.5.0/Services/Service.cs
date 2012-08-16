@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	public abstract class Service : MarshalByRefObject, IServiceInfo
 	{
@@ -27,11 +27,7 @@ namespace Edge.Core
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingRequest SchedulingInfo { get; private set; }
-		public System.Collections.ObjectModel.ReadOnlyObservableCollection<ServiceInstance> ChildInstances
-		{
-			get { throw new NotImplementedException(); }
-		}
+		public SchedulingInfo SchedulingInfo { get; private set; }
 
 		internal void Init(ServiceExecutionHost host, ServiceInstance instance)
 		{
@@ -62,6 +58,7 @@ namespace Edge.Core
 		ServiceState _state = ServiceState.Initializing;
 		ServiceOutcome _outcome = ServiceOutcome.Unspecified;
 		object _output = null;
+		int _resumeCount = 0;
 
 		public DateTime TimeInitialized
 		{
@@ -109,6 +106,11 @@ namespace Edge.Core
 		{
 			get { return _output; }
 			private set { Notify(ServiceEventType.OutputGenerated, _output = value); }
+		}
+
+		protected bool IsFirstRun
+		{
+			get { return _resumeCount == 0; }
 		}
 
 
@@ -161,12 +163,33 @@ namespace Edge.Core
 		[OneWay]
 		internal void Start()
 		{
+			if (this.State != ServiceState.Ready)
+			{
+				ReportError("Cannot start service that is not in the ready state.");
+				return;
+			}
+
 			lock (_sync)
 			{
-				if (this.State != ServiceState.Ready)
-					return;
-
 				TimeStarted = DateTime.Now;
+				DoWorkInternal();
+			}
+		}
+
+		[OneWay]
+		internal void Resume()
+		{
+			if (this.State != ServiceState.Paused)
+				return;
+
+			_resumeCount++;
+			DoWorkInternal();
+		}
+
+		void DoWorkInternal()
+		{
+			lock (_sync)
+			{
 				State = ServiceState.Running;
 
 				// Run the service code, and time its execution
@@ -178,25 +201,25 @@ namespace Edge.Core
 					catch (Exception ex)
 					{
 						ReportError("Error occured during execution.", ex);
+						Outcome = ServiceOutcome.Error;
 					}
 				});
 				_doWork.Start();
 
 				if (!_doWork.Join(DefaultMaxExecutionTime))
 				{
-					if (Outcome == ServiceOutcome.Unspecified)
-					{
-						// Timeout, abort the thread and exit
-						_doWork.Abort();
-						Outcome = ServiceOutcome.Timeout;
-					}
+					// Timeout, abort the thread and exit
+					_doWork.Abort();
+					Outcome = ServiceOutcome.Timeout;
 				}
 
 				_doWork = null;
 			}
 
-			// Exit
-			Stop();
+			if (Outcome == ServiceOutcome.Unspecified)
+				State = ServiceState.Paused;
+			else
+				Stop();
 		}
 
 		[OneWay]
@@ -204,7 +227,7 @@ namespace Edge.Core
 		{
 			lock (_sync)
 			{
-				if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Waiting)
+				if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Paused)
 					return;
 
 				// Abort the worker thread
@@ -278,6 +301,12 @@ namespace Edge.Core
 		{
 			// Log the exception
 			ReportError("Unhandled exception occured outside of DoWork.", e.ExceptionObject as Exception);
+			Outcome = ServiceOutcome.Error;
+		}
+
+		protected ServiceInstance NewChildService(ServiceConfiguration child)
+		{
+			return Environment.NewService(child, this);
 		}
 
 		//======================
@@ -342,7 +371,6 @@ namespace Edge.Core
 
 			// Output the exception
 			Output = lm;
-			Outcome = ServiceOutcome.Error;
 		}
 
 		//======================

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Runtime.Remoting.Messaging;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	public class ServiceExecutionHost : MarshalByRefObject, IServiceHost
 	{

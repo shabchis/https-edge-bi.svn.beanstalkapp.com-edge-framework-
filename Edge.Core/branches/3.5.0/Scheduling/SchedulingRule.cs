@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Edge.Core.Configuration;
+using Edge.Core.Services.Configuration;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	[Serializable]
 	public class SchedulingRule

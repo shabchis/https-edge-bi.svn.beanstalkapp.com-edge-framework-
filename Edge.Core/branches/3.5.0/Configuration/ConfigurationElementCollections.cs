@@ -5,7 +5,7 @@ using System.Text;
 using System.Configuration;
 using System.Xml;
 
-namespace Edge.Core.Configuration
+namespace Edge.Core.Services.Configuration
 {
 	internal abstract class ConfigurationElementCollectionBase<ElementT> : ConfigurationElementCollection, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 		where ElementT: ConfigurationElement

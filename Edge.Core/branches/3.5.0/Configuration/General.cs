@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Xml;
 using System.IO;
 
-namespace Edge.Core.Configuration
+namespace Edge.Core.Services.Configuration
 {
 	#region Enums
 	/*=========================*/

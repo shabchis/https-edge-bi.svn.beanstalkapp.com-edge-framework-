@@ -6,7 +6,7 @@ using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	/// <summary>
 	/// Objects that listens for service events and pushes them to the instance object.
