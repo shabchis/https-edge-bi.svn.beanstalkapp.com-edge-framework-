@@ -10,6 +10,7 @@ namespace Edge.Core.Services
 	public interface ILockable
 	{
 		bool IsLocked { get; }
+		void Lock();
 		void Lock(object key);
 		void Unlock(object key);
 	}
@@ -34,6 +35,11 @@ namespace Edge.Core.Services
 		public bool IsLocked
 		{
 			get { return _key != null; }
+		}
+
+		public void Lock()
+		{
+			Lock(new object());
 		}
 
 		public void Lock(object key)
