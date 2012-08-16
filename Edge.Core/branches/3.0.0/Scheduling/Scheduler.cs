@@ -13,7 +13,7 @@ namespace Edge.Core.Scheduling
 		#region members
 		private ProfilesCollection _profiles = new ProfilesCollection();
 
-		private Dictionary<Guid, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<Guid, ServiceConfiguration>();
+		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
 
 		// Configurations from config file or from unplanned - 'Schedule' method goes over this to find things that need scheduling
 		private List<ServiceConfiguration> _serviceConfigurationsToSchedule = new List<ServiceConfiguration>();
@@ -170,14 +170,20 @@ namespace Edge.Core.Scheduling
 			{
 				ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
 				serviceConfiguration.ServiceName = serviceElement.Name;
-				foreach (var option in serviceElement.Options)				
-					serviceConfiguration.Parameters.Add(option.Key, option.Value);			
+				foreach (var option in serviceElement.Options)
+					serviceConfiguration.Parameters.Add(option.Key, option.Value);
 
 				serviceConfiguration.Limits.MaxConcurrentGlobal = serviceElement.MaxInstances;
 				serviceConfiguration.Limits.MaxConcurrentPerProfile = serviceElement.MaxInstancesPerAccount;
-				((ILockable)serviceConfiguration).Lock();
+				foreach (SchedulingRule rule in serviceElement.SchedulingRules)				
+					serviceConfiguration.SchedulingRules.Add(rule);
+
+					
+
 				
-				_serviceBaseConfigurations.Add(serviceConfiguration.ConfigurationID, serviceConfiguration);
+				((ILockable)serviceConfiguration).Lock();
+
+				_serviceBaseConfigurations.Add(serviceConfiguration.ServiceName, serviceConfiguration);
 			}
 
 			foreach (AccountElement account in EdgeServicesConfiguration.Current.Accounts)
@@ -186,65 +192,24 @@ namespace Edge.Core.Scheduling
 				// Create matching profile
 				ServiceProfile profile = new ServiceProfile();
 				profile.Parameters.Add("AccountID", account.ID);
-				profile.Parameters.Add("AccountName",account.Name);
-				
-				
+				profile.Parameters.Add("AccountName", account.Name);
+
+
 				_profiles.Add(profile);
 
 				foreach (AccountServiceElement accountService in account.Services)
 				{
 
 					ServiceElement serviceUse = accountService.Uses.Element;
-					profile.
-					//active element is the calculated configuration 
-					ActiveServiceElement activeServiceElement = new ActiveServiceElement(accountService);
-					ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
-					serviceConfiguration.Name = accountService.Name;
-					if (activeServiceElement.Options.ContainsKey("ServicePriority"))
-						serviceConfiguration.priority = int.Parse(activeServiceElement.Options["ServicePriority"]);
+					ServiceConfiguration deriveConfiguration = profile.DeriveConfiguration(_serviceBaseConfigurations[serviceUse.Name]);
 
-					serviceConfiguration.MaxConcurrent = (activeServiceElement.MaxInstances == 0) ? 9999 : activeServiceElement.MaxInstances;
-					serviceConfiguration.MaxCuncurrentPerProfile = (activeServiceElement.MaxInstancesPerAccount == 0) ? 9999 : activeServiceElement.MaxInstancesPerAccount;
-					serviceConfiguration.LegacyConfiguration = activeServiceElement;
-					//scheduling rules 
-					foreach (SchedulingRuleElement schedulingRuleElement in activeServiceElement.SchedulingRules)
-					{
-
-						SchedulingRule rule = new SchedulingRule();
-						switch (schedulingRuleElement.CalendarUnit)
-						{
-
-
-							case CalendarUnit.Day:
-								rule.Scope = SchedulingScope.Day;
-								break;
-							case CalendarUnit.Month:
-								rule.Scope = SchedulingScope.Month;
-								break;
-							case CalendarUnit.Week:
-								rule.Scope = SchedulingScope.Week;
-								break;
-
-
-						}
-
-						//subunits= weekday,monthdays
-						rule.Days = schedulingRuleElement.SubUnits.ToList();
-						rule.Hours = schedulingRuleElement.ExactTimes.ToList();
-						rule.MaxDeviationAfter = schedulingRuleElement.MaxDeviation;
-						if (serviceConfiguration.SchedulingRules == null)
-							serviceConfiguration.SchedulingRules = new List<SchedulingRule>();
-						serviceConfiguration.SchedulingRules.Add(rule);
-					}
-					serviceConfiguration.BaseConfiguration = baseConfigurations[serviceUse.Name];
-					//profile settings
-					Profile profile = new Profile();
-					profile.Name = account.ID.ToString();
-					profile.ID = account.ID;
-					profile.Settings = new Dictionary<string, object>();
-					profile.Settings.Add("AccountID", account.ID);
-					serviceConfiguration.SchedulingProfile = profile;
-					_servicesWarehouse.Add(serviceConfiguration);
+					foreach (SchedulingRule rule in serviceUse.SchedulingRules)
+						deriveConfiguration.SchedulingRules.Add(rule);
+					foreach (var option in serviceUse.Options)	
+						deriveConfiguration.Parameters[option.Key]=option.Value;
+					deriveConfiguration.Limits.MaxConcurrentGlobal=serviceUse.MaxInstances;
+					deriveConfiguration.Limits.MaxConcurrentPerProfile=serviceUse.MaxInstancesPerAccount;
+					_serviceConfigurationsToSchedule.Add(deriveConfiguration);		
 
 				}
 			}
