@@ -34,7 +34,7 @@ namespace Edge.Data.Objects
         public string StringFormat;
         public int? AcquisitionNum;
 		public MeasureOptions Options;
-		public bool USDRequired;
+		public bool IsCurrency;
 
 		public static Dictionary<string, Measure> GetMeasures(Account account, Channel channel, SqlConnection connection, MeasureOptions? options = null,OptionsOperator @operator = OptionsOperator.Or, bool includeBase = false)
 		{
@@ -66,7 +66,7 @@ namespace Edge.Data.Objects
                         StringFormat = reader["StringFormat"] is DBNull ? string.Empty : (string)reader["StringFormat"],
                         AcquisitionNum = reader["AcquisitionNum"] is DBNull ? null : (int?)reader["AcquisitionNum"],
 						Options = (MeasureOptions)reader["Flags"],
-						USDRequired = reader.Get<bool>("Required_USD_Convert"),
+						IsCurrency = reader.Get<bool>("IsCurrency"),
 					};
 
 					measures.Add(m);
@@ -77,21 +77,24 @@ namespace Edge.Data.Objects
 		}
 
 
-		public double GetValueInUSD(SqlConnection connection,object valueToConvert)
-		{
-			SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure), "GetMeasuresValueUSD.SP"),
-				System.Data.CommandType.StoredProcedure);
-			cmd.Connection = connection;
-			cmd.Parameters["@Currency"].Value = valueToConvert;
+		//public double GetValueInUSD(SqlConnection connection,object valueToConvert)
+		//{
+		//    SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(Measure), "GetMeasuresValueUSD.SP"),
+		//        System.Data.CommandType.StoredProcedure);
+		//    cmd.Connection = connection;
+		//    cmd.Parameters["@Currency"].Value = valueToConvert;
 
-			using (SqlDataReader reader = cmd.ExecuteReader())
-			{
-				if (reader.Read())
-					return Convert.ToDouble(reader[0]);
-				else
-					throw new Exception("Could not convert value to USD");
-			}
-		}
+		//    double rate = 0;
+		//    using (SqlDataReader reader = cmd.ExecuteReader())
+		//    {
+		//        if (reader.Read())
+		//            rate= Convert.ToDouble(reader[0]);
+		//        else
+		//            throw new Exception("Could not convert value to USD");
+		//    }
+
+		//    return (double)valueToConvert / rate;
+		//}
 	}
 
 	[Flags]
