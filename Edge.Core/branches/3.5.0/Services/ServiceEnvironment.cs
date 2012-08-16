@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	public class ServiceEnvironment
 	{
@@ -19,15 +19,18 @@ namespace Edge.Core
 			_host = proxy;
 		}
 
-		public ServiceInstance CreateServiceInstance(ServiceConfiguration configuration)
+		public ServiceInstance NewService(ServiceConfiguration configuration)
 		{
-			return CreateServiceInstance(configuration, null);
+			return NewService(configuration, null);
 		}
 
-		internal ServiceInstance CreateServiceInstance(ServiceConfiguration configuration, ServiceInstance parentInstance)
+		internal ServiceInstance NewService(ServiceConfiguration configuration, Service parent)
 		{
-			// TODO: demand ServiceExecutionPermission
-			return new ServiceInstance(this, configuration, parentInstance);
+			return new ServiceInstance(this, configuration, parent);
+		}
+
+		public void ScheduleService(ServiceInstance instance)
+		{
 		}
 
 		internal IServiceConnection AcquireHostConnection(ServiceInstance instance)

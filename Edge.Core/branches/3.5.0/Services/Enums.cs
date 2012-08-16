@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	/// <summary>
 	/// 
@@ -24,7 +24,7 @@ namespace Edge.Core
 		Ready = 2,
 		Starting = 3,
 		Running = 4,
-		Waiting = 5,
+		Paused = 5,
 		Ending = 6,
 		Ended = 7,
 		

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Collections.ObjectModel;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	public interface IServiceInfo
 	{
@@ -16,7 +16,7 @@ namespace Edge.Core
 		ServiceState State { get; }
 		ServiceOutcome Outcome { get; }
 		object Output { get; }
-		SchedulingRequest SchedulingInfo { get; }
+		SchedulingInfo SchedulingInfo { get; }
 		DateTime TimeInitialized { get; }
 		DateTime TimeStarted { get; }
 		DateTime TimeEnded { get; }

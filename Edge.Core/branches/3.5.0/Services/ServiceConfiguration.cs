@@ -5,7 +5,7 @@ using System.Text;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	[Serializable]
 	public class ServiceConfiguration : ILockable, ISerializable

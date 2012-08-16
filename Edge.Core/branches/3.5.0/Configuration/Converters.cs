@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using Edge.Core.Configuration;
+using Edge.Core.Services.Configuration;
 using System.Configuration;
 
-namespace Edge.Core.Configuration.Converters
+namespace Edge.Core.Services.Configuration.Converters
 {
 	/// <summary>
 	/// 

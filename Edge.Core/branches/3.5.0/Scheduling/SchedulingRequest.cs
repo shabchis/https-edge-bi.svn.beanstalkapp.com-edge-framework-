@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
-using Edge.Core.Configuration;
+using Edge.Core.Services.Configuration;
 using System.Diagnostics;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
-	public class SchedulingRequest: ILockable
+	public class SchedulingRequestDISABLED: ILockable
 	{
 		public Guid RequestID { get; private set; }
 		public ServiceInstance Instance { get; private set; }
@@ -23,7 +23,7 @@ namespace Edge.Core
 		public event EventHandler Rescheduled;
 		public event EventHandler Expired;
 
-		internal SchedulingRequest()
+		internal SchedulingRequestDISABLED()
 		{
 			this.RequestID = Guid.NewGuid();
 		}

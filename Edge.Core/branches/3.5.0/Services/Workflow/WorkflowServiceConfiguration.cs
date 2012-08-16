@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core.Workflow
+namespace Edge.Core.Services.Workflow
 {
 	public class WorkflowServiceConfiguration: ServiceConfiguration
 	{
@@ -27,6 +27,12 @@ namespace Edge.Core.Workflow
 		Terminate
 	}
 
+	public enum GroupMode
+	{
+		Linear,
+		Parallel
+	}
+
 	public class Group : WorkflowWorkNode
 	{
 		public GroupMode Mode {get; set; }
@@ -35,9 +41,10 @@ namespace Edge.Core.Workflow
 
 	public class Step : WorkflowWorkNode
 	{
-		public ServiceConfiguration Service;
+		public ServiceConfiguration ServiceConfiguration;
 	}
 
+	/*
 	public class Condition:WorkflowNode
 	{
 		public Func<WorkflowNodeInstance, bool> Test;
@@ -61,46 +68,14 @@ namespace Edge.Core.Workflow
 		public List<Condition> ElseIf;
 		public Condition Else;
 	}
+	*/
 
 
-	public enum GroupMode
-	{
-		Linear,
-		Parallel
-	}
-
+	/*
 	public class End: WorkflowNode
 	{
 		public End(ServiceOutcome outcome) { this.Outcome = outcome; }
 		public ServiceOutcome Outcome;
 	}
-
-	public class WorkflowNodeInstance
-	{
-		Dictionary<string, WorkflowNodeInstance> _children;
-
-		public WorkflowNodeInstance Root;
-		public WorkflowNodeInstance Parent;
-		public WorkflowNode Node;
-		public ServiceInstance Instance;
-
-		public WorkflowNodeInstance()
-		{
-			_children = new Dictionary<string, WorkflowNodeInstance>();
-		}
-
-		public ICollection<WorkflowNodeInstance> Children
-		{
-			get { return _children.Values; }
-		}
-
-		public WorkflowNodeInstance this[string name]
-		{
-			get { return _children[name]; }
-		}
-		public WorkflowNodeInstance this[int name]
-		{
-			get { return _children[name.ToString()]; }
-		}
-	}
+	*/
 }

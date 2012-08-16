@@ -8,7 +8,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	[Serializable]
 	public class ServiceInstance: IServiceInfo, ISerializable, IDisposable
@@ -28,10 +28,9 @@ namespace Edge.Core
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingRequest SchedulingInfo { get; internal set; }
-		public ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; private set; }
+		public SchedulingInfo SchedulingInfo { get; internal set; }
 
-		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, ServiceInstance parentInstance)
+		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, IServiceInfo parentInstance)
 		{
 			if (configuration == null)
 				throw new ArgumentNullException("configuration");
@@ -243,6 +242,8 @@ namespace Edge.Core
 		/// </summary>
 		public void Start()
 		{
+			// TODO: demand ServiceExecutionPermission
+
 			// If not initialized, initialize and then progress to Start
 			if (Connection == null && State == ServiceState.Uninitialized)
 			{
@@ -279,7 +280,7 @@ namespace Edge.Core
 				State = ServiceState.Ended;
 			}
 
-			if (State != ServiceState.Running && State != ServiceState.Waiting)
+			if (State != ServiceState.Running && State != ServiceState.Paused)
 				throw new InvalidOperationException("Service can only be aborted when it is in the InProgress or Waiting state.");
 
 			// TODO: async
@@ -319,7 +320,7 @@ namespace Edge.Core
 			info.AddValue("InstanceID", InstanceID);
 			info.AddValue("Configuration", Configuration);
 			info.AddValue("ParentInstanceID", ParentInstance == null ? _parentInstanceID : ParentInstance.InstanceID);
-			//info.AddValue("SchedulingInfo", SchedulingInfo);
+			info.AddValue("SchedulingInfo", SchedulingInfo);
 			info.AddValue("Connection", Connection); // this is strictly for internal use only
 		}
 
@@ -327,7 +328,7 @@ namespace Edge.Core
 		{
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
-			//this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
+			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
 		}
 

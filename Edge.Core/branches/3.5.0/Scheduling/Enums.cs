@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Edge.Core
+namespace Edge.Core.Services
 {
 	public enum SchedulingStatus
 	{
