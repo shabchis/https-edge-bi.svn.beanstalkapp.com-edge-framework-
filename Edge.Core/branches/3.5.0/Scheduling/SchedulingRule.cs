@@ -15,33 +15,6 @@ namespace Edge.Core.Services
 		public TimeSpan MaxDeviationBefore { get; set; }
 		public TimeSpan MaxDeviationAfter { get; set; }
 		public DateTime SpecificDateTime { get; set; }
-
-		public SchedulingRule()
-		{
-		}
-
-		internal static SchedulingRule FromLegacyRule(SchedulingRuleElement legacyRule)
-		{
-			SchedulingRule rule = new SchedulingRule();
-			switch (legacyRule.CalendarUnit)
-			{
-				case CalendarUnit.Day:
-					rule.Scope = SchedulingScope.Day;
-					break;
-				case CalendarUnit.Month:
-					rule.Scope = SchedulingScope.Month;
-					break;
-				case CalendarUnit.Week:
-					rule.Scope = SchedulingScope.Week;
-					break;
-			}
-			//subunits= weekday,monthdays
-			rule.Days = legacyRule.SubUnits.ToList();
-			rule.Times = legacyRule.ExactTimes.ToList();
-			rule.MaxDeviationAfter = legacyRule.MaxDeviation;
-
-			return rule;
-		}
 	}
 
 	public enum SchedulingScope

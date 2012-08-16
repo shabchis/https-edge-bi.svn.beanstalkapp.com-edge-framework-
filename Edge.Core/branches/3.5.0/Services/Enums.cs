@@ -36,10 +36,30 @@ namespace Edge.Core.Services
 	public enum ServiceOutcome
 	{
 		Unspecified = 0,
+
+		/// <summary>
+		/// Service completed successfully.
+		/// </summary>
 		Success = 1,
+		
+		/// <summary>
+		/// Service failed to complete successfully.
+		/// </summary>
 		Failure = 2,
+
+		/// <summary>
+		/// Service was aborted during execution.
+		/// </summary>
 		Aborted = 3,
-		Timeout = 4,
-		Error = 6
+		
+		/// <summary>
+		/// Service was canceled before it started.
+		/// </summary>
+		Canceled = 7,
+
+		/// <summary>
+		/// Service reached it's max execution time.
+		/// </summary>
+		TimedOut = 8
 	}
 }

@@ -87,7 +87,6 @@
     <Compile Include="Configuration\General.cs" />
     <Compile Include="Configuration\SettingsCollection.cs" />
     <Compile Include="Scheduling\Enums.cs" />
-    <Compile Include="Scheduling\SchedulingRequest.cs" />
     <Compile Include="Scheduling\SchedulingInfo.cs" />
     <Compile Include="Scheduling\SchedulingRule.cs" />
     <Compile Include="Services\Enums.cs" />

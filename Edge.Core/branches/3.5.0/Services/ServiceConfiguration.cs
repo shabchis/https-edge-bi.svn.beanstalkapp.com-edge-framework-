@@ -194,6 +194,12 @@ namespace Edge.Core.Services
 		#region Methods
 		//=================
 
+		public override bool Equals(object obj)
+		{
+			// TODO: compare GUIDs
+			return base.Equals(obj);
+		}
+
 		/// <summary>
 		/// Throws an exception if the current level is not the specified level.
 		/// </summary>

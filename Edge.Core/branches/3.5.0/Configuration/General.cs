@@ -26,13 +26,6 @@ namespace Edge.Core.Services.Configuration
 		Handler=3
 	}
 
-	internal enum CalendarUnit
-	{
-		Month=0,
-		Week=1,
-		Day=2
-	}
-
 	/*=========================*/
 	#endregion
 
