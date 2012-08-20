@@ -336,6 +336,13 @@ namespace Edge.Core.Services
 		#endregion
 
 
-		
+
+
+
+
+		public Scheduling.PingInfo Ping()
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

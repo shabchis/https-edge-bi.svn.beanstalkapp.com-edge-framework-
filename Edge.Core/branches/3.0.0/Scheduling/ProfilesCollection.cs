@@ -11,23 +11,7 @@ namespace Edge.Core.Scheduling
 		private List<ServiceProfile> _profiles = new List<ServiceProfile>();
 		private Dictionary<int, ServiceProfile> _profileByAccountId = new Dictionary<int, ServiceProfile>();
 
-		//public ProfileInfo[] GetProfilesInfo()
-		//{
-		//    ProfileInfo[] infos = new ProfileInfo[_profiles.Count];
-		//    lock (this)
-		//    {
-		//        for (int i = 0; i < _profiles.Count; i++)
-		//        {
-		//            ProfileInfo p = new ProfileInfo() { AccountID = int.Parse(_profiles[i].Settings["AccountID"].ToString()), AccountName = _profiles[i].Settings["AccountName"].ToString() };
-		//            foreach (var item in _profiles[i].ServiceConfigurations)
-		//            {
-		//                p.Services.Add(item.Name);
-		//            }
-		//            infos[i] = p;
-		//        }
-		//    }
-		//    return infos;
-		//}
+		
 
 		#region ICollection<Profile> Members
 

@@ -11,7 +11,18 @@ namespace Edge.Core.Services
 	{
 		public DateTime RequestedTime;
 		public DateTime ExpectedStartTime;
-		public DateTime ExpectedEndTime;
+		public DateTime ExpectedEndTime;		
+		public TimeSpan MaxDeviationAfter { get; set; }
+		public TimeSpan MaxDeviationBefore { get; set; }
+		public TimeSpan ActualDeviation 
+		{
+			get
+			{
+				return ExpectedStartTime.Subtract(RequestedTime);
+			}
+		}
 		public SchedulingStatus SchedulingStatus;
+
+		public SchedulingScope Scope { get; set; }
 	}
 }

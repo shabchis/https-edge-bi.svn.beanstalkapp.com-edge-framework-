@@ -52,11 +52,11 @@
     <AssemblyOriginatorKeyFile>Edge.Core.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="log4net">
+      <HintPath>..\..\..\..\thirdparty\log4net\log4net.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Runtime.Serialization">
       <RequiredTargetFramework>3.0</RequiredTargetFramework>
@@ -80,6 +80,7 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\AppSettings.cs" />
     <Compile Include="Configuration\ConfigurationElementCollections.cs" />
     <Compile Include="Configuration\ConfigurationElements.cs" />
     <Compile Include="Configuration\Converters.cs" />
@@ -87,14 +88,19 @@
     <Compile Include="Configuration\General.cs" />
     <Compile Include="Configuration\SettingsCollection.cs" />
     <Compile Include="Scheduling\Enums.cs" />
+    <Compile Include="Scheduling\InstanceRequestCollection.cs" />
+    <Compile Include="Scheduling\Interfaces.cs" />
+    <Compile Include="Scheduling\PingInfo.cs" />
     <Compile Include="Scheduling\ProfilesCollection.cs" />
     <Compile Include="Scheduling\Scheduler.cs" />
     <Compile Include="Scheduling\SchedulingInfo.cs" />
     <Compile Include="Scheduling\SchedulingRule.cs" />
+    <Compile Include="Scheduling\ServicePerProfileAvgExecutionTimeCash.cs" />
     <Compile Include="Services\Enums.cs" />
     <Compile Include="Services\Exceptions.cs" />
     <Compile Include="Services\IServiceConnection.cs" />
     <Compile Include="Services\LogMessage.cs" />
+    <Compile Include="Services\NetDataContract.cs" />
     <Compile Include="Services\Service.cs" />
     <Compile Include="Services\ServiceConfiguration.cs" />
     <Compile Include="Services\ServiceExecutionHost.cs" />
@@ -108,6 +114,7 @@
     <Compile Include="Services\Workflow\WorkflowServiceConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\Locks.cs" />
+    <Compile Include="Utilities\Log.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Edge.Core.snk" />

@@ -331,6 +331,10 @@ namespace Edge.Core.Services
 			((ILockable)this.Limits).Unlock(key);
 			((ILockable)this.SchedulingRules).Unlock(key);
 		}
+		[DebuggerNonUserCode] void ILockable.Lock()
+		{
+			((ILockable)this).Lock(new object());
+		}
 
 		#endregion
 
@@ -360,11 +364,11 @@ namespace Edge.Core.Services
 		int _maxConcurrentGlobal = 0;
 		int _maxConcurrentPerProfile = 0;
 		int _maxConcurrentPerHost = 0;
-
+		TimeSpan _maxExecutionTime;
 		public int MaxConcurrentGlobal { get { return _maxConcurrentGlobal; } set { _lock.Ensure(); _maxConcurrentGlobal = value; } }
 		public int MaxConcurrentPerProfile { get { return _maxConcurrentPerProfile; } set { _lock.Ensure(); _maxConcurrentPerProfile = value; } }
 		public int MaxConcurrentPerHost { get { return _maxConcurrentPerHost; } set { _lock.Ensure(); _maxConcurrentPerHost = value; } }
-
+		public TimeSpan MaxExecutionTime { get { return _maxExecutionTime; } set { _lock.Ensure(); _maxExecutionTime = value; } }
 		public void CopyTo(ServiceExecutionLimits serviceExecutionLimits)
 		{
 			serviceExecutionLimits.MaxConcurrentGlobal = this._maxConcurrentGlobal;
@@ -378,8 +382,11 @@ namespace Edge.Core.Services
 		public bool IsLocked { get { return _lock.IsLocked; } }
 		[DebuggerNonUserCode] void ILockable.Lock(object key) { _lock.Lock(key); }
 		[DebuggerNonUserCode] void ILockable.Unlock(object key) { _lock.Unlock(key); }
+		[DebuggerNonUserCode] void ILockable.Lock() { _lock.Lock(); }
 
 		#endregion
+
+		
 	}
 
 	[Serializable]

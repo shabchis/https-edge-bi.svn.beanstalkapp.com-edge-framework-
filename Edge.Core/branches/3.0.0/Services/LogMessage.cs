@@ -42,6 +42,7 @@ namespace Edge.Core.Services
 		Verbose = 0,
 		Information = 1,
 		Warning = 5,
-		Error = 7
+		Error = 7,
+		Debug=8
 	};
 }

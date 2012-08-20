@@ -60,12 +60,20 @@ namespace Edge.Core.Services
 			((ILockable)Parameters).Lock(key);
 			((ILockable)AssignedServices).Lock(key);
 		}
+		[DebuggerNonUserCode]
+		void ILockable.Lock()
+		{
+			_lock.Lock();
+			((ILockable)Parameters).Lock();
+			((ILockable)AssignedServices).Lock();
+		}
 		[DebuggerNonUserCode] void ILockable.Unlock(object key)
 		{
 			_lock.Unlock(key);
 			((ILockable)Parameters).Lock(key);
 			((ILockable)AssignedServices).Lock(key);
 		}
+
 
 		//=================
 		#endregion
