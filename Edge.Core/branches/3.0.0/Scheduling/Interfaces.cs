@@ -23,10 +23,12 @@ namespace Edge.Core.Scheduling
 		void ResetUnended();
 
 		[OperationContract]
+		[NetDataContract]
 		Guid AddUnplannedService(ServiceConfiguration serviceConfiguration);
 
 		[OperationContract]
-		ProfilesCollection GetSchedulingProfiles();
+		[NetDataContract]
+		ServiceProfile[] GetSchedulingProfiles();
 
 	}
 

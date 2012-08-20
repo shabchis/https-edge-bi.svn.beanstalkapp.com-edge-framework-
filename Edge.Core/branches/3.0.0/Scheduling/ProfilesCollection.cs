@@ -42,7 +42,7 @@ namespace Edge.Core.Scheduling
 
 		public void CopyTo(ServiceProfile[] array, int arrayIndex)
 		{
-			throw new NotImplementedException();
+			_profiles.CopyTo(array, arrayIndex);
 		}
 
 		public int Count
@@ -78,7 +78,7 @@ namespace Edge.Core.Scheduling
 
 		public IEnumerator<ServiceProfile> GetEnumerator()
 		{
-			throw new NotImplementedException();
+			return this._profiles.GetEnumerator();
 		}
 
 		#endregion
