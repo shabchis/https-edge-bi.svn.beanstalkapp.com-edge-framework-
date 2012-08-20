@@ -100,7 +100,6 @@
     <Compile Include="Services\Exceptions.cs" />
     <Compile Include="Services\IServiceConnection.cs" />
     <Compile Include="Services\LogMessage.cs" />
-    <Compile Include="Services\NetDataContract.cs" />
     <Compile Include="Services\Service.cs" />
     <Compile Include="Services\ServiceConfiguration.cs" />
     <Compile Include="Services\ServiceExecutionHost.cs" />
