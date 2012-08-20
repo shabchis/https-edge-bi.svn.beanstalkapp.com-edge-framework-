@@ -9,30 +9,20 @@ namespace Edge.Core.Services
 	{
 		private IServiceHost _host;
 
-		public ServiceEnvironment()
-		{
-			_host = new ServiceExecutionHost();
-		}
-
+		// TODO: remove the reference to proxy from here, this should be loaded from a list of hosts in the database
 		internal ServiceEnvironment(IServiceHost proxy)
 		{
 			_host = proxy;
 		}
 
-		public ServiceInstance NewService(ServiceConfiguration configuration)
+		public ServiceInstance NewServiceInstance(ServiceConfiguration configuration)
 		{
-			return NewService(configuration, null);
+			return NewServiceInstance(configuration, null);
 		}
 
-		internal ServiceInstance NewService(ServiceConfiguration configuration, Service parent)
+		internal ServiceInstance NewServiceInstance(ServiceConfiguration configuration, Service parent)
 		{
 			return new ServiceInstance(this, configuration, parent);
-		}
-
-		public void ScheduleService(ServiceInstance instance)
-		{
-			//ServiceConfiguration config;
-			//config.GetBaseConfiguration(ServiceConfigurationLevel.Profile) == config.GetBaseConfiguration(ServiceConfigurationLevel.Profile)
 		}
 
 		internal IServiceConnection AcquireHostConnection(ServiceInstance instance)

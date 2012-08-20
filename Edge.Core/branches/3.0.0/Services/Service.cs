@@ -27,8 +27,9 @@ namespace Edge.Core.Services
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
-		public ServiceInstance ParentInstance { get; private set; }
 		public SchedulingInfo SchedulingInfo { get; private set; }
+		public ServiceInstance ParentInstance { get; private set; }
+		IServiceInfo IServiceInfo.ParentInstance { get { return this.ParentInstance; } }
 
 		internal void Init(ServiceExecutionHost host, ServiceInstance instance)
 		{
@@ -307,7 +308,7 @@ namespace Edge.Core.Services
 
 		protected ServiceInstance NewChildService(ServiceConfiguration child)
 		{
-			return Environment.NewService(child, this);
+			return Environment.NewServiceInstance(child, this);
 		}
 
 		//======================

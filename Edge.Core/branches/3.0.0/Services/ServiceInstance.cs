@@ -11,7 +11,7 @@ using System.Diagnostics;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class ServiceInstance: IServiceInfo, ISerializable, IDisposable
+	public class ServiceInstance: IServiceInfo, ISerializable, IDisposable, ILockable
 	{
 		#region Instance
 		//=================
@@ -21,14 +21,15 @@ namespace Edge.Core.Services
 		bool _owner = false;
 		bool _autostart = false;
 		Guid _parentInstanceID = Guid.Empty;
+		SchedulingInfo _schedulingInfo;
 
 		public bool ThrowExceptionOnError { get; set; }
-
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingInfo SchedulingInfo { get; internal set; }
+		IServiceInfo IServiceInfo.ParentInstance { get { return this.ParentInstance; } }
+		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { _lock.Ensure(); _schedulingInfo = value; } }
 
 		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, IServiceInfo parentInstance)
 		{
@@ -220,7 +221,7 @@ namespace Edge.Core.Services
 
 			// Initialize
 			// TODO: async
-			try { this.Connection.Host.Initialize(this); }
+			try { this.Connection.Host.InitializeService(this); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Host could not initialize this instance.", ex);
@@ -255,7 +256,7 @@ namespace Edge.Core.Services
 
 			// Start the service
 			// TODO: async
-			try { this.Connection.Host.Start(this.InstanceID); }
+			try { this.Connection.Host.StartService(this.InstanceID); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Could not start this instance.", ex);
@@ -284,11 +285,8 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("Service can only be aborted when it is in the InProgress or Waiting state.");
 
 			// TODO: async
-			this.Connection.Host.Abort(this.InstanceID);
+			this.Connection.Host.AbortService(this.InstanceID);
 		}
-
-		//=================
-		#endregion
 
 		[DebuggerNonUserCode]
 		private void SetOutcomeException(string message, Exception ex, bool throwEx = false)
@@ -296,7 +294,7 @@ namespace Edge.Core.Services
 			State = ServiceState.Ended;
 			Outcome = ServiceOutcome.Failure;
 			Output = ex is ServiceException ? ex : new ServiceException(message, ex);
-			
+
 			if (throwEx || ThrowExceptionOnError)
 				throw Output as Exception;
 
@@ -307,10 +305,14 @@ namespace Edge.Core.Services
 		{
 			return String.Format("{0} (profile: {1}, guid: {2})",
 				Configuration.ServiceName,
-				Configuration.Profile == null ? "default" : Configuration.Profile.ID.ToString(),
+				Configuration.Profile == null ? "default" : Configuration.Profile.ProfileID.ToString(),
 				InstanceID
 			);
 		}
+
+
+		//=================
+		#endregion
 
 		#region Serialization
 		//=================
@@ -322,6 +324,8 @@ namespace Edge.Core.Services
 			info.AddValue("ParentInstanceID", ParentInstance == null ? _parentInstanceID : ParentInstance.InstanceID);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
 			info.AddValue("Connection", Connection); // this is strictly for internal use only
+
+			info.AddValue("IsLocked", IsLocked);
 		}
 
 		private ServiceInstance(SerializationInfo info, StreamingContext context)
@@ -330,19 +334,37 @@ namespace Edge.Core.Services
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
+
+			// Was locked before serialization? Lock 'em up and throw away the key!
+			if (info.GetBoolean("IsLocked"))
+				((ILockable)this).Lock();
 		}
 
 		//=================
 		#endregion
 
+		#region ILockable Members
+		//=================
 
-
-
-
-
-		public Scheduling.PingInfo Ping()
+		[NonSerialized]
+		Padlock _lock = new Padlock();
+		public bool IsLocked { get { return _lock.IsLocked; } }
+		[DebuggerNonUserCode]
+		void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		[DebuggerNonUserCode]
+		void ILockable.Lock(object key)
 		{
-			throw new NotImplementedException();
+			_lock.Lock(key);
+			((ILockable)this.SchedulingInfo).Lock(key);
 		}
+		[DebuggerNonUserCode]
+		void ILockable.Unlock(object key)
+		{
+			_lock.Unlock(key);
+			((ILockable)this.SchedulingInfo).Unlock(key);
+		}
+
+		//=================
+		#endregion
 	}
 }

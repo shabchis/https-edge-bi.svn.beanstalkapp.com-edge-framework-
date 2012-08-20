@@ -17,16 +17,13 @@ namespace Edge.Core.Scheduling
 		void Unsubscribe();
 
 		[OperationContract]
-		PingInfo Ping(Guid guid);
-
-		[OperationContract]
 		void Abort(Guid guid);
 
 		[OperationContract]
 		void ResetUnended();
 
 		[OperationContract]
-		Guid AddUnplannedService(int accountID, string serviceName, DateTime targetDateTime, Dictionary<string, string> options = null);
+		Guid AddUnplannedService(ServiceConfiguration serviceConfiguration, SchedulingRule rule);
 
 		[OperationContract]
 		ProfilesCollection GetSchedulingProfiles();

@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.Remoting.Messaging;
+using Edge.Core.Scheduling;
 
 namespace Edge.Core.Services
 {
 	public class ServiceExecutionHost : MarshalByRefObject, IServiceHost
 	{
+		#region Nested classes
+		// ========================
+
 		class ServiceRuntimeInfo
 		{
 			public readonly Guid InstanceID;
@@ -22,16 +26,29 @@ namespace Edge.Core.Services
 			}
 		}
 
+		// ========================
+		#endregion
+
+		#region Fields
+		// ========================
+
 		public readonly Guid HostID;
 		ServiceExecutionHost _innerHost = null;
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
-
 		bool IsWrapped { get { return _innerHost != null; } }
+		public ServiceEnvironment Environment { get; private set; }
+
+		// ========================
+		#endregion 
+
+		#region Methods
+		// ========================
 
 		public ServiceExecutionHost(): this(true, Guid.NewGuid())
 		{
 			// TODO: demand ServiceHostingPermission
+			this.Environment = new ServiceEnvironment(this);
 		}
 
 		private ServiceExecutionHost(bool wrapped, Guid hostID)
@@ -56,11 +73,11 @@ namespace Edge.Core.Services
 		}
 
 		[OneWay]
-		void IServiceHost.Initialize(ServiceInstance instance)
+		void IServiceHost.InitializeService(ServiceInstance instance)
 		{
 			if (this.IsWrapped)
 			{
-				((IServiceHost)_innerHost).Initialize(instance);
+				((IServiceHost)_innerHost).InitializeService(instance);
 				return;
 			}
 
@@ -111,11 +128,11 @@ namespace Edge.Core.Services
 		}
 
 		[OneWay]
-		void IServiceHost.Start(Guid instanceID)
+		void IServiceHost.StartService(Guid instanceID)
 		{
 			if (this.IsWrapped)
 			{
-				((IServiceHost)_innerHost).Start(instanceID);
+				((IServiceHost)_innerHost).StartService(instanceID);
 				return;
 			}
 
@@ -127,11 +144,11 @@ namespace Edge.Core.Services
 		/// </summary>
 		/// <param name="instanceID"></param>
 		[OneWay]
-		void IServiceHost.Abort(Guid instanceID)
+		void IServiceHost.AbortService(Guid instanceID)
 		{
 			if (this.IsWrapped)
 			{
-				((IServiceHost)_innerHost).Abort(instanceID);
+				((IServiceHost)_innerHost).AbortService(instanceID);
 				return;
 			}
 
@@ -142,11 +159,11 @@ namespace Edge.Core.Services
 		/// Disconnects a connection from a running service instance.
 		/// </summary>
 		[OneWay]
-		void IServiceHost.Disconnect(Guid instanceID, Guid connectionGuid)
+		void IServiceHost.DisconnectService(Guid instanceID, Guid connectionGuid)
 		{
 			if (this.IsWrapped)
 			{
-				((IServiceHost)_innerHost).Disconnect(instanceID, connectionGuid);
+				((IServiceHost)_innerHost).DisconnectService(instanceID, connectionGuid);
 				return;
 			}
 
@@ -193,13 +210,16 @@ namespace Edge.Core.Services
 					return null;
 			return service;
 		}
+
+		// ========================
+		#endregion
 	}
 
 	internal interface IServiceHost
 	{
-		void Initialize(ServiceInstance instance);
-		void Start(Guid instanceID);
-		void Abort(Guid instanceID);
-		void Disconnect(Guid instanceID, Guid connectionID);
+		void InitializeService(ServiceInstance instance);
+		void StartService(Guid instanceID);
+		void AbortService(Guid instanceID);
+		void DisconnectService(Guid instanceID, Guid connectionID);
 	}
 }
