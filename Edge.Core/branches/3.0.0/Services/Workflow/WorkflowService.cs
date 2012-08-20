@@ -45,7 +45,7 @@ namespace Edge.Core.Services.Workflow
 				var step = (Step)nodeInstance.Node;
 				if (nodeInstance.Instance == null)
 				{
-					nodeInstance.Instance = this.Environment.NewService(step.ServiceConfiguration, this);
+					nodeInstance.Instance = this.Environment.NewServiceInstance(step.ServiceConfiguration, this);
 					//this.Environment.ScheduleSevice(nodeInstance.Instance);
 				}
 

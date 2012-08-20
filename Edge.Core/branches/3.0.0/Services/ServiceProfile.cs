@@ -12,7 +12,7 @@ namespace Edge.Core.Services
 	{
 		string _name;
 
-		public Guid ID { get; private set; }
+		public Guid ProfileID { get; internal set; }
 		public string Name { get { return _name; } set { _lock.Ensure(); _name = value; } }
 		public IDictionary<string, object> Parameters { get; private set; }
 		public IList<ServiceConfiguration> AssignedServices { get; private set;}
@@ -78,7 +78,7 @@ namespace Edge.Core.Services
 
 		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
-			info.AddValue("ID", ID);
+			info.AddValue("ID", ProfileID);
 			info.AddValue("Name", Name);
 			info.AddValue("Parameters", Parameters);
 
@@ -87,7 +87,7 @@ namespace Edge.Core.Services
 
 		private ServiceProfile(SerializationInfo info, StreamingContext context)
 		{
-			this.ID = (Guid)info.GetValue("ID", typeof(Guid));
+			this.ProfileID = (Guid)info.GetValue("ID", typeof(Guid));
 			this.Name = info.GetString("Name");
 			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
 

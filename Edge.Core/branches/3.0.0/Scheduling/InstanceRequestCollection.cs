@@ -20,12 +20,12 @@ namespace Edge.Core.Scheduling
 		}
 		public string GetSignature(ServiceInstance instance)
 		{
-			return String.Format("profile:{0},base:{1},name:{2},scope:{3},time:{4}", instance.Configuration.Profile.Parameters["AccountID"], instance.Configuration.BaseConfiguration.ServiceName, instance.Configuration.ServiceName, instance.SchedulingInfo.Scope, instance.SchedulingInfo.RequestedTime);
+			return String.Format("profile:{0},base:{1},name:{2},scope:{3},time:{4}", instance.Configuration.Profile.Parameters["AccountID"], instance.Configuration.BaseConfiguration.ServiceName, instance.Configuration.ServiceName, instance.SchedulingInfo.SchedulingScope, instance.SchedulingInfo.RequestedTime);
 
 		}
 		public bool ContainsSignature(ServiceInstance requestToCheck)
 		{
-			if (requestToCheck.SchedulingInfo.Scope == SchedulingScope.Unplanned)
+			if (requestToCheck.SchedulingInfo.SchedulingScope == SchedulingScope.Unplanned)
 				return false;
 
 			return _requestsBySignature.ContainsKey(GetSignature(requestToCheck));
@@ -36,7 +36,7 @@ namespace Edge.Core.Scheduling
 		public void Add(ServiceInstance item)
 		{
 			_requestsByGuid.Add(item.InstanceID, item);
-			if (item.SchedulingInfo.Scope != SchedulingScope.Unplanned) //since it unplaned it does not matter , their can be many of the same
+			if (item.SchedulingInfo.SchedulingScope != SchedulingScope.Unplanned) //since it unplaned it does not matter , their can be many of the same
 				_requestsBySignature.Add(GetSignature(item), item);
 		}
 
@@ -106,7 +106,7 @@ namespace Edge.Core.Scheduling
 			var servicesWithSameConfiguration =
 							from s in _requestsByGuid.Values
 							where
-								s.Configuration.ServiceName == currentRequest.Configuration.BaseConfiguration.ServiceName && //should be id but no id yet								
+								s.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Template) == currentRequest.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Template) &&
 								s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated 								
 							orderby s.SchedulingInfo.ExpectedStartTime ascending
 							select s;
@@ -117,8 +117,7 @@ namespace Edge.Core.Scheduling
 			var servicesWithSameProfile =
 							from s in _requestsByGuid.Values
 							where
-								s.Configuration.Profile == currentRequest.Configuration.Profile &&
-								s.Configuration.ServiceName == currentRequest.Configuration.BaseConfiguration.ServiceName &&
+								s.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile) == currentRequest.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile) &&
 								s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated
 							orderby s.SchedulingInfo.ExpectedStartTime ascending
 							select s;

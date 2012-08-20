@@ -55,7 +55,7 @@ namespace Edge.Core.Services
 
 		public void Dispose()
 		{
-			this.Host.Disconnect(this.ServiceInstanceID, this.Guid);
+			this.Host.DisconnectService(this.ServiceInstanceID, this.Guid);
 
 			// TODO: cause lease to expire
 			//throw new NotImplementedException("The ILease must be released at this point to allow garbage collection!");

@@ -28,7 +28,7 @@ namespace Edge.Core.Services
 		public Guid ConfigurationID
 		{
 			get;
-			private set;
+			internal set;
 		}
 
 		public ServiceConfigurationLevel ConfigurationLevel
@@ -196,8 +196,19 @@ namespace Edge.Core.Services
 
 		public override bool Equals(object obj)
 		{
-			// TODO: compare GUIDs
-			return base.Equals(obj);
+			return obj is ServiceConfiguration?
+				((ServiceConfiguration)obj).ConfigurationID == this.ConfigurationID :
+				base.Equals(obj);
+		}
+
+		public static bool operator ==(ServiceConfiguration config1, ServiceConfiguration config2)
+		{
+			return Object.Equals(config1, config2);
+		}
+
+		public static bool operator !=(ServiceConfiguration config1, ServiceConfiguration config2)
+		{
+			return !Object.Equals(config1, config2);
 		}
 
 		/// <summary>
@@ -304,7 +315,7 @@ namespace Edge.Core.Services
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
-				((ILockable)this).Lock(new object());
+				((ILockable)this).Lock();
 		}
 		
 		//=================
@@ -312,8 +323,6 @@ namespace Edge.Core.Services
 
 		#region ILockable Members
 		//=================
-
-		#region Locking
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
@@ -333,10 +342,6 @@ namespace Edge.Core.Services
 			((ILockable)this.Limits).Unlock(key);
 			((ILockable)this.SchedulingRules).Unlock(key);
 		}
-
-		#endregion
-
-
 
 		//=================
 		#endregion
@@ -381,7 +386,6 @@ namespace Edge.Core.Services
 		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key) { _lock.Lock(key); }
 		[DebuggerNonUserCode] void ILockable.Unlock(object key) { _lock.Unlock(key); }
-		[DebuggerNonUserCode] void ILockable.Lock() { _lock.Lock(); }
 
 		#endregion
 

@@ -10,7 +10,7 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
     /// Represents the configuration section of the Edge services framework.
     /// </summary>
-    internal class EdgeServicesConfiguration : ConfigurationSection
+    public class EdgeServicesConfiguration : ConfigurationSection
     {
 		#region Wrapper
 		//===================
@@ -21,14 +21,14 @@ namespace Edge.Core.Services.Configuration
 		private static EdgeServicesConfiguration _current = null;
 		private static Dictionary<string, Type> _extensions = new Dictionary<string,Type>();
 
-		public static void RegisterExtension(string elementName, Type extensionType)
+		internal static void RegisterExtension(string elementName, Type extensionType)
 		{
 			if (!extensionType.IsSubclassOf(typeof(ConfigurationElement)))
 				throw new InvalidOperationException("Extensions must derive from the ConfigurationElement class.");
 
 			_extensions.Add(elementName, extensionType);
 		}
-		public static Type GetExtension(string elementName)
+		internal static Type GetExtension(string elementName)
 		{
 			Type extensionType;
 			if (!_extensions.TryGetValue(elementName, out extensionType))
@@ -149,23 +149,23 @@ namespace Edge.Core.Services.Configuration
         #endregion
 
         #region Properties
-		public ExtensionElementCollection Extensions
+		internal ExtensionElementCollection Extensions
 		{
 			get { return (ExtensionElementCollection)base[s_extensions]; }
 		}
 
 
-        public ServiceElementCollection Services
+		internal ServiceElementCollection Services
         {
             get { return (ServiceElementCollection)base[s_services]; }
         }
 
-        public AccountElementCollection Accounts
+		internal AccountElementCollection Accounts
         {
             get { return (AccountElementCollection)base[s_accounts]; }
         }
 
-		public AccountElement SystemAccount
+		internal AccountElement SystemAccount
 		{
 			get { return Accounts.GetAccount(-1); }
 		}

@@ -9,14 +9,17 @@ using System.Data.SqlClient;
 using System.Threading;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
-using Edge.Core.Data;
+using System.Security.Cryptography;
 
 namespace Edge.Core.Scheduling
 {
-	public class Scheduler
+	public class Scheduler: MarshalByRefObject
 	{
 		#region members
-		private ServiceEnvironment _envoirment = new ServiceEnvironment();
+
+		private object _instanceLock = new object();
+
+		public ServiceEnvironment Environment { get; private set; }
 		private ProfilesCollection _profiles = new ProfilesCollection();
 
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
@@ -70,10 +73,9 @@ namespace Edge.Core.Scheduling
 		/// Initialize all the services from configuration file or db4o
 		/// </summary>
 		/// <param name="getServicesFromConfigFile"></param>
-		public Scheduler(bool getServicesFromConfigFile)
+		public Scheduler(ServiceEnvironment environment)
 		{
-			if (getServicesFromConfigFile)
-				LoadServicesFromConfigurationFile();
+			Environment = environment;
 
 			_percentile = int.Parse(AppSettings.Get(this, "Percentile"));
 			_neededScheduleTimeLine = TimeSpan.Parse(AppSettings.Get(this, "NeededScheduleTimeLine"));
@@ -81,6 +83,8 @@ namespace Edge.Core.Scheduling
 			_findServicesToRunInterval = TimeSpan.Parse(AppSettings.Get(this, "FindServicesToRunInterval"));
 			_timeToDeleteServiceFromTimeLine = TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
 			_executionTimeCashTimeOutAfter = TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
+
+			LoadServicesFromConfigurationFile();
 
 		}
 
@@ -167,6 +171,16 @@ namespace Edge.Core.Scheduling
 		#region Configurations
 		//==================================
 
+		private Guid GuidFromString(string serviceName)
+		{
+			using (MD5 md5 = MD5.Create())
+			{
+				byte[] hash = md5.ComputeHash(Encoding.Default.GetBytes(serviceName));
+				Guid result = new Guid(hash);
+				return result;
+			}
+		}
+
 		/// <summary>
 		/// Load and translate the services from app.config
 		/// </summary>
@@ -175,8 +189,12 @@ namespace Edge.Core.Scheduling
 			//base configuration
 			foreach (ServiceElement serviceElement in EdgeServicesConfiguration.Current.Services)
 			{
-				ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
-				serviceConfiguration.ServiceName = serviceElement.Name;
+				ServiceConfiguration serviceConfiguration = new ServiceConfiguration()
+				{
+					ConfigurationID = GuidFromString(serviceElement.Name),
+					ServiceName = serviceElement.Name
+				};
+
 				foreach (var option in serviceElement.Options)
 					serviceConfiguration.Parameters.Add(option.Key, option.Value);
 
@@ -184,9 +202,6 @@ namespace Edge.Core.Scheduling
 				serviceConfiguration.Limits.MaxConcurrentPerProfile = serviceElement.MaxInstancesPerAccount;
 				foreach (SchedulingRule rule in serviceElement.SchedulingRules)
 					serviceConfiguration.SchedulingRules.Add(rule);
-
-
-
 
 				((ILockable)serviceConfiguration).Lock();
 
@@ -197,7 +212,10 @@ namespace Edge.Core.Scheduling
 			{
 
 				// Create matching profile
-				ServiceProfile profile = new ServiceProfile();
+				ServiceProfile profile = new ServiceProfile()
+				{
+					ProfileID = GuidFromString(account.ID.ToString())
+				};
 				profile.Parameters.Add("AccountID", account.ID);
 				profile.Parameters.Add("AccountName", account.Name);
 
@@ -209,6 +227,7 @@ namespace Edge.Core.Scheduling
 
 					ServiceElement serviceUse = accountService.Uses.Element;
 					ServiceConfiguration deriveConfiguration = profile.DeriveConfiguration(_serviceBaseConfigurations[serviceUse.Name]);
+					deriveConfiguration.ConfigurationID = GuidFromString(account.ID.ToString() + "___" + serviceUse.Name);
 
 					foreach (SchedulingRule rule in serviceUse.SchedulingRules)
 						deriveConfiguration.SchedulingRules.Add(rule);
@@ -259,9 +278,9 @@ namespace Edge.Core.Scheduling
 						}
 						else
 						{
-							SchedulingInfo info = request.SchedulingInfo;
-							info.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
-							request.SchedulingInfo = info;
+							AsLockable(request).Unlock(_instanceLock);
+							request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
+							AsLockable(request).Lock(_instanceLock);
 						}
 					}
 
@@ -297,7 +316,6 @@ namespace Edge.Core.Scheduling
 						DateTime calculatedEndTime = baseEndTime;
 
 						bool found = false;
-						SchedulingInfo schedulingInfo = serviceInstance.SchedulingInfo; ;
 						while (!found)
 						{
 							IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
@@ -308,12 +326,11 @@ namespace Edge.Core.Scheduling
 								int countedPerProfile = requestsWithSameProfile.Count(s => (calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime && calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) || (calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime && calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
 								if (countedPerProfile < serviceInstance.Configuration.Limits.MaxConcurrentPerProfile)
 								{
-									schedulingInfo.ExpectedStartTime = calculatedStartTime;
-									schedulingInfo.ExpectedEndTime = calculatedEndTime;
-									schedulingInfo.SchedulingStatus = Services.SchedulingStatus.Scheduled;
-									
-
-
+									AsLockable(serviceInstance).Unlock(_instanceLock);
+									serviceInstance.SchedulingInfo.ExpectedStartTime = calculatedStartTime;
+									serviceInstance.SchedulingInfo.ExpectedEndTime = calculatedEndTime;
+									serviceInstance.SchedulingInfo.SchedulingStatus = Services.SchedulingStatus.Scheduled;
+									AsLockable(serviceInstance).Lock(_instanceLock);
 
 									found = true;
 								}
@@ -355,12 +372,13 @@ namespace Edge.Core.Scheduling
 							}
 						}
 
-						if (serviceInstance.SchedulingInfo.ActualDeviation <= serviceInstance.SchedulingInfo.MaxDeviationAfter || serviceInstance.SchedulingInfo.MaxDeviationAfter == TimeSpan.Zero)
+						if (serviceInstance.SchedulingInfo.ExpectedDeviation <= serviceInstance.SchedulingInfo.MaxDeviationAfter || serviceInstance.SchedulingInfo.MaxDeviationAfter == TimeSpan.Zero)
 						{
-							schedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
-							serviceInstance.SchedulingInfo = schedulingInfo;
+							AsLockable(serviceInstance).Unlock(_instanceLock);
+							serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
 							serviceInstance.StateChanged += new EventHandler(Instance_StateChanged);
 							serviceInstance.OutcomeReported += new EventHandler(Instance_OutcomeReported);
+							AsLockable(serviceInstance).Lock(_instanceLock);
 
 							// Legacy stuff
 							//TODO: MAXEXECUTIONTIME
@@ -390,9 +408,9 @@ namespace Edge.Core.Scheduling
 		void Instance_StateChanged(object sender, EventArgs e)
 		{
 			var instance = (ServiceInstance)sender;
-			SchedulingInfo info = instance.SchedulingInfo;
-			info.SchedulingStatus = SchedulingStatus.Activated;
-			instance.SchedulingInfo = info;
+			AsLockable(instance).Unlock(_instanceLock);
+			instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
+			AsLockable(instance).Lock(_instanceLock);
 		}
 
 		void Instance_OutcomeReported(object sender, EventArgs e)
@@ -454,7 +472,17 @@ namespace Edge.Core.Scheduling
 									)
 								{
 
-									ServiceInstance request = new ServiceInstance(_envoirment, configuration, null);
+									ServiceInstance request = Environment.NewServiceInstance(configuration);
+									request.SchedulingInfo = new SchedulingInfo()
+									{
+										SchedulingStatus = SchedulingStatus.New,
+										SchedulingScope = schedulingRule.Scope,
+										RequestedTime = requestedTime,
+										MaxDeviationBefore = schedulingRule.MaxDeviationBefore,
+										MaxDeviationAfter = schedulingRule.MaxDeviationAfter,
+									};
+									AsLockable(request).Lock(_instanceLock);
+
 									if (!_unscheduledRequests.ContainsSignature(request) && !_scheduledRequests.ContainsSignature(request))
 										yield return request;
 								}
@@ -487,12 +515,13 @@ namespace Edge.Core.Scheduling
 					using (SqlConnection SqlConnection = new SqlConnection(AppSettings.GetConnectionString(this, "OLTP")))
 					{
 						SqlConnection.Open();
-						using (SqlCommand sqlCommand = DataManager.CreateCommand("ServiceConfiguration_GetExecutionTime(@ConfigName:NvarChar,@Percentile:Int,@ProfileID:Int)", System.Data.CommandType.StoredProcedure))
+						using (SqlCommand sqlCommand = new SqlCommand("ServiceConfiguration_GetExecutionTime"))
 						{
 							sqlCommand.Connection = SqlConnection;
-							sqlCommand.Parameters["@ConfigName"].Value = configurationName;
-							sqlCommand.Parameters["@Percentile"].Value = Percentile;
-							sqlCommand.Parameters["@ProfileID"].Value = AccountID;
+							sqlCommand.CommandType = System.Data.CommandType.StoredProcedure;
+							sqlCommand.Parameters.AddWithValue("@ConfigName", configurationName);
+							sqlCommand.Parameters.AddWithValue("@Percentile",Percentile);
+							sqlCommand.Parameters.AddWithValue("@ProfileID",AccountID);
 
 							averageExacutionTime = System.Convert.ToInt32(sqlCommand.ExecuteScalar());
 							_servicePerProfileAvgExecutionTimeCash[key] = new ServicePerProfileAvgExecutionTimeCash() { AverageExecutionTime = averageExacutionTime, TimeSaved = DateTime.Now };
@@ -528,9 +557,12 @@ namespace Edge.Core.Scheduling
 			if (!_profiles.TryGetValue(Convert.ToInt32(Instance.Configuration.Profile.Parameters["AccountID"]), out profile))
 				throw new KeyNotFoundException(String.Format("No profile exists with the ID '{0}' (account ID).", (Instance.Configuration.Profile.Parameters["AccountID"])));
 
-			ServiceInstance childInstance = new ServiceInstance(_envoirment, baseConfiguration, Instance.ParentInstance);
-			SchedulingInfo info = new SchedulingInfo() { SchedulingStatus = Services.SchedulingStatus.New, RequestedTime = DateTime.Now };
-			childInstance.SchedulingInfo = info;
+			ServiceInstance childInstance = new ServiceInstance(Environment, baseConfiguration, Instance.ParentInstance);
+			AsLockable(childInstance).Unlock(_instanceLock);
+			childInstance.SchedulingInfo.SchedulingStatus = Services.SchedulingStatus.New;
+			childInstance.SchedulingInfo.RequestedTime = DateTime.Now;
+			childInstance.SchedulingInfo.SchedulingScope = SchedulingScope.Unplanned;
+			AsLockable(childInstance).Lock(_instanceLock);
 
 			AddRequestToSchedule(childInstance);
 		}
@@ -585,6 +617,11 @@ namespace Edge.Core.Scheduling
 		{
 			if (NewScheduleCreatedEvent != null)
 				NewScheduleCreatedEvent(this, e);
+		}
+
+		private static ILockable AsLockable(ILockable obj)
+		{
+			return obj;
 		}
 
 		//==================================
