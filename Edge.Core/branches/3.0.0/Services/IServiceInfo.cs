@@ -11,7 +11,7 @@ namespace Edge.Core.Services
 		Guid InstanceID { get; }
 		ServiceConfiguration Configuration { get; }
 		ServiceEnvironment Environment { get; }
-		ServiceInstance ParentInstance { get; }
+		IServiceInfo ParentInstance { get; }
 		double Progress { get; }
 		ServiceState State { get; }
 		ServiceOutcome Outcome { get; }
@@ -20,6 +20,5 @@ namespace Edge.Core.Services
 		DateTime TimeInitialized { get; }
 		DateTime TimeStarted { get; }
 		DateTime TimeEnded { get; }
-		//ReadOnlyObservableCollection<ServiceInstance> ChildInstances { get; }
 	}
 }

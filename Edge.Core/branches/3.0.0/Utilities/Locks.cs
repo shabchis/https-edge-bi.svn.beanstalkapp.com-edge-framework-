@@ -111,7 +111,7 @@ namespace Edge.Core.Services
 		{
 			get { return _lock.IsLocked; }
 		}
-
+		void ILockable.Lock() { _lock.Lock(); }
 		void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
@@ -121,10 +121,7 @@ namespace Edge.Core.Services
 		{
 			_lock.Unlock(key);
 		}
-		void ILockable.Lock()
-		{
-			_lock.Lock(new object());
-		}
+
 
 		//=================
 		#endregion
@@ -314,19 +311,18 @@ namespace Edge.Core.Services
 			get { return _lock.IsLocked; }
 		}
 
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		[DebuggerNonUserCode]
 		void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
 		}
-
+		[DebuggerNonUserCode]
 		void ILockable.Unlock(object key)
 		{
 			_lock.Unlock(key);
 		}
-		void ILockable.Lock()
-		{
-			_lock.Lock(new object());
-		}
+
 
 		//=================
 		#endregion
