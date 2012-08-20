@@ -121,6 +121,10 @@ namespace Edge.Core.Services
 		{
 			_lock.Unlock(key);
 		}
+		void ILockable.Lock()
+		{
+			_lock.Lock(new object());
+		}
 
 		//=================
 		#endregion
@@ -318,6 +322,10 @@ namespace Edge.Core.Services
 		void ILockable.Unlock(object key)
 		{
 			_lock.Unlock(key);
+		}
+		void ILockable.Lock()
+		{
+			_lock.Lock(new object());
 		}
 
 		//=================

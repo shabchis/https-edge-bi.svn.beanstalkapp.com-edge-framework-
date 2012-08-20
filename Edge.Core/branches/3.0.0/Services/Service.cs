@@ -13,7 +13,8 @@ namespace Edge.Core.Services
 	{
 		#region Static
 		//======================
-
+		public static Service Current { get; private set; }
+		
 		public static readonly TimeSpan DefaultMaxExecutionTime = TimeSpan.FromMinutes(15);
 		public static readonly TimeSpan MaxCleanupTime = TimeSpan.FromMinutes(1);
 		
@@ -36,7 +37,7 @@ namespace Edge.Core.Services
 			this.InstanceID = instance.InstanceID;
 			this.Configuration = instance.Configuration;
 			this.ParentInstance = instance.ParentInstance;
-
+			Current = this;
 			// Monitor app domain-level events
 			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);
 			AppDomain.CurrentDomain.DomainUnload += new EventHandler(this.DomainUnload);
