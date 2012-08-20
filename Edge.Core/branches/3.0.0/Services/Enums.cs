@@ -41,7 +41,7 @@ namespace Edge.Core.Services
 		/// Service completed successfully.
 		/// </summary>
 		Success = 1,
-		
+
 		/// <summary>
 		/// Service failed to complete successfully.
 		/// </summary>
@@ -51,7 +51,7 @@ namespace Edge.Core.Services
 		/// Service was aborted during execution.
 		/// </summary>
 		Aborted = 3,
-		
+
 		/// <summary>
 		/// Service was canceled before it started.
 		/// </summary>
@@ -60,6 +60,7 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// Service reached it's max execution time.
 		/// </summary>
-		TimedOut = 8
+		TimedOut = 8,
+		Reset
 	}
 }

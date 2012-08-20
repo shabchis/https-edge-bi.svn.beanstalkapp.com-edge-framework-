@@ -23,7 +23,7 @@ namespace Edge.Core.Scheduling
 		void ResetUnended();
 
 		[OperationContract]
-		Guid AddUnplannedService(ServiceConfiguration serviceConfiguration, SchedulingRule rule);
+		Guid AddUnplannedService(ServiceConfiguration serviceConfiguration);
 
 		[OperationContract]
 		ProfilesCollection GetSchedulingProfiles();
