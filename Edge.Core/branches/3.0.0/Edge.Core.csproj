@@ -113,6 +113,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\Locks.cs" />
     <Compile Include="Utilities\Log.cs" />
+    <Compile Include="Utilities\NetDataContract.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Edge.Core.snk" />

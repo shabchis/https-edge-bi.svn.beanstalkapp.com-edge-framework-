@@ -253,7 +253,7 @@ namespace Edge.Core.Services
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
-				_lock.Lock(new object());
+				_lock.Lock();
 		}
 
 		//=================
@@ -475,7 +475,7 @@ namespace Edge.Core.Services
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
-				_lock.Lock(new object());
+				_lock.Lock();
 		}
 
 		//=================
