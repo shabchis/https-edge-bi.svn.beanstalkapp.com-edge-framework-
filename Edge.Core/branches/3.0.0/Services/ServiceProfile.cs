@@ -54,19 +54,14 @@ namespace Edge.Core.Services
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
 			((ILockable)Parameters).Lock(key);
 			((ILockable)AssignedServices).Lock(key);
 		}
-		[DebuggerNonUserCode]
-		void ILockable.Lock()
-		{
-			_lock.Lock();
-			((ILockable)Parameters).Lock();
-			((ILockable)AssignedServices).Lock();
-		}
+
 		[DebuggerNonUserCode] void ILockable.Unlock(object key)
 		{
 			_lock.Unlock(key);

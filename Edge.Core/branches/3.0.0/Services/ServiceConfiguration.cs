@@ -317,6 +317,8 @@ namespace Edge.Core.Services
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
+		[DebuggerNonUserCode]
+		void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
@@ -330,10 +332,6 @@ namespace Edge.Core.Services
 			((ILockable)this.Parameters).Unlock(key);
 			((ILockable)this.Limits).Unlock(key);
 			((ILockable)this.SchedulingRules).Unlock(key);
-		}
-		[DebuggerNonUserCode] void ILockable.Lock()
-		{
-			((ILockable)this).Lock(new object());
 		}
 
 		#endregion
@@ -380,6 +378,7 @@ namespace Edge.Core.Services
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key) { _lock.Lock(key); }
 		[DebuggerNonUserCode] void ILockable.Unlock(object key) { _lock.Unlock(key); }
 		[DebuggerNonUserCode] void ILockable.Lock() { _lock.Lock(); }
