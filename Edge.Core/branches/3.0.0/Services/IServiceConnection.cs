@@ -56,7 +56,6 @@ namespace Edge.Core.Services
 		public void Dispose()
 		{
 			this.Host.DisconnectService(this.ServiceInstanceID, this.Guid);
-
 			// TODO: cause lease to expire
 			//throw new NotImplementedException("The ILease must be released at this point to allow garbage collection!");
 		}
@@ -86,7 +85,7 @@ namespace Edge.Core.Services
 
 		#region ISerializable Members
 
-		public void GetObjectData(SerializationInfo info, StreamingContext context)
+		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			throw new NotImplementedException();
 		}

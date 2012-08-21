@@ -19,6 +19,7 @@ namespace Edge.Core.Services
 
 		public ServiceProfile()
 		{
+			this.ProfileID = Guid.NewGuid();
 			Parameters = new LockableDictionary<string, object>();
 			AssignedServices = new LockableList<ServiceConfiguration>() { OnValidate = OnServiceAssigned };
 		}
@@ -54,7 +55,7 @@ namespace Edge.Core.Services
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
@@ -93,7 +94,7 @@ namespace Edge.Core.Services
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
-				_lock.Lock(new object());
+				_lock.Lock();
 		}
 
 		//=================

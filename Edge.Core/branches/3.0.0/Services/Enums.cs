@@ -60,7 +60,11 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// Service reached it's max execution time.
 		/// </summary>
-		TimedOut = 8,
-		Reset
+		Timeout = 8,
+
+		/// <summary>
+		/// Outcome that is set when a dead instance does not have an outcome.
+		/// </summary>
+		Killed = 9
 	}
 }

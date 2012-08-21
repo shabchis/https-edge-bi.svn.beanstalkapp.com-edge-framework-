@@ -102,7 +102,7 @@
     <Compile Include="Services\Service.cs" />
     <Compile Include="Services\ServiceConfiguration.cs" />
     <Compile Include="Services\ServiceExecutionHost.cs" />
-    <Compile Include="Services\ServiceHostingPermission.cs" />
+    <Compile Include="Services\ServiceExecutionPermission.cs" />
     <Compile Include="Services\ServiceInstance.cs" />
     <Compile Include="Services\IServiceInfo.cs" />
     <Compile Include="Services\ServiceEnvironment.cs" />

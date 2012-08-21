@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Runtime.Remoting.Messaging;
+using System.Security;
+using System.Security.Permissions;
+using System.Text;
 using Edge.Core.Scheduling;
 
 namespace Edge.Core.Services
@@ -32,12 +35,13 @@ namespace Edge.Core.Services
 		#region Fields
 		// ========================
 
+		public ServiceEnvironment Environment { get; private set; }
 		public readonly Guid HostID;
 		ServiceExecutionHost _innerHost = null;
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
-		bool IsWrapped { get { return _innerHost != null; } }
-		public ServiceEnvironment Environment { get; private set; }
+		//PermissionSet _servicePermissions;
+		bool IsWrapper { get { return _innerHost != null; } }
 
 		// ========================
 		#endregion 
@@ -47,13 +51,27 @@ namespace Edge.Core.Services
 
 		public ServiceExecutionHost(): this(true, Guid.NewGuid())
 		{
-			// TODO: demand ServiceHostingPermission
+			ServiceExecutionPermission.All.Demand();
 			this.Environment = new ServiceEnvironment(this);
 		}
 
 		private ServiceExecutionHost(bool wrapped, Guid hostID)
 		{
 			this.HostID = hostID;
+
+			/*
+			_servicePermissions = new PermissionSet(PermissionState.None);
+			_servicePermissions.AddPermission(new ServiceExecutionPermission(ServiceExecutionPermissionFlags.None));
+			_servicePermissions.AddPermission(new System.Security.Permissions.FileIOPermission(PermissionState.Unrestricted));
+			_servicePermissions.AddPermission(new System.Security.Permissions.ReflectionPermission(PermissionState.Unrestricted));
+			_servicePermissions.AddPermission(new System.Security.Permissions.SecurityPermission(
+				SecurityPermissionFlag.Assertion |
+				SecurityPermissionFlag.Execution |
+				SecurityPermissionFlag.ControlAppDomain |
+				SecurityPermissionFlag.ControlThread |
+				SecurityPermissionFlag.SerializationFormatter
+			));
+			*/
 
 			if (!wrapped)
 				return;
@@ -75,7 +93,7 @@ namespace Edge.Core.Services
 		[OneWay]
 		void IServiceHost.InitializeService(ServiceInstance instance)
 		{
-			if (this.IsWrapped)
+			if (this.IsWrapper)
 			{
 				((IServiceHost)_innerHost).InitializeService(instance);
 				return;
@@ -89,7 +107,13 @@ namespace Edge.Core.Services
 			}
 
 			// Load the app domain, and attach to its events
-			AppDomain domain = AppDomain.CreateDomain("Edge service - " + instance.ToString());
+			AppDomain domain = AppDomain.CreateDomain(
+				"Edge service - " + instance.ToString()/*,
+				null,
+				new AppDomainSetup() { ApplicationBase = Directory.GetCurrentDirectory() },
+				_servicePermissions,
+				null*/
+			);
 			domain.DomainUnload += new EventHandler(DomainUnload);
 
 			// Instantiate the service type in the new domain
@@ -130,7 +154,7 @@ namespace Edge.Core.Services
 		[OneWay]
 		void IServiceHost.StartService(Guid instanceID)
 		{
-			if (this.IsWrapped)
+			if (this.IsWrapper)
 			{
 				((IServiceHost)_innerHost).StartService(instanceID);
 				return;
@@ -146,7 +170,7 @@ namespace Edge.Core.Services
 		[OneWay]
 		void IServiceHost.AbortService(Guid instanceID)
 		{
-			if (this.IsWrapped)
+			if (this.IsWrapper)
 			{
 				((IServiceHost)_innerHost).AbortService(instanceID);
 				return;
@@ -161,7 +185,7 @@ namespace Edge.Core.Services
 		[OneWay]
 		void IServiceHost.DisconnectService(Guid instanceID, Guid connectionGuid)
 		{
-			if (this.IsWrapped)
+			if (this.IsWrapper)
 			{
 				((IServiceHost)_innerHost).DisconnectService(instanceID, connectionGuid);
 				return;
@@ -217,6 +241,7 @@ namespace Edge.Core.Services
 
 	internal interface IServiceHost
 	{
+		ServiceEnvironment Environment { get; }
 		void InitializeService(ServiceInstance instance);
 		void StartService(Guid instanceID);
 		void AbortService(Guid instanceID);

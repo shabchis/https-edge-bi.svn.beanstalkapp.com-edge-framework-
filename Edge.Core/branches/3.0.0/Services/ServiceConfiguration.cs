@@ -173,16 +173,21 @@ namespace Edge.Core.Services
 				}
 			}
 
-			// TODO: handle scheduling rules
+			// Get scheduling rules only if this one is empty
+			foreach (SchedulingRule rule in this.SchedulingRules)
+				config.SchedulingRules.Add(rule.Clone());
 
 			// Parameter inheritance from parent service configuration
 			ServiceConfiguration parentInstanceConfig = parent as ServiceConfiguration;
-			if (parentInstanceConfig != null && parentInstanceConfig.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+			if (parentInstanceConfig != null)
 			{
-				// Ignore parameters that are already in the config
-				foreach (var param in parentInstanceConfig.Parameters)
-					if (!config.Parameters.ContainsKey(param.Key))
-						config.Parameters[param.Key] = param.Value;
+				if (parentInstanceConfig.ConfigurationLevel == ServiceConfigurationLevel.Instance)
+				{
+					// Ignore parameters that are already in the config
+					foreach (var param in parentInstanceConfig.Parameters)
+						if (!config.Parameters.ContainsKey(param.Key))
+							config.Parameters[param.Key] = param.Value;
+				}
 			}
 
 			return config;
@@ -280,7 +285,7 @@ namespace Edge.Core.Services
 		#region Serialization
 		//=================
 
-		public void GetObjectData(SerializationInfo info, StreamingContext context)
+		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			info.AddValue("ConfigurationID", ConfigurationID);
 			info.AddValue("ConfigurationLevel", ConfigurationLevel);
@@ -327,7 +332,7 @@ namespace Edge.Core.Services
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
 		[DebuggerNonUserCode]
-		void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		void ILockable.Lock() { ((ILockable)this).Lock(null); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
@@ -383,7 +388,7 @@ namespace Edge.Core.Services
 
 		[NonSerialized] Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
 		[DebuggerNonUserCode] void ILockable.Lock(object key) { _lock.Lock(key); }
 		[DebuggerNonUserCode] void ILockable.Unlock(object key) { _lock.Unlock(key); }
 
