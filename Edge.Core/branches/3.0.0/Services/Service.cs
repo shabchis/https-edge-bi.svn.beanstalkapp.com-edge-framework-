@@ -38,7 +38,10 @@ namespace Edge.Core.Services
 			this.InstanceID = instance.InstanceID;
 			this.Configuration = instance.Configuration;
 			this.ParentInstance = instance.ParentInstance;
+			this.Environment = instance.Environment;
+			
 			Current = this;
+			
 			// Monitor app domain-level events
 			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);
 			AppDomain.CurrentDomain.DomainUnload += new EventHandler(this.DomainUnload);
@@ -190,6 +193,8 @@ namespace Edge.Core.Services
 
 		void DoWorkInternal()
 		{
+			ServiceOutcome outcome = ServiceOutcome.Unspecified;
+
 			lock (_sync)
 			{
 				State = ServiceState.Running;
@@ -198,12 +203,12 @@ namespace Edge.Core.Services
 				_doWork = new Thread(() =>
 				{
 					// Suppress thread abort because these are expected
-					try { Outcome = this.DoWork(); }
+					try { outcome = this.DoWork(); }
 					catch (ThreadAbortException) { }
 					catch (Exception ex)
 					{
 						ReportError("Error occured during execution.", ex);
-						Outcome = ServiceOutcome.Failure;
+						outcome = ServiceOutcome.Failure;
 					}
 				});
 				_doWork.Start();
@@ -212,16 +217,16 @@ namespace Edge.Core.Services
 				{
 					// Timeout, abort the thread and exit
 					_doWork.Abort();
-					Outcome = ServiceOutcome.TimedOut;
+					outcome = ServiceOutcome.Timeout;
 				}
 
 				_doWork = null;
 			}
 
-			if (Outcome == ServiceOutcome.Unspecified)
+			if (outcome == ServiceOutcome.Unspecified)
 				State = ServiceState.Paused;
 			else
-				Stop();
+				Stop(outcome);
 		}
 
 		[OneWay]
@@ -235,15 +240,12 @@ namespace Edge.Core.Services
 				// Abort the worker thread
 				if (_doWork != null)
 					_doWork.Abort();
-
-				// notify
-				Outcome = ServiceOutcome.Aborted;
 			}
 
-			Stop();
+			Stop(ServiceOutcome.Aborted);
 		}
 
-		void Stop()
+		void Stop(ServiceOutcome outcome)
 		{
 			lock (_sync)
 			{
@@ -254,8 +256,11 @@ namespace Edge.Core.Services
 				IsStopped = true;
 
 				// Report an outcome, bitch
-				if (this.Outcome == ServiceOutcome.Unspecified)
-					ReportError("Service did not report any outcome.");
+				if (outcome == ServiceOutcome.Unspecified)
+				{
+					ReportError("Service did not report any outcome. Setting to failure.");
+					outcome = ServiceOutcome.Failure;
+				}
 
 				// Start wrapping things up
 				State = ServiceState.Ending;
@@ -269,7 +274,7 @@ namespace Edge.Core.Services
 					catch (ThreadAbortException) { }
 					catch (Exception ex)
 					{
-						Log("Error occured during cleanup.", ex);
+						ReportError("Error occured during cleanup.", ex);
 					}
 				});
 				onEndedThread.Start();
@@ -283,6 +288,7 @@ namespace Edge.Core.Services
 
 				// Change state to ended
 				State = ServiceState.Ended;
+				Outcome = outcome;
 			}
 
 			// Unload app domain if Stop was called directly
@@ -295,7 +301,7 @@ namespace Edge.Core.Services
 			if (!IsStopped)
 			{
 				Log("Service's AppDomain is being unloaded by external code.", LogMessageType.Warning);
-				Stop();
+				Stop(ServiceOutcome.Killed);
 			}
 		}
 
@@ -303,7 +309,7 @@ namespace Edge.Core.Services
 		{
 			// Log the exception
 			ReportError("Unhandled exception occured outside of DoWork.", e.ExceptionObject as Exception);
-			Outcome = ServiceOutcome.Failure;
+			Stop(ServiceOutcome.Failure);
 		}
 
 		protected ServiceInstance NewChildService(ServiceConfiguration child)

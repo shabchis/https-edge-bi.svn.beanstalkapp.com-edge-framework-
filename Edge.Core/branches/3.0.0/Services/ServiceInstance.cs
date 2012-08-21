@@ -7,6 +7,7 @@ using System.Runtime.Remoting.Lifetime;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 using System.Diagnostics;
+using System.Security;
 
 namespace Edge.Core.Services
 {
@@ -17,10 +18,7 @@ namespace Edge.Core.Services
 		//=================
 
 		internal IServiceConnection Connection;
-
-		bool _owner = false;
 		bool _autostart = false;
-		Guid _parentInstanceID = Guid.Empty;
 		SchedulingInfo _schedulingInfo;
 
 		public bool ThrowExceptionOnError { get; set; }
@@ -45,7 +43,6 @@ namespace Edge.Core.Services
 			this.InstanceID = Guid.NewGuid();
 			this.Configuration = configuration.Derive(parentInstance);
 			//this.ParentInstance = parentInstance;
-			_owner = true;
 		}
 		
 		//=================
@@ -132,50 +129,60 @@ namespace Edge.Core.Services
 			}
 		}
 
+		object _eventSync = new object();
 		private void ServiceEventReceived(ServiceEventType eventType, object value)
 		{
-			switch (eventType)
+			lock (_eventSync)
 			{
-				case ServiceEventType.StateChanged:
-					{
-						var ev = (EventValue<ServiceState>)value;
-
-						if (ev.Value == ServiceState.Ready)
+				switch (eventType)
+				{
+					case ServiceEventType.StateChanged:
 						{
-							TimeInitialized = ev.Time;
-						}
-						else if (ev.Value == ServiceState.Running)
-						{
-							TimeStarted = ev.Time;
-						}
-						else if (ev.Value == ServiceState.Ended)
-						{
-							TimeEnded = ev.Time;
-							this.Connection.Dispose();
+							var ev = (EventValue<ServiceState>)value;
 
-							// Autocomplete progress only if success
-							if (_outcome == ServiceOutcome.Success)
-								Progress = 1.0;
+							if (ev.Value == ServiceState.Ready)
+							{
+								TimeInitialized = ev.Time;
+							}
+							else if (ev.Value == ServiceState.Running)
+							{
+								TimeStarted = ev.Time;
+							}
+							else if (ev.Value == ServiceState.Ended)
+							{
+								TimeEnded = ev.Time;
+							}
+
+							State = ev.Value;
+
+							if (State == ServiceState.Ready && _autostart)
+								this.Start();
+
+							break;
 						}
 
-						State = ev.Value;
+					case ServiceEventType.ProgressReported:
+						Progress = (double)value;
 						break;
-					}
 
-				case ServiceEventType.ProgressReported:
-					Progress = (double)value;
-					break;
+					case ServiceEventType.OutputGenerated:
+						Output = value;
+						break;
 
-				case ServiceEventType.OutputGenerated:
-					Output = value;
-					break;
+					case ServiceEventType.OutcomeReported:
 
-				case ServiceEventType.OutcomeReported:
-					Outcome = (ServiceOutcome)value;
-					break;
+						// Autocomplete progress only if success
+						if ((ServiceOutcome)value == ServiceOutcome.Success)
+							Progress = 1.0;
 
-				default:
-					return;
+						Outcome = (ServiceOutcome)value;
+						this.Connection.Dispose();
+
+						break;
+
+					default:
+						return;
+				}
 			}
 		}
 
@@ -201,7 +208,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Initialize()
 		{
-			// TODO: demand ServiceExecutionPermission
+			ServiceExecutionPermission.All.Demand();
 
 			if (Connection != null || State != ServiceState.Uninitialized)
 				throw new InvalidOperationException("Service is already initialized.");
@@ -243,19 +250,19 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Start()
 		{
-			// TODO: demand ServiceExecutionPermission
+			ServiceExecutionPermission.All.Demand();
 
 			// If not initialized, initialize and then progress to Start
 			if (Connection == null && State == ServiceState.Uninitialized)
 			{
 				_autostart = true;
 				Initialize();
+				return;
 			}
 			else if (State != ServiceState.Ready)
 				throw new InvalidOperationException("Service can only be started when it is in the Ready state.");
 
 			// Start the service
-			// TODO: async
 			try { this.Connection.Host.StartService(this.InstanceID); }
 			catch (Exception ex)
 			{
@@ -305,8 +312,8 @@ namespace Edge.Core.Services
 		{
 			return String.Format("{0} (profile: {1}, guid: {2})",
 				Configuration.ServiceName,
-				Configuration.Profile == null ? "default" : Configuration.Profile.ProfileID.ToString(),
-				InstanceID
+				Configuration.Profile == null ? "default" : Configuration.Profile.ProfileID.ToString("N"),
+				InstanceID.ToString("N")
 			);
 		}
 
@@ -317,11 +324,12 @@ namespace Edge.Core.Services
 		#region Serialization
 		//=================
 
-		public void GetObjectData(SerializationInfo info, StreamingContext context)
+		[SecurityCritical]
+		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			info.AddValue("InstanceID", InstanceID);
 			info.AddValue("Configuration", Configuration);
-			info.AddValue("ParentInstanceID", ParentInstance == null ? _parentInstanceID : ParentInstance.InstanceID);
+			info.AddValue("ParentInstanceID", this.ParentInstance == null ? null : (object) this.ParentInstance.InstanceID);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
 			info.AddValue("Connection", Connection); // this is strictly for internal use only
 
@@ -334,6 +342,11 @@ namespace Edge.Core.Services
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
+			this.Environment = new ServiceEnvironment(this.Connection.Host);
+
+			object pid = info.GetValue("ParentInstanceID", typeof(object));
+			if (pid != null)
+				this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
@@ -350,7 +363,7 @@ namespace Edge.Core.Services
 		Padlock _lock = new Padlock();
 		public bool IsLocked { get { return _lock.IsLocked; } }
 		[DebuggerNonUserCode]
-		void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		void ILockable.Lock() { ((ILockable)this).Lock(null); }
 		[DebuggerNonUserCode]
 		void ILockable.Lock(object key)
 		{

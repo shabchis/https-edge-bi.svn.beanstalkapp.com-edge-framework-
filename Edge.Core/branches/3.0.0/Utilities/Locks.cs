@@ -30,25 +30,23 @@ namespace Edge.Core.Services
 	[DebuggerNonUserCode]
 	public class Padlock:ILockable
 	{
-		object _key;
+		static object DEFAULTKEY = new object();
+		internal object _key = DEFAULTKEY;
 
 		public bool IsLocked
 		{
-			get { return _key != null; }
+			get { return _key != DEFAULTKEY; }
 		}
 
 		public void Lock()
 		{
-			Lock(new object());
+			Lock(null);
 		}
 
 		public void Lock(object key)
 		{
 			if (this.IsLocked)
 				throw new LockException("Object is already locked.");
-
-			if (key == null)
-				throw new ArgumentNullException("key");
 
 			_key = key;
 		}
@@ -59,12 +57,12 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("Object is not locked.");
 
 			if (key == null)
-				throw new ArgumentNullException("key");
+				throw new ArgumentNullException("Null cannot be used as a key. Objects locked with null can never be unlocked.", "key");
 
-			if (!_key.Equals(key))
-				throw new LockException("The key does not fit the lock.");
+			if (!Object.Equals(key, _key))
+				throw new LockException("The key does not match the lock.");
 			else
-				_key = null;
+				_key = DEFAULTKEY;
 		}
 
 		public void Ensure()
@@ -238,8 +236,8 @@ namespace Edge.Core.Services
 
 		#region Serialization
 		//=================
-		
-		public void  GetObjectData(SerializationInfo info, StreamingContext context)
+
+		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			info.AddValue("_inner", _inner);
 
@@ -313,7 +311,7 @@ namespace Edge.Core.Services
 			get { return _lock.IsLocked; }
 		}
 
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(new object()); }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
 		[DebuggerNonUserCode]
 		void ILockable.Lock(object key)
 		{
@@ -460,8 +458,8 @@ namespace Edge.Core.Services
 
 		#region Serialization
 		//=================
-		
-		public void  GetObjectData(SerializationInfo info, StreamingContext context)
+
+		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			info.AddValue("_inner", _inner);
 
