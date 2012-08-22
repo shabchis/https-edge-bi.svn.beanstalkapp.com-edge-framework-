@@ -7,10 +7,11 @@ using System.Diagnostics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Runtime.Remoting.Contexts;
+using System.ServiceModel;
+using System.ServiceModel.Dispatcher;
 
 namespace Edge.Core.Services
 {
-	[Synchronization(true)]
 	public abstract class Service : MarshalByRefObject, IServiceInfo
 	{
 		#region Static
@@ -128,7 +129,6 @@ namespace Edge.Core.Services
 		//======================
 
 		ServiceExecutionHost _host;
-		readonly Dictionary<Guid, IServiceConnection> _connections = new Dictionary<Guid, IServiceConnection>();
 
 		void Notify(ServiceEventType eventType, object value)
 		{
@@ -140,7 +140,7 @@ namespace Edge.Core.Services
 			
 		}
 		
-		[OneWay]
+		//[OneWay]
 		internal void Connect(IServiceConnection connection)
 		{
 			lock (_connections)
@@ -149,7 +149,7 @@ namespace Edge.Core.Services
 			}
 		}
 
-		[OneWay]
+		//[OneWay]
 		internal void Disconnect(Guid connectionGuid)
 		{
 			lock (_connections)
@@ -168,7 +168,7 @@ namespace Edge.Core.Services
 		internal bool IsStopped = false;
 		Thread _doWork = null;
 
-		[OneWay]
+		//[OneWay]
 		internal void Start()
 		{
 			if (this.State != ServiceState.Ready)
@@ -184,7 +184,7 @@ namespace Edge.Core.Services
 			}
 		}
 
-		[OneWay]
+		//[OneWay]
 		internal void Resume()
 		{
 			if (this.State != ServiceState.Paused)
@@ -232,7 +232,7 @@ namespace Edge.Core.Services
 				Stop(outcome);
 		}
 
-		[OneWay]
+		//[OneWay]
 		protected internal void Abort()
 		{
 			lock (_controlSync)
