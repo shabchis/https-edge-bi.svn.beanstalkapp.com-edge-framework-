@@ -6,9 +6,11 @@ using System.Text;
 using System.Diagnostics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
+using System.Runtime.Remoting.Contexts;
 
 namespace Edge.Core.Services
 {
+	[Synchronization(true)]
 	public abstract class Service : MarshalByRefObject, IServiceInfo
 	{
 		#region Static
@@ -135,6 +137,7 @@ namespace Edge.Core.Services
 				foreach (IServiceConnection connection in this._connections.Values)
 					connection.Notify(eventType, value);
 			}
+			
 		}
 		
 		[OneWay]
@@ -161,7 +164,7 @@ namespace Edge.Core.Services
 		#region Control
 		//======================
 
-		object _sync = new object();
+		object _controlSync = new object();
 		internal bool IsStopped = false;
 		Thread _doWork = null;
 
@@ -174,7 +177,7 @@ namespace Edge.Core.Services
 				return;
 			}
 
-			lock (_sync)
+			lock (_controlSync)
 			{
 				TimeStarted = DateTime.Now;
 				DoWorkInternal();
@@ -195,7 +198,7 @@ namespace Edge.Core.Services
 		{
 			ServiceOutcome outcome = ServiceOutcome.Unspecified;
 
-			lock (_sync)
+			lock (_controlSync)
 			{
 				State = ServiceState.Running;
 
@@ -232,7 +235,7 @@ namespace Edge.Core.Services
 		[OneWay]
 		protected internal void Abort()
 		{
-			lock (_sync)
+			lock (_controlSync)
 			{
 				if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Paused)
 					return;
@@ -247,7 +250,7 @@ namespace Edge.Core.Services
 
 		void Stop(ServiceOutcome outcome)
 		{
-			lock (_sync)
+			lock (_controlSync)
 			{
 				// Enforce only one stop call
 				if (IsStopped)
