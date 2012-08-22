@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public abstract class EdgeObject
+	public abstract partial class EdgeObject
 	{
 		public ulong GK;
 		public string Name;
@@ -15,19 +15,19 @@ namespace Edge.Data.Objects
 
 		public ObjectStatus Status;
 
-		public Dictionary<MetaProperty, object> MetaData;
+		public Dictionary<MetaProperty, object> MetaProperties;
 	}
 
-	public class MetaProperty
+	public partial class MetaProperty
 	{
 		public int ID;
 		public string Name;
 		public Account Account;
 		public Channel Channel;
-		public Type PropertyType;
+		public Type BaseValueType;
 	}
 
-	public abstract class ChannelSpecificObject : EdgeObject
+	public abstract partial class ChannelSpecificObject : EdgeObject
 	{
 		public Channel Channel;
 	}
@@ -40,17 +40,18 @@ namespace Edge.Data.Objects
 		Suspended = 3,
 		Ended = 4,
 		Deleted = 5,
-		Pending = 6
+		Pending = 6,
+		Duplicate = 999
 	}
 
-	public class Account
+	public partial class Account
 	{
 		public int ID;
 		public string Name;
 		public Account ParentAccount;
 	}
 
-	public class Channel
+	public partial class Channel
 	{
 		public int ID;
 		public string Name;
@@ -63,18 +64,25 @@ namespace Edge.Data.Objects
 		MarketingChannel
 	}
 
-	public abstract class Creative : EdgeObject
+	public abstract partial class Creative : EdgeObject
 	{
 	}
 
-	public class TextCreative : Creative
+	public partial class CompositeCreative : Creative
 	{
-		public TextCreativeType TextType;
+		public Dictionary<string, SingleCreative> ChildCreatives;
+	}
+
+	public abstract partial class SingleCreative : Creative
+	{
+	}
+
+	public partial class TextCreative : SingleCreative
+	{
 		public string Text;
-		public string Text2;
 	}
 
-	public class ImageCreative : Creative
+	public partial class ImageCreative : SingleCreative
 	{
 		public string ImageUrl;
 		public string ImageSize;
@@ -82,31 +90,18 @@ namespace Edge.Data.Objects
 
 	public enum TextCreativeType
 	{
-		Title = 1,
-		Body = 2,
-		DisplayUrl = 3
+		Text = 1,
+		Url = 2
 	}
 
-	public class Ad : ChannelSpecificObject
+	public partial class Ad : ChannelSpecificObject
 	{
 		public string DestinationUrl;
-		public List<AdCreative> Creatives;
-		public List<AdTarget> Targets;
-	}
-
-	public class AdCreative : ChannelSpecificObject
-	{
-		public Ad ParentAd;
 		public Creative Creative;
+		public List<Target> Targets;
 	}
 
-	public class AdTarget : ChannelSpecificObject
-	{
-		public Ad ParentAd;
-		public Target Target;
-	}
-
-	public class LandingPage: EdgeObject
+	public partial class LandingPage : EdgeObject
 	{
 		public LandingPageType LandingPageType;
 	}
@@ -117,26 +112,17 @@ namespace Edge.Data.Objects
 		Dynamic
 	}
 
-	public class SearchQuery : ChannelSpecificObject
-	{
-		public KeywordTarget Keyword;
-	}
-
-	public abstract class Target: EdgeObject
+	public abstract partial class Target : EdgeObject
 	{
 		public string DestinationUrl;
 	}
 
-	public class KeywordTarget: Target
+	public partial class KeywordTarget : Target
 	{
 		public string Value;
 		public KeywordMatchType MatchType;
 	}
 
-	public class SearchQuery : EdgeObject
-	{
-		public KeywordTarget Keyword;
-	}
 
 	public enum KeywordMatchType
 	{
@@ -146,7 +132,7 @@ namespace Edge.Data.Objects
 		Exact = 3
 	};
 
-	public class PlacementTarget : Target
+	public partial class PlacementTarget : Target
 	{
 		public string Value;
 		public PlacementType PlacementType;
@@ -159,7 +145,7 @@ namespace Edge.Data.Objects
 		Managed = 5
 	}
 
-	public class GenderTarget : Target
+	public partial class GenderTarget : Target
 	{
 		public Gender Gender;
 	}
@@ -171,25 +157,25 @@ namespace Edge.Data.Objects
 		Female = 2
 	}
 
-	public class AgeGroupTarget : Target
+	public partial class AgeGroupTarget : Target
 	{
 		public int FromAge;
 		public int ToAge;
 	}
 
-	public class Campaign : ChannelSpecificObject
+	public partial class Campaign : ChannelSpecificObject
 	{
 		public double Budget;
 	}
 
-	public class AdGroup : ChannelSpecificObject
+	public partial class AdGroup : ChannelSpecificObject
 	{
 		public Campaign ParentCampaign;
 	}
 
-	public class CustomValue : ChannelSpecificObject
+	public partial class Segment : ChannelSpecificObject
 	{
-		public MetaProperty ParentProperty;
+		public MetaProperty MetaProperty;
 		public string Value;
 	}
 }
