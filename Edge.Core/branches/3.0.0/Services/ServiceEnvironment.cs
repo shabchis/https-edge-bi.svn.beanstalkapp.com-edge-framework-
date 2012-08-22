@@ -22,13 +22,14 @@ namespace Edge.Core.Services
 
 		internal ServiceInstance NewServiceInstance(ServiceConfiguration configuration, Service parent)
 		{
-			return new ServiceInstance(this, configuration, parent);
+			return new ServiceInstance(configuration, this, parent);
 		}
 
-		internal IServiceConnection AcquireHostConnection(ServiceInstance instance)
+		internal ServiceConnection AcquireHostConnection(ServiceInstance instance)
 		{
 			// TODO: determine which host to connect to
-			return new LocalServiceConnection(_host, instance.InstanceID);
+			//return new ServiceConnection(_host, instance.InstanceID);
+			_host.ConnectInstance(instance);
 		}
 
 		public ServiceInstance GetServiceInstance(Guid instanceID)

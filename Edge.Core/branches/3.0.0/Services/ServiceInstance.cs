@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Diagnostics;
 using System.Security;
 using System.Runtime.Remoting.Contexts;
+using System.ServiceModel;
 
 namespace Edge.Core.Services
 {
@@ -18,7 +19,7 @@ namespace Edge.Core.Services
 		#region Instance
 		//=================
 
-		internal IServiceConnection Connection;
+		internal ServiceConnection Connection;
 		bool _autostart = false;
 		SchedulingInfo _schedulingInfo;
 
@@ -30,7 +31,7 @@ namespace Edge.Core.Services
 		IServiceInfo IServiceInfo.ParentInstance { get { return this.ParentInstance; } }
 		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { _lock.Ensure(); _schedulingInfo = value; } }
 
-		internal ServiceInstance(ServiceEnvironment environment, ServiceConfiguration configuration, IServiceInfo parentInstance)
+		internal ServiceInstance(ServiceConfiguration configuration, ServiceEnvironment environment, IServiceInfo parentInstance)
 		{
 			if (configuration == null)
 				throw new ArgumentNullException("configuration");
@@ -88,12 +89,9 @@ namespace Edge.Core.Services
 			get { return _state; }
 			private set
 			{
-				lock (_eventSync)
-				{
-					_state = value;
-					if (StateChanged != null)
-						StateChanged(this, EventArgs.Empty);
-				}
+				_state = value;
+				if (StateChanged != null)
+					StateChanged(this, EventArgs.Empty);
 			}
 		}
 
@@ -102,12 +100,9 @@ namespace Edge.Core.Services
 			get { return _outcome; }
 			private set
 			{
-				lock (_eventSync)
-				{
-					_outcome = value;
-					if (OutcomeReported != null)
-						OutcomeReported(this, EventArgs.Empty);
-				}
+				_outcome = value;
+				if (OutcomeReported != null)
+					OutcomeReported(this, EventArgs.Empty);
 			}
 		}
 
@@ -116,12 +111,9 @@ namespace Edge.Core.Services
 			get { return _output; }
 			private set
 			{
-				lock (_eventSync)
-				{
-					_output = value;
-					if (OutputGenerated != null)
-						OutputGenerated(this, EventArgs.Empty);
-				}
+				_output = value;
+				if (OutputGenerated != null)
+					OutputGenerated(this, EventArgs.Empty);
 			}
 		}
 
@@ -130,16 +122,12 @@ namespace Edge.Core.Services
 			get { return _progress; }
 			private set
 			{
-				lock (_eventSync)
-				{
-					_progress = value;
-					if (ProgressReported != null)
-						ProgressReported(this, EventArgs.Empty);
-				}
+				_progress = value;
+				if (ProgressReported != null)
+					ProgressReported(this, EventArgs.Empty);				
 			}
 		}
 
-		object _eventSync = new object();
 		private void ServiceEventReceived(ServiceEventType eventType, object value)
 		{
 			switch (eventType)
@@ -176,8 +164,10 @@ namespace Edge.Core.Services
 						Progress = 1.0;
 
 					Outcome = (ServiceOutcome)value;
-					this.Connection.Dispose();
 
+					break;
+
+				case ServiceEventType.Disconnected:
 					break;
 
 				default:
@@ -192,9 +182,34 @@ namespace Edge.Core.Services
 		#region Communication
 		//=================
 
+		public void Connect()
+		{
+			if (this.Connection != null)
+				throw new InvalidOperationException("ServiceInstance is already connected.");
+
+			// Get a connection
+			try { this.Connection = Environment.AcquireHostConnection(this); }
+			catch (Exception ex)
+			{
+				throw new ServiceCommunicationException("Environment could not acquire a connection to the service.", ex);
+			}
+
+			// Callback
+			this.Connection.EventCallback = ServiceEventReceived;
+		}
+
+		public void Disconnect()
+		{
+			if (this.Connection == null)
+				throw new InvalidOperationException("ServiceInstance is not connected.");
+
+			this.Connection.Dispose();
+		}
+
 		void IDisposable.Dispose()
 		{
-			this.Connection.Dispose();
+			if (this.Connection != null)
+				this.Connection.Dispose();
 		}
 
 		//=================
@@ -208,27 +223,16 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Initialize()
 		{
-			ServiceExecutionPermission.All.Demand();
+			ServiceExecutionPermission.Demand();
 
-			if (Connection != null || State != ServiceState.Uninitialized)
+			if (State != ServiceState.Uninitialized)
 				throw new InvalidOperationException("Service is already initialized.");
 
-			State = ServiceState.Initializing;
-
-			// Get a connection
-			try { this.Connection = Environment.AcquireHostConnection(this); }
-			catch (Exception ex)
-			{
-				SetOutcomeException("Environment could not acquire a host for this instance.", ex, true);
-				return;
-			}
-
-			// Callback
-			this.Connection.EventCallback = ServiceEventReceived;
+			if (Connection != null)
+				Connect();
 
 			// Initialize
-			// TODO: async
-			try { this.Connection.Host.InitializeService(this); }
+			try { this.Connection.Host.InitializeServiceInstance(this); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Host could not initialize this instance.", ex);
@@ -237,23 +241,18 @@ namespace Edge.Core.Services
 		}
 
 		/// <summary>
-		/// Not implemented. Resumes a connection to a running service instance.
-		/// </summary>
-		public void Connect()
-		{
-			throw new NotImplementedException("When implemented, this method will simply resume a connection to a running service.");
-		}
-
-		/// <summary>
 		/// Once the service is initialized, asks the host to start it. If the service is not initialized it will first
 		/// be initialized.
 		/// </summary>
 		public void Start()
 		{
-			ServiceExecutionPermission.All.Demand();
+			ServiceExecutionPermission.Demand();
+
+			if (Connection != null)
+				Connect();
 
 			// If not initialized, initialize and then progress to Start
-			if (Connection == null && State == ServiceState.Uninitialized)
+			if (State == ServiceState.Uninitialized)
 			{
 				_autostart = true;
 				Initialize();
@@ -263,7 +262,7 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("Service can only be started when it is in the Ready state.");
 
 			// Start the service
-			try { this.Connection.Host.StartService(this.InstanceID); }
+			try { this.Connection.Host.StartServiceInstance(this.InstanceID); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Could not start this instance.", ex);
@@ -276,23 +275,23 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Abort()
 		{
-			Abort(ServiceOutcome.Aborted);
-		}
+			ServiceExecutionPermission.Demand();
 
-		internal void Abort(ServiceOutcome outcome)
-		{
+			if (Connection != null)
+				Connect();
+	
 			// Simple aborting of service without connection
 			if (State == ServiceState.Uninitialized)
 			{
-				Outcome = outcome;
-				State = ServiceState.Ended;
+				Outcome = ServiceOutcome.Canceled;
 			}
+			else
+			{
+				if (State != ServiceState.Running && State != ServiceState.Paused)
+					throw new InvalidOperationException("Service can only be aborted when it is in the Running or Paused state.");
 
-			if (State != ServiceState.Running && State != ServiceState.Paused)
-				throw new InvalidOperationException("Service can only be aborted when it is in the InProgress or Waiting state.");
-
-			// TODO: async
-			this.Connection.Host.AbortService(this.InstanceID);
+				this.Connection.Host.AbortServiceInstance(this.InstanceID);
+			}
 		}
 
 		[DebuggerNonUserCode]
@@ -341,7 +340,7 @@ namespace Edge.Core.Services
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
-			this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
+			//this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
 			this.Environment = new ServiceEnvironment(this.Connection.Host);
 
 			object pid = info.GetValue("ParentInstanceID", typeof(object));
@@ -359,23 +358,20 @@ namespace Edge.Core.Services
 		#region ILockable Members
 		//=================
 
-		[NonSerialized]
-		Padlock _lock = new Padlock();
-		public bool IsLocked { get { return _lock.IsLocked; } }
-		[DebuggerNonUserCode]
-		void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode]
-		void ILockable.Lock(object key)
+		[NonSerialized] Padlock _lock = new Padlock();
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
+		[DebuggerNonUserCode] void ILockable.Lock(object key)
 		{
 			_lock.Lock(key);
 			((ILockable)this.SchedulingInfo).Lock(key);
 		}
-		[DebuggerNonUserCode]
-		void ILockable.Unlock(object key)
+		[DebuggerNonUserCode] void ILockable.Unlock(object key)
 		{
 			_lock.Unlock(key);
 			((ILockable)this.SchedulingInfo).Unlock(key);
 		}
+
+		public bool IsLocked { get { return _lock.IsLocked; } }
 
 		//=================
 		#endregion
