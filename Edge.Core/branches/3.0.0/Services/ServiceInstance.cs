@@ -8,6 +8,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 using System.Security;
+using System.Runtime.Remoting.Contexts;
 
 namespace Edge.Core.Services
 {
@@ -87,12 +88,12 @@ namespace Edge.Core.Services
 			get { return _state; }
 			private set
 			{
-				_state = value;
-				if (StateChanged != null)
-					StateChanged(this, EventArgs.Empty);
-
-				if (_state == ServiceState.Ready && _autostart)
-					this.Start();
+				lock (_eventSync)
+				{
+					_state = value;
+					if (StateChanged != null)
+						StateChanged(this, EventArgs.Empty);
+				}
 			}
 		}
 
@@ -101,9 +102,12 @@ namespace Edge.Core.Services
 			get { return _outcome; }
 			private set
 			{
-				_outcome = value;
-				if (OutcomeReported != null)
-					OutcomeReported(this, EventArgs.Empty);
+				lock (_eventSync)
+				{
+					_outcome = value;
+					if (OutcomeReported != null)
+						OutcomeReported(this, EventArgs.Empty);
+				}
 			}
 		}
 
@@ -112,9 +116,12 @@ namespace Edge.Core.Services
 			get { return _output; }
 			private set
 			{
-				_output = value;
-				if (OutputGenerated != null)
-					OutputGenerated(this, EventArgs.Empty);
+				lock (_eventSync)
+				{
+					_output = value;
+					if (OutputGenerated != null)
+						OutputGenerated(this, EventArgs.Empty);
+				}
 			}
 		}
 
@@ -123,67 +130,60 @@ namespace Edge.Core.Services
 			get { return _progress; }
 			private set
 			{
-				_progress = value;
-				if (ProgressReported != null)
-					ProgressReported(this, EventArgs.Empty);
+				lock (_eventSync)
+				{
+					_progress = value;
+					if (ProgressReported != null)
+						ProgressReported(this, EventArgs.Empty);
+				}
 			}
 		}
 
 		object _eventSync = new object();
 		private void ServiceEventReceived(ServiceEventType eventType, object value)
 		{
-			lock (_eventSync)
+			switch (eventType)
 			{
-				switch (eventType)
-				{
-					case ServiceEventType.StateChanged:
-						{
-							var ev = (EventValue<ServiceState>)value;
+				case ServiceEventType.StateChanged:
+					var ev = (EventValue<ServiceState>)value;
 
-							if (ev.Value == ServiceState.Ready)
-							{
-								TimeInitialized = ev.Time;
-							}
-							else if (ev.Value == ServiceState.Running)
-							{
-								TimeStarted = ev.Time;
-							}
-							else if (ev.Value == ServiceState.Ended)
-							{
-								TimeEnded = ev.Time;
-							}
+					if (ev.Value == ServiceState.Ready)
+						TimeInitialized = ev.Time;
+					else if (ev.Value == ServiceState.Running)
+						TimeStarted = ev.Time;
+					else if (ev.Value == ServiceState.Ended)
+						TimeEnded = ev.Time;
 
-							State = ev.Value;
+					State = ev.Value;
 
-							if (State == ServiceState.Ready && _autostart)
-								this.Start();
+					if (State == ServiceState.Ready && _autostart)
+						this.Start();
 
-							break;
-						}
+					break;
 
-					case ServiceEventType.ProgressReported:
-						Progress = (double)value;
-						break;
+				case ServiceEventType.ProgressReported:
+					Progress = (double)value;
+					break;
 
-					case ServiceEventType.OutputGenerated:
-						Output = value;
-						break;
+				case ServiceEventType.OutputGenerated:
+					Output = value;
+					break;
 
-					case ServiceEventType.OutcomeReported:
+				case ServiceEventType.OutcomeReported:
 
-						// Autocomplete progress only if success
-						if ((ServiceOutcome)value == ServiceOutcome.Success)
-							Progress = 1.0;
+					// Autocomplete progress only if success
+					if ((ServiceOutcome)value == ServiceOutcome.Success)
+						Progress = 1.0;
 
-						Outcome = (ServiceOutcome)value;
-						this.Connection.Dispose();
+					Outcome = (ServiceOutcome)value;
+					this.Connection.Dispose();
 
-						break;
+					break;
 
-					default:
-						return;
-				}
+				default:
+					return;
 			}
+			
 		}
 
 		//=================
