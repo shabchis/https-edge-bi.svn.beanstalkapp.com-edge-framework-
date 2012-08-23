@@ -12,7 +12,7 @@ using System.ServiceModel.Dispatcher;
 
 namespace Edge.Core.Services
 {
-	public abstract class Service : MarshalByRefObject, IServiceInfo
+	public abstract class Service : MarshalByRefObject
 	{
 		#region Static
 		//======================
@@ -30,18 +30,23 @@ namespace Edge.Core.Services
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
-		public SchedulingInfo SchedulingInfo { get; private set; }
+		public ServiceExecutionInfo ExecutionInfo { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		IServiceInfo IServiceInfo.ParentInstance { get { return this.ParentInstance; } }
 
-		internal void Init(ServiceExecutionHost host, ServiceInstance instance)
+		IServiceExecutionHost _host;
+		int _resumeCount = 0;
+		internal bool IsStopped = false;
+		Thread _doWork = null;
+
+		internal void Init(IServiceExecutionHost host, ServiceInstance instance)
 		{
 			_host = host;
 
 			this.InstanceID = instance.InstanceID;
 			this.Configuration = instance.Configuration;
 			this.ParentInstance = instance.ParentInstance;
-			this.Environment = instance.Environment;
+			this.Environment = new ServiceEnvironment(_host);
+			this.ExecutionInfo = new ServiceExecutionInfo();
 			
 			Current = this;
 			
@@ -49,146 +54,64 @@ namespace Edge.Core.Services
 			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);
 			AppDomain.CurrentDomain.DomainUnload += new EventHandler(this.DomainUnload);
 
-			// TODO: Reroute console output to verbose Log
-			//Console.SetOut(
-
-			TimeInitialized = DateTime.Now;
-			State = ServiceState.Ready;
+			this.ExecutionInfo.TimeInitialized = DateTime.Now;
+			this.ExecutionInfo.State = ServiceState.Ready;
+			Updated(ServiceUpdateType.State);
 		}
 
-		//======================
-		#endregion
-
-		#region State
-		//======================
-
-		double _progress = 0;
-		ServiceState _state = ServiceState.Initializing;
-		ServiceOutcome _outcome = ServiceOutcome.Unspecified;
-		object _output = null;
-		int _resumeCount = 0;
-
-		public DateTime TimeInitialized
-		{
-			get;
-			private set;
-		}
-
-		public DateTime TimeStarted
-		{
-			get;
-			private set;
-		}
-
-		public DateTime TimeEnded
-		{
-			get;
-			private set;
-		}
-
-		public double Progress
-		{
-			get { return _progress; }
-			protected set { Notify(ServiceEventType.ProgressReported, _progress = value); }
-		}
-
-		public ServiceState State
-		{
-			get { return _state; }
-			private set { Notify(ServiceEventType.StateChanged, new EventValue<ServiceState>() {Time = DateTime.Now, Value = _state = value }); }
-		}
-
-		public ServiceOutcome Outcome
-		{
-			get { return _outcome; }
-			private set
-			{
-				if (_outcome != ServiceOutcome.Unspecified || value == ServiceOutcome.Unspecified)
-					return;
-
-				Notify(ServiceEventType.OutcomeReported, _outcome = value);
-			}
-		}
-
-		public object Output
-		{
-			get { return _output; }
-			private set { Notify(ServiceEventType.OutputGenerated, _output = value); }
-		}
-
+		
 		protected bool IsFirstRun
 		{
 			get { return _resumeCount == 0; }
 		}
 
-
-		//======================
-		#endregion
-
-		#region Communication
-		//======================
-
-		ServiceExecutionHost _host;
-
-		void Notify(ServiceEventType eventType, object value)
+		public ServiceState State
 		{
-			lock (_connections)
-			{
-				foreach (IServiceConnection connection in this._connections.Values)
-					connection.Notify(eventType, value);
-			}
-			
+			get { return this.ExecutionInfo.State; }
+		}
+
+		void Updated(ServiceUpdateType eventType)
+		{
+			_host.ServiceUpdate(this.InstanceID, eventType);
+		}
+
+		protected void SendOutput(object output)
+		{
+			_host.ServiceOutput(this.InstanceID, output);
+		}
+
+		protected void Error(Exception exception, bool fatal = false)
+		{
+			_host.ServiceOutput(this.InstanceID, exception);
+			if (fatal)
+				Stop(ServiceOutcome.Failure);
+		}
+
+		protected void Error(string message, Exception inner = null, bool fatal = false)
+		{
+			this.Error(new ServiceException(message, inner), fatal);
 		}
 		
-		//[OneWay]
-		internal void Connect(IServiceConnection connection)
-		{
-			lock (_connections)
-			{
-				_connections.Add(connection.Guid, connection);
-			}
-		}
-
-		//[OneWay]
-		internal void Disconnect(Guid connectionGuid)
-		{
-			lock (_connections)
-			{
-				_connections.Remove(connectionGuid);
-			}
-		}
-
 		//======================
 		#endregion
 
 		#region Control
 		//======================
 
-		object _controlSync = new object();
-		internal bool IsStopped = false;
-		Thread _doWork = null;
-
-		//[OneWay]
+		[OneWay]
 		internal void Start()
 		{
-			if (this.State != ServiceState.Ready)
-			{
-				ReportError("Cannot start service that is not in the ready state.");
-				return;
-			}
+			if (State != ServiceState.Ready)
+				Error("Cannot start service that is not in the ready state.");
 
-			lock (_controlSync)
-			{
-				TimeStarted = DateTime.Now;
-				DoWorkInternal();
-			}
+			ExecutionInfo.TimeStarted = DateTime.Now;
+			DoWorkInternal();
 		}
 
-		//[OneWay]
 		internal void Resume()
 		{
 			if (this.State != ServiceState.Paused)
-				return;
+				Error("Cannot resume service that is not in the paused state.");
 
 			_resumeCount++;
 			DoWorkInternal();
@@ -198,36 +121,37 @@ namespace Edge.Core.Services
 		{
 			ServiceOutcome outcome = ServiceOutcome.Unspecified;
 
-			lock (_controlSync)
+			ExecutionInfo.State = ServiceState.Running;
+			Updated(ServiceUpdateType.State);
+
+			// Run the service code, and time its execution
+			_doWork = new Thread(() =>
 			{
-				State = ServiceState.Running;
-
-				// Run the service code, and time its execution
-				_doWork = new Thread(() =>
+				// Suppress thread abort because these are expected
+				try { outcome = this.DoWork(); }
+				catch (ThreadAbortException) { }
+				catch (Exception ex)
 				{
-					// Suppress thread abort because these are expected
-					try { outcome = this.DoWork(); }
-					catch (ThreadAbortException) { }
-					catch (Exception ex)
-					{
-						ReportError("Error occured during execution.", ex);
-						outcome = ServiceOutcome.Failure;
-					}
-				});
-				_doWork.Start();
-
-				if (!_doWork.Join(DefaultMaxExecutionTime))
-				{
-					// Timeout, abort the thread and exit
-					_doWork.Abort();
-					outcome = ServiceOutcome.Timeout;
+					Error("Error occured during execution.", ex);
+					outcome = ServiceOutcome.Failure;
 				}
+			});
+			_doWork.Start();
 
-				_doWork = null;
+			if (!_doWork.Join(DefaultMaxExecutionTime))
+			{
+				// Timeout, abort the thread and exit
+				_doWork.Abort();
+				outcome = ServiceOutcome.Timeout;
 			}
 
+			_doWork = null;
+
 			if (outcome == ServiceOutcome.Unspecified)
-				State = ServiceState.Paused;
+			{
+				ExecutionInfo.State = ServiceState.Paused;
+				Updated(ServiceUpdateType.State);
+			}
 			else
 				Stop(outcome);
 		}
@@ -235,64 +159,62 @@ namespace Edge.Core.Services
 		//[OneWay]
 		protected internal void Abort()
 		{
-			lock (_controlSync)
+			if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Paused)
 			{
-				if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Paused)
-					return;
-
-				// Abort the worker thread
-				if (_doWork != null)
-					_doWork.Abort();
+				Error("Service can only be aborted in running, ready or paused state.");
+				return;
 			}
+
+			// Abort the worker thread
+			if (_doWork != null)
+				_doWork.Abort();
 
 			Stop(ServiceOutcome.Aborted);
 		}
 
 		void Stop(ServiceOutcome outcome)
 		{
-			lock (_controlSync)
+			// Enforce only one stop call
+			if (IsStopped)
+				return;
+
+			IsStopped = true;
+
+			// Report an outcome, bitch
+			if (outcome == ServiceOutcome.Unspecified)
 			{
-				// Enforce only one stop call
-				if (IsStopped)
-					return;
-
-				IsStopped = true;
-
-				// Report an outcome, bitch
-				if (outcome == ServiceOutcome.Unspecified)
-				{
-					ReportError("Service did not report any outcome. Setting to failure.");
-					outcome = ServiceOutcome.Failure;
-				}
-
-				// Start wrapping things up
-				State = ServiceState.Ending;
-
-				// 
-				// Run the service code, and time its execution
-				Thread onEndedThread = new Thread(() =>
-				{
-					// Suppress thread abort because these are expected
-					try { this.Cleanup(); }
-					catch (ThreadAbortException) { }
-					catch (Exception ex)
-					{
-						ReportError("Error occured during cleanup.", ex);
-					}
-				});
-				onEndedThread.Start();
-
-				if (!onEndedThread.Join(MaxCleanupTime))
-				{
-					// Timeout, abort the thread and exit
-					onEndedThread.Abort();
-					Log(String.Format("Cleanup timed out. Limit is {0}.", MaxCleanupTime.ToString()), LogMessageType.Error);
-				}
-
-				// Change state to ended
-				State = ServiceState.Ended;
-				Outcome = outcome;
+				Error("Service did not report any outcome, treating as failure.");
+				outcome = ServiceOutcome.Failure;
 			}
+
+			// Start wrapping things up
+			ExecutionInfo.State = ServiceState.Ending;
+			Updated(ServiceUpdateType.State);
+
+			// Run the cleanup code, and time its execution
+			Thread onEndedThread = new Thread(() =>
+			{
+				// Suppress thread abort because these are expected
+				try { this.Cleanup(); }
+				catch (ThreadAbortException) { }
+				catch (Exception ex)
+				{
+					Error("Error occured during cleanup.", ex);
+				}
+			});
+			onEndedThread.Start();
+
+			if (!onEndedThread.Join(MaxCleanupTime))
+			{
+				// Timeout, abort the thread and exit
+				onEndedThread.Abort();
+				//Log(String.Format("Cleanup timed out. Limit is {0}.", MaxCleanupTime.ToString()), LogMessageType.Error);
+			}
+
+			// Change state to ended
+			ExecutionInfo.State = ServiceState.Ended;
+			ExecutionInfo.Outcome = outcome;
+			Updated(ServiceUpdateType.State);
 
 			// Unload app domain if Stop was called directly
 			AppDomain.Unload(AppDomain.CurrentDomain);
@@ -303,7 +225,7 @@ namespace Edge.Core.Services
 			// If we need to stop from here it means an external appdomain called an unload
 			if (!IsStopped)
 			{
-				Log("Service's AppDomain is being unloaded by external code.", LogMessageType.Warning);
+				Error("Service's AppDomain is being unloaded by external code.");
 				Stop(ServiceOutcome.Killed);
 			}
 		}
@@ -311,7 +233,7 @@ namespace Edge.Core.Services
 		void DomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
 		{
 			// Log the exception
-			ReportError("Unhandled exception occured outside of DoWork.", e.ExceptionObject as Exception);
+			Error("Unhandled exception occured outside of DoWork.", e.ExceptionObject as Exception);
 			Stop(ServiceOutcome.Failure);
 		}
 
@@ -340,6 +262,7 @@ namespace Edge.Core.Services
 		#region Logging and error handling
 		//======================
 
+		/*
 		protected void Log(LogMessage message)
 		{
 			if (message.Source != null)
@@ -368,30 +291,17 @@ namespace Edge.Core.Services
 				MessageType = messageType
 			});
 		}
-
-		protected void ReportError(string message, Exception ex = null)
-		{
-			LogMessage lm = new LogMessage()
-			{
-				Message = message,
-				MessageType = LogMessageType.Error,
-				Exception = ex
-			};
-
-			Log(lm);
-
-			// Output the exception
-			Output = lm;
-		}
-
+		*/
 		//======================
 		#endregion
 	}
 
+	/*
 	[Serializable]
 	internal struct EventValue<T>
 	{
 		public DateTime Time;
 		public T Value;
 	}
+	*/
 }

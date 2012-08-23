@@ -7,10 +7,12 @@ namespace Edge.Core.Services
 {
 	public class ServiceEnvironment
 	{
-		private IServiceHost _host;
+		private IServiceExecutionHost _host;
+
+		public EventHandler ServiceScheduleRequested;
 
 		// TODO: remove the reference to proxy from here, this should be loaded from a list of hosts in the database
-		internal ServiceEnvironment(IServiceHost proxy)
+		internal ServiceEnvironment(IServiceExecutionHost proxy)
 		{
 			_host = proxy;
 		}
@@ -25,16 +27,20 @@ namespace Edge.Core.Services
 			return new ServiceInstance(configuration, this, parent);
 		}
 
-		internal ServiceConnection AcquireHostConnection(ServiceInstance instance)
+		internal ServiceConnection AcquireHostConnection(Guid instanceID)
 		{
 			// TODO: determine which host to connect to
-			//return new ServiceConnection(_host, instance.InstanceID);
-			_host.ConnectInstance(instance);
+			return new ServiceConnection(_host, instanceID);
+			//_host.ConnectInstance(instance);
 		}
 
 		public ServiceInstance GetServiceInstance(Guid instanceID)
 		{
 			throw new NotImplementedException();
+		}
+
+		public void ScheduleServiceInstance(ServiceInstance instance)
+		{
 		}
 	}
 }

@@ -8,13 +8,10 @@ namespace Edge.Core.Services
 	/// <summary>
 	/// 
 	/// </summary>
-	internal enum ServiceEventType
+	internal enum ServiceUpdateType
 	{
-		StateChanged,
-		OutcomeReported,
-		ProgressReported,
-		ChildCreated,
-		OutputGenerated
+		State,
+		ChildInstance
 	}
 
 	public enum ServiceState
@@ -26,8 +23,7 @@ namespace Edge.Core.Services
 		Running = 4,
 		Paused = 5,
 		Ending = 6,
-		Ended = 7,
-		
+		Ended = 7
 	}
 
 	/// <summary>
