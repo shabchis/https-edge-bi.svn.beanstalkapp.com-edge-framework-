@@ -26,19 +26,25 @@ namespace Edge.Core.Services
 
 		#region Instance
 		//======================
-
-		public Guid InstanceID { get; private set; }
-		public ServiceConfiguration Configuration { get; private set; }
-		public ServiceEnvironment Environment { get; private set; }
-		public ServiceExecutionInfo ExecutionInfo { get; private set; }
-		public ServiceInstance ParentInstance { get; private set; }
-
-		IServiceExecutionHost _host;
+		ServiceStateInfo _stateInfo;
+		ServiceExecutionHost _host;
 		int _resumeCount = 0;
 		internal bool IsStopped = false;
 		Thread _doWork = null;
 
-		internal void Init(IServiceExecutionHost host, ServiceInstance instance)
+		public Guid InstanceID { get; private set; }
+		public ServiceConfiguration Configuration { get; private set; }
+		public ServiceEnvironment Environment { get; private set; }
+		public ServiceInstance ParentInstance { get; private set; }
+		public double Progress { get { return _stateInfo.Progress; } }
+		public ServiceState State { get { return _stateInfo.State; } }
+		public ServiceOutcome Outcome { get { return _stateInfo.Outcome; } }
+		public DateTime TimeInitialized { get { return _stateInfo.TimeInitialized; } }
+		public DateTime TimeStarted { get { return _stateInfo.TimeStarted; } }
+		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
+		
+
+		internal void Init(ServiceExecutionHost host, ServiceInstance instance)
 		{
 			_host = host;
 
@@ -46,7 +52,6 @@ namespace Edge.Core.Services
 			this.Configuration = instance.Configuration;
 			this.ParentInstance = instance.ParentInstance;
 			this.Environment = new ServiceEnvironment(_host);
-			this.ExecutionInfo = new ServiceExecutionInfo();
 			
 			Current = this;
 			
@@ -54,9 +59,9 @@ namespace Edge.Core.Services
 			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);
 			AppDomain.CurrentDomain.DomainUnload += new EventHandler(this.DomainUnload);
 
-			this.ExecutionInfo.TimeInitialized = DateTime.Now;
-			this.ExecutionInfo.State = ServiceState.Ready;
-			Updated(ServiceUpdateType.State);
+			_stateInfo.TimeInitialized = DateTime.Now;
+			_stateInfo.State = ServiceState.Ready;
+			NotifyState();
 		}
 
 		
@@ -65,26 +70,22 @@ namespace Edge.Core.Services
 			get { return _resumeCount == 0; }
 		}
 
-		public ServiceState State
+		void NotifyState()
 		{
-			get { return this.ExecutionInfo.State; }
+			_host.NotifyState(this.InstanceID, _stateInfo);
 		}
 
-		void Updated(ServiceUpdateType eventType)
+		protected void GenerateOutput(object output)
 		{
-			_host.ServiceUpdate(this.InstanceID, eventType);
-		}
-
-		protected void SendOutput(object output)
-		{
-			_host.ServiceOutput(this.InstanceID, output);
+			_host.NotifyOutput(this.InstanceID, output);
 		}
 
 		protected void Error(Exception exception, bool fatal = false)
 		{
-			_host.ServiceOutput(this.InstanceID, exception);
 			if (fatal)
-				Stop(ServiceOutcome.Failure);
+				throw exception;
+			else
+				_host.NotifyOutput(this.InstanceID, exception);
 		}
 
 		protected void Error(string message, Exception inner = null, bool fatal = false)
@@ -102,16 +103,22 @@ namespace Edge.Core.Services
 		internal void Start()
 		{
 			if (State != ServiceState.Ready)
+			{
 				Error("Cannot start service that is not in the ready state.");
+				return;
+			}
 
-			ExecutionInfo.TimeStarted = DateTime.Now;
+			_stateInfo.TimeStarted = DateTime.Now;
 			DoWorkInternal();
 		}
 
 		internal void Resume()
 		{
 			if (this.State != ServiceState.Paused)
+			{
 				Error("Cannot resume service that is not in the paused state.");
+				return;
+			}
 
 			_resumeCount++;
 			DoWorkInternal();
@@ -121,8 +128,8 @@ namespace Edge.Core.Services
 		{
 			ServiceOutcome outcome = ServiceOutcome.Unspecified;
 
-			ExecutionInfo.State = ServiceState.Running;
-			Updated(ServiceUpdateType.State);
+			_stateInfo.State = ServiceState.Running;
+			NotifyState();
 
 			// Run the service code, and time its execution
 			_doWork = new Thread(() =>
@@ -149,14 +156,14 @@ namespace Edge.Core.Services
 
 			if (outcome == ServiceOutcome.Unspecified)
 			{
-				ExecutionInfo.State = ServiceState.Paused;
-				Updated(ServiceUpdateType.State);
+				_stateInfo.State = ServiceState.Paused;
+				NotifyState();
 			}
 			else
 				Stop(outcome);
 		}
 
-		//[OneWay]
+		[OneWay]
 		protected internal void Abort()
 		{
 			if (State != ServiceState.Running && State != ServiceState.Ready && State != ServiceState.Paused)
@@ -188,8 +195,8 @@ namespace Edge.Core.Services
 			}
 
 			// Start wrapping things up
-			ExecutionInfo.State = ServiceState.Ending;
-			Updated(ServiceUpdateType.State);
+			_stateInfo.State = ServiceState.Ending;
+			NotifyState();
 
 			// Run the cleanup code, and time its execution
 			Thread onEndedThread = new Thread(() =>
@@ -212,9 +219,9 @@ namespace Edge.Core.Services
 			}
 
 			// Change state to ended
-			ExecutionInfo.State = ServiceState.Ended;
-			ExecutionInfo.Outcome = outcome;
-			Updated(ServiceUpdateType.State);
+			_stateInfo.State = ServiceState.Ended;
+			_stateInfo.Outcome = outcome;
+			NotifyState();
 
 			// Unload app domain if Stop was called directly
 			AppDomain.Unload(AppDomain.CurrentDomain);
@@ -295,13 +302,4 @@ namespace Edge.Core.Services
 		//======================
 		#endregion
 	}
-
-	/*
-	[Serializable]
-	internal struct EventValue<T>
-	{
-		public DateTime Time;
-		public T Value;
-	}
-	*/
 }

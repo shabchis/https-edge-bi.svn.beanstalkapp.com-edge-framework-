@@ -42,7 +42,7 @@ namespace Edge.Core.Utilities
 	}
 
 
-
+	/*
 	/// <summary>
 	/// A class which writes events into the windows event viewer.
 	/// </summary>
@@ -204,4 +204,5 @@ namespace Edge.Core.Utilities
 			}
 		}
 	}
+	 * */
 }

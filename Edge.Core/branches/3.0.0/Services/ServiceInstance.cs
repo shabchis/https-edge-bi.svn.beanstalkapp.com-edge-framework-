@@ -14,7 +14,7 @@ using System.ServiceModel;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class ServiceInstance: ISerializable, IDisposable, ILockable
+	public class ServiceInstance: ISerializable, ILockable, IDisposable
 	{
 		#region Instance
 		//=================
@@ -143,8 +143,7 @@ namespace Edge.Core.Services
 			try { this.Connection.Host.InitializeService(this); }
 			catch (Exception ex)
 			{
-				SetOutcomeException("Host could not initialize this instance.", ex);
-				return;
+				throw new ServiceException("Could not initialize this instance.", ex);
 			}
 		}
 
@@ -173,8 +172,7 @@ namespace Edge.Core.Services
 			try { this.Connection.Host.StartService(this.InstanceID); }
 			catch (Exception ex)
 			{
-				SetOutcomeException("Could not start this instance.", ex);
-				return;
+				throw new ServiceException("Could not start this instance.", ex);
 			}
 		}
 
@@ -191,12 +189,12 @@ namespace Edge.Core.Services
 			// Simple aborting of service without connection
 			if (State == ServiceState.Uninitialized)
 			{
-				Outcome = ServiceOutcome.Canceled;
+				OnStateChanged(new ServiceStateInfo() { State = ServiceState.Ended, Outcome = ServiceOutcome.Canceled });
 			}
 			else
 			{
 				if (State != ServiceState.Running && State != ServiceState.Paused)
-					throw new InvalidOperationException("Service can only be aborted when it is in the Running or Paused state.");
+					throw new InvalidOperationException("Service can only be aborted when it is in the Running or Waiting state.");
 
 				this.Connection.Host.AbortService(this.InstanceID);
 			}
@@ -214,6 +212,7 @@ namespace Edge.Core.Services
 			info.AddValue("InstanceID", InstanceID);
 			info.AddValue("Configuration", Configuration);
 			info.AddValue("ParentInstanceID", this.ParentInstance == null ? null : (object) this.ParentInstance.InstanceID);
+			info.AddValue("StateInfo", _stateInfo);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
 
 			info.AddValue("IsLocked", IsLocked);
@@ -223,8 +222,9 @@ namespace Edge.Core.Services
 		{
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
+			this._stateInfo = (ServiceStateInfo)info.GetValue("StateInfo", typeof(ServiceStateInfo));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
-			this.Environment = new ServiceEnvironment(this.Connection.Host);
+			this.Environment = new ServiceEnvironment();
 
 			object pid = info.GetValue("ParentInstanceID", typeof(object));
 			if (pid != null)
