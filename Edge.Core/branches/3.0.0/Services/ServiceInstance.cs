@@ -14,24 +14,34 @@ using System.ServiceModel;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class ServiceInstance: IServiceInfo, ISerializable, IDisposable, ILockable
+	public class ServiceInstance: ISerializable, IDisposable, ILockable
 	{
 		#region Instance
 		//=================
 
 		internal ServiceConnection Connection;
 		bool _autostart = false;
-		SchedulingInfo _schedulingInfo;
+		SchedulingInfo _schedulingInfo = null;
+		ServiceStateInfo _stateInfo;
 
 		public bool ThrowExceptionOnError { get; set; }
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		IServiceInfo IServiceInfo.ParentInstance { get { return this.ParentInstance; } }
 		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { _lock.Ensure(); _schedulingInfo = value; } }
+		
+		public double Progress { get { return _stateInfo.Progress; } }
+		public ServiceState State { get { return _stateInfo.State; } }
+		public ServiceOutcome Outcome { get { return _stateInfo.Outcome; } }
+		public DateTime TimeInitialized { get { return _stateInfo.TimeInitialized; } }
+		public DateTime TimeStarted { get { return _stateInfo.TimeStarted; } }
+		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
 
-		internal ServiceInstance(ServiceConfiguration configuration, ServiceEnvironment environment, IServiceInfo parentInstance)
+		public event EventHandler StateChanged;
+		public event EventHandler OutputGenerated;
+
+		internal ServiceInstance(ServiceConfiguration configuration, ServiceEnvironment environment, ServiceInstance parentInstance)
 		{
 			if (configuration == null)
 				throw new ArgumentNullException("configuration");
@@ -43,137 +53,20 @@ namespace Edge.Core.Services
 
 			this.Environment = environment;
 			this.InstanceID = Guid.NewGuid();
-			this.Configuration = configuration.Derive(parentInstance);
-			//this.ParentInstance = parentInstance;
-		}
-		
-		//=================
-		#endregion
-
-		#region State
-		//=================
-
-		ServiceState _state = ServiceState.Uninitialized;
-		ServiceOutcome _outcome = ServiceOutcome.Unspecified;
-		double _progress = 0;
-		object _output = null;
-		DateTime _timeInitialized = DateTime.MinValue;
-		DateTime _timeStarted = DateTime.MinValue;
-		DateTime _timeEnded = DateTime.MinValue;
-
-		public event EventHandler StateChanged;
-		public event EventHandler OutcomeReported;
-		public event EventHandler ProgressReported;
-		public event EventHandler OutputGenerated;
-
-		public DateTime TimeInitialized
-		{
-			get { return _timeInitialized; }
-			private set { _timeInitialized = value; }
-		}
-
-		public DateTime TimeStarted
-		{
-			get { return _timeStarted; }
-			private set { _timeStarted = value; }
-		}
-		
-		public DateTime TimeEnded
-		{
-			get { return _timeEnded; }
-			private set { _timeEnded = value; }
-		}
-
-		public ServiceState State
-		{
-			get { return _state; }
-			private set
+			if (parentInstance == null)
 			{
-				_state = value;
-				if (StateChanged != null)
-					StateChanged(this, EventArgs.Empty);
+				this.Configuration = configuration.Derive(parentInstance.Configuration);
+				this.ParentInstance = parentInstance;
 			}
 		}
 
-		public ServiceOutcome Outcome
+		public override string ToString()
 		{
-			get { return _outcome; }
-			private set
-			{
-				_outcome = value;
-				if (OutcomeReported != null)
-					OutcomeReported(this, EventArgs.Empty);
-			}
-		}
-
-		public object Output
-		{
-			get { return _output; }
-			private set
-			{
-				_output = value;
-				if (OutputGenerated != null)
-					OutputGenerated(this, EventArgs.Empty);
-			}
-		}
-
-		public double Progress
-		{
-			get { return _progress; }
-			private set
-			{
-				_progress = value;
-				if (ProgressReported != null)
-					ProgressReported(this, EventArgs.Empty);				
-			}
-		}
-
-		private void ServiceEventReceived(ServiceEventType eventType, object value)
-		{
-			switch (eventType)
-			{
-				case ServiceEventType.StateChanged:
-					var ev = (EventValue<ServiceState>)value;
-
-					if (ev.Value == ServiceState.Ready)
-						TimeInitialized = ev.Time;
-					else if (ev.Value == ServiceState.Running)
-						TimeStarted = ev.Time;
-					else if (ev.Value == ServiceState.Ended)
-						TimeEnded = ev.Time;
-
-					State = ev.Value;
-
-					if (State == ServiceState.Ready && _autostart)
-						this.Start();
-
-					break;
-
-				case ServiceEventType.ProgressReported:
-					Progress = (double)value;
-					break;
-
-				case ServiceEventType.OutputGenerated:
-					Output = value;
-					break;
-
-				case ServiceEventType.OutcomeReported:
-
-					// Autocomplete progress only if success
-					if ((ServiceOutcome)value == ServiceOutcome.Success)
-						Progress = 1.0;
-
-					Outcome = (ServiceOutcome)value;
-
-					break;
-
-				case ServiceEventType.Disconnected:
-					break;
-
-				default:
-					return;
-			}
-			
+			return String.Format("{0} (profile: {1}, guid: {2})",
+				Configuration.ServiceName,
+				Configuration.Profile == null ? "default" : Configuration.Profile.ProfileID.ToString("N"),
+				InstanceID.ToString("N")
+			);
 		}
 
 		//=================
@@ -188,14 +81,16 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("ServiceInstance is already connected.");
 
 			// Get a connection
-			try { this.Connection = Environment.AcquireHostConnection(this); }
+			try { this.Connection = Environment.AcquireHostConnection(this.InstanceID); }
 			catch (Exception ex)
 			{
-				throw new ServiceCommunicationException("Environment could not acquire a connection to the service.", ex);
+				throw new ServiceException("Environment could not acquire a connection to the service.", ex);
 			}
 
 			// Callback
-			this.Connection.EventCallback = ServiceEventReceived;
+			this.Connection.StateChangedCallback = OnStateChanged;
+			this.Connection.OutputGeneratedCallback = OnOutputGenerated;
+			this.Connection.Refresh();
 		}
 
 		public void Disconnect()
@@ -204,6 +99,19 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("ServiceInstance is not connected.");
 
 			this.Connection.Dispose();
+		}
+
+		private void OnStateChanged(ServiceStateInfo info)
+		{
+			_stateInfo = info;
+			if (StateChanged != null)
+				StateChanged(this, EventArgs.Empty);
+		}
+
+		private void OnOutputGenerated(object output)
+		{
+			if (OutputGenerated != null)
+				OutputGenerated(this, new ServiceOutputEventArgs(output));
 		}
 
 		void IDisposable.Dispose()
@@ -215,7 +123,7 @@ namespace Edge.Core.Services
 		//=================
 		#endregion
 
-		#region Control
+		#region Execution
 		//=================
 		
 		/// <summary>
@@ -223,7 +131,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Initialize()
 		{
-			ServiceExecutionPermission.Demand();
+			ServiceExecutionPermission.All.Demand();
 
 			if (State != ServiceState.Uninitialized)
 				throw new InvalidOperationException("Service is already initialized.");
@@ -232,7 +140,7 @@ namespace Edge.Core.Services
 				Connect();
 
 			// Initialize
-			try { this.Connection.Host.InitializeServiceInstance(this); }
+			try { this.Connection.Host.InitializeService(this); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Host could not initialize this instance.", ex);
@@ -246,7 +154,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Start()
 		{
-			ServiceExecutionPermission.Demand();
+			ServiceExecutionPermission.All.Demand();
 
 			if (Connection != null)
 				Connect();
@@ -262,7 +170,7 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("Service can only be started when it is in the Ready state.");
 
 			// Start the service
-			try { this.Connection.Host.StartServiceInstance(this.InstanceID); }
+			try { this.Connection.Host.StartService(this.InstanceID); }
 			catch (Exception ex)
 			{
 				SetOutcomeException("Could not start this instance.", ex);
@@ -275,7 +183,7 @@ namespace Edge.Core.Services
 		/// </summary>
 		public void Abort()
 		{
-			ServiceExecutionPermission.Demand();
+			ServiceExecutionPermission.All.Demand();
 
 			if (Connection != null)
 				Connect();
@@ -290,32 +198,9 @@ namespace Edge.Core.Services
 				if (State != ServiceState.Running && State != ServiceState.Paused)
 					throw new InvalidOperationException("Service can only be aborted when it is in the Running or Paused state.");
 
-				this.Connection.Host.AbortServiceInstance(this.InstanceID);
+				this.Connection.Host.AbortService(this.InstanceID);
 			}
 		}
-
-		[DebuggerNonUserCode]
-		private void SetOutcomeException(string message, Exception ex, bool throwEx = false)
-		{
-			State = ServiceState.Ended;
-			Outcome = ServiceOutcome.Failure;
-			Output = ex is ServiceException ? ex : new ServiceException(message, ex);
-
-			if (throwEx || ThrowExceptionOnError)
-				throw Output as Exception;
-
-			throw ex;
-		}
-
-		public override string ToString()
-		{
-			return String.Format("{0} (profile: {1}, guid: {2})",
-				Configuration.ServiceName,
-				Configuration.Profile == null ? "default" : Configuration.Profile.ProfileID.ToString("N"),
-				InstanceID.ToString("N")
-			);
-		}
-
 
 		//=================
 		#endregion
@@ -330,7 +215,6 @@ namespace Edge.Core.Services
 			info.AddValue("Configuration", Configuration);
 			info.AddValue("ParentInstanceID", this.ParentInstance == null ? null : (object) this.ParentInstance.InstanceID);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
-			info.AddValue("Connection", Connection); // this is strictly for internal use only
 
 			info.AddValue("IsLocked", IsLocked);
 		}
@@ -340,7 +224,6 @@ namespace Edge.Core.Services
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
-			//this.Connection = (IServiceConnection)info.GetValue("Connection", typeof(IServiceConnection));
 			this.Environment = new ServiceEnvironment(this.Connection.Host);
 
 			object pid = info.GetValue("ParentInstanceID", typeof(object));

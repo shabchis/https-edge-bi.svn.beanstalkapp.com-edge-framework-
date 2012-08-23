@@ -15,7 +15,7 @@ namespace Edge.Core.Services
 	[CallbackBehavior(UseSynchronizationContext = false, ConcurrencyMode = ConcurrencyMode.Single)]
 	internal interface IServiceConnection: IDisposable
 	{
-		IServiceHost Host { get; }
+		IServiceExecutionHost Host { get; }
 		Guid Guid { get; }
 		Guid ServiceInstanceID { get; }
 
@@ -67,39 +67,41 @@ namespace Edge.Core.Services
 	/// <summary>
 	/// Serializes endpoint data for a remote host to know how to push back events back.
 	/// </summary>
-	[Serializable]
-	internal class ServiceConnection : ISerializable, IServiceConnection
+	internal class ServiceConnection : IServiceConnection
 	{
-		public Action<ServiceEventType, object> EventCallback { get; set; }
-		public IServiceHost Host { get; private set; }
+		public Action<ServiceStateInfo> StateChangedCallback { get; set; }
+		public Action<object> OutputGeneratedCallback { get; set; }
+		public IServiceExecutionHost Host { get; private set; }
 		public Guid Guid { get; private set; }
 		public Guid ServiceInstanceID { get; private set; }
 
-		internal ServiceConnection(IServiceHost host, Guid serviceInstanceID)
+		internal ServiceConnection(IServiceExecutionHost host, Guid serviceInstanceID)
 		{
 			this.Host = host;
 			this.Guid = Guid.NewGuid();
 			this.ServiceInstanceID = serviceInstanceID;
 		}
 
-		public void Notify(ServiceEventType eventType, object value)
+		internal void Refresh()
 		{
-			if (EventCallback != null)
-				EventCallback(eventType, value);
+			this.Host.RefreshConnection(this.ServiceInstanceID, this.Guid);
+		}
+
+		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo, DateTime time)
+		{
+			if (StateChangedCallback != null)
+				StateChangedCallback(stateInfo);
+		}
+
+		void IServiceConnection.ReceiveOutput(object output, DateTime time)
+		{
+			if (OutputGeneratedCallback != null)
+				OutputGeneratedCallback(output);
 		}
 
 		public void Dispose()
 		{
-			this.Host.DisconnectServiceConnection(this.ServiceInstanceID, this.Guid);
+			this.Host.DisconnectConnection(this.ServiceInstanceID, this.Guid);
 		}
-
-		#region ISerializable Members
-
-		void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			//info.AddValue(
-		}
-
-		#endregion
 	}
 }
