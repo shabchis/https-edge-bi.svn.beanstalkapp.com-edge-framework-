@@ -20,7 +20,10 @@ namespace Edge.Core.Services
 		Guid ServiceInstanceID { get; }
 
 		[OperationContract(IsOneWay = true)]
-		void Notify(ServiceEventType eventType, object value);
+		void ReceiveState(ServiceStateInfo stateInfo);
+		
+		[OperationContract(IsOneWay = true)]
+		void ReceiveOutput(object output);
 	}
 
 	/*
@@ -84,16 +87,16 @@ namespace Edge.Core.Services
 
 		internal void Refresh()
 		{
-			this.Host.RefreshConnection(this.ServiceInstanceID, this.Guid);
+			this.Host.
 		}
 
-		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo, DateTime time)
+		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo)
 		{
 			if (StateChangedCallback != null)
 				StateChangedCallback(stateInfo);
 		}
 
-		void IServiceConnection.ReceiveOutput(object output, DateTime time)
+		void IServiceConnection.ReceiveOutput(object output)
 		{
 			if (OutputGeneratedCallback != null)
 				OutputGeneratedCallback(output);
@@ -101,7 +104,7 @@ namespace Edge.Core.Services
 
 		public void Dispose()
 		{
-			this.Host.DisconnectConnection(this.ServiceInstanceID, this.Guid);
+			this.Host.CloseConnection(this.ServiceInstanceID, this.Guid);
 		}
 	}
 }

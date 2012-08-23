@@ -12,7 +12,7 @@ using System.ServiceModel;
 namespace Edge.Core.Services
 {
 	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
-	public class ServiceExecutionHost : IServiceExecutionHost
+	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost
 	{
 		#region Nested classes
 		// ========================
@@ -40,12 +40,10 @@ namespace Edge.Core.Services
 		// ========================
 
 		public ServiceEnvironment Environment { get; private set; }
-		public readonly string HostName;
-		ServiceExecutionHost _innerHost = null;
+		public string HostName { get; private set; }
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
 		//PermissionSet _servicePermissions;
-		bool IsWrapper { get { return _innerHost != null; } }
 
 		// ========================
 		#endregion 
@@ -53,15 +51,12 @@ namespace Edge.Core.Services
 		#region Methods
 		// ========================
 
-		public ServiceExecutionHost(string name): this(true, name)
+		public ServiceExecutionHost(string name)
 		{
 			ServiceExecutionPermission.All.Demand();
-			this.Environment = new ServiceEnvironment(this);
-		}
 
-		private ServiceExecutionHost(bool isWrapper, string name)
-		{
 			this.HostName = name;
+			this.Environment = new ServiceEnvironment(this);
 
 			/*
 			_servicePermissions = new PermissionSet(PermissionState.None);
@@ -76,32 +71,10 @@ namespace Edge.Core.Services
 				SecurityPermissionFlag.SerializationFormatter
 			));
 			*/
-
-			if (!isWrapper)
-				return;
-
-			AppDomain domain = AppDomain.CreateDomain(String.Format("Edge host - ({0})", HostName));
-			_innerHost = (ServiceExecutionHost) domain.CreateInstanceAndUnwrap
-			(
-				typeof(ServiceExecutionHost).Assembly.FullName,
-				typeof(ServiceExecutionHost).FullName,
-				false,
-				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.CreateInstance | System.Reflection.BindingFlags.Instance,
-				null,
-				new object[] { false, name }, // these are ctor arguments
-				System.Globalization.CultureInfo.CurrentCulture,
-				null
-			);
 		}
 
 		void IServiceExecutionHost.InitializeService(ServiceInstance instance)
 		{
-			if (this.IsWrapper)
-			{
-				((IServiceExecutionHost)_innerHost).InitializeService(instance);
-				return;
-			}
-
 			ServiceRuntimeInfo runtimeInfo;
 
 			// Check if instance ID exists
@@ -163,15 +136,16 @@ namespace Edge.Core.Services
 
 		void IServiceExecutionHost.StartService(Guid instanceID)
 		{
-			if (this.IsWrapper)
-			{
-				((IServiceExecutionHost)_innerHost).StartService(instanceID);
-				return;
-			}
-
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock(runtimeInfo.ExecutionSync)
 				runtimeInfo.ServiceRef.Start();
+		}
+
+		void IServiceExecutionHost.ResumeService(Guid instanceID)
+		{
+			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
+			lock (runtimeInfo.ExecutionSync)
+				runtimeInfo.ServiceRef.Resume();
 		}
 
 		/// <summary>
@@ -180,12 +154,6 @@ namespace Edge.Core.Services
 		/// <param name="instanceID"></param>
 		void IServiceExecutionHost.AbortService(Guid instanceID)
 		{
-			if (this.IsWrapper)
-			{
-				((IServiceExecutionHost)_innerHost).AbortService(instanceID);
-				return;
-			}
-
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
 				runtimeInfo.ServiceRef.Abort();
@@ -194,14 +162,8 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// Disconnects a connection from a running service instance.
 		/// </summary>
-		void IServiceExecutionHost.DisconnectConnection(Guid instanceID, Guid connectionGuid)
+		void IServiceExecutionHost.CloseConnection(Guid instanceID, Guid connectionGuid)
 		{
-			if (this.IsWrapper)
-			{
-				((IServiceExecutionHost)_innerHost).DisconnectConnection(instanceID, connectionGuid);
-				return;
-			}
-
 			var runtimeInfo = Get(instanceID, false);
 			if (runtimeInfo != null)
 			{
@@ -210,36 +172,36 @@ namespace Edge.Core.Services
 			}
 		}
 
-		void IServiceExecutionHost.NotifyConnections(Guid instanceID, ServiceEventType eventType, object value)
+		void IServiceExecutionHost.RefreshConnection(Guid instanceID, Guid connectionGuid)
 		{
 			var runtimeInfo = Get(instanceID, true);
 			lock (runtimeInfo.Connections)
 			{
 				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
-					connection.Notify(eventType, value);
+					connection.ReceiveState(runtimeInfo.ServiceRef.StateInfo);
 			}
 		}
 
-		void IServiceExecutionHost.RefreshConnection(Guid instanceID, Guid connectionGuid)
+		internal void NotifyState(Guid instanceID, ServiceStateInfo stateInfo)
 		{
-			if (this.IsWrapper)
+			var runtimeInfo = Get(instanceID, true);
+			lock (runtimeInfo.Connections)
 			{
-				((IServiceExecutionHost)_innerHost).DisconnectConnection(instanceID, connectionGuid);
-				return;
-			}
-
-			var runtimeInfo = Get(instanceID, false);
-			if (runtimeInfo != null)
-			{
-				IServiceConnection connection;
-				if (runtimeInfo.Connections.TryGetValue(connectionGuid, out connection))
-				{
-					connection.Notify(ServiceEventType.StateChanged, runtimeInfo.ServiceRef.State);
-					connection.Notify(ServiceEventType.OutputGenerated, runtimeInfo.ServiceRef.Output);
-					connection.Notify(ServiceEventType.OutcomeReported, runtimeInfo.ServiceRef.Outcome);
-				}
+				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
+					connection.ReceiveState(stateInfo);
 			}
 		}
+
+		internal void NotifyOutput(Guid instanceID, object output)
+		{
+			var runtimeInfo = Get(instanceID, true);
+			lock (runtimeInfo.Connections)
+			{
+				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
+					connection.ReceiveOutput(output);
+			}
+		}
+
 
 		internal void Log(Guid instanceID, LogMessage message)
 		{
@@ -285,7 +247,7 @@ namespace Edge.Core.Services
 	[ServiceContract(SessionMode = SessionMode.Required, CallbackContract = typeof(IServiceConnection))]
 	internal interface IServiceExecutionHost
 	{
-		ServiceEnvironment Environment { get; }
+		string HostName { get; }
 		
 		[OperationContract(IsOneWay = true)]
 		void InitializeService(ServiceInstance instance);
@@ -300,12 +262,6 @@ namespace Edge.Core.Services
 		void AbortService(Guid instanceID);
 
 		[OperationContract(IsOneWay = true)]
-		void RefreshConnection(Guid instanceID, Guid connectionGuid);
-
-		[OperationContract(IsOneWay = true)]
-		void DisconnectConnection(Guid instanceID, Guid connectionID);
-
-		[OperationContract]
-		IServiceInfo GetServiceInfo(Guid instanceID);
+		void CloseConnection(Guid instanceID, Guid connectionID);
 	}
 }

@@ -63,4 +63,15 @@ namespace Edge.Core.Services
 		/// </summary>
 		Killed = 9
 	}
+
+	[Serializable]
+	public class ServiceOutputEventArgs : EventArgs
+	{
+		public object Output { get; set; }
+
+		public ServiceOutputEventArgs(object output)
+		{
+			this.Output = output;
+		}
+	}
 }

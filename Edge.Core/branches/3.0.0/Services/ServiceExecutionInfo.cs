@@ -17,5 +17,10 @@ namespace Edge.Core.Services
 		public DateTime TimeInitialized;
 		public DateTime TimeStarted;
 		public DateTime TimeEnded;
+
+		public ServiceStateInfo Clone()
+		{
+			return (ServiceStateInfo) this.MemberwiseClone();
+		}
 	}
 }
