@@ -32,8 +32,11 @@ namespace Edge.Core.Services.Workflow
 
 		private void ExpandInstances()
 		{
-			var group = this.Node as Group;
+			var group = this.Node as WorkflowNodeGroup;
 			if (group == null)
+				return;
+			
+			if (group.Nodes == null)
 				return;
 
 			foreach (WorkflowNode node in group.Nodes)

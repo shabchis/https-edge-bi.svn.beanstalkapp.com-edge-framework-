@@ -27,22 +27,22 @@ namespace Edge.Core.Services.Workflow
 		{
 			bool complete;
 
-			if (nodeInstance.Node is Group)
+			if (nodeInstance.Node is WorkflowNodeGroup)
 			{
-				var group = (Group)nodeInstance.Node;
+				var group = (WorkflowNodeGroup)nodeInstance.Node;
 				complete = true;
 
 				foreach (WorkflowNodeInstance child in nodeInstance.Children)
 				{
 					var stepComplete = ProcessWorkflow(child);
 					complete &= stepComplete;
-					if (!stepComplete && group.Mode == GroupMode.Linear)
+					if (!stepComplete && group.Mode == WorkflowNodeGroupMode.Linear)
 						break;
 				}
 			}
-			else if (nodeInstance.Node is Step)
+			else if (nodeInstance.Node is WorkflowStep)
 			{
-				var step = (Step)nodeInstance.Node;
+				var step = (WorkflowStep)nodeInstance.Node;
 				if (nodeInstance.Instance == null)
 				{
 					throw new NotImplementedException();

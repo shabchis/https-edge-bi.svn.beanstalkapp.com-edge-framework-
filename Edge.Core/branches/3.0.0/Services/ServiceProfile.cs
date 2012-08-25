@@ -8,20 +8,20 @@ using System.Diagnostics;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class ServiceProfile: ILockable, ISerializable
+	public class ServiceProfile: Lockable, ISerializable
 	{
 		string _name;
 
 		public Guid ProfileID { get; internal set; }
-		public string Name { get { return _name; } set { _lock.Ensure(); _name = value; } }
+		public string Name { get { return _name; } set { EnsureUnlocked(); _name = value; } }
 		public IDictionary<string, object> Parameters { get; private set; }
-		public IList<ServiceConfiguration> AssignedServices { get; private set;}
+		public IList<ServiceConfiguration> Services { get; private set;}
 
 		public ServiceProfile()
 		{
 			this.ProfileID = Guid.NewGuid();
 			Parameters = new LockableDictionary<string, object>();
-			AssignedServices = new LockableList<ServiceConfiguration>() { OnValidate = OnServiceAssigned };
+			Services = new LockableList<ServiceConfiguration>() { OnValidate = OnServiceAssigned };
 		}
 
 		bool OnServiceAssigned(int index, ServiceConfiguration item)
@@ -52,24 +52,11 @@ namespace Edge.Core.Services
 
 		#region Locking
 		//=================
-
-		[NonSerialized] Padlock _lock = new Padlock();
-		public bool IsLocked { get { return _lock.IsLocked; } }
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode] void ILockable.Lock(object key)
+		protected override IEnumerable<ILockable> GetLockables()
 		{
-			_lock.Lock(key);
-			((ILockable)Parameters).Lock(key);
-			((ILockable)AssignedServices).Lock(key);
+			yield return (ILockable) Parameters;
+			yield return (ILockable) Services;
 		}
-
-		[DebuggerNonUserCode] void ILockable.Unlock(object key)
-		{
-			_lock.Unlock(key);
-			((ILockable)Parameters).Lock(key);
-			((ILockable)AssignedServices).Lock(key);
-		}
-
 
 		//=================
 		#endregion
@@ -94,7 +81,7 @@ namespace Edge.Core.Services
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
-				_lock.Lock();
+				((ILockable)this).Lock();
 		}
 
 		//=================

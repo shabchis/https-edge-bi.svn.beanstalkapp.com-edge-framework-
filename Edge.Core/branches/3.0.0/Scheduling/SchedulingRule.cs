@@ -9,7 +9,7 @@ using System.Runtime.Serialization;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class SchedulingRule: ILockable, ICloneable, ISerializable
+	public class SchedulingRule: Lockable, ICloneable, ISerializable
 	{
 		SchedulingScope _scope;
 		DateTime _specificDateTime;
@@ -18,12 +18,12 @@ namespace Edge.Core.Services
 		int[] _days = null;
 		TimeSpan[] _times = null;
 
-		public SchedulingScope Scope { get { return _scope; } set { _lock.Ensure(); _scope = value; } }
-		public DateTime SpecificDateTime { get { return _specificDateTime; } set { _lock.Ensure(); _specificDateTime = value; } }
-		public TimeSpan MaxDeviationAfter { get { return _maxDeviationAfter; } set { _lock.Ensure(); _maxDeviationAfter = value; } }
-		public TimeSpan MaxDeviationBefore { get { return _maxDeviationBefore; } set { _lock.Ensure(); _maxDeviationBefore = value; } }
-		public int[] Days { get { return _days; } set { _lock.Ensure(); _days = value; } }
-		public TimeSpan[] Times { get { return _times; } set { _lock.Ensure(); _times = value; } }
+		public SchedulingScope Scope { get { return _scope; } set { EnsureUnlocked(); _scope = value; } }
+		public DateTime SpecificDateTime { get { return _specificDateTime; } set { EnsureUnlocked(); _specificDateTime = value; } }
+		public TimeSpan MaxDeviationAfter { get { return _maxDeviationAfter; } set { EnsureUnlocked(); _maxDeviationAfter = value; } }
+		public TimeSpan MaxDeviationBefore { get { return _maxDeviationBefore; } set { EnsureUnlocked(); _maxDeviationBefore = value; } }
+		public int[] Days { get { return _days; } set { EnsureUnlocked(); _days = value; } }
+		public TimeSpan[] Times { get { return _times; } set { EnsureUnlocked(); _times = value; } }
 
 		#region Constructors
 		//=================
@@ -48,19 +48,6 @@ namespace Edge.Core.Services
 			_days = days;
 			_times = times;
 		}
-
-		//=================
-		#endregion
-
-		#region ILockable Members
-		//=================
-
-		[NonSerialized] Padlock _lock = new Padlock();
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode] void ILockable.Lock(object key) { _lock.Lock(key); }
-		[DebuggerNonUserCode] void ILockable.Unlock(object key) { _lock.Unlock(key); }
-		
-		public bool IsLocked { get { return _lock.IsLocked; } }
 
 		//=================
 		#endregion

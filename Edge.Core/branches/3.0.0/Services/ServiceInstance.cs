@@ -14,7 +14,7 @@ using System.ServiceModel;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class ServiceInstance: ISerializable, ILockable, IDisposable
+	public class ServiceInstance : Lockable, ISerializable, IDisposable
 	{
 		#region Instance
 		//=================
@@ -29,7 +29,7 @@ namespace Edge.Core.Services
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { _lock.Ensure(); _schedulingInfo = value; } }
+		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { EnsureUnlocked(); _schedulingInfo = value; } }
 		
 		public double Progress { get { return _stateInfo.Progress; } }
 		public ServiceState State { get { return _stateInfo.State; } }
@@ -244,23 +244,13 @@ namespace Edge.Core.Services
 		//=================
 		#endregion
 
-		#region ILockable Members
+		#region Lockable Members
 		//=================
 
-		[NonSerialized] Padlock _lock = new Padlock();
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode] void ILockable.Lock(object key)
+		protected override IEnumerable<ILockable> GetLockables()
 		{
-			_lock.Lock(key);
-			((ILockable)this.SchedulingInfo).Lock(key);
+			yield return (ILockable)SchedulingInfo;
 		}
-		[DebuggerNonUserCode] void ILockable.Unlock(object key)
-		{
-			_lock.Unlock(key);
-			((ILockable)this.SchedulingInfo).Unlock(key);
-		}
-
-		public bool IsLocked { get { return _lock.IsLocked; } }
 
 		//=================
 		#endregion

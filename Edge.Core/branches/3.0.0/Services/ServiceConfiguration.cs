@@ -67,39 +67,34 @@ namespace Edge.Core.Services
 			private set;
 		}
 
-		[DebuggerNonUserCode]
 		public string AssemblyPath
 		{
 			get { return _assemblyPath; }
-			set { InnerLock.Ensure(); _assemblyPath = value; }
+			set { EnsureUnlocked(); _assemblyPath = value; }
 		}
 
-		[DebuggerNonUserCode]
 		public string ServiceClass
 		{
 			get { return _serviceType; }
-			set { InnerLock.Ensure(); _serviceType = value; }
+			set { EnsureUnlocked(); _serviceType = value; }
 		}
 
-		[DebuggerNonUserCode]
 		public string ServiceName
 		{
 			get { return _serviceName; }
-			set { InnerLock.Ensure(); _serviceName = value; }
+			set { EnsureUnlocked(); _serviceName = value; }
 		}
 
-		[DebuggerNonUserCode]
 		public bool IsEnabled
 		{
 			get { return _isEnabled; }
-			set { InnerLock.Ensure(); _isEnabled = value; }
+			set { EnsureUnlocked(); _isEnabled = value; }
 		}
 
-		[DebuggerNonUserCode]
 		public bool IsPublic
 		{
 			get { return _isPublic; }
-			set { InnerLock.Ensure(); _isPublic = value; }
+			set { EnsureUnlocked(); _isPublic = value; }
 		}
 
 		//=================
@@ -294,11 +289,11 @@ namespace Edge.Core.Services
 			info.AddValue("Limits", Limits);
 			info.AddValue("Parameters", Parameters);
 			info.AddValue("SchedulingRules", SchedulingRules);
-			info.AddValue("AssemblyPath", AssemblyPath);
-			info.AddValue("ServiceType", ServiceClass);
-			info.AddValue("ServiceName", ServiceName);
-			info.AddValue("IsEnabled", IsEnabled);
-			info.AddValue("IsPublic", IsPublic);
+			info.AddValue("_assemblyPath", _assemblyPath);
+			info.AddValue("_serviceType", _serviceType);
+			info.AddValue("_serviceName", _serviceName);
+			info.AddValue("_isEnabled", _isEnabled);
+			info.AddValue("_isPublic", _isPublic);
 
 			info.AddValue("IsLocked", IsLocked);
 
@@ -309,7 +304,7 @@ namespace Edge.Core.Services
 		{
 		}
 
-		private ServiceConfiguration(SerializationInfo info, StreamingContext context)
+		protected ServiceConfiguration(SerializationInfo info, StreamingContext context)
 		{
 			this.ConfigurationID = (Guid)info.GetValue("ConfigurationID", typeof(Guid));
 			this.ConfigurationLevel = (ServiceConfigurationLevel)info.GetValue("ConfigurationLevel", typeof(ServiceConfigurationLevel));
@@ -318,11 +313,11 @@ namespace Edge.Core.Services
 			this.Limits = (ServiceExecutionLimits)info.GetValue("Limits", typeof(ServiceExecutionLimits));
 			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
 			this.SchedulingRules = (IList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(IList<SchedulingRule>));
-			this.AssemblyPath = info.GetString("AssemblyPath");
-			this.ServiceClass =info.GetString("ServiceType");
-			this.ServiceName = info.GetString("ServiceName");
-			this.IsEnabled = info.GetBoolean("IsEnabled");
-			this.IsPublic = info.GetBoolean("IsPublic");
+			_assemblyPath = info.GetString("_assemblyPath");
+			_serviceType = info.GetString("_serviceType");
+			_serviceName = info.GetString("_serviceName");
+			_isEnabled = info.GetBoolean("_isEnabled");
+			_isPublic = info.GetBoolean("_isPublic");
 
 			Deserialize(info, context);
 
@@ -367,32 +362,22 @@ namespace Edge.Core.Services
 
 
 	[Serializable]
-	public class ServiceExecutionLimits:ILockable
+	public class ServiceExecutionLimits:Lockable
 	{
 		int _maxConcurrentGlobal = 0;
 		int _maxConcurrentPerProfile = 0;
 		int _maxConcurrentPerHost = 0;
 		TimeSpan _maxExecutionTime;
-		public int MaxConcurrentGlobal { get { return _maxConcurrentGlobal; } set { _lock.Ensure(); _maxConcurrentGlobal = value; } }
-		public int MaxConcurrentPerProfile { get { return _maxConcurrentPerProfile; } set { _lock.Ensure(); _maxConcurrentPerProfile = value; } }
-		public int MaxConcurrentPerHost { get { return _maxConcurrentPerHost; } set { _lock.Ensure(); _maxConcurrentPerHost = value; } }
-		public TimeSpan MaxExecutionTime { get { return _maxExecutionTime; } set { _lock.Ensure(); _maxExecutionTime = value; } }
+		public int MaxConcurrentGlobal { get { return _maxConcurrentGlobal; } set { EnsureUnlocked(); _maxConcurrentGlobal = value; } }
+		public int MaxConcurrentPerProfile { get { return _maxConcurrentPerProfile; } set { EnsureUnlocked(); _maxConcurrentPerProfile = value; } }
+		public int MaxConcurrentPerHost { get { return _maxConcurrentPerHost; } set { EnsureUnlocked(); _maxConcurrentPerHost = value; } }
+		public TimeSpan MaxExecutionTime { get { return _maxExecutionTime; } set { EnsureUnlocked(); _maxExecutionTime = value; } }
 		public void CopyTo(ServiceExecutionLimits serviceExecutionLimits)
 		{
 			serviceExecutionLimits.MaxConcurrentGlobal = this._maxConcurrentGlobal;
 			serviceExecutionLimits.MaxConcurrentPerProfile = this._maxConcurrentGlobal;
 			serviceExecutionLimits.MaxConcurrentPerHost = this._maxConcurrentGlobal;
 		}
-
-		#region Locking
-
-		[NonSerialized] Padlock _lock = new Padlock();
-		public bool IsLocked { get { return _lock.IsLocked; } }
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode] void ILockable.Lock(object key) { _lock.Lock(key); }
-		[DebuggerNonUserCode] void ILockable.Unlock(object key) { _lock.Unlock(key); }
-
-		#endregion
 
 		
 	}
