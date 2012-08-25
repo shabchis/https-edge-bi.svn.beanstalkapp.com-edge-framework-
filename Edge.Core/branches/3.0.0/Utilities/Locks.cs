@@ -15,6 +15,42 @@ namespace Edge.Core.Services
 		void Unlock(object key);
 	}
 
+	public class Lockable: ILockable
+	{
+		#region ILockable Members
+		//=================
+
+		[NonSerialized] protected readonly Padlock InnerLock = new Padlock();
+		public bool IsLocked { get { return InnerLock.IsLocked; } }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
+		[DebuggerNonUserCode]
+		void ILockable.Lock(object key)
+		{
+			InnerLock.Lock(key);
+			var sublocks = GetLockables();
+			if (sublocks != null)
+				foreach (ILockable sublock in sublocks)
+					sublock.Lock(key);
+		}
+		[DebuggerNonUserCode]
+		void ILockable.Unlock(object key)
+		{
+			InnerLock.Unlock(key);
+			var sublocks = GetLockables();
+			if (sublocks != null)
+				foreach (ILockable sublock in sublocks)
+					sublock.Unlock(key);
+		}
+
+		protected virtual IEnumerable<ILockable> GetLockables()
+		{
+			return null;
+		}
+
+		//=================
+		#endregion
+	}
+
 	[Serializable]
 	public class LockException : Exception
 	{

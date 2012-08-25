@@ -95,24 +95,28 @@ namespace Edge.Core.Services
 				((IServiceConnection)connection).ReceiveState(new ServiceStateInfo() { State = ServiceState.Initializing });
 			}
 
+			if (String.IsNullOrEmpty(config.ServiceClass))
+				throw new ServiceException("ServiceConfiguration.ServiceClass cannot be empty.");
+
 			lock (runtimeInfo.ExecutionSync)
 			{
 
 				// Load the app domain, and attach to its events
 				AppDomain domain = AppDomain.CreateDomain(
-					String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID)/*,
-				null,
-				new AppDomainSetup() { ApplicationBase = Directory.GetCurrentDirectory() },
-				_servicePermissions,
-				null*/
+					String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID)
+					/*,
+					null,
+					new AppDomainSetup() { ApplicationBase = Directory.GetCurrentDirectory() },
+					_servicePermissions,
+					null*/
 				);
 				domain.DomainUnload += new EventHandler(DomainUnload);
+				
 
 				// Instantiate the service type in the new domain
 				Service serviceRef;
 				if (config.AssemblyPath == null)
 				{
-					// No assembly path specified, most likely a core service
 					Type serviceType = Type.GetType(config.ServiceClass, false);
 					if (serviceType == null)
 						throw new ServiceException(String.Format("Service type '{0}' could not be found. Please specify AssemblyPath if the service is not in the host directory.", config.ServiceClass));
