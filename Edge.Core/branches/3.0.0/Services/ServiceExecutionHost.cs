@@ -14,6 +14,9 @@ namespace Edge.Core.Services
 	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
 	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost
 	{
+		internal const string LOCALNAME = "LOCAL";
+		internal static IServiceExecutionHost LOCAL;
+
 		#region Nested classes
 		// ========================
 
@@ -24,6 +27,7 @@ namespace Edge.Core.Services
 			public Service ServiceRef;
 			public AppDomain AppDomain;
 			public Dictionary<Guid, IServiceConnection> Connections;
+			public ServiceStateInfo State;
 
 			internal ServiceRuntimeInfo(Guid instanceID)
 			{
@@ -43,6 +47,7 @@ namespace Edge.Core.Services
 		public string HostName { get; private set; }
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
+		
 		//PermissionSet _servicePermissions;
 
 		// ========================
@@ -51,12 +56,13 @@ namespace Edge.Core.Services
 		#region Methods
 		// ========================
 
-		public ServiceExecutionHost(string name)
+		public ServiceExecutionHost(/*string name*/)
 		{
 			ServiceExecutionPermission.All.Demand();
 
-			this.HostName = name;
-			this.Environment = new ServiceEnvironment(this);
+			this.HostName = LOCALNAME; //name;
+			ServiceExecutionHost.LOCAL = this;
+			this.Environment = new ServiceEnvironment();
 
 			/*
 			_servicePermissions = new PermissionSet(PermissionState.None);
@@ -73,19 +79,20 @@ namespace Edge.Core.Services
 			*/
 		}
 
-		void IServiceExecutionHost.InitializeService(ServiceInstance instance)
+		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection)
 		{
 			ServiceRuntimeInfo runtimeInfo;
 
 			// Check if instance ID exists
 			lock (_services)
 			{
-				if (_services.ContainsKey(instance.InstanceID))
-					throw new ServiceException(String.Format("Service instance '{0}' is already initialized.", instance.InstanceID));
+				if (_services.ContainsKey(instanceID))
+					throw new ServiceException(String.Format("Service instance '{0}' is already initialized.", instanceID));
 
-				runtimeInfo = new ServiceRuntimeInfo(instance.InstanceID);
-				runtimeInfo.Connections.Add(instance.Connection.Guid, instance.Connection);
-				_services.Add(instance.InstanceID, runtimeInfo);
+				runtimeInfo = new ServiceRuntimeInfo(instanceID);
+				runtimeInfo.Connections.Add(connectionGuid, connection);
+				_services.Add(instanceID, runtimeInfo);
+				((IServiceConnection)connection).ReceiveState(new ServiceStateInfo() { State = ServiceState.Initializing });
 			}
 
 			lock (runtimeInfo.ExecutionSync)
@@ -93,7 +100,7 @@ namespace Edge.Core.Services
 
 				// Load the app domain, and attach to its events
 				AppDomain domain = AppDomain.CreateDomain(
-					"Edge service - " + instance.ToString()/*,
+					String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID)/*,
 				null,
 				new AppDomainSetup() { ApplicationBase = Directory.GetCurrentDirectory() },
 				_servicePermissions,
@@ -103,12 +110,12 @@ namespace Edge.Core.Services
 
 				// Instantiate the service type in the new domain
 				Service serviceRef;
-				if (instance.Configuration.AssemblyPath == null)
+				if (config.AssemblyPath == null)
 				{
 					// No assembly path specified, most likely a core service
-					Type serviceType = Type.GetType(instance.Configuration.ServiceType, false);
+					Type serviceType = Type.GetType(config.ServiceClass, false);
 					if (serviceType == null)
-						throw new ServiceException(String.Format("Service type '{0}' could not be found. Please specify AssemblyPath if the service is not in the host directory.", instance.Configuration.ServiceType));
+						throw new ServiceException(String.Format("Service type '{0}' could not be found. Please specify AssemblyPath if the service is not in the host directory.", config.ServiceClass));
 
 					serviceRef = (Service)domain.CreateInstanceAndUnwrap(serviceType.Assembly.FullName, serviceType.FullName);
 				}
@@ -116,8 +123,8 @@ namespace Edge.Core.Services
 				{
 					// A 3rd party service
 					serviceRef = (Service)domain.CreateInstanceFromAndUnwrap(
-						instance.Configuration.AssemblyPath,
-						instance.Configuration.ServiceType
+						config.AssemblyPath,
+						config.ServiceClass
 					);
 				}
 
@@ -130,7 +137,7 @@ namespace Edge.Core.Services
 				};
 
 				// Give the service ref its properties
-				serviceRef.Init(this, instance);
+				serviceRef.Init(this, config, instanceID, parentInstanceID);
 			}
 		}
 
@@ -172,19 +179,25 @@ namespace Edge.Core.Services
 			}
 		}
 
-		void IServiceExecutionHost.RefreshConnection(Guid instanceID, Guid connectionGuid)
+		void IServiceExecutionHost.NotifyState(Guid instanceID)
 		{
-			var runtimeInfo = Get(instanceID, true);
+			var runtimeInfo = Get(instanceID, false);
+			if (runtimeInfo == null)
+				return;
+
 			lock (runtimeInfo.Connections)
 			{
 				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
-					connection.ReceiveState(runtimeInfo.ServiceRef.StateInfo);
+					connection.ReceiveState(runtimeInfo.State);
 			}
 		}
 
 		internal void NotifyState(Guid instanceID, ServiceStateInfo stateInfo)
 		{
 			var runtimeInfo = Get(instanceID, true);
+			lock (runtimeInfo)
+				runtimeInfo.State = stateInfo;
+
 			lock (runtimeInfo.Connections)
 			{
 				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
@@ -250,7 +263,7 @@ namespace Edge.Core.Services
 		string HostName { get; }
 		
 		[OperationContract(IsOneWay = true)]
-		void InitializeService(ServiceInstance instance);
+		void InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection);
 
 		[OperationContract(IsOneWay = true)]
 		void StartService(Guid instanceID);
@@ -260,6 +273,9 @@ namespace Edge.Core.Services
 
 		[OperationContract(IsOneWay = true)]
 		void AbortService(Guid instanceID);
+
+		[OperationContract(IsOneWay = true)]
+		void NotifyState(Guid instanceID);
 
 		[OperationContract(IsOneWay = true)]
 		void CloseConnection(Guid instanceID, Guid connectionID);

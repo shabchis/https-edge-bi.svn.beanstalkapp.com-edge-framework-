@@ -39,7 +39,7 @@ namespace Edge.Core.Services
 		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
 
 		public event EventHandler StateChanged;
-		public event EventHandler OutputGenerated;
+		public event EventHandler<ServiceOutputEventArgs> OutputGenerated;
 
 		internal ServiceInstance(ServiceConfiguration configuration, ServiceEnvironment environment, ServiceInstance parentInstance)
 		{
@@ -53,11 +53,13 @@ namespace Edge.Core.Services
 
 			this.Environment = environment;
 			this.InstanceID = Guid.NewGuid();
-			if (parentInstance == null)
+			if (parentInstance != null)
 			{
 				this.Configuration = configuration.Derive(parentInstance.Configuration);
 				this.ParentInstance = parentInstance;
 			}
+			else
+				this.Configuration = configuration;
 		}
 
 		public override string ToString()
@@ -81,16 +83,16 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("ServiceInstance is already connected.");
 
 			// Get a connection
-			try { this.Connection = Environment.AcquireHostConnection(this.InstanceID); }
+			try { this.Connection = Environment.AcquireHostConnection(ServiceExecutionHost.LOCALNAME, this.InstanceID); }
 			catch (Exception ex)
 			{
-				throw new ServiceException("Environment could not acquire a connection to the service.", ex);
+				throw new ServiceException("Environment could not acquire a connection to the service {0:N} on host {1}.", ex);
 			}
 
 			// Callback
 			this.Connection.StateChangedCallback = OnStateChanged;
 			this.Connection.OutputGeneratedCallback = OnOutputGenerated;
-			this.Connection.Refresh();
+			this.Connection.RefreshState();
 		}
 
 		public void Disconnect()
@@ -106,6 +108,9 @@ namespace Edge.Core.Services
 			_stateInfo = info;
 			if (StateChanged != null)
 				StateChanged(this, EventArgs.Empty);
+
+			if (_autostart && info.State == ServiceState.Ready)
+				this.Start();
 		}
 
 		private void OnOutputGenerated(object output)
@@ -136,11 +141,19 @@ namespace Edge.Core.Services
 			if (State != ServiceState.Uninitialized)
 				throw new InvalidOperationException("Service is already initialized.");
 
-			if (Connection != null)
+			if (Connection == null)
 				Connect();
 
 			// Initialize
-			try { this.Connection.Host.InitializeService(this); }
+			try
+			{
+				this.Connection.Host.InitializeService(
+					this.Configuration,
+					this.InstanceID,
+					this.ParentInstance != null ? this.ParentInstance.InstanceID : Guid.Empty,
+					this.Connection.Guid,
+					this.Connection); 
+			}
 			catch (Exception ex)
 			{
 				throw new ServiceException("Could not initialize this instance.", ex);
@@ -155,7 +168,7 @@ namespace Edge.Core.Services
 		{
 			ServiceExecutionPermission.All.Demand();
 
-			if (Connection != null)
+			if (Connection == null)
 				Connect();
 
 			// If not initialized, initialize and then progress to Start
@@ -183,7 +196,7 @@ namespace Edge.Core.Services
 		{
 			ServiceExecutionPermission.All.Demand();
 
-			if (Connection != null)
+			if (Connection == null)
 				Connect();
 	
 			// Simple aborting of service without connection

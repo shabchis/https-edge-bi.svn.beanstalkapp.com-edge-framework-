@@ -45,8 +45,9 @@ namespace Edge.Core.Services.Workflow
 				var step = (Step)nodeInstance.Node;
 				if (nodeInstance.Instance == null)
 				{
-					nodeInstance.Instance = this.Environment.NewServiceInstance(step.ServiceConfiguration, this);
-					nodeInstance.Instance.Start();
+					throw new NotImplementedException();
+					//nodeInstance.Instance = Environment.NewServiceInstance(step.ServiceConfiguration, this);
+					//nodeInstance.Instance.Start();
 				}
 
 				complete = nodeInstance.Instance.State == ServiceState.Ended;
