@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace Edge.Core.Services.Workflow
 {
@@ -10,22 +11,27 @@ namespace Edge.Core.Services.Workflow
 	public class WorkflowServiceConfiguration: ServiceConfiguration
 	{
 		public const string Self = "SELF";
-		Group _workflow = new Group() { Name = Self, Mode = GroupMode.Linear };
-		public Group Workflow { get { return _workflow; } set { InnerLock.Ensure(); _workflow = value; } }
+		WorkflowNodeGroup _workflow = new WorkflowNodeGroup() { Name = Self, Mode = WorkflowNodeGroupMode.Linear };
+		public WorkflowNodeGroup Workflow { get { return _workflow; } set { EnsureUnlocked(); _workflow = value; } }
 
 		public WorkflowServiceConfiguration()
 		{
 			this.ServiceClass = typeof(WorkflowService).FullName;
 		}
 
-		protected override void Serialize(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
+		protected override void Serialize(SerializationInfo info, StreamingContext context)
 		{
 			info.AddValue("_workflow", _workflow);
 		}
 
-		protected override void Deserialize(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
+		protected WorkflowServiceConfiguration(SerializationInfo info, StreamingContext context)
+			: base(info, context)
 		{
-			_workflow = (Group)info.GetValue("_workflow", typeof(Group));
+		}
+
+		protected override void Deserialize(SerializationInfo info, StreamingContext context)
+		{
+			_workflow = (WorkflowNodeGroup)info.GetValue("_workflow", typeof(WorkflowNodeGroup));
 		}
 
 		protected override IEnumerable<ILockable> GetLockables()
@@ -39,18 +45,14 @@ namespace Edge.Core.Services.Workflow
 	public abstract class WorkflowNode: Lockable
 	{
 		string _name;
-
-		[DebuggerNonUserCode]
-		public string Name { get { return _name; } set { InnerLock.Ensure(); _name = value; } }
+		public string Name { get { return _name; } set { EnsureUnlocked(); _name = value; } }
 	}
 
 	[Serializable]
 	public abstract class WorkflowWorkNode:WorkflowNode
 	{
 		WorkflowNodeFailureBehavior _failureBehavior = WorkflowNodeFailureBehavior.Terminate;
-
-		[DebuggerNonUserCode]
-		public WorkflowNodeFailureBehavior FailureBehavior { get {return _failureBehavior; } set { InnerLock.Ensure(); _failureBehavior = value; }}
+		public WorkflowNodeFailureBehavior FailureBehavior { get {return _failureBehavior; } set { EnsureUnlocked(); _failureBehavior = value; }}
 	}
 
 	public enum WorkflowNodeFailureBehavior
@@ -59,28 +61,27 @@ namespace Edge.Core.Services.Workflow
 		Terminate
 	}
 
-	public enum GroupMode
+	public enum WorkflowNodeGroupMode
 	{
 		Linear,
 		Parallel
 	}
 
 	[Serializable]
-	public class Group : WorkflowWorkNode
+	public class WorkflowNodeGroup : WorkflowWorkNode
 	{
-		GroupMode _mode;
+		WorkflowNodeGroupMode _mode;
 		LockableList<WorkflowNode> _nodes;
 
-		[DebuggerNonUserCode]
-		public GroupMode Mode { get {return _mode; } set { InnerLock.Ensure(); _mode = value; }}
-		[DebuggerNonUserCode]
-		public LockableList<WorkflowNode> Nodes { get {return _nodes; } set { InnerLock.Ensure(); _nodes = value; }}
+		public WorkflowNodeGroupMode Mode { get {return _mode; } set { EnsureUnlocked(); _mode = value; }}
+		public LockableList<WorkflowNode> Nodes { get {return _nodes; } set { EnsureUnlocked(); _nodes = value; }}
 
 		#region Lockable Members
 		//=================
 
 		protected override IEnumerable<ILockable> GetLockables()
 		{
+			base.GetLockables();
 			yield return (ILockable)this.Nodes;
 		}
 
@@ -89,18 +90,17 @@ namespace Edge.Core.Services.Workflow
 	}
 
 	[Serializable]
-	public class Step : WorkflowWorkNode
+	public class WorkflowStep : WorkflowWorkNode
 	{
 		ServiceConfiguration _serviceConfiguration;
-
-		[DebuggerNonUserCode]
-		public ServiceConfiguration ServiceConfiguration { get {return _serviceConfiguration; } set { InnerLock.Ensure(); _serviceConfiguration = value; }}
+		public ServiceConfiguration ServiceConfiguration { get {return _serviceConfiguration; } set { EnsureUnlocked(); _serviceConfiguration = value; }}
 
 		#region Lockable Members
 		//=================
 
 		protected override IEnumerable<ILockable> GetLockables()
 		{
+			base.GetLockables();
 			yield return (ILockable)this.ServiceConfiguration;
 		}
 

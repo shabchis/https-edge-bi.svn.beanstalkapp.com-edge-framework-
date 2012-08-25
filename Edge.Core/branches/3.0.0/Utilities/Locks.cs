@@ -15,38 +15,54 @@ namespace Edge.Core.Services
 		void Unlock(object key);
 	}
 
+	[Serializable]
 	public class Lockable: ILockable
 	{
-		#region ILockable Members
-		//=================
-
-		[NonSerialized] protected readonly Padlock InnerLock = new Padlock();
-		public bool IsLocked { get { return InnerLock.IsLocked; } }
-		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode]
-		void ILockable.Lock(object key)
-		{
-			InnerLock.Lock(key);
-			var sublocks = GetLockables();
-			if (sublocks != null)
-				foreach (ILockable sublock in sublocks)
-					sublock.Lock(key);
-		}
-		[DebuggerNonUserCode]
-		void ILockable.Unlock(object key)
-		{
-			InnerLock.Unlock(key);
-			var sublocks = GetLockables();
-			if (sublocks != null)
-				foreach (ILockable sublock in sublocks)
-					sublock.Unlock(key);
-		}
-
 		protected virtual IEnumerable<ILockable> GetLockables()
 		{
 			return null;
 		}
 
+		[DebuggerNonUserCode]
+		protected virtual void EnsureUnlocked()
+		{
+			if (_lock != null)
+				_lock.Ensure();
+		}
+
+		#region ILockable Members
+		//=================
+
+		[NonSerialized] private Padlock _lock;
+		public bool IsLocked { get { return _lock != null && _lock.IsLocked; } }
+		[DebuggerNonUserCode] void ILockable.Lock() { ((ILockable)this).Lock(null); }
+		[DebuggerNonUserCode]
+		void ILockable.Lock(object key)
+		{
+			if (_lock == null)
+				_lock = new Padlock();
+
+			_lock.Lock(key);
+			var sublocks = GetLockables();
+			if (sublocks != null)
+				foreach (ILockable sublock in sublocks)
+					if (sublock != null)
+						sublock.Lock(key);
+		}
+		[DebuggerNonUserCode]
+		void ILockable.Unlock(object key)
+		{
+			if (_lock != null)
+				_lock.Unlock(key);
+
+			var sublocks = GetLockables();
+			if (sublocks != null)
+				foreach (ILockable sublock in sublocks)
+					if (sublock != null)
+						sublock.Unlock(key);
+		}
+
+		
 		//=================
 		#endregion
 	}
