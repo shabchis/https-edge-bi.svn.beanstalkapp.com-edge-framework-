@@ -91,7 +91,6 @@
     <Compile Include="Scheduling\InstanceRequestCollection.cs" />
     <Compile Include="Scheduling\Interfaces.cs" />
     <Compile Include="Scheduling\ProfilesCollection.cs" />
-    <Compile Include="Scheduling\Scheduler.cs" />
     <Compile Include="Scheduling\SchedulingInfo.cs" />
     <Compile Include="Scheduling\SchedulingRule.cs" />
     <Compile Include="Scheduling\ServicePerProfileAvgExecutionTimeCash.cs" />

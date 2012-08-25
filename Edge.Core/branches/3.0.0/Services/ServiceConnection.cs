@@ -12,7 +12,6 @@ namespace Edge.Core.Services
 	/// <summary>
 	/// Objects that listens for service events and pushes them to the instance object.
 	/// </summary>
-	[CallbackBehavior(UseSynchronizationContext = false, ConcurrencyMode = ConcurrencyMode.Single)]
 	internal interface IServiceConnection: IDisposable
 	{
 		IServiceExecutionHost Host { get; }
@@ -70,7 +69,8 @@ namespace Edge.Core.Services
 	/// <summary>
 	/// Serializes endpoint data for a remote host to know how to push back events back.
 	/// </summary>
-	internal class ServiceConnection : IServiceConnection
+	[CallbackBehavior(UseSynchronizationContext = false, ConcurrencyMode = ConcurrencyMode.Single)]
+	internal class ServiceConnection : MarshalByRefObject, IServiceConnection
 	{
 		public Action<ServiceStateInfo> StateChangedCallback { get; set; }
 		public Action<object> OutputGeneratedCallback { get; set; }
@@ -85,9 +85,9 @@ namespace Edge.Core.Services
 			this.ServiceInstanceID = serviceInstanceID;
 		}
 
-		internal void Refresh()
+		internal void RefreshState()
 		{
-			this.Host.
+			this.Host.NotifyState(this.ServiceInstanceID);
 		}
 
 		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo)

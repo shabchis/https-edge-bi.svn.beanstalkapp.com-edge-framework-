@@ -75,7 +75,7 @@ namespace Edge.Core.Services
 		}
 
 		[DebuggerNonUserCode]
-		public string ServiceType
+		public string ServiceClass
 		{
 			get { return _serviceType; }
 			set { _lock.Ensure(); _serviceType = value; }
@@ -295,7 +295,7 @@ namespace Edge.Core.Services
 			info.AddValue("Parameters", Parameters);
 			info.AddValue("SchedulingRules", SchedulingRules);
 			info.AddValue("AssemblyPath", AssemblyPath);
-			info.AddValue("ServiceType", ServiceType);
+			info.AddValue("ServiceType", ServiceClass);
 			info.AddValue("ServiceName", ServiceName);
 			info.AddValue("IsEnabled", IsEnabled);
 			info.AddValue("IsPublic", IsPublic);
@@ -313,7 +313,7 @@ namespace Edge.Core.Services
 			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
 			this.SchedulingRules = (IList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(IList<SchedulingRule>));
 			this.AssemblyPath = info.GetString("AssemblyPath");
-			this.ServiceType =info.GetString("ServiceType");
+			this.ServiceClass =info.GetString("ServiceType");
 			this.ServiceName = info.GetString("ServiceName");
 			this.IsEnabled = info.GetBoolean("IsEnabled");
 			this.IsPublic = info.GetBoolean("IsPublic");

@@ -36,7 +36,7 @@ namespace Edge.Core.Services
 		public ServiceConfiguration Configuration { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public double Progress { get { return _stateInfo.Progress; } }
+		public double Progress { get { return _stateInfo.Progress; } protected set { _stateInfo.Progress = value; NotifyState(); } }
 		public ServiceState State { get { return _stateInfo.State; } }
 		public ServiceOutcome Outcome { get { return _stateInfo.Outcome; } }
 		public DateTime TimeInitialized { get { return _stateInfo.TimeInitialized; } }
@@ -44,14 +44,15 @@ namespace Edge.Core.Services
 		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
 		
 
-		internal void Init(ServiceExecutionHost host, ServiceInstance instance)
+		internal void Init(ServiceExecutionHost host, ServiceConfiguration config, Guid instanceID, Guid parentInstanceID)
 		{
 			_host = host;
-
-			this.InstanceID = instance.InstanceID;
-			this.Configuration = instance.Configuration;
-			this.ParentInstance = instance.ParentInstance;
 			this.Environment = new ServiceEnvironment(_host);
+
+			this.InstanceID = instanceID;
+			this.Configuration = config;
+			if (parentInstanceID != Guid.Empty)
+				this.ParentInstance = Environment.GetServiceInstance(parentInstanceID);
 			
 			Current = this;
 			
@@ -193,6 +194,10 @@ namespace Edge.Core.Services
 				Error("Service did not report any outcome, treating as failure.");
 				outcome = ServiceOutcome.Failure;
 			}
+			else if (outcome == ServiceOutcome.Success)
+			{
+				_stateInfo.Progress = 1;
+			}
 
 			// Start wrapping things up
 			_stateInfo.State = ServiceState.Ending;
@@ -246,7 +251,8 @@ namespace Edge.Core.Services
 
 		protected ServiceInstance NewChildService(ServiceConfiguration child)
 		{
-			return Environment.NewServiceInstance(child, this);
+			throw new NotImplementedException();
+			//return Environment.NewServiceInstance(child, this.AsInstance());
 		}
 
 		//======================
