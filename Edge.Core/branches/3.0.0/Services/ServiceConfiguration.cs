@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace Edge.Core.Services
 {
 	[Serializable]
-	public class ServiceConfiguration : ILockable, ISerializable
+	public class ServiceConfiguration : Lockable, ISerializable
 	{
 		#region Fields
 		//=================
@@ -71,35 +71,35 @@ namespace Edge.Core.Services
 		public string AssemblyPath
 		{
 			get { return _assemblyPath; }
-			set { _lock.Ensure(); _assemblyPath = value; }
+			set { InnerLock.Ensure(); _assemblyPath = value; }
 		}
 
 		[DebuggerNonUserCode]
 		public string ServiceClass
 		{
 			get { return _serviceType; }
-			set { _lock.Ensure(); _serviceType = value; }
+			set { InnerLock.Ensure(); _serviceType = value; }
 		}
 
 		[DebuggerNonUserCode]
 		public string ServiceName
 		{
 			get { return _serviceName; }
-			set { _lock.Ensure(); _serviceName = value; }
+			set { InnerLock.Ensure(); _serviceName = value; }
 		}
 
 		[DebuggerNonUserCode]
 		public bool IsEnabled
 		{
 			get { return _isEnabled; }
-			set { _lock.Ensure(); _isEnabled = value; }
+			set { InnerLock.Ensure(); _isEnabled = value; }
 		}
 
 		[DebuggerNonUserCode]
 		public bool IsPublic
 		{
 			get { return _isPublic; }
-			set { _lock.Ensure(); _isPublic = value; }
+			set { InnerLock.Ensure(); _isPublic = value; }
 		}
 
 		//=================
@@ -301,6 +301,12 @@ namespace Edge.Core.Services
 			info.AddValue("IsPublic", IsPublic);
 
 			info.AddValue("IsLocked", IsLocked);
+
+			Serialize(info, context);
+		}
+
+		protected virtual void Serialize(SerializationInfo info, StreamingContext context)
+		{
 		}
 
 		private ServiceConfiguration(SerializationInfo info, StreamingContext context)
@@ -318,34 +324,28 @@ namespace Edge.Core.Services
 			this.IsEnabled = info.GetBoolean("IsEnabled");
 			this.IsPublic = info.GetBoolean("IsPublic");
 
+			Deserialize(info, context);
+
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
 				((ILockable)this).Lock();
+		}
+
+		protected virtual void Deserialize(SerializationInfo info, StreamingContext context)
+		{
 		}
 		
 		//=================
 		#endregion
 
-		#region ILockable Members
+		#region Lockable Members
 		//=================
 
-		[NonSerialized] Padlock _lock = new Padlock();
-		public bool IsLocked { get { return _lock.IsLocked; } }
-		[DebuggerNonUserCode]
-		void ILockable.Lock() { ((ILockable)this).Lock(null); }
-		[DebuggerNonUserCode] void ILockable.Lock(object key)
+		protected override IEnumerable<ILockable>  GetLockables()
 		{
-			_lock.Lock(key);
-			((ILockable)this.Parameters).Lock(key);
-			((ILockable)this.Limits).Lock(key);
-			((ILockable)this.SchedulingRules).Lock(key);
-		}
-		[DebuggerNonUserCode] void ILockable.Unlock(object key)
-		{
-			_lock.Unlock(key);
-			((ILockable)this.Parameters).Unlock(key);
-			((ILockable)this.Limits).Unlock(key);
-			((ILockable)this.SchedulingRules).Unlock(key);
+			yield return (ILockable) this.Parameters;
+			yield return (ILockable) this.Limits;
+			yield return (ILockable) this.SchedulingRules;
 		}
 
 		//=================

@@ -145,19 +145,12 @@ namespace Edge.Core.Services
 				Connect();
 
 			// Initialize
-			try
-			{
-				this.Connection.Host.InitializeService(
-					this.Configuration,
-					this.InstanceID,
-					this.ParentInstance != null ? this.ParentInstance.InstanceID : Guid.Empty,
-					this.Connection.Guid,
-					this.Connection); 
-			}
-			catch (Exception ex)
-			{
-				throw new ServiceException("Could not initialize this instance.", ex);
-			}
+			this.Connection.Host.InitializeService(
+				this.Configuration,
+				this.InstanceID,
+				this.ParentInstance != null ? this.ParentInstance.InstanceID : Guid.Empty,
+				this.Connection.Guid,
+				this.Connection); 
 		}
 
 		/// <summary>
