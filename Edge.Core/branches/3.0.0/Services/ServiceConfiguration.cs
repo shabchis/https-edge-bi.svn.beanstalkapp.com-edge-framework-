@@ -28,7 +28,9 @@ namespace Edge.Core.Services
 		public Guid ConfigurationID
 		{
 			get;
-			internal set;
+
+			// TEMP [Obsolete("This will be private soon so don't use it unless absolutely necessary.")]
+			set;
 		}
 
 		public ServiceConfigurationLevel ConfigurationLevel

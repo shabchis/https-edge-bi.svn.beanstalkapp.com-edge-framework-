@@ -12,7 +12,13 @@ namespace Edge.Core.Services
 	{
 		string _name;
 
-		public Guid ProfileID { get; internal set; }
+		public Guid ProfileID
+		{
+			get;
+
+			// TEMP [Obsolete("This will be private soon so don't use it unless absolutely necessary.")]
+			set;
+		}
 		public string Name { get { return _name; } set { EnsureUnlocked(); _name = value; } }
 		public IDictionary<string, object> Parameters { get; private set; }
 		public IList<ServiceConfiguration> Services { get; private set;}
