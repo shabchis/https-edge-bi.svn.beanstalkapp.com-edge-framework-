@@ -14,7 +14,7 @@ namespace Edge.Core.Services
 	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost
 	{
 		internal const string LOCALNAME = "LOCAL";
-		internal static IServiceExecutionHost LOCAL;
+		//internal static ServiceExecutionHost LOCAL;
 		
 		#region Nested classes
 		// ========================
@@ -60,8 +60,7 @@ namespace Edge.Core.Services
 			ServiceExecutionPermission.All.Demand();
 
 			this.HostName = LOCALNAME; //name;
-			ServiceExecutionHost.LOCAL = this;
-			this.Environment = new ServiceEnvironment();
+			this.Environment = new ServiceEnvironment(this);
 
 			/*
 			_servicePermissions = new PermissionSet(PermissionState.None);
@@ -91,6 +90,12 @@ namespace Edge.Core.Services
 				runtimeInfo.Connections.Add(connectionGuid, connection);
 				_services.Add(instanceID, runtimeInfo);
 			}
+		}
+
+		[Obsolete]
+		internal void InternalScheduleService(ServiceInstance instance)
+		{
+			this.Environment.ScheduleService(instance);
 		}
 
 		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection)

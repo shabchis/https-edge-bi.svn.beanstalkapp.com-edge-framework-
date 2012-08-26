@@ -30,7 +30,7 @@ namespace Edge.Core.Services
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
 		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { EnsureUnlocked(); _schedulingInfo = value; } }
-		
+
 		public double Progress { get { return _stateInfo.Progress; } }
 		public ServiceState State { get { return _stateInfo.State; } }
 		public ServiceOutcome Outcome { get { return _stateInfo.Outcome; } }
@@ -236,9 +236,9 @@ namespace Edge.Core.Services
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Environment = new ServiceEnvironment();
 
-			object pid = info.GetValue("ParentInstanceID", typeof(object));
-			if (pid != null)
-				this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
+			//object pid = info.GetValue("ParentInstanceID", typeof(object));
+			//if (pid != null)
+				//this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))

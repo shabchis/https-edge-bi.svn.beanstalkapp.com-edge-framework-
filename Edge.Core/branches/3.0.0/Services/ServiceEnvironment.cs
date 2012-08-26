@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Remoting;
 
 namespace Edge.Core.Services
 {
@@ -16,10 +17,9 @@ namespace Edge.Core.Services
 		internal ServiceEnvironment(params IServiceExecutionHost[] hosts)
 		{
 			_hosts = new Dictionary<string,IServiceExecutionHost>();
-			
-			// TEMP till environment has DB list of hosts
-			if (hosts.Length == 0)
-				hosts = new IServiceExecutionHost[] { ServiceExecutionHost.LOCAL };
+
+			//if (hosts.Length == 0)
+				//hosts = new IServiceExecutionHost[] { ServiceExecutionHost.LOCAL };
 
 			foreach (IServiceExecutionHost host in hosts)
 				_hosts.Add(host.HostName, host);
@@ -52,10 +52,16 @@ namespace Edge.Core.Services
 		public void ScheduleService(ServiceInstance instance)
 		{
 			// TODO: temporarily using host to get to the target environment
-			//ServiceExecutionHost.LOCAL
-
-			if (ServiceScheduleRequested != null)
-				ServiceScheduleRequested(this, new ServiceInstanceEventArgs() { ServiceInstance = instance });
+			var host = (ServiceExecutionHost)_hosts[ServiceExecutionHost.LOCALNAME];
+			if (RemotingServices.IsTransparentProxy(host))
+			{
+				host.InternalScheduleService(instance);
+			}
+			else
+			{
+				if (ServiceScheduleRequested != null)
+					ServiceScheduleRequested(this, new ServiceInstanceEventArgs() { ServiceInstance = instance });
+			}
 		}
 	}
 
