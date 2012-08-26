@@ -75,7 +75,7 @@ namespace Edge.Core.Services
 			info.AddValue("ID", ProfileID);
 			info.AddValue("Name", Name);
 			info.AddValue("Parameters", Parameters);
-
+			info.AddValue("Services", Services);
 			info.AddValue("IsLocked", this.IsLocked);
 		}
 
@@ -84,7 +84,7 @@ namespace Edge.Core.Services
 			this.ProfileID = (Guid)info.GetValue("ID", typeof(Guid));
 			this.Name = info.GetString("Name");
 			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
-
+			this.Services = (IList<ServiceConfiguration>)info.GetValue("Services", typeof(IList<ServiceConfiguration>));
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
 				((ILockable)this).Lock();

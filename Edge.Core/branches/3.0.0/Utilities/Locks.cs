@@ -99,7 +99,7 @@ namespace Edge.Core.Services
 		{
 			if (this.IsLocked)
 				throw new LockException("Object is already locked.");
-
+			
 			_key = key;
 		}
 
