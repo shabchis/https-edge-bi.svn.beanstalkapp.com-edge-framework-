@@ -19,11 +19,14 @@ namespace Edge.Core.Services.Workflow
 			if (this.IsFirstRun)
 				this.WorkflowInstance = WorkflowNodeInstance.FromConfiguration(this.Configuration);
 
-			bool complete = ProcessWorkflow(this.WorkflowInstance);
+			var completedSteps = new List<bool>();
+			bool complete = ProcessWorkflow(this.WorkflowInstance, completedSteps);
+
+			Progress = completedSteps.Count(b => b) / completedSteps.Count;
 			return complete ? ServiceOutcome.Success : ServiceOutcome.Unspecified;
 		}
 
-		bool ProcessWorkflow(WorkflowNodeInstance nodeInstance)
+		bool ProcessWorkflow(WorkflowNodeInstance nodeInstance, List<bool> completedSteps)
 		{
 			bool complete;
 
@@ -34,7 +37,7 @@ namespace Edge.Core.Services.Workflow
 
 				foreach (WorkflowNodeInstance child in nodeInstance.Children)
 				{
-					var stepComplete = ProcessWorkflow(child);
+					var stepComplete = ProcessWorkflow(child, completedSteps);
 					complete &= stepComplete;
 					if (!stepComplete && group.Mode == WorkflowNodeGroupMode.Linear)
 						break;
@@ -45,12 +48,22 @@ namespace Edge.Core.Services.Workflow
 				var step = (WorkflowStep)nodeInstance.Node;
 				if (nodeInstance.Instance == null)
 				{
-					throw new NotImplementedException();
-					//nodeInstance.Instance = Environment.NewServiceInstance(step.ServiceConfiguration, this);
-					//nodeInstance.Instance.Start();
+					ServiceConfiguration config;
+					if(String.IsNullOrEmpty(step.Name)) 
+					{
+						config = step.ServiceConfiguration;
+					}
+					else
+					{
+						config = step.ServiceConfiguration.Derive();
+						config.ServiceName = step.Name;
+					}
+					nodeInstance.Instance = this.NewChildService(config);
+					nodeInstance.Instance.Start();
 				}
 
 				complete = nodeInstance.Instance.State == ServiceState.Ended;
+				completedSteps.Add(complete);
 			}
 			else
 				throw new NotSupportedException(String.Format("Workflow node type '{0}' not supported.", nodeInstance.Node.GetType()));
