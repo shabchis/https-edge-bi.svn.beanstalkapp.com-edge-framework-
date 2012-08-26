@@ -79,6 +79,7 @@ namespace Edge.Data.Objects
 
 	public partial class TextCreative : SingleCreative
 	{
+		public TextCreativeType TextType;
 		public string Text;
 	}
 
