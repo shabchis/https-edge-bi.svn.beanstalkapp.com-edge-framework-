@@ -81,12 +81,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AppSettings.cs" />
-    <Compile Include="Configuration\ConfigurationElementCollections.cs" />
-    <Compile Include="Configuration\ConfigurationElements.cs" />
-    <Compile Include="Configuration\Converters.cs" />
-    <Compile Include="Configuration\EdgeServicesConfiguration.cs" />
-    <Compile Include="Configuration\General.cs" />
-    <Compile Include="Configuration\SettingsCollection.cs" />
     <Compile Include="Scheduling\Enums.cs" />
     <Compile Include="Scheduling\InstanceRequestCollection.cs" />
     <Compile Include="Scheduling\Interfaces.cs" />
