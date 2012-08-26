@@ -9,7 +9,7 @@ namespace Edge.Core.Services
 	{
 		private Dictionary<string, IServiceExecutionHost> _hosts;
 
-		public EventHandler<ServiceInstanceEventArgs> ServiceScheduleRequested;
+		public event EventHandler<ServiceInstanceEventArgs> ServiceScheduleRequested;
 
 		// TODO: remove the reference to proxy from here, this should be loaded from a list of hosts in the database
 		//internal ServiceEnvironment(ServiceEnvironmentConfiguration)

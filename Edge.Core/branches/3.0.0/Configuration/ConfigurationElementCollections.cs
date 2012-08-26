@@ -7,7 +7,8 @@ using System.Xml;
 
 namespace Edge.Core.Services.Configuration
 {
-	internal abstract class ConfigurationElementCollectionBase<ElementT> : ConfigurationElementCollection, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
+	[Obsolete]
+	public abstract class ConfigurationElementCollectionBase<ElementT> : ConfigurationElementCollection, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 		where ElementT: ConfigurationElement
 	{
 		public ConfigurationElementCollectionBase()
@@ -61,7 +62,9 @@ namespace Edge.Core.Services.Configuration
     /// <summary>
     /// Represents a collection of service elements.
     /// </summary>
-	internal class ServiceElementCollection : ConfigurationElementCollectionBase<ServiceElement>
+	/// 
+	[Obsolete]
+	public class ServiceElementCollection : ConfigurationElementCollectionBase<ServiceElement>
     {
         #region Constructor
         public ServiceElementCollection()
@@ -145,7 +148,9 @@ namespace Edge.Core.Services.Configuration
     /// <summary>
     /// Represents a collection of execution step elements.
     /// </summary>
-	internal class WorkflowStepElementCollection : ConfigurationElementCollectionBase<WorkflowStepElement>
+	/// 
+	[Obsolete]
+	public class WorkflowStepElementCollection : ConfigurationElementCollectionBase<WorkflowStepElement>
     {
         #region Constructor
         public WorkflowStepElementCollection()
@@ -233,7 +238,9 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
     /// Represents a collection of scheduling rule elements.
     /// </summary>
-	internal class SchedulingRuleElementCollection : ConfigurationElementCollectionBase<SchedulingRuleElement>
+	/// 
+	[Obsolete]
+	public class SchedulingRuleElementCollection : ConfigurationElementCollectionBase<SchedulingRuleElement>
     {
 		#region Members
 		private static ConfigurationPropertyCollection s_properties;
@@ -325,7 +332,9 @@ namespace Edge.Core.Services.Configuration
     /// <summary>
     /// Represents a collection of account elements.
     /// </summary>
-	internal class AccountElementCollection : ConfigurationElementCollectionBase<AccountElement>
+	/// 
+	[Obsolete]
+	public class AccountElementCollection : ConfigurationElementCollectionBase<AccountElement>
     {
         #region Constructor
         public AccountElementCollection()
@@ -398,7 +407,9 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
 	/// Represents a collection of services in an account.
 	/// </summary>
-	internal class AccountServiceElementCollection : ConfigurationElementCollectionBase<AccountServiceElement>
+	/// 
+	[Obsolete]
+	public class AccountServiceElementCollection : ConfigurationElementCollectionBase<AccountServiceElement>
 	{
 		#region Constructor
 		public AccountServiceElementCollection()
@@ -480,7 +491,10 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
     /// Represents a collection of service settings elements.
     /// </summary>
-	internal class AccountServiceSettingsElementCollection : ConfigurationElementCollectionBase<AccountServiceSettingsElement>
+	/// 
+
+	[Obsolete]
+	public class AccountServiceSettingsElementCollection : ConfigurationElementCollectionBase<AccountServiceSettingsElement>
     {
         #region Constructor
 		public AccountServiceSettingsElementCollection()
@@ -559,8 +573,8 @@ namespace Edge.Core.Services.Configuration
         #endregion
     }
 
-
-	internal class ExtensionElementCollection : KeyValueConfigurationCollection
+	[Obsolete]
+	public	 class ExtensionElementCollection : KeyValueConfigurationCollection
 	{
 		protected override void BaseAdd(ConfigurationElement element)
 		{

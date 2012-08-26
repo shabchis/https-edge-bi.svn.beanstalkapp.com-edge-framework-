@@ -283,7 +283,9 @@ namespace Edge.Core.Services.Configuration.Converters
 	/// <summary>
 	/// 
 	/// </summary>
-	internal class ElementReferenceConverter<ElementT>: BaseStringConverter where ElementT: NamedConfigurationElement
+	/// 
+	[Obsolete]
+	public class ElementReferenceConverter<ElementT>: BaseStringConverter where ElementT: NamedConfigurationElement
 	{
 		ReferencingConfigurationElement _element;
 		string _property;

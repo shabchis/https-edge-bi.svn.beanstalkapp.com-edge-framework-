@@ -276,7 +276,7 @@ namespace Edge.Core.Services
 		#region Logging and error handling
 		//======================
 
-		/*
+		
 		protected void Log(LogMessage message)
 		{
 			if (message.Source != null)
@@ -305,7 +305,7 @@ namespace Edge.Core.Services
 				MessageType = messageType
 			});
 		}
-		*/
+		
 		//======================
 		#endregion
 	}
