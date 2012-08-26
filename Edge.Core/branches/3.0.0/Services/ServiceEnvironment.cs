@@ -51,6 +51,9 @@ namespace Edge.Core.Services
 
 		public void ScheduleService(ServiceInstance instance)
 		{
+			// TODO: temporarily using host to get to the target environment
+			//ServiceExecutionHost.LOCAL
+
 			if (ServiceScheduleRequested != null)
 				ServiceScheduleRequested(this, new ServiceInstanceEventArgs() { ServiceInstance = instance });
 		}
