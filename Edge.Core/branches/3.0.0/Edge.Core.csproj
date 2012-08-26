@@ -81,6 +81,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AppSettings.cs" />
+    <Compile Include="Configuration\ConfigurationElementCollections.cs" />
+    <Compile Include="Configuration\ConfigurationElements.cs" />
+    <Compile Include="Configuration\Converters.cs" />
+    <Compile Include="Configuration\EdgeServicesConfiguration.cs" />
+    <Compile Include="Configuration\General.cs" />
+    <Compile Include="Configuration\SettingsCollection.cs" />
     <Compile Include="Scheduling\Enums.cs" />
     <Compile Include="Scheduling\InstanceRequestCollection.cs" />
     <Compile Include="Scheduling\Interfaces.cs" />
@@ -97,7 +103,7 @@
     <Compile Include="Services\ServiceExecutionHost.cs" />
     <Compile Include="Services\ServiceExecutionPermission.cs" />
     <Compile Include="Services\ServiceInstance.cs" />
-    <Compile Include="Services\ServiceExecutionInfo.cs" />
+    <Compile Include="Services\ServiceStateInfo.cs" />
     <Compile Include="Services\ServiceEnvironment.cs" />
     <Compile Include="Services\ServiceProfile.cs" />
     <Compile Include="Services\Workflow\WorkflowNodeInstance.cs" />

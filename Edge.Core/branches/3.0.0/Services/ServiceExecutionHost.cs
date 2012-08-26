@@ -118,6 +118,10 @@ namespace Edge.Core.Services
 				if (config.AssemblyPath == null)
 				{
 					Type serviceType = Type.GetType(config.ServiceClass, false);
+
+					if (serviceType == null)
+						serviceType = Type.GetType(String.Format("Edge.Core.Services.{0}.{0}Service", config.ServiceClass), false);
+
 					if (serviceType == null)
 						throw new ServiceException(String.Format("Service type '{0}' could not be found. Please specify AssemblyPath if the service is not in the host directory.", config.ServiceClass));
 
