@@ -15,7 +15,9 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
 	/// Base class for elements that have properties referencing other elements within the services section.
 	/// </summary>
-	internal abstract class ReferencingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
+	/// 
+	[Obsolete]
+	public abstract class ReferencingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 	{
 		#region Fields
 		protected internal ConfigurationPropertyCollection InnerProperties;
@@ -107,8 +109,8 @@ namespace Edge.Core.Services.Configuration
 
 		#endregion
 	}
-
-	internal abstract class EnabledConfigurationElement : ReferencingConfigurationElement
+	[Obsolete]
+	public abstract class EnabledConfigurationElement : ReferencingConfigurationElement
 	{
 		#region Fields
 		private ConfigurationProperty s_isEnabled;
@@ -290,8 +292,8 @@ namespace Edge.Core.Services.Configuration
 
 		#endregion
 	}
-
-	internal abstract class NamedConfigurationElement : EnabledConfigurationElement
+	[Obsolete]
+	public abstract class NamedConfigurationElement : EnabledConfigurationElement
 	{
 		#region Fields
 		protected ConfigurationProperty s_name;
@@ -344,7 +346,9 @@ namespace Edge.Core.Services.Configuration
     /// <summary>
     /// Represents a single service
     /// </summary>
-	internal class ServiceElement : NamedConfigurationElement
+	/// 
+	[Obsolete]
+	public class ServiceElement : NamedConfigurationElement
     {
 		public static TimeSpan DefaultMaxExecutionTime = TimeSpan.FromMinutes(15);
 
@@ -538,7 +542,9 @@ namespace Edge.Core.Services.Configuration
     /// <summary>
     /// Represents a single execution step element.
     /// </summary>
-	internal class WorkflowStepElement : NamedConfigurationElement
+	/// 
+	[Obsolete]
+	public class WorkflowStepElement : NamedConfigurationElement
     {
 		#region Members
         
@@ -817,7 +823,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a single scheduling rule element.
     /// </summary>
 	[Serializable]
-	internal class SchedulingRuleElement: ReferencingConfigurationElement, ISerializable
+	public class SchedulingRuleElement: ReferencingConfigurationElement, ISerializable
     {
         #region Members
         private ConfigurationProperty s_calendarUnit;
@@ -1061,7 +1067,9 @@ namespace Edge.Core.Services.Configuration
     /// <summary>
     /// Represents a single account element.
     /// </summary>
-	internal class AccountElement : EnabledConfigurationElement
+	/// 
+	[Obsolete]
+	public class AccountElement : EnabledConfigurationElement
     {
         #region Members
         private ConfigurationProperty s_id;
@@ -1164,7 +1172,9 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
 	/// 
 	/// </summary>
-	internal class AccountServiceElement : NamedConfigurationElement
+	/// 
+	[Obsolete]
+	public class AccountServiceElement : NamedConfigurationElement
 	{
 		#region Members
 		private ConfigurationProperty s_uses;
@@ -1263,7 +1273,9 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
 	/// 
 	/// </summary>
-	internal class AccountServiceSettingsElement : EnabledConfigurationElement
+	/// 
+	[Obsolete]
+	public class AccountServiceSettingsElement : EnabledConfigurationElement
     {
         #region Members
         private ConfigurationProperty s_step;
@@ -1403,7 +1415,7 @@ namespace Edge.Core.Services.Configuration
 	///// 
 	///// </summary>
 	//[Serializable]
-	//internal class ActiveServiceElement : ServiceElement, ISerializable
+	//public class ActiveServiceElement : ServiceElement, ISerializable
 	//{
 	//    #region Members
 	//    /*=========================*/
@@ -1630,7 +1642,7 @@ namespace Edge.Core.Services.Configuration
 	///// <summary>
 	///// 
 	///// </summary>
-	//internal class ActiveWorkflowStepElement : WorkflowStepElement
+	//public class ActiveWorkflowStepElement : WorkflowStepElement
 	//{
 	//    #region Constructors
 	//    /*=========================*/

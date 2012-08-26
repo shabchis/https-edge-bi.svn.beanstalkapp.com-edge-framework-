@@ -10,6 +10,8 @@ namespace Edge.Core.Services.Configuration
 	/// <summary>
     /// Represents the configuration section of the Edge services framework.
     /// </summary>
+	/// 
+	[Obsolete]
     public class EdgeServicesConfiguration : ConfigurationSection
     {
 		#region Wrapper
@@ -149,23 +151,23 @@ namespace Edge.Core.Services.Configuration
         #endregion
 
         #region Properties
-		internal ExtensionElementCollection Extensions
+		public ExtensionElementCollection Extensions
 		{
 			get { return (ExtensionElementCollection)base[s_extensions]; }
 		}
 
 
-		internal ServiceElementCollection Services
+		public ServiceElementCollection Services
         {
             get { return (ServiceElementCollection)base[s_services]; }
         }
 
-		internal AccountElementCollection Accounts
+		public AccountElementCollection Accounts
         {
             get { return (AccountElementCollection)base[s_accounts]; }
         }
 
-		internal AccountElement SystemAccount
+		public AccountElement SystemAccount
 		{
 			get { return Accounts.GetAccount(-1); }
 		}

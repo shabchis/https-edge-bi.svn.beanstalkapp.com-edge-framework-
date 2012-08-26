@@ -6,19 +6,21 @@ using System.Reflection;
 using System.ComponentModel;
 using System.Xml;
 using System.IO;
+using System;
 
 namespace Edge.Core.Services.Configuration
 {
 	#region Enums
 	/*=========================*/
-	internal enum ServiceType
+	[Obsolete]
+	public enum ServiceType
 	{
 		Executable=0,
 		Class=1,
 		Workflow=2
 	};
-
-	internal enum FailureOutcome
+	[Obsolete]
+	public enum FailureOutcome
 	{
 		Unspecified=0,
 		Terminate=1,
@@ -31,8 +33,8 @@ namespace Edge.Core.Services.Configuration
 
 	#region Classes
 	/*=========================*/
-
-	internal class ElementReference<ElementT> where ElementT: NamedConfigurationElement
+	[Obsolete]
+	public class ElementReference<ElementT> where ElementT: NamedConfigurationElement
 	{
 		internal string Value;
 		ElementT _elem;
@@ -85,14 +87,14 @@ namespace Edge.Core.Services.Configuration
 			return Value == null ? 0 : Value.GetHashCode();
 		}
 	}
-	
-	internal interface ISerializableConfigurationElement
+	[Obsolete]
+	public interface ISerializableConfigurationElement
 	{
 		void Deserialize(XmlReader reader);
 		void Serialize(XmlWriter writer, string elementName);
 	}
-
-	internal interface IServiceReferencingConfigurationElement
+	[Obsolete]
+	public interface IServiceReferencingConfigurationElement
 	{
 		void ResolveReferences(ServiceElementCollection services, ServiceElement service);
 	}
