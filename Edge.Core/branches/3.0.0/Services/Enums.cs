@@ -61,7 +61,8 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// Outcome that is set when a dead instance does not have an outcome.
 		/// </summary>
-		Killed = 9
+		Killed = 9,
+		Reset
 	}
 
 	[Serializable]
