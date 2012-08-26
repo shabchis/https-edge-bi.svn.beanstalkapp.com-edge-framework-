@@ -58,7 +58,7 @@ namespace Edge.Core.Services
 			_schedulingStatus = (SchedulingStatus)info.GetValue("_schedulingStatus", typeof(SchedulingStatus));
 			_schedulingScope = (SchedulingScope)info.GetValue("_schedulingScope", typeof(SchedulingScope));
 
-			if (info.GetBoolean("IsLocked"))
+			if (!info.GetBoolean("IsLocked"))
 				((ILockable)this).Lock();
 		}
 

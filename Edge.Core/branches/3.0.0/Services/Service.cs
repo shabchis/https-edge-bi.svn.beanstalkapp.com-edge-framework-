@@ -51,7 +51,7 @@ namespace Edge.Core.Services
 
 			this.InstanceID = instanceID;
 			this.Configuration = config;
-			((ILockable)this.Configuration).Lock();
+			//((ILockable)this.Configuration).Lock();
 			if (parentInstanceID != Guid.Empty)
 				this.ParentInstance = Environment.GetServiceInstance(parentInstanceID);
 			

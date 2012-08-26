@@ -10,8 +10,9 @@ using System.Threading;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using System.Security.Cryptography;
+using Edge.Core.Scheduling;
 
-namespace Edge.Core.Scheduling
+namespace Edge.Core.Services.Scheduling
 {
 	public class Scheduler : MarshalByRefObject
 	{
@@ -200,6 +201,8 @@ namespace Edge.Core.Scheduling
 
 				serviceConfiguration.Limits.MaxConcurrentGlobal = serviceElement.MaxInstances;
 				serviceConfiguration.Limits.MaxConcurrentPerProfile = serviceElement.MaxInstancesPerAccount;
+				serviceConfiguration.ServiceClass = serviceElement.Class;
+				
 				foreach (SchedulingRule rule in serviceElement.SchedulingRules)
 					serviceConfiguration.SchedulingRules.Add(rule);
 
@@ -218,16 +221,14 @@ namespace Edge.Core.Scheduling
 				};
 				profile.Parameters.Add("AccountID", account.ID);
 				profile.Parameters.Add("AccountName", account.Name);
-
-
-				_profiles.Add(profile);
-
 				foreach (AccountServiceElement accountService in account.Services)
 				{
-
+					
 					ServiceElement serviceUse = accountService.Uses.Element;
+				
 					ServiceConfiguration deriveConfiguration = profile.DeriveConfiguration(_serviceBaseConfigurations[serviceUse.Name]);
 					deriveConfiguration.ConfigurationID = GuidFromString(account.ID.ToString() + "___" + serviceUse.Name);
+
 
 					foreach (SchedulingRule rule in serviceUse.SchedulingRules)
 						deriveConfiguration.SchedulingRules.Add(rule);
@@ -236,8 +237,10 @@ namespace Edge.Core.Scheduling
 					deriveConfiguration.Limits.MaxConcurrentGlobal = serviceUse.MaxInstances;
 					deriveConfiguration.Limits.MaxConcurrentPerProfile = serviceUse.MaxInstancesPerAccount;
 					_serviceConfigurationsToSchedule.Add(deriveConfiguration);
+					profile.Services.Add(deriveConfiguration);
 
 				}
+				_profiles.Add(profile);
 			}
 		}
 
@@ -319,7 +322,7 @@ namespace Edge.Core.Scheduling
 						while (!found)
 						{
 							IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
-
+							
 							int countedPerConfiguration = requestsWithSameConfiguration.Count(s => (calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime && calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) || (calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime && calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
 							if (countedPerConfiguration < serviceInstance.Configuration.Limits.MaxConcurrentGlobal)
 							{
@@ -546,24 +549,25 @@ namespace Edge.Core.Scheduling
 			}
 			_needReschedule = true;
 		}
-		public void AddChildServiceToSchedule(ServiceInstance Instance)
+		public void AddChildServiceToSchedule(ServiceInstance instance)
 		{
 			ServiceConfiguration baseConfiguration;
-			if (!_serviceBaseConfigurations.TryGetValue(Instance.Configuration.ServiceName, out baseConfiguration))
-				throw new KeyNotFoundException(String.Format("No base configuration exists for the service '{0}'.", Instance.Configuration.ServiceName));
+			if (!_serviceBaseConfigurations.TryGetValue(instance.Configuration.ServiceName, out baseConfiguration))
+				throw new KeyNotFoundException(String.Format("No base configuration exists for the service '{0}'.", instance.Configuration.ServiceName));
 
 			ServiceProfile profile;
-			if (!_profiles.TryGetValue(Convert.ToInt32(Instance.Configuration.Profile.Parameters["AccountID"]), out profile))
-				throw new KeyNotFoundException(String.Format("No profile exists with the ID '{0}' (account ID).", (Instance.Configuration.Profile.Parameters["AccountID"])));
+			if (!_profiles.TryGetValue(Convert.ToInt32(instance.Configuration.Profile.Parameters["AccountID"]), out profile))
+				throw new KeyNotFoundException(String.Format("No profile exists with the ID '{0}' (account ID).", (instance.Configuration.Profile.Parameters["AccountID"])));
 
-			ServiceInstance childInstance = new ServiceInstance(Environment, baseConfiguration, Instance.ParentInstance);
-			AsLockable(childInstance).Unlock(_instanceLock);
-			childInstance.SchedulingInfo.SchedulingStatus = Services.SchedulingStatus.New;
-			childInstance.SchedulingInfo.RequestedTime = DateTime.Now;
-			childInstance.SchedulingInfo.SchedulingScope = SchedulingScope.Unplanned;
-			AsLockable(childInstance).Lock(_instanceLock);
+			if (instance.Configuration.SchedulingRules[0].Scope!=SchedulingScope.Unplanned)
+				throw new Exception("instance rule is not unnplaned, scheduler only get services");
+			AsLockable(instance).Unlock(_instanceLock);
+			instance.SchedulingInfo.SchedulingStatus = Services.SchedulingStatus.New;
+			instance.SchedulingInfo.RequestedTime = DateTime.Now;
+			instance.SchedulingInfo.SchedulingScope = SchedulingScope.Unplanned;
+			AsLockable(instance).Lock(_instanceLock);
 
-			AddRequestToSchedule(childInstance);
+			AddRequestToSchedule(instance);
 		}
 		/// <summary>
 		/// Delete specific instance of service (service for specific time not all the services)

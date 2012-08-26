@@ -302,9 +302,7 @@ namespace Edge.Core.Services
 			info.AddValue("_serviceName", _serviceName);
 			info.AddValue("_isEnabled", _isEnabled);
 			info.AddValue("_isPublic", _isPublic);
-
 			info.AddValue("IsLocked", IsLocked);
-
 			Serialize(info, context);
 		}
 
@@ -321,19 +319,22 @@ namespace Edge.Core.Services
 			this.Limits = (ServiceExecutionLimits)info.GetValue("Limits", typeof(ServiceExecutionLimits));
 			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
 			this.SchedulingRules = (IList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(IList<SchedulingRule>));
+			
 			_assemblyPath = info.GetString("_assemblyPath");
 			_serviceType = info.GetString("_serviceType");
 			_serviceName = info.GetString("_serviceName");
 			_isEnabled = info.GetBoolean("_isEnabled");
 			_isPublic = info.GetBoolean("_isPublic");
 
+			//if (!info.GetBoolean("IsLocked"))
+			//    ((ILockable)this).Lock();
+
 			Deserialize(info, context);
+			
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
-			if (info.GetBoolean("IsLocked"))
-				((ILockable)this).Lock();
 		}
-
+	
 		protected virtual void Deserialize(SerializationInfo info, StreamingContext context)
 		{
 		}

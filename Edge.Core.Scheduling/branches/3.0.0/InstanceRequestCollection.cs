@@ -107,7 +107,7 @@ namespace Edge.Core.Scheduling
 							from s in _requestsByGuid.Values
 							where
 								s.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Template) == currentRequest.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Template) &&
-								s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated 								
+								s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated
 							orderby s.SchedulingInfo.ExpectedStartTime ascending
 							select s;
 			return servicesWithSameConfiguration;
