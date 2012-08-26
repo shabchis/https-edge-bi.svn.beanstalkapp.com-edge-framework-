@@ -39,6 +39,15 @@ namespace Edge.Core.Services.Workflow
 			base.GetLockables();
 			yield return this.Workflow;
 		}
+
+		protected override void OnDerive(ServiceConfiguration newConfig)
+		{
+			base.OnDerive(newConfig);
+
+			var copiedWorkflow = (WorkflowServiceConfiguration)newConfig;
+			copiedWorkflow._workflow = this._workflow;
+			
+		}
 	}
 
 	[Serializable]

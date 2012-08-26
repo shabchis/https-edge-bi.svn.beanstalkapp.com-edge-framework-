@@ -20,13 +20,13 @@ namespace Edge.Core.Services.Workflow
 				this.WorkflowInstance = WorkflowNodeInstance.FromConfiguration(this.Configuration);
 
 			var completedSteps = new List<bool>();
-			bool complete = ProcessWorkflow(this.WorkflowInstance, completedSteps);
+			bool complete = ProcessWorkflow(this.WorkflowInstance, WorkflowNodeFailureBehavior.Terminate, completedSteps);
 
 			Progress = completedSteps.Count(b => b) / completedSteps.Count;
 			return complete ? ServiceOutcome.Success : ServiceOutcome.Unspecified;
 		}
 
-		bool ProcessWorkflow(WorkflowNodeInstance nodeInstance, List<bool> completedSteps)
+		bool ProcessWorkflow(WorkflowNodeInstance nodeInstance, WorkflowNodeFailureBehavior failureBehavior, List<bool> completedSteps)
 		{
 			bool complete;
 
@@ -37,7 +37,7 @@ namespace Edge.Core.Services.Workflow
 
 				foreach (WorkflowNodeInstance child in nodeInstance.Children)
 				{
-					var stepComplete = ProcessWorkflow(child, completedSteps);
+					var stepComplete = ProcessWorkflow(child, group.FailureBehavior, completedSteps);
 					complete &= stepComplete;
 					if (!stepComplete && group.Mode == WorkflowNodeGroupMode.Linear)
 						break;
@@ -59,8 +59,13 @@ namespace Edge.Core.Services.Workflow
 						config.ServiceName = step.Name;
 					}
 					nodeInstance.Instance = this.NewChildService(config);
-					nodeInstance.Instance.Start();
+					nodeInstance.Instance.StateChanged += new EventHandler(Instance_StateChanged);
+					nodeInstance.Instance.Connect();
+					Environment.ScheduleService(nodeInstance.Instance);
 				}
+
+				if (failureBehavior == WorkflowNodeFailureBehavior.Terminate && nodeInstance.Instance.State == ServiceState.Ended && nodeInstance.Instance.Outcome != ServiceOutcome.Success)
+					throw new WorkflowException(String.Format("Workflow step '{0}' failed, terminating.", nodeInstance.Instance.Configuration.ServiceName));
 
 				complete = nodeInstance.Instance.State == ServiceState.Ended;
 				completedSteps.Add(complete);
@@ -70,5 +75,28 @@ namespace Edge.Core.Services.Workflow
 
 			return complete;
 		}
+
+		void Instance_StateChanged(object sender, EventArgs e)
+		{
+			var childInstance = (ServiceInstance)sender;
+			if (childInstance.State != ServiceState.Ended)
+				return;
+
+			// Resume through the host and not through this.Resume() in order to synchronize calls -
+			//		important because more than one child could change state at the same time
+			((IServiceExecutionHost)this.Host).ResumeService(this.InstanceID);
+		}
+	}
+
+	[Serializable]
+	public class WorkflowException : Exception
+	{
+		public WorkflowException() { }
+		public WorkflowException(string message) : base(message) { }
+		public WorkflowException(string message, Exception inner) : base(message, inner) { }
+		protected WorkflowException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
 	}
 }

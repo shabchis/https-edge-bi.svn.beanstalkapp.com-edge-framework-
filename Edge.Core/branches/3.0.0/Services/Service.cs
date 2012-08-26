@@ -27,7 +27,7 @@ namespace Edge.Core.Services
 		#region Instance
 		//======================
 		ServiceStateInfo _stateInfo;
-		ServiceExecutionHost _host;
+		internal ServiceExecutionHost Host;
 		int _resumeCount = 0;
 		internal bool IsStopped = false;
 		Thread _doWork = null;
@@ -46,8 +46,8 @@ namespace Edge.Core.Services
 
 		internal void Init(ServiceExecutionHost host, ServiceConfiguration config, Guid instanceID, Guid parentInstanceID)
 		{
-			_host = host;
-			this.Environment = new ServiceEnvironment(_host);
+			Host = host;
+			this.Environment = new ServiceEnvironment(Host);
 
 			this.InstanceID = instanceID;
 			this.Configuration = config;
@@ -74,12 +74,12 @@ namespace Edge.Core.Services
 
 		void NotifyState()
 		{
-			_host.NotifyState(this.InstanceID, _stateInfo);
+			Host.NotifyState(this.InstanceID, _stateInfo);
 		}
 
 		protected void GenerateOutput(object output)
 		{
-			_host.NotifyOutput(this.InstanceID, output);
+			Host.NotifyOutput(this.InstanceID, output);
 		}
 
 		protected void Error(Exception exception, bool fatal = false)
@@ -87,7 +87,7 @@ namespace Edge.Core.Services
 			if (fatal)
 				throw exception;
 			else
-				_host.NotifyOutput(this.InstanceID, exception);
+				Host.NotifyOutput(this.InstanceID, exception);
 		}
 
 		protected void Error(string message, Exception inner = null, bool fatal = false)
@@ -252,8 +252,7 @@ namespace Edge.Core.Services
 
 		protected ServiceInstance NewChildService(ServiceConfiguration child)
 		{
-			throw new NotImplementedException();
-			//return Environment.NewServiceInstance(child, this.AsInstance());
+			return Environment.NewServiceInstance(child, ServiceInstance.ForService(this));
 		}
 
 		//======================

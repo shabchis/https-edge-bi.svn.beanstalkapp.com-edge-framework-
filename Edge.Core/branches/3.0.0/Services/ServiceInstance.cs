@@ -41,6 +41,10 @@ namespace Edge.Core.Services
 		public event EventHandler StateChanged;
 		public event EventHandler<ServiceOutputEventArgs> OutputGenerated;
 
+		private ServiceInstance()
+		{
+		}
+
 		internal ServiceInstance(ServiceConfiguration configuration, ServiceEnvironment environment, ServiceInstance parentInstance)
 		{
 			if (configuration == null)
@@ -250,6 +254,34 @@ namespace Edge.Core.Services
 		protected override IEnumerable<ILockable> GetLockables()
 		{
 			yield return (ILockable)SchedulingInfo;
+		}
+
+		//=================
+		#endregion
+
+		#region Static
+		//=================
+
+		public static ServiceInstance ForService(Service serviceEngine)
+		{
+			ServiceInstance instance = new ServiceInstance()
+			{
+				InstanceID = serviceEngine.InstanceID,
+				ParentInstance = serviceEngine.ParentInstance,
+				Environment = serviceEngine.Environment,
+				
+				_stateInfo = new ServiceStateInfo()
+				{
+					State = serviceEngine.State,
+					Progress = serviceEngine.Progress,
+					Outcome = serviceEngine.Outcome,
+					TimeInitialized = serviceEngine.TimeInitialized,
+					TimeStarted = serviceEngine.TimeStarted,
+					TimeEnded = serviceEngine.TimeEnded
+				}
+			};
+
+			return instance;
 		}
 
 		//=================
