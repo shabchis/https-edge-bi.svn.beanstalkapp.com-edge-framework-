@@ -87,6 +87,9 @@
     <Compile Include="Configuration\EdgeServicesConfiguration.cs" />
     <Compile Include="Configuration\General.cs" />
     <Compile Include="Configuration\SettingsCollection.cs" />
+    <Compile Include="Scheduling\Enums.cs" />
+    <Compile Include="Scheduling\SchedulingInfo.cs" />
+    <Compile Include="Scheduling\SchedulingRule.cs" />
     <Compile Include="Services\Enums.cs" />
     <Compile Include="Services\Exceptions.cs" />
     <Compile Include="Services\ServiceConnection.cs" />

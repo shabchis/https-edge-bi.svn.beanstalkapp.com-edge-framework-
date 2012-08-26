@@ -272,7 +272,7 @@ namespace Edge.Core.Services
 		//======================
 		#endregion
 
-		#region Logging and error handling
+		#region Logging
 		//======================
 
 		
@@ -283,7 +283,7 @@ namespace Edge.Core.Services
 
 			message.Source = this.Configuration.ServiceName;
 
-			_host.Log(this.InstanceID, message);
+			this.Host.Log(this.InstanceID, message);
 		}
 
 		protected void Log(string message, Exception ex, LogMessageType messageType = LogMessageType.Error)
