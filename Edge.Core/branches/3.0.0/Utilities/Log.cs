@@ -49,7 +49,7 @@ namespace Edge.Core.Utilities
 	public static class Log
 	{
 		private static string _source;
-		private static IServiceInfo _instance;
+		private static ServiceInstance _instance;
 		private static Queue<LogEntry> _logQueue = new Queue<LogEntry>();
 		private static log4net.ILog logg = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 		private static IAsyncResult _asyncResult;
@@ -60,7 +60,7 @@ namespace Edge.Core.Utilities
 		{
 			if (Service.Current != null)
 			{
-				_instance = Service.Current;
+				_instance = ServiceInstance.InstanceForService;
 				_source = _instance.Configuration.ServiceName;
 			}
 		}
