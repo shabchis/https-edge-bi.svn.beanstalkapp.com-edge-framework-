@@ -6,7 +6,6 @@ using System.Runtime.Remoting.Messaging;
 using System.Security;
 using System.Security.Permissions;
 using System.Text;
-using Edge.Core.Scheduling;
 using System.ServiceModel;
 
 namespace Edge.Core.Services
@@ -16,7 +15,7 @@ namespace Edge.Core.Services
 	{
 		internal const string LOCALNAME = "LOCAL";
 		internal static IServiceExecutionHost LOCAL;
-
+		
 		#region Nested classes
 		// ========================
 
@@ -79,27 +78,34 @@ namespace Edge.Core.Services
 			*/
 		}
 
-		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection)
+		void IServiceExecutionHost.OpenConnection(Guid instanceID, Guid connectionGuid, ServiceConnection connection)
 		{
 			ServiceRuntimeInfo runtimeInfo;
 
 			// Check if instance ID exists
 			lock (_services)
 			{
-				if (_services.ContainsKey(instanceID))
-					throw new ServiceException(String.Format("Service instance '{0}' is already initialized.", instanceID));
+				if (!_services.TryGetValue(instanceID, out runtimeInfo))
+					runtimeInfo = new ServiceRuntimeInfo(instanceID);
 
-				runtimeInfo = new ServiceRuntimeInfo(instanceID);
 				runtimeInfo.Connections.Add(connectionGuid, connection);
 				_services.Add(instanceID, runtimeInfo);
-				((IServiceConnection)connection).ReceiveState(new ServiceStateInfo() { State = ServiceState.Initializing });
 			}
+		}
 
+		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection)
+		{
 			if (String.IsNullOrEmpty(config.ServiceClass))
 				throw new ServiceException("ServiceConfiguration.ServiceClass cannot be empty.");
 
+			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
 			{
+				if (runtimeInfo.State.State != ServiceState.Uninitialized)
+					throw new ServiceException("Service is already initialized.");
+
+				runtimeInfo.State = new ServiceStateInfo() { State = ServiceState.Initializing };
+				((IServiceExecutionHost)this).NotifyState(instanceID);
 
 				// Load the app domain, and attach to its events
 				AppDomain domain = AppDomain.CreateDomain(
@@ -284,6 +290,9 @@ namespace Edge.Core.Services
 
 		[OperationContract(IsOneWay = true)]
 		void NotifyState(Guid instanceID);
+
+		[OperationContract]
+		void OpenConnection(Guid instanceID, Guid connectionGuid, ServiceConnection connection);
 
 		[OperationContract(IsOneWay = true)]
 		void CloseConnection(Guid instanceID, Guid connectionID);

@@ -39,7 +39,9 @@ namespace Edge.Core.Services
 		{
 			// TODO: determine which host to connect to
 
-			return new ServiceConnection(_hosts[hostName], instanceID);
+			var connection = new ServiceConnection(_hosts[hostName], instanceID);
+			_hosts[hostName].OpenConnection(instanceID, connection.Guid, connection);
+			return connection;
 		}
 
 		public ServiceInstance GetServiceInstance(Guid instanceID)
@@ -47,9 +49,10 @@ namespace Edge.Core.Services
 			throw new NotImplementedException();
 		}
 
-		public void Schedule(ServiceInstance instance)
+		public void ScheduleService(ServiceInstance instance)
 		{
-			throw new NotImplementedException();
+			if (ServiceScheduleRequested != null)
+				ServiceScheduleRequested(this, new ServiceInstanceEventArgs() { ServiceInstance = instance });
 		}
 	}
 

@@ -135,6 +135,8 @@ namespace Edge.Core.Services
 			config._serviceType = this._serviceType;
 			config._serviceName = this._serviceName;
 			this.Limits.CopyTo(config.Limits);
+
+			OnDerive(config);
 			
 			// Merge parameters
 			foreach (var param in this.Parameters)
@@ -186,6 +188,10 @@ namespace Edge.Core.Services
 			}
 
 			return config;
+		}
+
+		protected virtual void OnDerive(ServiceConfiguration newConfig)
+		{
 		}
 
 		//=================
