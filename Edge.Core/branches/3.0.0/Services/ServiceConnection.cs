@@ -70,24 +70,26 @@ namespace Edge.Core.Services
 	/// Serializes endpoint data for a remote host to know how to push back events back.
 	/// </summary>
 	[CallbackBehavior(UseSynchronizationContext = false, ConcurrencyMode = ConcurrencyMode.Single)]
-	internal class ServiceConnection : MarshalByRefObject, IServiceConnection
+	internal class ServiceConnection : IServiceConnection
 	{
 		public Action<ServiceStateInfo> StateChangedCallback { get; set; }
 		public Action<object> OutputGeneratedCallback { get; set; }
-		public IServiceExecutionHost Host { get; private set; }
+		public WcfDuplexClient<IServiceExecutionHost> Host { get; private set; }
 		public Guid Guid { get; private set; }
 		public Guid ServiceInstanceID { get; private set; }
 
-		internal ServiceConnection(IServiceExecutionHost host, Guid serviceInstanceID)
+		internal ServiceConnection(Guid serviceInstanceID)
 		{
-			this.Host = host;
 			this.Guid = Guid.NewGuid();
 			this.ServiceInstanceID = serviceInstanceID;
+			this.Host = new WcfDuplexClient<IServiceExecutionHost>(this);
+			this.Host.Open();
+			this.Host.Channel.Connect(this.ServiceInstanceID, this.Guid);
 		}
 
 		internal void RefreshState()
 		{
-			this.Host.NotifyState(this.ServiceInstanceID);
+			this.Host.Channel.NotifyState(this.ServiceInstanceID);
 		}
 
 		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo)
@@ -104,7 +106,17 @@ namespace Edge.Core.Services
 
 		public void Dispose()
 		{
-			this.Host.CloseConnection(this.ServiceInstanceID, this.Guid);
+			// Close the channel if it is still open
+			if (Host != null)
+			{
+				if (Host.State == CommunicationState.Opened)
+				{
+					Host.Channel.Disconnect(this.ServiceInstanceID, this.Guid);
+					Host.Close();
+				}
+				else if (Host.State != CommunicationState.Closed)
+					Host.Abort();
+			}
 		}
 	}
 }
