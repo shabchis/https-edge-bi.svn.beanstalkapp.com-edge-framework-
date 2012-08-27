@@ -102,6 +102,8 @@
     <Compile Include="Services\ServiceStateInfo.cs" />
     <Compile Include="Services\ServiceEnvironment.cs" />
     <Compile Include="Services\ServiceProfile.cs" />
+    <Compile Include="Services\Wcf\WcfDuplexClient.cs" />
+    <Compile Include="Services\Wcf\WcfHost.cs" />
     <Compile Include="Services\Workflow\WorkflowNodeInstance.cs" />
     <Compile Include="Services\Workflow\WorkflowService.cs" />
     <Compile Include="Services\Workflow\WorkflowServiceConfiguration.cs" />

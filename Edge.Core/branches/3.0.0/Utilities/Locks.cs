@@ -5,7 +5,7 @@ using System.Text;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 
-namespace Edge.Core.Services
+namespace Edge.Core
 {
 	public interface ILockable
 	{

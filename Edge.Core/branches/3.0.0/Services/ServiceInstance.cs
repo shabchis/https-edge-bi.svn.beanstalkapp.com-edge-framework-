@@ -87,7 +87,7 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("ServiceInstance is already connected.");
 
 			// Get a connection
-			try { this.Connection = Environment.AcquireHostConnection(ServiceExecutionHost.LOCALNAME, this.InstanceID); }
+			try { this.Connection = Environment.AcquireHostConnection(this.Configuration.HostName, this.InstanceID); }
 			catch (Exception ex)
 			{
 				throw new ServiceException("Environment could not acquire a connection to the service {0:N} on host {1}.", ex);

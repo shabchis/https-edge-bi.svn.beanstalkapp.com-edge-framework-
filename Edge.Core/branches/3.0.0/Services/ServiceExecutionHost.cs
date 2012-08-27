@@ -7,15 +7,15 @@ using System.Security;
 using System.Security.Permissions;
 using System.Text;
 using System.ServiceModel;
+using System.ServiceModel.Dispatcher;
+using System.ServiceModel.Channels;
+using Edge.Core.Configuration;
 
 namespace Edge.Core.Services
 {
 	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
-	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost
+	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost, IErrorHandler, IDisposable
 	{
-		internal const string LOCALNAME = "LOCAL";
-		//internal static ServiceExecutionHost LOCAL;
-		
 		#region Nested classes
 		// ========================
 
@@ -44,10 +44,10 @@ namespace Edge.Core.Services
 
 		public ServiceEnvironment Environment { get; private set; }
 		public string HostName { get; private set; }
+
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
-		
-		//PermissionSet _servicePermissions;
+		internal WcfHost WcfHost { get; private set; }
 
 		// ========================
 		#endregion 
@@ -55,14 +55,32 @@ namespace Edge.Core.Services
 		#region Methods
 		// ========================
 
-		public ServiceExecutionHost(/*string name*/)
+		public ServiceExecutionHost(string name, ServiceEnvironmentConfiguration environmentConfig)
 		{
 			ServiceExecutionPermission.All.Demand();
 
-			this.HostName = LOCALNAME; //name;
-			this.Environment = new ServiceEnvironment(this);
+			this.HostName = name;
 
+			this.Environment = new ServiceEnvironment(environmentConfig);
+
+			string wcfAddress = AppSettings.Get(this, "WcfAddressFormat").Replace("{hostName}", name);
+			WcfHost = new WcfHost(this);
+			WcfHost.AddServiceEndpoint(
+				typeof(IServiceExecutionHost),
+				(Binding)Activator.CreateInstance(Type.GetType(AppSettings.Get(this, "WcfBindingType")), typeof(ServiceExecutionHost).FullName),
+				wcfAddress);
+
+			this.Environment.RegisterHost(this);
+
+			// Open the listener
+			WcfHost.Open();
+
+			#region Code Access Security (disabled)
 			/*
+			
+			// Move following line outside this function
+			// PermissionSet _servicePermissions;
+			
 			_servicePermissions = new PermissionSet(PermissionState.None);
 			_servicePermissions.AddPermission(new ServiceExecutionPermission(ServiceExecutionPermissionFlags.None));
 			_servicePermissions.AddPermission(new System.Security.Permissions.FileIOPermission(PermissionState.Unrestricted));
@@ -75,9 +93,10 @@ namespace Edge.Core.Services
 				SecurityPermissionFlag.SerializationFormatter
 			));
 			*/
+			#endregion
 		}
 
-		void IServiceExecutionHost.OpenConnection(Guid instanceID, Guid connectionGuid, ServiceConnection connection)
+		void IServiceExecutionHost.Connect(Guid instanceID, Guid connectionGuid)
 		{
 			ServiceRuntimeInfo runtimeInfo;
 
@@ -87,10 +106,26 @@ namespace Edge.Core.Services
 				if (!_services.TryGetValue(instanceID, out runtimeInfo))
 					runtimeInfo = new ServiceRuntimeInfo(instanceID);
 
-				runtimeInfo.Connections.Add(connectionGuid, connection);
+				runtimeInfo.Connections.Add(connectionGuid, OperationContext.Current.GetCallbackChannel<IServiceConnection>());
 				_services.Add(instanceID, runtimeInfo);
 			}
 		}
+
+		/// <summary>
+		/// Disconnects a connection from a running service instance.
+		/// </summary>
+		void IServiceExecutionHost.Disconnect(Guid instanceID, Guid connectionGuid)
+		{
+			var runtimeInfo = Get(instanceID, false);
+			if (runtimeInfo != null)
+			{
+				lock (runtimeInfo.Connections)
+				{
+					runtimeInfo.Connections.Remove(connectionGuid);
+				}
+			}
+		}
+
 
 		[Obsolete]
 		internal void InternalScheduleService(ServiceInstance instance)
@@ -115,11 +150,6 @@ namespace Edge.Core.Services
 				// Load the app domain, and attach to its events
 				AppDomain domain = AppDomain.CreateDomain(
 					String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID)
-					/*,
-					null,
-					new AppDomainSetup() { ApplicationBase = Directory.GetCurrentDirectory() },
-					_servicePermissions,
-					null*/
 				);
 				domain.DomainUnload += new EventHandler(DomainUnload);
 				
@@ -185,19 +215,7 @@ namespace Edge.Core.Services
 				runtimeInfo.ServiceRef.Abort();
 		}
 
-		/// <summary>
-		/// Disconnects a connection from a running service instance.
-		/// </summary>
-		void IServiceExecutionHost.CloseConnection(Guid instanceID, Guid connectionGuid)
-		{
-			var runtimeInfo = Get(instanceID, false);
-			if (runtimeInfo != null)
-			{
-				lock (runtimeInfo.Connections)
-					runtimeInfo.Connections.Remove(connectionGuid);
-			}
-		}
-
+		
 		void IServiceExecutionHost.NotifyState(Guid instanceID)
 		{
 			var runtimeInfo = Get(instanceID, false);
@@ -261,6 +279,7 @@ namespace Edge.Core.Services
 			}
 		}
 
+		
 		ServiceRuntimeInfo Get(Guid instanceID, bool throwex = true)
 		{
 			ServiceRuntimeInfo service;
@@ -272,6 +291,22 @@ namespace Edge.Core.Services
 			return service;
 		}
 
+		// ========================
+		#endregion
+
+		#region IDisposable Members
+		// ========================
+		void IDisposable.Dispose()
+		{
+			// Close WCF host				
+			if (WcfHost != null)
+			{
+				if (WcfHost.State == CommunicationState.Faulted)
+					WcfHost.Abort();
+				else
+					WcfHost.Close();
+			}
+		}
 		// ========================
 		#endregion
 	}
@@ -297,9 +332,11 @@ namespace Edge.Core.Services
 		void NotifyState(Guid instanceID);
 
 		[OperationContract]
-		void OpenConnection(Guid instanceID, Guid connectionGuid, ServiceConnection connection);
+		void Connect(Guid instanceID, Guid connectionGuid);
 
 		[OperationContract(IsOneWay = true)]
-		void CloseConnection(Guid instanceID, Guid connectionID);
+		void Disconnect(Guid instanceID, Guid connectionGuid);
 	}
+
+	
 }

@@ -18,6 +18,7 @@ namespace Edge.Core.Services
 		string _assemblyPath;
 		string _serviceType;
 		string _serviceName;
+		string _hostName;
 		
 		//=================
 		#endregion
@@ -85,6 +86,12 @@ namespace Edge.Core.Services
 		{
 			get { return _serviceName; }
 			set { EnsureUnlocked(); _serviceName = value; }
+		}
+
+		public string HostName
+		{
+			get { return _hostName; }
+			set { EnsureUnlocked(); _hostName = value; }
 		}
 
 		public bool IsEnabled
@@ -326,13 +333,10 @@ namespace Edge.Core.Services
 			_isEnabled = info.GetBoolean("_isEnabled");
 			_isPublic = info.GetBoolean("_isPublic");
 
-			//if (!info.GetBoolean("IsLocked"))
-			//    ((ILockable)this).Lock();
-
 			Deserialize(info, context);
-			
 
-			// Was locked before serialization? Lock 'em up and throw away the key!
+			if (info.GetBoolean("IsLocked"))
+			    ((ILockable)this).Lock();
 		}
 	
 		protected virtual void Deserialize(SerializationInfo info, StreamingContext context)
