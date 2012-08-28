@@ -17,15 +17,6 @@ namespace Edge.Core.Services
 		public WcfHost(ServiceEnvironment environment, object singletonInstance) : base(singletonInstance)
 		{
 			_environment = environment;
-		}
-
-		protected override void InitializeRuntime()
-		{
-			base.InitializeRuntime();
-
-			// Add the service as its own error handler
-			//foreach (ChannelDispatcher channelDispatcher in this.ChannelDispatchers)
-			//	channelDispatcher.ErrorHandlers.Add(this as IErrorHandler);
 
 			foreach (ServiceEndpoint endpoint in this.Description.Endpoints)
 			{
@@ -40,6 +31,15 @@ namespace Edge.Core.Services
 					}
 				}
 			}
+		}
+
+		protected override void InitializeRuntime()
+		{
+			base.InitializeRuntime();
+
+			// Add the service as its own error handler
+			//foreach (ChannelDispatcher channelDispatcher in this.ChannelDispatchers)
+			//	channelDispatcher.ErrorHandlers.Add(this as IErrorHandler);	
 		}
 		/*
 		void IErrorHandler.ProvideFault(Exception ex, MessageVersion version, ref Message fault)
