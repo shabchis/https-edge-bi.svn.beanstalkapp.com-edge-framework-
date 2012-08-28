@@ -78,11 +78,11 @@ namespace Edge.Core.Services
 		public Guid Guid { get; private set; }
 		public Guid ServiceInstanceID { get; private set; }
 
-		internal ServiceConnection(Guid serviceInstanceID, string endpointName, string endpointAddress)
+		internal ServiceConnection(ServiceEnvironment environment, Guid serviceInstanceID, string endpointName, string endpointAddress)
 		{
 			this.Guid = Guid.NewGuid();
 			this.ServiceInstanceID = serviceInstanceID;
-			this.Host = new WcfDuplexClient<IServiceExecutionHost>(this, endpointName, endpointAddress);
+			this.Host = new WcfDuplexClient<IServiceExecutionHost>(environment, this, endpointName, endpointAddress);
 			//TODO: add environment to StreamingContext
 			this.Host.Open();
 			this.Host.Channel.Connect(this.ServiceInstanceID, this.Guid);

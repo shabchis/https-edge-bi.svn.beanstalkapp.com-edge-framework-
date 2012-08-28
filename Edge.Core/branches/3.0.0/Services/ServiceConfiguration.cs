@@ -143,6 +143,7 @@ namespace Edge.Core.Services
 			config._assemblyPath = this._assemblyPath;
 			config._serviceType = this._serviceType;
 			config._serviceName = this._serviceName;
+			config._hostName = this._hostName;
 			this.Limits.CopyTo(config.Limits);
 
 			OnDerive(config);

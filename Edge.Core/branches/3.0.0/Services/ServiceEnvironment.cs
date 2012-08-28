@@ -89,7 +89,7 @@ namespace Edge.Core.Services
 			if (!_hosts.TryGetValue(hostName, out info))
 				throw new ArgumentException(String.Format("Host '{0}' was not found. Try calling RefreshHosts if the host has been recently started.", hostName), "hostName");
 
-			var connection = new ServiceConnection(instanceID, info.EndpointName, info.EndpointAddress);
+			var connection = new ServiceConnection(this, instanceID, info.EndpointName, info.EndpointAddress);
 			return connection;
 		}
 

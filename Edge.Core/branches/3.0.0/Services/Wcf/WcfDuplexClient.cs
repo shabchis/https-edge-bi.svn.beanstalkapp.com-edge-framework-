@@ -7,10 +7,19 @@ namespace Edge.Core.Services
 {
 	internal class WcfDuplexClient<I> : DuplexClientBase<I> where I: class
 	{
-		public WcfDuplexClient(ServiceConnection connection, string endpointName, string endpointAddress)
+		public WcfDuplexClient(ServiceEnvironment environment, ServiceConnection connection, string endpointName, string endpointAddress)
 			: base(new InstanceContext(connection), endpointName, endpointAddress)
 		{
-			//this.Endpoint.Contract.Operations[0].Behaviors[0]
+			foreach (OperationDescription description in this.Endpoint.Contract.Operations)
+			{
+				DataContractSerializerOperationBehavior dcsOperationBehavior = description.Behaviors.Find<DataContractSerializerOperationBehavior>();
+
+				if (dcsOperationBehavior != null)
+				{
+					description.Behaviors.Remove(dcsOperationBehavior);
+					description.Behaviors.Add(new NetDataContractOperationBehavior(description) { StreamingContextObject = environment });
+				}
+			}
 		}
 
 		public new I Channel

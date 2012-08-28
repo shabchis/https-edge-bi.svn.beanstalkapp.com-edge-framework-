@@ -10,10 +10,13 @@ using System.ServiceModel.Description;
 
 namespace Edge.Core.Services
 {
-	internal class WcfHost : ServiceHost, IErrorHandler
+	internal class WcfHost : ServiceHost//, IErrorHandler
 	{
-		public WcfHost(object singletonInstance) : base(singletonInstance)
+		ServiceEnvironment _environment;
+
+		public WcfHost(ServiceEnvironment environment, object singletonInstance) : base(singletonInstance)
 		{
+			_environment = environment;
 		}
 
 		protected override void InitializeRuntime()
@@ -21,10 +24,24 @@ namespace Edge.Core.Services
 			base.InitializeRuntime();
 
 			// Add the service as its own error handler
-			foreach (ChannelDispatcher channelDispatcher in this.ChannelDispatchers)
-				channelDispatcher.ErrorHandlers.Add(this as IErrorHandler);
-		}
+			//foreach (ChannelDispatcher channelDispatcher in this.ChannelDispatchers)
+			//	channelDispatcher.ErrorHandlers.Add(this as IErrorHandler);
 
+			foreach (ServiceEndpoint endpoint in this.Description.Endpoints)
+			{
+				foreach (OperationDescription description in endpoint.Contract.Operations)
+				{
+					DataContractSerializerOperationBehavior dcsOperationBehavior = description.Behaviors.Find<DataContractSerializerOperationBehavior>();
+
+					if (dcsOperationBehavior != null)
+					{
+						description.Behaviors.Remove(dcsOperationBehavior);
+						description.Behaviors.Add(new NetDataContractOperationBehavior(description) { StreamingContextObject = _environment });
+					}
+				}
+			}
+		}
+		/*
 		void IErrorHandler.ProvideFault(Exception ex, MessageVersion version, ref Message fault)
 		{
 		}
@@ -33,6 +50,6 @@ namespace Edge.Core.Services
 		{
 			return true;
 		}
-
+		*/
 	}
 }
