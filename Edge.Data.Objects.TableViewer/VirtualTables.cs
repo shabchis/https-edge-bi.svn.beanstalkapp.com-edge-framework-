@@ -192,35 +192,24 @@ public partial class StoredProcedures
 		/****************************************************************/
 		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
 
-		
-		if (type != null)
-		{
-			//Check if subclass of creative / Target / EdgeObject
-			if (type.IsSubclassOf(typeof(Creative)))
-			{
-				dbtableName = typeof(Creative).Name;
-			}
-			if (type.IsSubclassOf(typeof(Target)))
-			{
-				dbtableName = typeof(Target).Name;
-			}
 
-		}
+		if (type == null)
 		{
 			throw new NotImplementedException();
 		}
 		/****************************************************************/
 		#endregion
 
-		
-		
+
+
 		//Creating Select by Dummy table name
 		StringBuilder col = new StringBuilder();
 		#region Members
 		/*******************************************************/
-		foreach (MemberInfo item in type.GetMembers())
+		foreach (MemberInfo member in type.GetMembers())
 		{
-			col.Append(string.Format("Select {0}, {1} Union",item.Name,item.GetType()));
+			if (member.MemberType != MemberTypes.Constructor && member.MemberType != MemberTypes.Method)
+				col.Append(string.Format(" Select '{0}', '{1}' Union ", member.Name,((System.Reflection.MemberInfo)(((System.Reflection.FieldInfo)(member)).FieldType)).Name));
 		}
 
 		//Removing last "union string"
