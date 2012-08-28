@@ -12,6 +12,8 @@ namespace Edge.Core.Services
 	
 	public class NetDataContractOperationBehavior: DataContractSerializerOperationBehavior
 	{
+		public object StreamingContextObject;
+
 		public NetDataContractOperationBehavior(OperationDescription operation)
 			: base(operation)
 		{
@@ -25,13 +27,17 @@ namespace Edge.Core.Services
 		public override XmlObjectSerializer CreateSerializer(Type type, string name, string ns,
 			IList<Type> knownTypes)
 		{
-			return new NetDataContractSerializer(name, ns);
+			var serializer = new NetDataContractSerializer(name, ns);
+			serializer.Context = new StreamingContext(serializer.Context.State, this.StreamingContextObject);
+			return serializer;
 		}
 
 		public override XmlObjectSerializer CreateSerializer(Type type, XmlDictionaryString name,
 			XmlDictionaryString ns, IList<Type> knownTypes)
 		{
-			return new NetDataContractSerializer(name, ns);
+			var serializer = new NetDataContractSerializer(name, ns);
+			serializer.Context = new StreamingContext(serializer.Context.State, this.StreamingContextObject);
+			return serializer;
 		}
 	}
 
@@ -59,8 +65,7 @@ namespace Edge.Core.Services
 
 		private static void ReplaceDataContractSerializerOperationBehavior(OperationDescription description)
 		{
-			DataContractSerializerOperationBehavior dcsOperationBehavior =
-        description.Behaviors.Find<DataContractSerializerOperationBehavior>();
+			DataContractSerializerOperationBehavior dcsOperationBehavior = description.Behaviors.Find<DataContractSerializerOperationBehavior>();
 
 			if (dcsOperationBehavior != null)
 			{

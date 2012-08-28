@@ -44,10 +44,10 @@ namespace Edge.Core.Services
 		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
 		
 
-		internal void Init(ServiceExecutionHost host, ServiceConfiguration config, Guid instanceID, Guid parentInstanceID)
+		internal void Init(ServiceExecutionHost host, ServiceEnvironmentConfiguration envConfig, ServiceConfiguration config, Guid instanceID, Guid parentInstanceID)
 		{
 			Host = host;
-			this.Environment = new ServiceEnvironment(Host);
+			this.Environment = new ServiceEnvironment(envConfig);
 
 			this.InstanceID = instanceID;
 			this.Configuration = config;

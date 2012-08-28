@@ -25,6 +25,11 @@ namespace Edge.Core.Services
 
 		public void RefreshHosts()
 		{
+			if (_hosts == null)
+				_hosts = new Dictionary<string, ServiceExecutionHostInfo>();
+			else
+				_hosts.Clear();
+
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
@@ -33,11 +38,16 @@ namespace Edge.Core.Services
 				connection.Open();
 				using (SqlDataReader reader = command.ExecuteReader())
 				{
-					var info = new ServiceExecutionHostInfo()
+					while (reader.Read())
 					{
-						HostName = reader["HostName"] as string
-					};
-					_hosts.Add(info.HostName, info);
+						var info = new ServiceExecutionHostInfo()
+						{
+							HostName = reader["HostName"] as string,
+							EndpointName = reader["EndpointName"] as string,
+							EndpointAddress = reader["EndpointAddress"] as string
+						};
+						_hosts.Add(info.HostName, info);
+					}
 				}
 			}
 		}
@@ -47,11 +57,27 @@ namespace Edge.Core.Services
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
+				// FUTURE: in the future save all endpoints to DB
 				var command = new SqlCommand(env.HostRegisterSP, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				command.Parameters.AddWithValue("@hostName", host.HostName);
-				command.Parameters.AddWithValue("@binding", host.W
+				command.Parameters.AddWithValue("@endpointName", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == "Default").Name);
+				command.Parameters.AddWithValue("@endpointAddress", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == "Default").Address.ToString());
 				connection.Open();
+				command.ExecuteNonQuery();
+			}
+		}
+
+		internal void UnregisterHost(ServiceExecutionHost host)
+		{
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				var command = new SqlCommand(env.HostUnregisterSP, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				command.Parameters.AddWithValue("@hostName", host.HostName);
+				connection.Open();
+				command.ExecuteNonQuery();
 			}
 		}
 
@@ -63,7 +89,7 @@ namespace Edge.Core.Services
 			if (!_hosts.TryGetValue(hostName, out info))
 				throw new ArgumentException(String.Format("Host '{0}' was not found. Try calling RefreshHosts if the host has been recently started.", hostName), "hostName");
 
-			var connection = new ServiceConnection(instanceID);
+			var connection = new ServiceConnection(instanceID, info.EndpointName, info.EndpointAddress);
 			return connection;
 		}
 
@@ -86,6 +112,8 @@ namespace Edge.Core.Services
 
 		public void ScheduleService(ServiceInstance instance)
 		{
+			throw new NotImplementedException();
+			/*
 			// TODO: temporarily using host to get to the target environment
 			var host = (ServiceExecutionHost)_hosts[ServiceExecutionHost.LOCALNAME];
 			if (RemotingServices.IsTransparentProxy(host))
@@ -97,6 +125,7 @@ namespace Edge.Core.Services
 				if (ServiceScheduleRequested != null)
 					ServiceScheduleRequested(this, new ServiceInstanceEventArgs() { ServiceInstance = instance });
 			}
+			*/
 		}
 
 		
@@ -105,13 +134,17 @@ namespace Edge.Core.Services
 	public class ServiceExecutionHostInfo
 	{
 		public string HostName;
+		public string EndpointName;
+		public string EndpointAddress;
 	}
 
+	[Serializable]
 	public class ServiceEnvironmentConfiguration: Lockable
 	{
 		public string ConnectionString;
 		public string HostListSP;
 		public string HostRegisterSP;
+		public string HostUnregisterSP;
 	}
 
 	public class ServiceInstanceEventArgs : EventArgs

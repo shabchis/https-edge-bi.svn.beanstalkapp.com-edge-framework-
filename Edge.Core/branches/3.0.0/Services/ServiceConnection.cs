@@ -14,7 +14,7 @@ namespace Edge.Core.Services
 	/// </summary>
 	internal interface IServiceConnection: IDisposable
 	{
-		IServiceExecutionHost Host { get; }
+		//IServiceExecutionHost Host { get; }
 		Guid Guid { get; }
 		Guid ServiceInstanceID { get; }
 
@@ -78,11 +78,12 @@ namespace Edge.Core.Services
 		public Guid Guid { get; private set; }
 		public Guid ServiceInstanceID { get; private set; }
 
-		internal ServiceConnection(Guid serviceInstanceID)
+		internal ServiceConnection(Guid serviceInstanceID, string endpointName, string endpointAddress)
 		{
 			this.Guid = Guid.NewGuid();
 			this.ServiceInstanceID = serviceInstanceID;
-			this.Host = new WcfDuplexClient<IServiceExecutionHost>(this);
+			this.Host = new WcfDuplexClient<IServiceExecutionHost>(this, endpointName, endpointAddress);
+			//TODO: add environment to StreamingContext
 			this.Host.Open();
 			this.Host.Channel.Connect(this.ServiceInstanceID, this.Guid);
 		}
