@@ -6,6 +6,8 @@ using Microsoft.SqlServer.Server;
 using Edge.Data.Objects;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
+using System.Reflection;
 
 
 public partial class StoredProcedures
@@ -49,9 +51,14 @@ public partial class StoredProcedures
 	public static void GetDataByAccountID(SqlInt32 accountID, SqlString dummyTableName, SqlString deliveryOutputID, SqlDateTime dateCreated)
 	{
 		string dbtableName = string.Empty;
+		string sqlAssembly = typeof(Creative).Assembly.FullName;
+		string classNamespace = typeof(Creative).Namespace;
+		DummyMapper mapper = new DummyMapper();
 
-		//Getting Type frin table name 
-		Type type = Type.GetType(dummyTableName.Value);
+		#region Getting Type from table name
+		/****************************************************************/
+		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, dummyTableName.Value, sqlAssembly));
+
 		if (type != null)
 		{
 			//Check if subclass of creative / Target / EdgeObject
@@ -69,26 +76,27 @@ public partial class StoredProcedures
 		{
 			throw new NotImplementedException();
 		}
+		/****************************************************************/
+		#endregion
 
 		//Creating Select by Dummy table name
-
 		StringBuilder col = new StringBuilder();
 		col.Append("SELECT ");
 
 		#region Members by Type Mapper
 		/*******************************************************/
-		foreach (var mapItem in DummyMapper.Mapping[typeof(Edge.Data.Objects.EdgeObject)])
+		foreach (var mapItem in mapper.Mapping[typeof(Edge.Data.Objects.EdgeObject)])
 		{
-			col.Append("[");
+			col.Append(dbtableName + ".[");
 			col.Append(mapItem.Value);
 			col.Append("] as ");
 			col.Append("[");
 			col.Append(mapItem.Key);
 			col.Append("],");
 		}
-		foreach (var mapItem in DummyMapper.Mapping[type])
+		foreach (var mapItem in mapper.Mapping[type])
 		{
-			col.Append("[");
+			col.Append(dbtableName + ".[");
 			col.Append(mapItem.Value);
 			col.Append("] as ");
 			col.Append("[");
@@ -96,49 +104,41 @@ public partial class StoredProcedures
 			col.Append("],");
 		}
 
-		//removing last comma 
-		col.Remove(col.Length - 1, 1);
+		col.Append("[ObjectTracking_Table].[DeliveryOutputID]");
+
 		/*******************************************************/
 		#endregion
 
+		col.Append(string.Format(" From {0}", dbtableName));
+
+		//JOIN WITH OBJECT TRACKING TABLE
+		col.Append(" INNER JOIN ObjectTracking [ObjectTracking_Table]");
+		col.Append(string.Format(" ON [ObjectTracking_Table].ObjectGK = {0}.GK", dbtableName));
+
 		#region Where query string
 		/*****************************************************************/
-		col.Append(string.Format("From {0} WHERE ", dbtableName));
-
-		bool appendedWhere = false;
+		col.Append(" WHERE [ObjectType] = @objectType");
 		if (accountID != -1)
-		{
-			col.Append("AccountID = @accountID ");
-			appendedWhere = true;
-		}
+			col.Append(" AND AccountID = @accountID ");
 
 		if (!deliveryOutputID.IsNull)
-		{
-			if (appendedWhere)
-				col.Append("AND ");
-
-			appendedWhere = true;
-			col.Append("deliveryOutputID = @deliveryOutputID");
-		}
+			col.Append(" AND deliveryOutputID = @deliveryOutputID");
 
 		if (!dateCreated.IsNull)
-		{
-			if (appendedWhere)
-				col.Append("AND ");
+			col.Append(" AND dateCreated = @dateCreated");
 
-			appendedWhere = true;
-			col.Append("dateCreated = @dateCreated");
-		}
 		/*****************************************************************/
 		#endregion
 
-		#region Sql Command
+		#region Sql Command and parameters
 		/*******************************************************************************/
 		SqlCommand cmd = new SqlCommand(col.ToString());
 
 		SqlParameter sql_account;
 		SqlParameter sql_OutputID;
 		SqlParameter sql_dateCreated;
+		SqlParameter sql_objectType = new SqlParameter("@objectType", type.Name);
+		cmd.Parameters.Add(sql_objectType);
 
 		if (accountID != -1)
 		{
@@ -179,4 +179,75 @@ public partial class StoredProcedures
 		}
 
 	}
-};
+
+	[Microsoft.SqlServer.Server.SqlProcedure]
+	public static void GetTableMembers(SqlString virtualTableName)
+	{
+		string dbtableName = string.Empty;
+		string sqlAssembly = typeof(Creative).Assembly.FullName;
+		string classNamespace = typeof(Creative).Namespace;
+		DummyMapper mapper = new DummyMapper();
+
+		#region Getting Type from table name
+		/****************************************************************/
+		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
+
+		
+		if (type != null)
+		{
+			//Check if subclass of creative / Target / EdgeObject
+			if (type.IsSubclassOf(typeof(Creative)))
+			{
+				dbtableName = typeof(Creative).Name;
+			}
+			if (type.IsSubclassOf(typeof(Target)))
+			{
+				dbtableName = typeof(Target).Name;
+			}
+
+		}
+		{
+			throw new NotImplementedException();
+		}
+		/****************************************************************/
+		#endregion
+
+		
+		
+		//Creating Select by Dummy table name
+		StringBuilder col = new StringBuilder();
+		#region Members
+		/*******************************************************/
+		foreach (MemberInfo item in type.GetMembers())
+		{
+			col.Append(string.Format("Select {0}, {1} Union",item.Name,item.GetType()));
+		}
+
+		//Removing last "union string"
+		col.Remove(col.Length - 5, 5);
+
+		//Creating SQL command 
+		SqlCommand cmd = new SqlCommand(col.ToString());
+
+		try
+		{
+			using (SqlConnection conn = new SqlConnection("context connection=true"))
+			{
+				conn.Open();
+				cmd.Connection = conn;
+
+				using (SqlDataReader reader = cmd.ExecuteReader())
+				{
+					SqlContext.Pipe.Send(reader);
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			throw new Exception("Could not get table data", e);
+		}
+		/****************************************************************/
+		#endregion
+	}
+
+}
