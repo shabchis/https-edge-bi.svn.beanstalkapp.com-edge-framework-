@@ -48,16 +48,18 @@ public partial class StoredProcedures
 	}
 
 	[Microsoft.SqlServer.Server.SqlProcedure]
-	public static void GetDataByAccountID(SqlInt32 accountID, SqlString dummyTableName, SqlString deliveryOutputID, SqlDateTime dateCreated)
+	public static void GetDataByAccountID(SqlInt32 accountID, SqlString virtualTableName, SqlString deliveryOutputID, SqlDateTime dateCreated)
 	{
 		string dbtableName = string.Empty;
 		string sqlAssembly = typeof(Creative).Assembly.FullName;
 		string classNamespace = typeof(Creative).Namespace;
 		DummyMapper mapper = new DummyMapper();
+		bool isMetaProperty = false;
+
 
 		#region Getting Type from table name
 		/****************************************************************/
-		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, dummyTableName.Value, sqlAssembly));
+		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
 
 		if (type != null)
 		{
@@ -66,21 +68,29 @@ public partial class StoredProcedures
 			{
 				dbtableName = typeof(Creative).Name;
 			}
-			if (type.IsSubclassOf(typeof(Target)))
+			else if (type.IsSubclassOf(typeof(Target)))
 			{
 				dbtableName = typeof(Target).Name;
+			}
+			else if (type.IsSubclassOf(typeof(EdgeObject)))
+			{
+				dbtableName = typeof(EdgeObject).Name;
 			}
 
 		}
 		else // EdgeObject Type
 		{
-			throw new NotImplementedException();
+			isMetaProperty = true;
+			dbtableName = typeof(EdgeObject).Name;
 		}
 		/****************************************************************/
 		#endregion
 
 		//Creating Select by Dummy table name
 		StringBuilder col = new StringBuilder();
+
+
+
 		col.Append("SELECT ");
 
 		#region Members by Type Mapper
@@ -104,16 +114,18 @@ public partial class StoredProcedures
 			col.Append("],");
 		}
 
-		col.Append("[ObjectTracking_Table].[DeliveryOutputID]");
+		col.Remove(col.Length - 1, 1);
+		//col.Append("[ObjectTracking_Table].[DeliveryOutputID]");
 
-		/*******************************************************/
-		#endregion
 
 		col.Append(string.Format(" From {0}", dbtableName));
 
-		//JOIN WITH OBJECT TRACKING TABLE
-		col.Append(" INNER JOIN ObjectTracking [ObjectTracking_Table]");
-		col.Append(string.Format(" ON [ObjectTracking_Table].ObjectGK = {0}.GK", dbtableName));
+
+		//JOIN WITH Meta Property Table
+		//col.Append(" INNER JOIN ObjectTracking [ObjectTracking_Table]");
+		//col.Append(string.Format(" ON [ObjectTracking_Table].ObjectGK = {0}.GK", dbtableName));
+		
+		
 
 		#region Where query string
 		/*****************************************************************/
@@ -127,18 +139,50 @@ public partial class StoredProcedures
 		if (!dateCreated.IsNull)
 			col.Append(" AND dateCreated = @dateCreated");
 
+		//Get data from Meta Property Table
+		Int32 metaPropertyID = -1;
+		string baseValueType = string.Empty;
+
+		if (isMetaProperty)
+		{
+			baseValueType = GetMetaPropertyBaseValueType(virtualTableName.Value, accountID.Value, out metaPropertyID);
+			Type baseType = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, baseValueType, sqlAssembly));
+			string metaPropertyFieldName = mapper.Mapping[baseType]["MetaPropertyID"];
+
+			col.Append(" AND ObjectType = @ObjectType");
+			col.Append(string.Format(" AND {0} = @MetaPropertyID", metaPropertyFieldName));
+
+		}
+
 		/*****************************************************************/
 		#endregion
+		/****************************************************************/
+		#endregion
+
+
 
 		#region Sql Command and parameters
 		/*******************************************************************************/
 		SqlCommand cmd = new SqlCommand(col.ToString());
 
+		
 		SqlParameter sql_account;
 		SqlParameter sql_OutputID;
 		SqlParameter sql_dateCreated;
-		SqlParameter sql_objectType = new SqlParameter("@objectType", type.Name);
-		cmd.Parameters.Add(sql_objectType);
+
+		if (!isMetaProperty)
+		{
+			SqlParameter sql_objectType = new SqlParameter("@objectType", type.Name);
+			cmd.Parameters.Add(sql_objectType);
+		}
+		else
+		{
+			SqlParameter sql_objectBaseType = new SqlParameter("@objectType", baseValueType);
+			cmd.Parameters.Add(sql_objectBaseType);
+
+			SqlParameter sql_metaPropertyID = new SqlParameter("@MetaPropertyID", metaPropertyID);
+			cmd.Parameters.Add(sql_metaPropertyID);
+		}
 
 		if (accountID != -1)
 		{
@@ -157,6 +201,8 @@ public partial class StoredProcedures
 			sql_dateCreated = new SqlParameter("@dateCreated", dateCreated);
 			cmd.Parameters.Add(sql_dateCreated);
 		}
+
+	
 		/*******************************************************************************/
 		#endregion
 
@@ -178,6 +224,49 @@ public partial class StoredProcedures
 			throw new Exception("Could not get table data", e);
 		}
 
+	}
+
+	private static string GetMetaPropertyBaseValueType(string metaPropertyName , Int32 accountID, out Int32 metaPropertyID)
+	{
+		
+		string metaPropertyBaseValueType = string.Empty;
+
+		metaPropertyID = 0;
+		string cmdTxt = "Select Distinct [ID], [BaseValueType] where AccountID = @accountID and Name = @metaPropertyName";
+		SqlCommand cmd = new SqlCommand(cmdTxt);
+
+		SqlParameter sql_account = new SqlParameter("@accountID", accountID);
+		SqlParameter sql_metaPropertyName = new SqlParameter("@metaPropertyName", metaPropertyName);
+
+		cmd.Parameters.Add(sql_account);
+		cmd.Parameters.Add(sql_metaPropertyName);
+
+		try
+		{
+			using (SqlConnection conn = new SqlConnection("context connection=true"))
+			{
+				conn.Open();
+				cmd.Connection = conn;
+
+				using (SqlDataReader reader = cmd.ExecuteReader())
+				{
+					if (reader.Read())
+					{
+						metaPropertyBaseValueType = reader[1].ToString();
+						metaPropertyID = Convert.ToInt32(reader[0]);
+					}
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			throw new Exception("Could not get table data", e);
+		}
+
+		if (String.IsNullOrEmpty(metaPropertyBaseValueType))
+			throw new Exception(string.Format("Could not find MetaPropertyBaseValueType for account {} and metaPropertyName {1}", accountID, sql_metaPropertyName));
+		
+		return metaPropertyBaseValueType;
 	}
 
 	[Microsoft.SqlServer.Server.SqlProcedure]
@@ -209,7 +298,7 @@ public partial class StoredProcedures
 		foreach (MemberInfo member in type.GetMembers())
 		{
 			if (member.MemberType != MemberTypes.Constructor && member.MemberType != MemberTypes.Method)
-				col.Append(string.Format(" Select '{0}', '{1}' Union ", member.Name,((System.Reflection.MemberInfo)(((System.Reflection.FieldInfo)(member)).FieldType)).Name));
+				col.Append(string.Format(" Select '{0}', '{1}' Union ", member.Name, ((System.Reflection.MemberInfo)(((System.Reflection.FieldInfo)(member)).FieldType)).Name));
 		}
 
 		//Removing last "union string"
