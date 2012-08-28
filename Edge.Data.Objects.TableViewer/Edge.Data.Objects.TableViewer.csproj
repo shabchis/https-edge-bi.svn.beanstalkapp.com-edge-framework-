@@ -52,7 +52,7 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GetTablesNames.cs" />
+    <Compile Include="VirtualTables.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -65,6 +65,7 @@
     <Content Include="PostDeployScript.sql">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Test Scripts\GetTableMembers.sql" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
