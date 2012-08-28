@@ -10,11 +10,12 @@ using System.ServiceModel;
 using System.ServiceModel.Dispatcher;
 using System.ServiceModel.Channels;
 using Edge.Core.Configuration;
+using System.ServiceModel.Description;
 
 namespace Edge.Core.Services
 {
 	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
-	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost, IErrorHandler, IDisposable
+	public class ServiceExecutionHost : MarshalByRefObject, IServiceExecutionHost, IDisposable
 	{
 		#region Nested classes
 		// ========================
@@ -50,7 +51,7 @@ namespace Edge.Core.Services
 		internal WcfHost WcfHost { get; private set; }
 
 		// ========================
-		#endregion 
+		#endregion
 
 		#region Methods
 		// ========================
@@ -63,12 +64,16 @@ namespace Edge.Core.Services
 
 			this.Environment = new ServiceEnvironment(environmentConfig);
 
-			string wcfAddress = AppSettings.Get(this, "WcfAddressFormat").Replace("{hostName}", name);
-			WcfHost = new WcfHost(this);
-			WcfHost.AddServiceEndpoint(
-				typeof(IServiceExecutionHost),
-				(Binding)Activator.CreateInstance(Type.GetType(AppSettings.Get(this, "WcfBindingType")), typeof(ServiceExecutionHost).FullName),
-				wcfAddress);
+			this.WcfHost = new WcfHost(this);
+
+			ServiceEndpoint[] rawEndpoints = this.WcfHost.Description.Endpoints.ToArray();
+			this.WcfHost.Description.Endpoints.Clear();
+			foreach (ServiceEndpoint endpoint in rawEndpoints)
+			{
+				endpoint.Address = new EndpointAddress(new Uri(endpoint.Address.Uri.ToString().Replace("{hostName}", name)));
+				this.WcfHost.AddServiceEndpoint(endpoint);
+			}
+
 
 			this.Environment.RegisterHost(this);
 
@@ -133,7 +138,7 @@ namespace Edge.Core.Services
 			this.Environment.ScheduleService(instance);
 		}
 
-		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection)
+		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid)
 		{
 			if (String.IsNullOrEmpty(config.ServiceClass))
 				throw new ServiceException("ServiceConfiguration.ServiceClass cannot be empty.");
@@ -152,7 +157,7 @@ namespace Edge.Core.Services
 					String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID)
 				);
 				domain.DomainUnload += new EventHandler(DomainUnload);
-				
+
 
 				// Instantiate the service type in the new domain
 				Service serviceRef;
@@ -186,14 +191,14 @@ namespace Edge.Core.Services
 				};
 
 				// Give the service ref its properties
-				serviceRef.Init(this, config, instanceID, parentInstanceID);
+				serviceRef.Init(this, this.Environment.EnvironmentConfiguration, config, instanceID, parentInstanceID);
 			}
 		}
 
 		void IServiceExecutionHost.StartService(Guid instanceID)
 		{
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
-			lock(runtimeInfo.ExecutionSync)
+			lock (runtimeInfo.ExecutionSync)
 				runtimeInfo.ServiceRef.Start();
 		}
 
@@ -215,7 +220,7 @@ namespace Edge.Core.Services
 				runtimeInfo.ServiceRef.Abort();
 		}
 
-		
+
 		void IServiceExecutionHost.NotifyState(Guid instanceID)
 		{
 			var runtimeInfo = Get(instanceID, false);
@@ -261,7 +266,7 @@ namespace Edge.Core.Services
 		void DomainUnload(object sender, EventArgs e)
 		{
 			// Get the service instance ID of the appdomain
-			AppDomain appDomain = (AppDomain) sender;
+			AppDomain appDomain = (AppDomain)sender;
 			Guid instanceID;
 			if (!_serviceByAppDomain.TryGetValue(appDomain.Id, out instanceID))
 				return;
@@ -279,7 +284,7 @@ namespace Edge.Core.Services
 			}
 		}
 
-		
+
 		ServiceRuntimeInfo Get(Guid instanceID, bool throwex = true)
 		{
 			ServiceRuntimeInfo service;
@@ -306,6 +311,8 @@ namespace Edge.Core.Services
 				else
 					WcfHost.Close();
 			}
+
+			Environment.UnregisterHost(this);
 		}
 		// ========================
 		#endregion
@@ -315,9 +322,9 @@ namespace Edge.Core.Services
 	internal interface IServiceExecutionHost
 	{
 		string HostName { get; }
-		
+
 		[OperationContract(IsOneWay = true)]
-		void InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid, ServiceConnection connection);
+		void InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid);
 
 		[OperationContract(IsOneWay = true)]
 		void StartService(Guid instanceID);
@@ -338,5 +345,5 @@ namespace Edge.Core.Services
 		void Disconnect(Guid instanceID, Guid connectionGuid);
 	}
 
-	
+
 }
