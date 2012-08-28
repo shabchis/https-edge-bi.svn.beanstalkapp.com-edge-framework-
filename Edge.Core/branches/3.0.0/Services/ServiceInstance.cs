@@ -86,6 +86,9 @@ namespace Edge.Core.Services
 			if (this.Connection != null)
 				throw new InvalidOperationException("ServiceInstance is already connected.");
 
+			if (String.IsNullOrEmpty(this.Configuration.HostName))
+				throw new ServiceException("Configuration.HostName cannot be null.");
+
 			// Get a connection
 			try { this.Connection = Environment.AcquireHostConnection(this.Configuration.HostName, this.InstanceID); }
 			catch (Exception ex)

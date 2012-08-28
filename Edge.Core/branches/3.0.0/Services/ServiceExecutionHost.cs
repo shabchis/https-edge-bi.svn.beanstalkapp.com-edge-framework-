@@ -64,7 +64,7 @@ namespace Edge.Core.Services
 
 			this.Environment = new ServiceEnvironment(environmentConfig);
 
-			this.WcfHost = new WcfHost(this);
+			this.WcfHost = new WcfHost(this.Environment, this);
 
 			ServiceEndpoint[] rawEndpoints = this.WcfHost.Description.Endpoints.ToArray();
 			this.WcfHost.Description.Endpoints.Clear();
@@ -318,7 +318,7 @@ namespace Edge.Core.Services
 		#endregion
 	}
 
-	[ServiceContract(SessionMode = SessionMode.Required, CallbackContract = typeof(IServiceConnection))]
+	[ServiceContract(Name="ServiceExecutionHost", Namespace="http://www.edge.bi/contracts", SessionMode = SessionMode.Required, CallbackContract = typeof(IServiceConnection))]
 	internal interface IServiceExecutionHost
 	{
 		string HostName { get; }
