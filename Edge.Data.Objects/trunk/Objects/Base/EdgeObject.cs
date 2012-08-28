@@ -177,6 +177,6 @@ namespace Edge.Data.Objects
 	public partial class Segment : ChannelSpecificObject
 	{
 		public MetaProperty MetaProperty;
-		public string Value;
+		
 	}
 }
