@@ -26,9 +26,8 @@ namespace Edge.Core.Services
 
 		#region Instance
 		//======================
-		ServiceStateInfo _stateInfo;
+		internal ServiceStateInfo StateInfo;
 		internal ServiceExecutionHost Host;
-		int _resumeCount = 0;
 		internal bool IsStopped = false;
 		Thread _doWork = null;
 
@@ -37,12 +36,14 @@ namespace Edge.Core.Services
 		public SchedulingInfo SchedulingInfo { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
-		public double Progress { get { return _stateInfo.Progress; } protected set { _stateInfo.Progress = value; NotifyState(); } }
-		public ServiceState State { get { return _stateInfo.State; } }
-		public ServiceOutcome Outcome { get { return _stateInfo.Outcome; } }
-		public DateTime TimeInitialized { get { return _stateInfo.TimeInitialized; } }
-		public DateTime TimeStarted { get { return _stateInfo.TimeStarted; } }
-		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
+		public double Progress { get { return StateInfo.Progress; } protected set { StateInfo.Progress = value; NotifyState(); } }
+		public ServiceState State { get { return StateInfo.State; } }
+		public ServiceOutcome Outcome { get { return StateInfo.Outcome; } }
+		public DateTime TimeInitialized { get { return StateInfo.TimeInitialized; } }
+		public DateTime TimeStarted { get { return StateInfo.TimeStarted; } }
+		public DateTime TimeEnded { get { return StateInfo.TimeEnded; } }
+		public DateTime TimeLastPaused { get { return StateInfo.TimeLastPaused; } }
+		public DateTime TimeLastResumed { get { return StateInfo.TimeLastResumed; } }
 		
 
 		internal void Init(ServiceExecutionHost host, ServiceEnvironmentConfiguration envConfig, ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID)
@@ -63,20 +64,20 @@ namespace Edge.Core.Services
 			AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(this.DomainUnhandledException);
 			AppDomain.CurrentDomain.DomainUnload += new EventHandler(this.DomainUnload);
 
-			_stateInfo.TimeInitialized = DateTime.Now;
-			_stateInfo.State = ServiceState.Ready;
+			StateInfo.TimeInitialized = DateTime.Now;
+			StateInfo.State = ServiceState.Ready;
 			NotifyState();
 		}
 
 		
 		protected bool IsFirstRun
 		{
-			get { return _resumeCount == 0; }
+			get { return StateInfo.ResumeCount == 0; }
 		}
 
 		void NotifyState()
 		{
-			Host.NotifyState(this.InstanceID, _stateInfo);
+			Host.NotifyState(this.InstanceID, StateInfo);
 		}
 
 		protected void GenerateOutput(object output)
@@ -112,7 +113,7 @@ namespace Edge.Core.Services
 				return;
 			}
 
-			_stateInfo.TimeStarted = DateTime.Now;
+			StateInfo.TimeStarted = DateTime.Now;
 			DoWorkInternal();
 		}
 
@@ -124,7 +125,8 @@ namespace Edge.Core.Services
 				return;
 			}
 
-			_resumeCount++;
+			StateInfo.ResumeCount++;
+			StateInfo.TimeLastResumed = DateTime.Now;
 			DoWorkInternal();
 		}
 
@@ -132,7 +134,7 @@ namespace Edge.Core.Services
 		{
 			ServiceOutcome outcome = ServiceOutcome.Unspecified;
 
-			_stateInfo.State = ServiceState.Running;
+			StateInfo.State = ServiceState.Running;
 			NotifyState();
 
 			// Run the service code, and time its execution
@@ -160,7 +162,8 @@ namespace Edge.Core.Services
 
 			if (outcome == ServiceOutcome.Unspecified)
 			{
-				_stateInfo.State = ServiceState.Paused;
+				StateInfo.State = ServiceState.Paused;
+				StateInfo.TimeLastPaused = DateTime.Now;
 				NotifyState();
 			}
 			else
@@ -199,11 +202,11 @@ namespace Edge.Core.Services
 			}
 			else if (outcome == ServiceOutcome.Success)
 			{
-				_stateInfo.Progress = 1;
+				StateInfo.Progress = 1;
 			}
 
 			// Start wrapping things up
-			_stateInfo.State = ServiceState.Ending;
+			StateInfo.State = ServiceState.Ending;
 			NotifyState();
 
 			// Run the cleanup code, and time its execution
@@ -227,8 +230,8 @@ namespace Edge.Core.Services
 			}
 
 			// Change state to ended
-			_stateInfo.State = ServiceState.Ended;
-			_stateInfo.Outcome = outcome;
+			StateInfo.State = ServiceState.Ended;
+			StateInfo.Outcome = outcome;
 			NotifyState();
 
 			// Unload app domain if Stop was called directly
@@ -255,6 +258,11 @@ namespace Edge.Core.Services
 		protected ServiceInstance NewChildService(ServiceConfiguration child)
 		{
 			return Environment.NewServiceInstance(child, ServiceInstance.ForService(this));
+		}
+
+		public ServiceInstance AsServiceInstance()
+		{
+			return ServiceInstance.ForService(this);
 		}
 
 		//======================

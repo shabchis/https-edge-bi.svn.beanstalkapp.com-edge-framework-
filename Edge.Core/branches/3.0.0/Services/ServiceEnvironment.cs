@@ -5,6 +5,10 @@ using System.Text;
 using System.Runtime.Remoting;
 using System.Data;
 using System.Data.SqlClient;
+using Edge.Core.Utilities;
+using System.IO;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace Edge.Core.Services
 {
@@ -107,7 +111,7 @@ namespace Edge.Core.Services
 		}
 
 		
-		public ServiceInstance GetServiceInstance(Guid instanceID)
+		public ServiceInstance GetServiceInstance(Guid instanceID, string hostName = null)
 		{
 			throw new NotImplementedException();
 		}
@@ -135,7 +139,51 @@ namespace Edge.Core.Services
 			throw new NotImplementedException();
 		}
 
-		
+
+		internal void SaveServiceInstance(ServiceExecutionHost host, ServiceInstance instance)
+		{
+			// The first time we save write the configuration to XML. Otherwise ignore.
+			string configXml = null;
+			if (instance.State == ServiceState.Initializing)
+			{
+				var stringWriter = new StringWriter();
+				using (var writer = new XmlTextWriter(stringWriter))
+					new XmlSerializer(instance.Configuration.GetType()).Serialize(writer, instance.Configuration);
+				configXml = stringWriter.ToString();
+			}
+
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				var command = new SqlCommand(env.InstanceSaveSP, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				command.Parameters.AddWithValue("@instanceID", instance.InstanceID);
+				command.Parameters.AddWithValue("@parentInstanceID", SqlUtility.NullIf(instance.ParentInstance, instance.ParentInstance.InstanceID));
+				command.Parameters.AddWithValue("@profileID", SqlUtility.NullIf(instance.Configuration.Profile, instance.Configuration.Profile.ProfileID));
+				command.Parameters.AddWithValue("@hostName", host.HostName);
+				command.Parameters.AddWithValue("@hostGuid", host.HostGuid);
+				command.Parameters.AddWithValue("@progress", instance.Progress);
+				command.Parameters.AddWithValue("@state", instance.State);
+				command.Parameters.AddWithValue("@outcome", instance.Outcome);
+				command.Parameters.AddWithValue("@timeInitialized", instance.TimeInitialized);
+				command.Parameters.AddWithValue("@timeStarted", instance.TimeStarted);
+				command.Parameters.AddWithValue("@timeEnded", instance.TimeEnded);
+				command.Parameters.AddWithValue("@timeLastPaused", instance.TimeLastPaused);
+				command.Parameters.AddWithValue("@timeLastResumed", instance.TimeLastResumed);
+				command.Parameters.AddWithValue("@resumeCount", instance.StateInfo.ResumeCount);
+				command.Parameters.AddWithValue("@configuration", configXml);
+				command.Parameters.AddWithValue("@Scheduling_Status", instance.SchedulingInfo.SchedulingStatus);
+				command.Parameters.AddWithValue("@Scheduling_Scope", instance.SchedulingInfo.SchedulingScope);
+				command.Parameters.AddWithValue("@Scheduling_MaxDeviationBefore", instance.SchedulingInfo.MaxDeviationBefore);
+				command.Parameters.AddWithValue("@Scheduling_MaxDeviationAfter", instance.SchedulingInfo.MaxDeviationAfter);
+				command.Parameters.AddWithValue("@Scheduling_RequestedTime", instance.SchedulingInfo.RequestedTime);
+				command.Parameters.AddWithValue("@Scheduling_ExpectedStartTime", instance.SchedulingInfo.ExpectedStartTime);
+				command.Parameters.AddWithValue("@Scheduling_ExpectedEndTime", instance.SchedulingInfo.ExpectedEndTime);
+				
+				connection.Open();
+				command.ExecuteNonQuery();
+			}
+		}
 	}
 
 	public class ServiceExecutionHostInfo

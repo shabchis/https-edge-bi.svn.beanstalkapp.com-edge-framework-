@@ -245,6 +245,8 @@ namespace Edge.Core.Services
 				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
 					connection.ReceiveState(stateInfo);
 			}
+
+			Environment.SaveServiceInstance(this, runtimeInfo.ServiceRef.AsServiceInstance());
 		}
 
 		internal void NotifyOutput(Guid instanceID, object output)
@@ -294,6 +296,11 @@ namespace Edge.Core.Services
 				else
 					return null;
 			return service;
+		}
+
+		internal ServiceInstance GetServiceInstance(Guid instanceID)
+		{
+			throw new NotImplementedException();
 		}
 
 		// ========================

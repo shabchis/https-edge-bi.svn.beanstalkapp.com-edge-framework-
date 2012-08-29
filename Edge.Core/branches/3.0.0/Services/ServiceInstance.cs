@@ -22,7 +22,7 @@ namespace Edge.Core.Services
 		internal ServiceConnection Connection;
 		bool _autostart = false;
 		SchedulingInfo _schedulingInfo = null;
-		ServiceStateInfo _stateInfo;
+		internal ServiceStateInfo StateInfo;
 
 		public bool ThrowExceptionOnError { get; set; }
 		public Guid InstanceID { get; private set; }
@@ -31,12 +31,14 @@ namespace Edge.Core.Services
 		public ServiceInstance ParentInstance { get; private set; }
 		public SchedulingInfo SchedulingInfo { get { return _schedulingInfo; } set { EnsureUnlocked(); _schedulingInfo = value; } }
 
-		public double Progress { get { return _stateInfo.Progress; } }
-		public ServiceState State { get { return _stateInfo.State; } }
-		public ServiceOutcome Outcome { get { return _stateInfo.Outcome; } }
-		public DateTime TimeInitialized { get { return _stateInfo.TimeInitialized; } }
-		public DateTime TimeStarted { get { return _stateInfo.TimeStarted; } }
-		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
+		public double Progress { get { return StateInfo.Progress; } }
+		public ServiceState State { get { return StateInfo.State; } }
+		public ServiceOutcome Outcome { get { return StateInfo.Outcome; } }
+		public DateTime TimeInitialized { get { return StateInfo.TimeInitialized; } }
+		public DateTime TimeStarted { get { return StateInfo.TimeStarted; } }
+		public DateTime TimeEnded { get { return StateInfo.TimeEnded; } }
+		public DateTime TimeLastPaused { get { return StateInfo.TimeLastPaused; } }
+		public DateTime TimeLastResumed { get { return StateInfo.TimeLastResumed; } }
 
 		public event EventHandler StateChanged;
 		public event EventHandler<ServiceOutputEventArgs> OutputGenerated;
@@ -112,7 +114,7 @@ namespace Edge.Core.Services
 
 		private void OnStateChanged(ServiceStateInfo info)
 		{
-			_stateInfo = info;
+			StateInfo = info;
 			if (StateChanged != null)
 				StateChanged(this, EventArgs.Empty);
 
@@ -225,7 +227,7 @@ namespace Edge.Core.Services
 			info.AddValue("InstanceID", InstanceID);
 			info.AddValue("Configuration", Configuration);
 			info.AddValue("ParentInstanceID", this.ParentInstance == null ? null : (object) this.ParentInstance.InstanceID);
-			info.AddValue("StateInfo", _stateInfo);
+			info.AddValue("StateInfo", StateInfo);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
 
 			info.AddValue("IsLocked", IsLocked);
@@ -235,7 +237,7 @@ namespace Edge.Core.Services
 		{
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
-			this._stateInfo = (ServiceStateInfo)info.GetValue("StateInfo", typeof(ServiceStateInfo));
+			this.StateInfo = (ServiceStateInfo)info.GetValue("StateInfo", typeof(ServiceStateInfo));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Environment = context.Context as ServiceEnvironment; //new ServiceEnvironment();
 
@@ -272,16 +274,8 @@ namespace Edge.Core.Services
 				InstanceID = serviceEngine.InstanceID,
 				ParentInstance = serviceEngine.ParentInstance,
 				Environment = serviceEngine.Environment,
-				
-				_stateInfo = new ServiceStateInfo()
-				{
-					State = serviceEngine.State,
-					Progress = serviceEngine.Progress,
-					Outcome = serviceEngine.Outcome,
-					TimeInitialized = serviceEngine.TimeInitialized,
-					TimeStarted = serviceEngine.TimeStarted,
-					TimeEnded = serviceEngine.TimeEnded
-				}
+				StateInfo = serviceEngine.StateInfo,
+				SchedulingInfo = serviceEngine.SchedulingInfo
 			};
 
 			return instance;

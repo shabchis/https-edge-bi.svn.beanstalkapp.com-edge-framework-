@@ -17,6 +17,9 @@ namespace Edge.Core.Services
 		public DateTime TimeInitialized;
 		public DateTime TimeStarted;
 		public DateTime TimeEnded;
+		public DateTime TimeLastPaused;
+		public DateTime TimeLastResumed;
+		public int ResumeCount;
 
 		public ServiceStateInfo Clone()
 		{
