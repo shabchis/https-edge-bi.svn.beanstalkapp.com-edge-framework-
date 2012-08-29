@@ -17,6 +17,7 @@ using System.ServiceModel.Description;
 
 namespace Edge.Core.Services.Scheduling
 {
+	[ServiceBehavior(InstanceContextMode=InstanceContextMode.Single)]
 	public class Scheduler : ISchedulerDataService
 	{
 		#region members
@@ -77,9 +78,22 @@ namespace Edge.Core.Services.Scheduling
 		/// Initialize all the services from configuration file or db4o
 		/// </summary>
 		/// <param name="getServicesFromConfigFile"></param>
+		/// 
+		public Scheduler()
+		{
+
+		}
 		public Scheduler(ServiceEnvironment environment)
 		{
-			WebServiceHost host = new WebServiceHost(typeof(ISchedulerDataService), new Uri("http://localhost:8000/"));
+			string configFileName = EdgeServicesConfiguration.DefaultFileName;
+			//if (args.Length > 0 && args[0].StartsWith("/") && args[0].Length > 1)
+			//{
+			//    configFileName = args[0].Substring(1);
+			//}
+			EdgeServicesConfiguration.Load(configFileName);
+			
+
+			WebServiceHost host = new WebServiceHost(this, new Uri("http://localhost:8000/"));
 
 			ServiceEndpoint ep = host.AddServiceEndpoint(typeof(ISchedulerDataService), new WebHttpBinding(), "");
 			ServiceDebugBehavior sdb = host.Description.Behaviors.Find<ServiceDebugBehavior>();
@@ -656,8 +670,8 @@ namespace Edge.Core.Services.Scheduling
 		#region wcf
 		public ServiceProfile[] GetSchedulingProfiles()
 		{
-			ServiceProfile[] profiles = new ServiceProfile[this.Profiles.Count];
-			this.Profiles.CopyTo(profiles, 0);
+			ServiceProfile[] profiles = new ServiceProfile[_profiles.Count];
+			this._profiles.CopyTo(profiles, 0);
 			return profiles;
 
 		}
@@ -717,7 +731,7 @@ namespace Edge.Core.Services.Scheduling
 	public interface ISchedulerDataService
 	{
 		[OperationContract]
-		[WebGet(UriTemplate = "/GetSchedulingProfiles")]
+		[WebGet(UriTemplate = "/GetSchedulingProfiles",RequestFormat=WebMessageFormat.Json,ResponseFormat=WebMessageFormat.Json)]
 		ServiceProfile[] GetSchedulingProfiles();
 	}
 
