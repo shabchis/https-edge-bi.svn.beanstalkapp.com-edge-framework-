@@ -5,15 +5,6 @@ using System.Text;
 
 namespace Edge.Core.Services
 {
-	/// <summary>
-	/// 
-	/// </summary>
-	internal enum ServiceUpdateType
-	{
-		State,
-		ChildInstance
-	}
-
 	public enum ServiceState
 	{
 		Uninitialized = 0,
@@ -61,8 +52,7 @@ namespace Edge.Core.Services
 		/// <summary>
 		/// Outcome that is set when a dead instance does not have an outcome.
 		/// </summary>
-		Killed = 9,
-		Reset
+		Killed = 9
 	}
 
 	[Serializable]
