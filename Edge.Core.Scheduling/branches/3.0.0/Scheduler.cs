@@ -11,10 +11,13 @@ using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using System.Security.Cryptography;
 using Edge.Core.Scheduling;
+using System.ServiceModel;
+using System.ServiceModel.Web;
+using System.ServiceModel.Description;
 
 namespace Edge.Core.Services.Scheduling
 {
-	public class Scheduler
+	public class Scheduler : ISchedulerDataService
 	{
 		#region members
 
@@ -76,7 +79,16 @@ namespace Edge.Core.Services.Scheduling
 		/// <param name="getServicesFromConfigFile"></param>
 		public Scheduler(ServiceEnvironment environment)
 		{
+			WebServiceHost host = new WebServiceHost(typeof(ISchedulerDataService), new Uri("http://localhost:8000/"));
+
+			ServiceEndpoint ep = host.AddServiceEndpoint(typeof(ISchedulerDataService), new WebHttpBinding(), "");
+			ServiceDebugBehavior sdb = host.Description.Behaviors.Find<ServiceDebugBehavior>();
+			sdb.HttpHelpPageEnabled = false;
+			host.Open();
+
+
 			Environment = environment;
+			environment.ServiceScheduleRequested += new EventHandler<ServiceInstanceEventArgs>(environment_ServiceScheduleRequested);
 
 			_percentile = int.Parse(AppSettings.Get(this, "Percentile"));
 			_neededScheduleTimeLine = TimeSpan.Parse(AppSettings.Get(this, "NeededScheduleTimeLine"));
@@ -87,6 +99,16 @@ namespace Edge.Core.Services.Scheduling
 
 			LoadServicesFromConfigurationFile();
 
+		}
+
+		void environment_ServiceScheduleRequested(object sender, ServiceInstanceEventArgs e)
+		{
+
+			if (e.ServiceInstance.ParentInstance == null)
+				this.AddChildServiceToSchedule(e.ServiceInstance);
+			else
+				this.AddRequestToSchedule(e.ServiceInstance);
+			
 		}
 
 		/// <summary>
@@ -631,6 +653,17 @@ namespace Edge.Core.Services.Scheduling
 
 		#endregion
 
+		#region wcf
+		public ServiceProfile[] GetSchedulingProfiles()
+		{
+			ServiceProfile[] profiles = new ServiceProfile[this.Profiles.Count];
+			this.Profiles.CopyTo(profiles, 0);
+			return profiles;
+
+		}
+		#endregion
+
+
 	}
 
 	#region eventargs classes
@@ -680,4 +713,12 @@ namespace Edge.Core.Services.Scheduling
 		}
 	}
 	#endregion
+	[ServiceContract]	
+	public interface ISchedulerDataService
+	{
+		[OperationContract]
+		[WebGet(UriTemplate = "/GetSchedulingProfiles")]
+		ServiceProfile[] GetSchedulingProfiles();
+	}
+
 }
