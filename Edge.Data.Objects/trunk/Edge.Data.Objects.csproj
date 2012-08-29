@@ -43,6 +43,9 @@
   <ItemGroup>
     <Compile Include="DummyMapper.cs" />
     <Compile Include="Objects\Base\EdgeObject.cs" />
+    <Compile Include="Objects\Currency.cs" />
+    <Compile Include="Objects\Measure.cs" />
+    <Compile Include="Objects\MetricsUnit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
