@@ -66,6 +66,7 @@
       <SubType>Content</SubType>
     </Content>
     <Content Include="Test Scripts\GetTableMembers.sql" />
+    <Content Include="Test Scripts\GetDataByAccountID.sql" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
