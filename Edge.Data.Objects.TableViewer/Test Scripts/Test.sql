@@ -1,8 +1,8 @@
 ﻿DECLARE	@return_value int
 
 EXEC	@return_value = [dbo].[GetDataByAccountID]
-		@accountID = 10035,
-		@dummyTableName = N'TextCreative',
+		@accountID = 95,
+		@virtualTableName = N'Color',
 		@deliveryOutputID = NULL,
 		@dateCreated = NULL
 

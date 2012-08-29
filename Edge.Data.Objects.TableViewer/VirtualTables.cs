@@ -104,6 +104,7 @@ public partial class StoredProcedures
 			col.Append(mapItem.Key);
 			col.Append("],");
 		}
+		if (type != null )
 		foreach (var mapItem in mapper.Mapping[type])
 		{
 			col.Append(dbtableName + ".[");
@@ -232,7 +233,8 @@ public partial class StoredProcedures
 		string metaPropertyBaseValueType = string.Empty;
 
 		metaPropertyID = 0;
-		string cmdTxt = "Select Distinct [ID], [BaseValueType] where AccountID = @accountID and Name = @metaPropertyName";
+		string cmdTxt = "Select [ID], [BaseValueType] from MetaProperty where AccountID = @accountID and Name = @metaPropertyName";
+			
 		SqlCommand cmd = new SqlCommand(cmdTxt);
 
 		SqlParameter sql_account = new SqlParameter("@accountID", accountID);
