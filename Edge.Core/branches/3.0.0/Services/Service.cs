@@ -34,6 +34,7 @@ namespace Edge.Core.Services
 
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
+		public SchedulingInfo SchedulingInfo { get; private set; }
 		public ServiceEnvironment Environment { get; private set; }
 		public ServiceInstance ParentInstance { get; private set; }
 		public double Progress { get { return _stateInfo.Progress; } protected set { _stateInfo.Progress = value; NotifyState(); } }
@@ -44,14 +45,15 @@ namespace Edge.Core.Services
 		public DateTime TimeEnded { get { return _stateInfo.TimeEnded; } }
 		
 
-		internal void Init(ServiceExecutionHost host, ServiceEnvironmentConfiguration envConfig, ServiceConfiguration config, Guid instanceID, Guid parentInstanceID)
+		internal void Init(ServiceExecutionHost host, ServiceEnvironmentConfiguration envConfig, ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID)
 		{
 			Host = host;
 			this.Environment = new ServiceEnvironment(envConfig);
 
 			this.InstanceID = instanceID;
 			this.Configuration = config;
-			//((ILockable)this.Configuration).Lock();
+			this.SchedulingInfo = schedulingInfo;
+
 			if (parentInstanceID != Guid.Empty)
 				this.ParentInstance = Environment.GetServiceInstance(parentInstanceID);
 			

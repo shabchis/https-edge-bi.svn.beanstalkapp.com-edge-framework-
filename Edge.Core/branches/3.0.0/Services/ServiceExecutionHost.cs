@@ -45,6 +45,7 @@ namespace Edge.Core.Services
 
 		public ServiceEnvironment Environment { get; private set; }
 		public string HostName { get; private set; }
+		public Guid HostGuid { get; private set; }
 
 		Dictionary<Guid, ServiceRuntimeInfo> _services = new Dictionary<Guid, ServiceRuntimeInfo>();
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
@@ -61,7 +62,7 @@ namespace Edge.Core.Services
 			ServiceExecutionPermission.All.Demand();
 
 			this.HostName = name;
-
+			this.HostGuid = Guid.NewGuid();
 			this.Environment = new ServiceEnvironment(environmentConfig);
 
 			this.WcfHost = new WcfHost(this.Environment, this);
@@ -73,7 +74,6 @@ namespace Edge.Core.Services
 				endpoint.Address = new EndpointAddress(new Uri(endpoint.Address.Uri.ToString().Replace("{hostName}", name)));
 				this.WcfHost.AddServiceEndpoint(endpoint);
 			}
-
 
 			this.Environment.RegisterHost(this);
 
@@ -138,7 +138,7 @@ namespace Edge.Core.Services
 			this.Environment.ScheduleService(instance);
 		}
 
-		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid)
+		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID, Guid connectionGuid)
 		{
 			if (String.IsNullOrEmpty(config.ServiceClass))
 				throw new ServiceException("ServiceConfiguration.ServiceClass cannot be empty.");
@@ -191,7 +191,7 @@ namespace Edge.Core.Services
 				};
 
 				// Give the service ref its properties
-				serviceRef.Init(this, this.Environment.EnvironmentConfiguration, config, instanceID, parentInstanceID);
+				serviceRef.Init(this, this.Environment.EnvironmentConfiguration, config, schedulingInfo, instanceID, parentInstanceID);
 			}
 		}
 
@@ -318,32 +318,6 @@ namespace Edge.Core.Services
 		#endregion
 	}
 
-	[ServiceContract(Name="ServiceExecutionHost", Namespace="http://www.edge.bi/contracts", SessionMode = SessionMode.Required, CallbackContract = typeof(IServiceConnection))]
-	internal interface IServiceExecutionHost
-	{
-		string HostName { get; }
-
-		[OperationContract(IsOneWay = true)]
-		void InitializeService(ServiceConfiguration config, Guid instanceID, Guid parentInstanceID, Guid connectionGuid);
-
-		[OperationContract(IsOneWay = true)]
-		void StartService(Guid instanceID);
-
-		[OperationContract(IsOneWay = true)]
-		void ResumeService(Guid instanceID);
-
-		[OperationContract(IsOneWay = true)]
-		void AbortService(Guid instanceID);
-
-		[OperationContract(IsOneWay = true)]
-		void NotifyState(Guid instanceID);
-
-		[OperationContract]
-		void Connect(Guid instanceID, Guid connectionGuid);
-
-		[OperationContract(IsOneWay = true)]
-		void Disconnect(Guid instanceID, Guid connectionGuid);
-	}
 
 
 }

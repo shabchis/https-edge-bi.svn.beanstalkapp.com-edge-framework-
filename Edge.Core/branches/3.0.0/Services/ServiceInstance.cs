@@ -154,6 +154,7 @@ namespace Edge.Core.Services
 			// Initialize
 			this.Connection.Host.Channel.InitializeService(
 				this.Configuration,
+				this.SchedulingInfo,
 				this.InstanceID,
 				this.ParentInstance != null ? this.ParentInstance.InstanceID : Guid.Empty,
 				this.Connection.Guid); 
