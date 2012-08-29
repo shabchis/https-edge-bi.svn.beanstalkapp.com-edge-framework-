@@ -85,6 +85,7 @@ namespace Edge.Core.Services.Scheduling
 		}
 		public Scheduler(ServiceEnvironment environment)
 		{
+			//Load services configurationfile
 			string configFileName = EdgeServicesConfiguration.DefaultFileName;
 			//if (args.Length > 0 && args[0].StartsWith("/") && args[0].Length > 1)
 			//{
@@ -92,12 +93,13 @@ namespace Edge.Core.Services.Scheduling
 			//}
 			EdgeServicesConfiguration.Load(configFileName);
 			
-
+			//wcf for the scheduler to get the profiles
 			WebServiceHost host = new WebServiceHost(this, new Uri("http://localhost:8000/"));
 
 			ServiceEndpoint ep = host.AddServiceEndpoint(typeof(ISchedulerDataService), new WebHttpBinding(), "");
 			ServiceDebugBehavior sdb = host.Description.Behaviors.Find<ServiceDebugBehavior>();
 			sdb.HttpHelpPageEnabled = false;
+			//todo: take care of exeptions, should it be here?
 			host.Open();
 
 
@@ -731,7 +733,7 @@ namespace Edge.Core.Services.Scheduling
 	public interface ISchedulerDataService
 	{
 		[OperationContract]
-		[WebGet(UriTemplate = "/GetSchedulingProfiles",RequestFormat=WebMessageFormat.Json,ResponseFormat=WebMessageFormat.Json)]
+		[WebGet(UriTemplate = "/Profiles",RequestFormat=WebMessageFormat.Json,ResponseFormat=WebMessageFormat.Json)]
 		ServiceProfile[] GetSchedulingProfiles();
 	}
 
