@@ -128,6 +128,11 @@ namespace Edge.Core.Services
 			*/
 		}
 
+		public void ResetUnendedServices()
+		{
+			throw new NotImplementedException();
+		}
+
 		
 	}
 
