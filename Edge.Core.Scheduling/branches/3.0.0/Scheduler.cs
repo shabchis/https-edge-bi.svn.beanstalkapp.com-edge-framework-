@@ -14,7 +14,7 @@ using Edge.Core.Scheduling;
 
 namespace Edge.Core.Services.Scheduling
 {
-	public class Scheduler : MarshalByRefObject
+	public class Scheduler
 	{
 		#region members
 
