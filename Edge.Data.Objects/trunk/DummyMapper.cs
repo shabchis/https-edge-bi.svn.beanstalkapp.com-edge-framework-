@@ -7,14 +7,16 @@ namespace Edge.Data.Objects
 {
 	public class DummyMapper
 	{
-		public static Dictionary<Type, Dictionary<string, string>> Mapping;
-		public static Dictionary<string, string> EdgeObject;
-		public static Dictionary<string, string> TextCreative;
-		public static Dictionary<string, string> ImageCreative;
-		public static Dictionary<string, string> PlacementTarget;
-		public static Dictionary<string, string> KeywordTarget;
-		public static Dictionary<string, string> GenderTarget;
-		public static Dictionary<string, string> AgeGroupTarget;
+		public Dictionary<Type, Dictionary<string, string>> Mapping;
+		private Dictionary<string, string> EdgeObject;
+		private Dictionary<string, string> TextCreative;
+		private Dictionary<string, string> ImageCreative;
+		private Dictionary<string, string> PlacementTarget;
+		private Dictionary<string, string> KeywordTarget;
+		private Dictionary<string, string> GenderTarget;
+		private Dictionary<string, string> AgeGroupTarget;
+		private Dictionary<string, string> Segment;
+		private Dictionary<string, string> Campaign;
 
 		public DummyMapper()
 		{
@@ -35,15 +37,26 @@ namespace Edge.Data.Objects
 				{"Text","string_Field1"},
 				{"Text2","string_Field2"}
 			};
-			Mapping.Add(typeof(Edge.Data.Objects.TextCreative), EdgeObject);
+			Mapping.Add(typeof(Edge.Data.Objects.TextCreative), TextCreative);
 
 			ImageCreative = new Dictionary<string, string>()
 			{
 				{"ImageUrl","string_Field1"},
 				{"ImageSize","string_Field2"}
 			};
-			Mapping.Add(typeof(Edge.Data.Objects.ImageCreative), EdgeObject);
-			
+			Mapping.Add(typeof(Edge.Data.Objects.ImageCreative), ImageCreative);
+
+			Campaign = new Dictionary<string, string>()
+			{
+				{"Budget","int_Field1"}
+			};
+			Mapping.Add(typeof(Edge.Data.Objects.Campaign), ImageCreative);
+
+			Segment = new Dictionary<string, string>()
+			{
+				{"MetaPropertyID","int_Field1"}
+			};
+			Mapping.Add(typeof(Edge.Data.Objects.Segment), ImageCreative);
 		}
 
 	}
