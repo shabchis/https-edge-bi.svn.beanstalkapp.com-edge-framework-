@@ -42,9 +42,10 @@ namespace Edge.Core.Services
 					{
 						var info = new ServiceExecutionHostInfo()
 						{
-							HostName = reader["HostName"] as string,
-							EndpointName = reader["EndpointName"] as string,
-							EndpointAddress = reader["EndpointAddress"] as string
+							HostName = (string) reader["HostName"],
+							HostGuid = (Guid) reader["HostGuid"],
+							EndpointName = (string)reader["EndpointName"],
+							EndpointAddress = (string)reader["EndpointAddress"]
 						};
 						_hosts.Add(info.HostName, info);
 					}
@@ -61,6 +62,7 @@ namespace Edge.Core.Services
 				var command = new SqlCommand(env.HostRegisterSP, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				command.Parameters.AddWithValue("@hostName", host.HostName);
+				command.Parameters.AddWithValue("@hostGuid", host.HostGuid.ToString("N"));
 				command.Parameters.AddWithValue("@endpointName", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == "Default").Name);
 				command.Parameters.AddWithValue("@endpointAddress", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == "Default").Address.ToString());
 				connection.Open();
@@ -139,6 +141,7 @@ namespace Edge.Core.Services
 	public class ServiceExecutionHostInfo
 	{
 		public string HostName;
+		public Guid HostGuid;
 		public string EndpointName;
 		public string EndpointAddress;
 	}
@@ -150,6 +153,7 @@ namespace Edge.Core.Services
 		public string HostListSP;
 		public string HostRegisterSP;
 		public string HostUnregisterSP;
+		public string InstanceSaveSP;
 	}
 
 	public class ServiceInstanceEventArgs : EventArgs

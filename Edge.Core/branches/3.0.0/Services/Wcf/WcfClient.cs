@@ -5,9 +5,9 @@ using System.ServiceModel.Description;
 
 namespace Edge.Core.Services
 {
-	internal class WcfDuplexClient<I> : DuplexClientBase<I> where I: class
+	internal class WcfClient<I> : DuplexClientBase<I> where I: class
 	{
-		public WcfDuplexClient(ServiceEnvironment environment, ServiceConnection connection, string endpointName, string endpointAddress)
+		public WcfClient(ServiceEnvironment environment, ServiceConnection connection, string endpointName, string endpointAddress)
 			: base(new InstanceContext(connection), endpointName, endpointAddress)
 		{
 			foreach (OperationDescription description in this.Endpoint.Contract.Operations)
