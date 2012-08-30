@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 
 namespace Edge.Data.Objects
 {
@@ -24,11 +25,13 @@ namespace Edge.Data.Objects
 
 			EdgeObject = new Dictionary<string, string>()
 			{
+				{"GK","GK"},
 				{"Name","Name"},
 				{"OriginalID","OriginalID"},
 				{"AccountID","AccountID"},
 				{"Status","Status"}
 			};
+
 			Mapping.Add(typeof(Edge.Data.Objects.EdgeObject), EdgeObject);
 
 			TextCreative = new Dictionary<string, string>()
@@ -50,14 +53,25 @@ namespace Edge.Data.Objects
 			{
 				{"Budget","int_Field1"}
 			};
-			Mapping.Add(typeof(Edge.Data.Objects.Campaign), ImageCreative);
+			Mapping.Add(typeof(Edge.Data.Objects.Campaign), Campaign);
 
 			Segment = new Dictionary<string, string>()
 			{
 				{"MetaPropertyID","int_Field1"}
 			};
-			Mapping.Add(typeof(Edge.Data.Objects.Segment), ImageCreative);
+			Mapping.Add(typeof(Edge.Data.Objects.Segment), Segment);
 		}
 
+		public string GetMap(Type type, string Name)
+		{
+			string map;
+			Mapping[type].TryGetValue(Name, out map);
+
+			if (string.IsNullOrEmpty(map))
+				map = EdgeObject[Name];
+
+			return map;
+
+		}
 	}
 }
