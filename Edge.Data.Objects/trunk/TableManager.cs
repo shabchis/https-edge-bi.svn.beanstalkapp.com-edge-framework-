@@ -7,62 +7,164 @@ using System.Reflection;
 
 namespace Edge.Data.Objects
 {
-	class TableManager
+	public class TableManager
 	{
-		Dictionary<string, object> objects;
-		Dictionary<string, Column> cols;
-		public List<string> GetColumnsList(MetricsUnit metricsUnit)
+
+		Dictionary<string, Column> cols = new Dictionary<string, Column>();
+		Dictionary<int, List<EdgeObject>> objects = new Dictionary<int, List<EdgeObject>>();
+		public List<Column> GetColumnsList(MetricsUnit metricsUnit)
 		{
-			List<string> columns = new List<string>();
-			GetAllColumns(metricsUnit);
-
-
-
-
-			return columns;
-
-		}
-		public void GetAllColumns(object obj)
-		{
-			if (obj.GetType().BaseType == typeof(MetricsUnit))
+			int pass = 0;
+			if (metricsUnit is AdMetricsUnit)
 			{
-
-				if (obj.GetType() == typeof(AdMetricsUnit))
+				AdMetricsUnit adMetricsUnit=(AdMetricsUnit)metricsUnit;
+				AddObjects(adMetricsUnit.Ad, pass);
+				AddObjects(adMetricsUnit.Ad.Creative,pass);
+			}
+			foreach (var target in metricsUnit.TargetDimensions)
+			{				
+				AddObjects(target, pass);
+			}
+			
+			
+			while (objects.ContainsKey(pass) && objects[pass]!=null && objects[pass].Count>0)
+			{
+				foreach (var obj in objects[pass])
 				{
-					//TODO:GET ALL OTHER PROPERTIS
-					GetAllColumns(((AdMetricsUnit)obj).Ad);
+					AddColumn(obj);
+					
 				}
-				else
-				{		
-					//TODO:GET ALL OTHER PROPERTIS
-					foreach (KeyValuePair<MetaProperty, object> propertyDimension in ((GenericMetricsUnit)obj).PropertyDimensions)
+				
+				foreach (var obj in objects[pass])
+				{
+					
+					foreach (var field in obj.GetType().GetFields())
 					{
-						GetAllColumns(propertyDimension);
+						if (field.FieldType.IsSubclassOf(typeof(EdgeObject)))
+						{
+							AddObjects((EdgeObject)field.GetValue(obj),pass+1);
+						}
+						
 					}
+					
 				}
-			}
-			else if (obj.GetType().BaseType == typeof(EdgeObject))
-			{
-				//TODO: ADD TYPE NAME AS COLUMN
-				foreach (FieldInfo field in obj.GetType().BaseType.GetFields()) //only edgeobject properties
-				{
-					GetAllColumns(field.GetValue(obj));					
-				}
-				foreach (FieldInfo field in obj.GetType().GetFields(BindingFlags.DeclaredOnly))
-				{										
-						GetAllColumns((EdgeObject)field.GetValue(obj));					
-				}
-			}
-			else
-			{
-				//ADD FIELD
+				pass++;
+				
 
 			}
+
+			
+
+
+			return cols.Values.ToList();
+
 
 		}
-		private void AddColumn(FieldInfo field)
+		private void AddColumn(object obj)
 		{
-			throw new NotImplementedException();
+			string typeName = obj.GetType().Name;
+
+			if (obj.GetType().IsSubclassOf(typeof(EdgeObject)))
+			{
+				switch (typeName)
+				{
+					case "Ad":
+						{
+							if (!cols.ContainsKey(typeName))
+								cols.Add(typeName, new Column() { Name = typeName });
+							break;
+						}
+					case "CompositeCreative":
+						{
+							CompositeCreative composite = (CompositeCreative)obj;
+							if (!cols.ContainsKey(typeName))
+								cols.Add(typeName, new Column() { Name = typeName });
+							var childCreatives = composite.ChildCreatives.OrderBy(p => p.Key);
+
+
+							foreach (var childCreative in childCreatives)
+							{
+								if (!cols.ContainsKey(childCreative.Key))
+									cols.Add(childCreative.Key, new Column() { Name = childCreative.Key });
+							}
+
+							break;
+						}
+					case "SingleCreative":
+						{
+							if (!cols.ContainsKey(typeName))
+							{
+								cols.Add("Creative", null);
+							}
+							break;
+						}
+					default:
+						{
+							if (obj is Target)
+							{
+								int i = 2;
+								string targetName = typeName;
+
+								while (cols.ContainsKey(targetName))
+								{
+									targetName = string.Format("{0}{1}", typeName, i);
+									i++;
+									
+								}
+								cols.Add(targetName, new Column() { Name = targetName });
+							}
+							break;
+						}
+				} 
+			}
 		}
+		private void AddObjects(EdgeObject obj, int pass)
+		{
+			if (!objects.ContainsKey(pass))
+				objects[pass] = new List<EdgeObject>();
+			objects[pass].Add(obj);
+			//foreach (FieldInfo field in obj.GetType().DeclaringType.GetFields())
+			//{
+			//    if (field.FieldType ==typeof(EdgeObject))
+			//        AddObjects((EdgeObject)field.GetValue(obj), pass);
+			//}
+
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+		
 	}
 }

@@ -21,7 +21,7 @@ namespace Edge.Data.Objects
 	public partial class MetaProperty
 	{
 		public int ID;
-		public string Name;
+		public string PropertyName;
 		public Account Account;
 		public Channel Channel;
 		public Type BaseValueType;
