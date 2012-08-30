@@ -25,13 +25,14 @@ public partial class StoredProcedures
 
 				foreach (Type type in typeof(Creative).Assembly.GetTypes())
 				{
-					if (type.IsSubclassOf(typeof(EdgeObject)) && !type.IsAbstract)
-					{
-						sb.Append(string.Format("SELECT '{0}' Union ",type.Name));
-					}
+					if (!type.Equals(typeof(Segment)))
+						if (type.IsSubclassOf(typeof(EdgeObject)) && !type.IsAbstract)
+						{
+							sb.Append(string.Format("SELECT '{0}' Union ", type.Name));
+						}
 				}
 				sb.Append("(SELECT distinct [Name] From MetaProperty where AccountID in(@accountID,-1))");
-				SqlCommand cmd =new SqlCommand(sb.ToString());
+				SqlCommand cmd = new SqlCommand(sb.ToString());
 				SqlParameter account = new SqlParameter("@accountID", accountID);
 
 				cmd.Parameters.Add(account);
@@ -104,16 +105,16 @@ public partial class StoredProcedures
 			col.Append(mapItem.Key);
 			col.Append("],");
 		}
-		if (type != null )
-		foreach (var mapItem in mapper.Mapping[type])
-		{
-			col.Append(dbtableName + ".[");
-			col.Append(mapItem.Value);
-			col.Append("] as ");
-			col.Append("[");
-			col.Append(mapItem.Key);
-			col.Append("],");
-		}
+		if (type != null)
+			foreach (var mapItem in mapper.Mapping[type])
+			{
+				col.Append(dbtableName + ".[");
+				col.Append(mapItem.Value);
+				col.Append("] as ");
+				col.Append("[");
+				col.Append(mapItem.Key);
+				col.Append("],");
+			}
 
 		col.Remove(col.Length - 1, 1);
 		//col.Append("[ObjectTracking_Table].[DeliveryOutputID]");
@@ -127,7 +128,7 @@ public partial class StoredProcedures
 		//col.Append(string.Format(" ON [ObjectTracking_Table].ObjectGK = {0}.GK", dbtableName));
 
 
-		
+
 
 		#region Where query string
 		/*****************************************************************/
@@ -145,7 +146,7 @@ public partial class StoredProcedures
 		{
 			baseValueType = GetMetaPropertyBaseValueType(virtualTableName.Value, accountID.IsNull == true ? SqlInt32.Null : accountID, out metaPropertyID);
 
-			if(string.IsNullOrEmpty(baseValueType))
+			if (string.IsNullOrEmpty(baseValueType))
 				return;
 
 			Type baseType = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, baseValueType, sqlAssembly));
@@ -167,7 +168,7 @@ public partial class StoredProcedures
 		if (!dateCreated.IsNull)
 			col.Append(" AND dateCreated = @dateCreated");
 
-		
+
 
 		/*****************************************************************/
 		#endregion
@@ -180,7 +181,7 @@ public partial class StoredProcedures
 		/*******************************************************************************/
 		SqlCommand cmd = new SqlCommand(col.ToString());
 
-		
+
 		SqlParameter sql_account;
 		SqlParameter sql_OutputID;
 		SqlParameter sql_dateCreated;
@@ -217,7 +218,7 @@ public partial class StoredProcedures
 			cmd.Parameters.Add(sql_dateCreated);
 		}
 
-	
+
 		/*******************************************************************************/
 		#endregion
 
@@ -241,7 +242,7 @@ public partial class StoredProcedures
 
 	}
 
-	
+
 
 	[Microsoft.SqlServer.Server.SqlProcedure]
 	public static void GetTableStructureByName(SqlString virtualTableName)
@@ -278,17 +279,58 @@ public partial class StoredProcedures
 		{
 			if (IsRelevant(member))
 			{
-				//Get Sql Name
-				
-				string sql_name = member.Name + "ID";
+				//Get Params and types
+				string sql_name = string.Empty;
+				string sql_type = string.Empty;
+				string dotNet_name = string.Empty;
+				string dotNet_type = string.Empty;
+				bool isEnum = false;
 
-				if (member.MemberType != MemberTypes.Constructor && member.MemberType != MemberTypes.Method)
-				    col.Append(string.Format(" Select '{0}', '{1}' Union ",
-				                                sql_name,
-				                                ((System.Reflection.MemberInfo)(((System.Reflection.FieldInfo)(member)).FieldType)).Name
-				                                
-				                            )
-				              );
+
+				if (((FieldInfo)(member)).FieldType.FullName.Contains(classNamespace))//Memeber is class member from Edge.Data.Object
+				{
+					//Getting Enum Types
+					if ((((FieldInfo)(member)).FieldType).BaseType == typeof(Enum))
+					{
+						sql_name = member.Name;
+						sql_type = tableStructure[mapper.GetMap(type, member.Name)];
+						dotNet_name = member.Name;
+						dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
+						isEnum = true;
+					}
+
+					//Getting Types that are not Enum 
+					if ((((FieldInfo)(member)).FieldType).BaseType != typeof(Enum))
+					{
+						sql_name = member.Name + "ID";
+						sql_type = tableStructure[sql_name];
+						dotNet_name = member.Name + ".ID";
+						dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
+					}
+				}
+
+				else
+				{
+					sql_name = mapper.GetMap(type, member.Name);
+					sql_type = tableStructure[sql_name];
+					dotNet_name = member.Name;
+					dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
+
+
+				}
+
+
+
+
+				//Creating sql select query
+				col.Append(string.Format(" Select '{0}', '{1}', '{2}', '{3}', '{4}' Union ",
+												sql_name,
+												sql_type,
+												dotNet_name,
+												dotNet_type,
+												isEnum
+											)
+							  );
 			}
 		}
 
@@ -322,14 +364,19 @@ public partial class StoredProcedures
 	private static bool IsRelevant(MemberInfo member)
 	{
 		if (member.Name.Equals("MetaProperties")) return false;
-		else return true;
+		else if (member.MemberType == MemberTypes.Constructor || member.MemberType == MemberTypes.Method
+				|| member.Name.Equals("MetaProperty")
+			)
+			return false;
+		else
+			return true;
 	}
 
 	private static Dictionary<string, string> GetTableStructure(Type type)
 	{
 		Dictionary<string, string> structure = new Dictionary<string, string>();
 		string dbtableName = string.Empty;
-		bool isMetaProperty = false; 
+		bool isMetaProperty = false;
 
 		if (type != null)
 		{
