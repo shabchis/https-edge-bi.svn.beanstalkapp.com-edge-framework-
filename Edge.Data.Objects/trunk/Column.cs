@@ -7,7 +7,7 @@ using System.Data;
 
 namespace Edge.Data.Objects
 {
-	class Column
+	public class Column
 	{
 		public string Name { get; set; }
 		public SqlDbType DbType { get; set; }
