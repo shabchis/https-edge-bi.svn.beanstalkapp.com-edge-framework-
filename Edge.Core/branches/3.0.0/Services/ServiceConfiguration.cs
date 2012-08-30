@@ -124,10 +124,10 @@ namespace Edge.Core.Services
 
 		public ServiceConfiguration Derive()
 		{
-			return this.Derive(null);
+			return this.Derive(this.ConfigurationLevel, null);
 		}
 
-		internal ServiceConfiguration Derive(object parent)
+		internal ServiceConfiguration Derive(ServiceConfigurationLevel newLevel, object parent)
 		{
 			if (this.ConfigurationLevel == ServiceConfigurationLevel.Instance)
 				throw new ServiceConfigurationException("Cannot derive from an instance configuration.");
@@ -178,6 +178,10 @@ namespace Edge.Core.Services
 					foreach (var param in profile.Parameters)
 						config.Parameters[param.Key] = param.Value;
 				}
+			}
+			else
+			{
+				config.ConfigurationLevel = newLevel;
 			}
 
 			// Get scheduling rules only if this one is empty
@@ -325,8 +329,8 @@ namespace Edge.Core.Services
 			this.BaseConfiguration = (ServiceConfiguration)info.GetValue("BaseConfiguration", typeof(ServiceConfiguration));
 			this.Profile = (ServiceProfile)info.GetValue("Profile", typeof(ServiceProfile));
 			this.Limits = (ServiceExecutionLimits)info.GetValue("Limits", typeof(ServiceExecutionLimits));
-			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
-			this.SchedulingRules = (IList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(IList<SchedulingRule>));
+			this.Parameters = (LockableDictionary<string, object>)info.GetValue("Parameters", typeof(LockableDictionary<string, object>));
+			this.SchedulingRules = (LockableList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(LockableList<SchedulingRule>));
 			
 			_assemblyPath = info.GetString("_assemblyPath");
 			_serviceType = info.GetString("_serviceType");
