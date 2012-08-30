@@ -99,7 +99,7 @@ namespace Edge.Data.Objects
 	{
 		public string DestinationUrl;
 		public Creative Creative;
-		public List<Target> Targets;
+		
 	}
 
 	public partial class LandingPage : EdgeObject
