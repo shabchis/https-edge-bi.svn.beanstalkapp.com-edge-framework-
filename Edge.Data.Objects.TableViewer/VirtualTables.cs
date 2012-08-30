@@ -28,7 +28,7 @@ public partial class StoredProcedures
 					if (!type.Equals(typeof(Segment)))
 						if (type.IsSubclassOf(typeof(EdgeObject)) && !type.IsAbstract)
 						{
-							sb.Append(string.Format("SELECT '{0}' Union ", type.Name));
+							sb.Append(string.Format("SELECT '{0} ' Union ", type.Name));
 						}
 				}
 				sb.Append("(SELECT distinct [Name] From MetaProperty where AccountID in(@accountID,-1))");
@@ -159,8 +159,9 @@ public partial class StoredProcedures
 
 		}
 
-		if (!accountID.IsNull)
-			col.Append(" AND AccountID = @accountID ");
+
+		col.Append(" AND AccountID in( @accountID ,-1) ");
+
 
 		if (!deliveryOutputID.IsNull)
 			col.Append(" AND deliveryOutputID = @deliveryOutputID");
@@ -200,11 +201,9 @@ public partial class StoredProcedures
 			cmd.Parameters.Add(sql_metaPropertyID);
 		}
 
-		if (!accountID.IsNull)
-		{
-			sql_account = new SqlParameter("@accountID", accountID);
-			cmd.Parameters.Add(sql_account);
-		}
+
+		sql_account = new SqlParameter("@accountID", accountID);
+		cmd.Parameters.Add(sql_account);
 
 		if (!deliveryOutputID.IsNull)
 		{
