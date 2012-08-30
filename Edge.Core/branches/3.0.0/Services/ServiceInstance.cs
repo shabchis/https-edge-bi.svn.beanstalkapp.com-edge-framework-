@@ -61,11 +61,18 @@ namespace Edge.Core.Services
 			this.InstanceID = Guid.NewGuid();
 			if (parentInstance != null)
 			{
-				this.Configuration = configuration.Derive(parentInstance.Configuration);
+				this.Configuration = configuration.Derive(ServiceConfigurationLevel.Instance, parentInstance.Configuration);
 				this.ParentInstance = parentInstance;
 			}
 			else
-				this.Configuration = configuration;
+			{
+				this.Configuration = configuration.Derive(ServiceConfigurationLevel.Instance, null);
+			}
+
+			if (String.IsNullOrEmpty(this.Configuration.HostName))
+				this.Configuration.HostName = Environment.EnvironmentConfiguration.DefaultHostName;
+
+			//((ILockable)this.Configuration).Lock();
 		}
 
 		public override string ToString()
@@ -275,7 +282,8 @@ namespace Edge.Core.Services
 				ParentInstance = serviceEngine.ParentInstance,
 				Environment = serviceEngine.Environment,
 				StateInfo = serviceEngine.StateInfo,
-				SchedulingInfo = serviceEngine.SchedulingInfo
+				SchedulingInfo = serviceEngine.SchedulingInfo,
+				Configuration = serviceEngine.Configuration
 			};
 
 			return instance;

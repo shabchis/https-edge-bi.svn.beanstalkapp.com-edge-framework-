@@ -55,6 +55,9 @@
     <Reference Include="log4net">
       <HintPath>..\..\..\..\thirdparty\log4net\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\thirdparty\Json.net\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Drawing" />

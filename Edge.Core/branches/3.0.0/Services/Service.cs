@@ -77,7 +77,7 @@ namespace Edge.Core.Services
 
 		void NotifyState()
 		{
-			Host.NotifyState(this.InstanceID, StateInfo);
+			Host.UpdateState(this.InstanceID, StateInfo);
 		}
 
 		protected void GenerateOutput(object output)
@@ -230,6 +230,7 @@ namespace Edge.Core.Services
 			}
 
 			// Change state to ended
+			StateInfo.TimeEnded = DateTime.Now;
 			StateInfo.State = ServiceState.Ended;
 			StateInfo.Outcome = outcome;
 			NotifyState();

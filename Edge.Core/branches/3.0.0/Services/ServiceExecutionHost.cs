@@ -24,15 +24,21 @@ namespace Edge.Core.Services
 		{
 			public readonly Guid InstanceID;
 			public readonly object ExecutionSync;
+			public readonly object DbSaveSync;
 			public Service ServiceRef;
 			public AppDomain AppDomain;
 			public Dictionary<Guid, IServiceConnection> Connections;
-			public ServiceStateInfo State;
+
+			public Guid ParentInstanceID;
+			public ServiceStateInfo? StateInfo;
+			public SchedulingInfo SchedulingInfo;
+			public ServiceConfiguration Configuration;
 
 			internal ServiceRuntimeInfo(Guid instanceID)
 			{
 				InstanceID = instanceID;
 				ExecutionSync = new object();
+				DbSaveSync = new object();
 				Connections = new Dictionary<Guid, IServiceConnection>();
 			}
 		}
@@ -57,13 +63,13 @@ namespace Edge.Core.Services
 		#region Methods
 		// ========================
 
-		public ServiceExecutionHost(string name, ServiceEnvironmentConfiguration environmentConfig)
+		public ServiceExecutionHost(string name, ServiceEnvironment environment)
 		{
 			ServiceExecutionPermission.All.Demand();
 
 			this.HostName = name;
 			this.HostGuid = Guid.NewGuid();
-			this.Environment = new ServiceEnvironment(environmentConfig);
+			this.Environment = environment;
 
 			this.WcfHost = new WcfHost(this.Environment, this);
 
@@ -146,11 +152,14 @@ namespace Edge.Core.Services
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
 			{
-				if (runtimeInfo.State.State != ServiceState.Uninitialized)
+				if (runtimeInfo.StateInfo != null && runtimeInfo.StateInfo.Value.State != ServiceState.Uninitialized)
 					throw new ServiceException("Service is already initialized.");
 
-				runtimeInfo.State = new ServiceStateInfo() { State = ServiceState.Initializing };
-				((IServiceExecutionHost)this).NotifyState(instanceID);
+				// Save init data for later
+				runtimeInfo.ParentInstanceID = parentInstanceID;
+				runtimeInfo.Configuration = config;
+				runtimeInfo.SchedulingInfo = schedulingInfo;
+				UpdateState(instanceID, new ServiceStateInfo() { State = ServiceState.Initializing });
 
 				// Load the app domain, and attach to its events
 				AppDomain domain = AppDomain.CreateDomain(
@@ -223,30 +232,41 @@ namespace Edge.Core.Services
 
 		void IServiceExecutionHost.NotifyState(Guid instanceID)
 		{
-			var runtimeInfo = Get(instanceID, false);
+			UpdateState(instanceID, null, false, false);
+		}
+
+		internal void UpdateState(Guid instanceID, ServiceStateInfo? stateInfo, bool save = true, bool throwEx = true)
+		{
+			var runtimeInfo = Get(instanceID, throwEx);
 			if (runtimeInfo == null)
+				return;
+
+			if (stateInfo != null)
+				runtimeInfo.StateInfo = stateInfo.Value;
+
+			if (runtimeInfo.StateInfo == null)
 				return;
 
 			lock (runtimeInfo.Connections)
 			{
 				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
-					connection.ReceiveState(runtimeInfo.State);
+					connection.ReceiveState(runtimeInfo.StateInfo.Value);
 			}
-		}
 
-		internal void NotifyState(Guid instanceID, ServiceStateInfo stateInfo)
-		{
-			var runtimeInfo = Get(instanceID, true);
-			lock (runtimeInfo)
-				runtimeInfo.State = stateInfo;
-
-			lock (runtimeInfo.Connections)
+			if (save)
 			{
-				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
-					connection.ReceiveState(stateInfo);
+				lock (runtimeInfo.DbSaveSync)
+				{
+					Environment.SaveServiceInstance(
+						this,
+						runtimeInfo.InstanceID,
+						runtimeInfo.ParentInstanceID,
+						runtimeInfo.Configuration,
+						runtimeInfo.StateInfo.Value,
+						runtimeInfo.SchedulingInfo
+					);
+				}
 			}
-
-			Environment.SaveServiceInstance(this, runtimeInfo.ServiceRef.AsServiceInstance());
 		}
 
 		internal void NotifyOutput(Guid instanceID, object output)

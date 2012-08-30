@@ -53,7 +53,7 @@ namespace Edge.Core.Services
 			if (configuration.ConfigurationLevel == ServiceConfigurationLevel.Profile && configuration.Profile != this)
 				throw new ServiceConfigurationException("Cannot derive from the configuration because it is associated with a different profile. Derive from configuration.TemplateConfiguration instead.");
 
-			return configuration.Derive(this);
+			return configuration.Derive(configuration.ConfigurationLevel, this);
 		}
 
 		#region Locking
@@ -83,8 +83,8 @@ namespace Edge.Core.Services
 		{
 			this.ProfileID = (Guid)info.GetValue("ID", typeof(Guid));
 			this.Name = info.GetString("Name");
-			this.Parameters = (IDictionary<string, object>)info.GetValue("Parameters", typeof(IDictionary<string, object>));
-			this.Services = (IList<ServiceConfiguration>)info.GetValue("Services", typeof(IList<ServiceConfiguration>));
+			this.Parameters = (LockableDictionary<string, object>)info.GetValue("Parameters", typeof(LockableDictionary<string, object>));
+			this.Services = (LockableList<ServiceConfiguration>)info.GetValue("Services", typeof(LockableList<ServiceConfiguration>));
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
 				((ILockable)this).Lock();

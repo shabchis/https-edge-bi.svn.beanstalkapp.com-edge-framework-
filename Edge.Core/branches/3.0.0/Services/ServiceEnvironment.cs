@@ -9,6 +9,8 @@ using Edge.Core.Utilities;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
+using Newtonsoft.Json;
+using System.Runtime.Serialization;
 
 namespace Edge.Core.Services
 {
@@ -37,7 +39,7 @@ namespace Edge.Core.Services
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				var command = new SqlCommand(env.HostListSP, connection);
+				var command = new SqlCommand(env.SP_HostList, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				connection.Open();
 				using (SqlDataReader reader = command.ExecuteReader())
@@ -46,10 +48,10 @@ namespace Edge.Core.Services
 					{
 						var info = new ServiceExecutionHostInfo()
 						{
-							HostName = (string) reader["HostName"],
-							HostGuid = (Guid) reader["HostGuid"],
-							EndpointName = (string)reader["EndpointName"],
-							EndpointAddress = (string)reader["EndpointAddress"]
+							HostName = SqlUtility.ClrValue<string>(reader["HostName"]),
+							HostGuid = SqlUtility.ClrValue<string, Guid>(reader["HostGuid"], rawGuid => Guid.Parse(rawGuid), Guid.Empty),
+							EndpointName = SqlUtility.ClrValue<string>(reader["EndpointName"]),
+							EndpointAddress = SqlUtility.ClrValue<string>(reader["EndpointAddress"])
 						};
 						_hosts.Add(info.HostName, info);
 					}
@@ -63,7 +65,7 @@ namespace Edge.Core.Services
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				// FUTURE: in the future save all endpoints to DB
-				var command = new SqlCommand(env.HostRegisterSP, connection);
+				var command = new SqlCommand(env.SP_HostRegister, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				command.Parameters.AddWithValue("@hostName", host.HostName);
 				command.Parameters.AddWithValue("@hostGuid", host.HostGuid.ToString("N"));
@@ -79,7 +81,7 @@ namespace Edge.Core.Services
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				var command = new SqlCommand(env.HostUnregisterSP, connection);
+				var command = new SqlCommand(env.SP_HostUnregister, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				command.Parameters.AddWithValue("@hostName", host.HostName);
 				connection.Open();
@@ -110,7 +112,7 @@ namespace Edge.Core.Services
 			return new ServiceInstance(configuration, this, parent);
 		}
 
-		
+
 		public ServiceInstance GetServiceInstance(Guid instanceID, string hostName = null)
 		{
 			throw new NotImplementedException();
@@ -136,50 +138,65 @@ namespace Edge.Core.Services
 
 		public void ResetUnendedServices()
 		{
-			throw new NotImplementedException();
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				var command = new SqlCommand(env.SP_HostUnregister, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				connection.Open();
+				command.ExecuteNonQuery();
+			}
 		}
 
 
-		internal void SaveServiceInstance(ServiceExecutionHost host, ServiceInstance instance)
+		internal void SaveServiceInstance(
+			ServiceExecutionHost host,
+			Guid instanceID,
+			Guid parentInstanceID,
+			ServiceConfiguration config,
+			ServiceStateInfo stateInfo,
+			SchedulingInfo schedulingInfo
+			)
 		{
 			// The first time we save write the configuration to XML. Otherwise ignore.
-			string configXml = null;
-			if (instance.State == ServiceState.Initializing)
+			string serializedConfig = null;
+			if (stateInfo.State == ServiceState.Initializing)
 			{
 				var stringWriter = new StringWriter();
 				using (var writer = new XmlTextWriter(stringWriter))
-					new XmlSerializer(instance.Configuration.GetType()).Serialize(writer, instance.Configuration);
-				configXml = stringWriter.ToString();
+					new NetDataContractSerializer().WriteObject(writer, config);
+				serializedConfig = stringWriter.ToString();
 			}
 
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				var command = new SqlCommand(env.InstanceSaveSP, connection);
+				var command = new SqlCommand(env.SP_InstanceSave, connection);
 				command.CommandType = CommandType.StoredProcedure;
-				command.Parameters.AddWithValue("@instanceID", instance.InstanceID);
-				command.Parameters.AddWithValue("@parentInstanceID", SqlUtility.NullIf(instance.ParentInstance, instance.ParentInstance.InstanceID));
-				command.Parameters.AddWithValue("@profileID", SqlUtility.NullIf(instance.Configuration.Profile, instance.Configuration.Profile.ProfileID));
+				command.Parameters.AddWithValue("@instanceID", instanceID.ToString("N"));
+				command.Parameters.AddWithValue("@parentInstanceID", SqlUtility.SqlValue(parentInstanceID, Guid.Empty, () => parentInstanceID.ToString("N")));
+				command.Parameters.AddWithValue("@profileID", SqlUtility.SqlValue(config.Profile, () => config.Profile.ProfileID.ToString("N")));
+				command.Parameters.AddWithValue("@serviceName", config.ServiceName);
 				command.Parameters.AddWithValue("@hostName", host.HostName);
-				command.Parameters.AddWithValue("@hostGuid", host.HostGuid);
-				command.Parameters.AddWithValue("@progress", instance.Progress);
-				command.Parameters.AddWithValue("@state", instance.State);
-				command.Parameters.AddWithValue("@outcome", instance.Outcome);
-				command.Parameters.AddWithValue("@timeInitialized", instance.TimeInitialized);
-				command.Parameters.AddWithValue("@timeStarted", instance.TimeStarted);
-				command.Parameters.AddWithValue("@timeEnded", instance.TimeEnded);
-				command.Parameters.AddWithValue("@timeLastPaused", instance.TimeLastPaused);
-				command.Parameters.AddWithValue("@timeLastResumed", instance.TimeLastResumed);
-				command.Parameters.AddWithValue("@resumeCount", instance.StateInfo.ResumeCount);
-				command.Parameters.AddWithValue("@configuration", configXml);
-				command.Parameters.AddWithValue("@Scheduling_Status", instance.SchedulingInfo.SchedulingStatus);
-				command.Parameters.AddWithValue("@Scheduling_Scope", instance.SchedulingInfo.SchedulingScope);
-				command.Parameters.AddWithValue("@Scheduling_MaxDeviationBefore", instance.SchedulingInfo.MaxDeviationBefore);
-				command.Parameters.AddWithValue("@Scheduling_MaxDeviationAfter", instance.SchedulingInfo.MaxDeviationAfter);
-				command.Parameters.AddWithValue("@Scheduling_RequestedTime", instance.SchedulingInfo.RequestedTime);
-				command.Parameters.AddWithValue("@Scheduling_ExpectedStartTime", instance.SchedulingInfo.ExpectedStartTime);
-				command.Parameters.AddWithValue("@Scheduling_ExpectedEndTime", instance.SchedulingInfo.ExpectedEndTime);
-				
+				command.Parameters.AddWithValue("@hostGuid", host.HostGuid.ToString("N"));
+				command.Parameters.AddWithValue("@progress", stateInfo.Progress);
+				command.Parameters.AddWithValue("@state", stateInfo.State);
+				command.Parameters.AddWithValue("@outcome", stateInfo.Outcome);
+				command.Parameters.AddWithValue("@timeInitialized", SqlUtility.SqlValue(stateInfo.TimeInitialized, DateTime.MinValue));
+				command.Parameters.AddWithValue("@timeStarted", SqlUtility.SqlValue(stateInfo.TimeStarted, DateTime.MinValue));
+				command.Parameters.AddWithValue("@timeEnded", SqlUtility.SqlValue(stateInfo.TimeEnded, DateTime.MinValue));
+				command.Parameters.AddWithValue("@timeLastPaused", SqlUtility.SqlValue(stateInfo.TimeLastPaused, DateTime.MinValue));
+				command.Parameters.AddWithValue("@timeLastResumed", SqlUtility.SqlValue(stateInfo.TimeLastResumed, DateTime.MinValue));
+				command.Parameters.AddWithValue("@resumeCount", stateInfo.ResumeCount);
+				command.Parameters.AddWithValue("@configuration", SqlUtility.SqlValue(serializedConfig));
+				command.Parameters.AddWithValue("@Scheduling_Status", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.SchedulingStatus));
+				command.Parameters.AddWithValue("@Scheduling_Scope", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.SchedulingScope));
+				command.Parameters.AddWithValue("@Scheduling_MaxDeviationBefore", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.MaxDeviationBefore));
+				command.Parameters.AddWithValue("@Scheduling_MaxDeviationAfter", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.MaxDeviationAfter));
+				command.Parameters.AddWithValue("@Scheduling_RequestedTime", SqlUtility.SqlValue(schedulingInfo, () => SqlUtility.SqlValue(schedulingInfo.RequestedTime, DateTime.MinValue)));
+				command.Parameters.AddWithValue("@Scheduling_ExpectedStartTime", SqlUtility.SqlValue(schedulingInfo, () => SqlUtility.SqlValue(schedulingInfo.ExpectedStartTime, DateTime.MinValue)));
+				command.Parameters.AddWithValue("@Scheduling_ExpectedEndTime", SqlUtility.SqlValue(schedulingInfo, () => SqlUtility.SqlValue(schedulingInfo.ExpectedEndTime, DateTime.MinValue)));
+
 				connection.Open();
 				command.ExecuteNonQuery();
 			}
@@ -195,13 +212,16 @@ namespace Edge.Core.Services
 	}
 
 	[Serializable]
-	public class ServiceEnvironmentConfiguration: Lockable
+	public class ServiceEnvironmentConfiguration : Lockable
 	{
 		public string ConnectionString;
-		public string HostListSP;
-		public string HostRegisterSP;
-		public string HostUnregisterSP;
-		public string InstanceSaveSP;
+		public string DefaultHostName;
+
+		public string SP_HostList;
+		public string SP_HostRegister;
+		public string SP_HostUnregister;
+		public string SP_InstanceSave;
+		public string SP_InstanceReset;
 	}
 
 	public class ServiceInstanceEventArgs : EventArgs

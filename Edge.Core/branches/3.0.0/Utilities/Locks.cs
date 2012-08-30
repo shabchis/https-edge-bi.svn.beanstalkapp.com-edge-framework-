@@ -491,6 +491,11 @@ namespace Edge.Core
 			return ((ICollection<KeyValuePair<TKey,TValue>>)_inner).Remove(item);
 		}
 
+		void Add(object item)
+		{
+			((ICollection<KeyValuePair<TKey, TValue>>)this).Add((KeyValuePair<TKey, TValue>)item);
+		}
+
 		//=================
 		#endregion
 
