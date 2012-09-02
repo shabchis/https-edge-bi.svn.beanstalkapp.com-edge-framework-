@@ -10,53 +10,63 @@ namespace Edge.Data.Objects
 	public class TableManager
 	{
 
-		Dictionary<string, Column> cols = new Dictionary<string, Column>();
-		Dictionary<int, List<EdgeObject>> objects = new Dictionary<int, List<EdgeObject>>();
+		Dictionary<string, Column> _cols = new Dictionary<string, Column>();
+		Dictionary<int, List<EdgeObject>> _objects = new Dictionary<int, List<EdgeObject>>();
 		public List<Column> GetColumnsList(MetricsUnit metricsUnit)
 		{
 			int pass = 0;
 			if (metricsUnit is AdMetricsUnit)
 			{
-				AdMetricsUnit adMetricsUnit=(AdMetricsUnit)metricsUnit;
+				AdMetricsUnit adMetricsUnit = (AdMetricsUnit)metricsUnit;
 				AddObjects(adMetricsUnit.Ad, pass);
-				AddObjects(adMetricsUnit.Ad.Creative,pass);
+				AddObjects(adMetricsUnit.Ad.Creative, pass);
 			}
 			foreach (var target in metricsUnit.TargetDimensions)
-			{				
+			{
 				AddObjects(target, pass);
 			}
-			
-			
-			while (objects.ContainsKey(pass) && objects[pass]!=null && objects[pass].Count>0)
+
+
+			while (_objects.ContainsKey(pass) && _objects[pass] != null && _objects[pass].Count > 0)
 			{
-				foreach (var obj in objects[pass])
+				foreach (var obj in _objects[pass])
 				{
 					AddColumn(obj);
-					
 				}
-				
-				foreach (var obj in objects[pass])
+
+				foreach (var obj in _objects[pass])
 				{
-					
 					foreach (var field in obj.GetType().GetFields())
 					{
 						if (field.FieldType.IsSubclassOf(typeof(EdgeObject)))
 						{
-							AddObjects((EdgeObject)field.GetValue(obj),pass+1);
+							AddObjects((EdgeObject)field.GetValue(obj), pass + 1);
 						}
-						
 					}
-					
 				}
 				pass++;
-				
-
 			}
 
-			
 
 
-			return cols.Values.ToList();
+			foreach (List<EdgeObject> edgeObjects in _objects.Values)
+			{
+				foreach (EdgeObject edgeObject in edgeObjects)
+				{
+					AddObjects(edgeObject);
+				}
+			}
+
+			if (metricsUnit.MeasureValues != null)
+			{
+				foreach (KeyValuePair<Measure, double> measure in metricsUnit.MeasureValues)
+				{
+					AddColumn(measure);
+				}
+			}
+
+
+			return _cols.Values.ToList();
 
 
 		}
@@ -70,31 +80,37 @@ namespace Edge.Data.Objects
 				{
 					case "Ad":
 						{
-							if (!cols.ContainsKey(typeName))
-								cols.Add(typeName, new Column() { Name = typeName });
+							Ad ad = (Ad)obj;
+							if (!_cols.ContainsKey(typeName))
+							{
+
+								_cols.Add(typeName, new Column() { Name = typeName, Value = ad.GK });
+							}
 							break;
 						}
 					case "CompositeCreative":
 						{
 							CompositeCreative composite = (CompositeCreative)obj;
-							if (!cols.ContainsKey(typeName))
-								cols.Add(typeName, new Column() { Name = typeName });
+							if (!_cols.ContainsKey(typeName))
+								_cols.Add(typeName, new Column() { Name = typeName });
 							var childCreatives = composite.ChildCreatives.OrderBy(p => p.Key);
 
 
 							foreach (var childCreative in childCreatives)
 							{
-								if (!cols.ContainsKey(childCreative.Key))
-									cols.Add(childCreative.Key, new Column() { Name = childCreative.Key });
+								if (!_cols.ContainsKey(childCreative.Key))
+									_cols.Add(childCreative.Key, new Column() { Name = childCreative.Key, Value = childCreative.Value.GK });
+
 							}
 
 							break;
 						}
 					case "SingleCreative":
 						{
-							if (!cols.ContainsKey(typeName))
+							if (!_cols.ContainsKey(typeName))
 							{
-								cols.Add("Creative", null);
+								Creative creative = (Creative)obj;
+								_cols.Add("Creative", new Column() { Name = "Creative", Value = creative.GK });
 							}
 							break;
 						}
@@ -104,30 +120,72 @@ namespace Edge.Data.Objects
 							{
 								int i = 2;
 								string targetName = typeName;
-
-								while (cols.ContainsKey(targetName))
+								while (_cols.ContainsKey(targetName))
 								{
 									targetName = string.Format("{0}{1}", typeName, i);
 									i++;
-									
 								}
-								cols.Add(targetName, new Column() { Name = targetName });
+								Target target = (Target)obj;
+								_cols.Add(targetName, new Column() { Name = targetName, Value = target.GK });
 							}
 							break;
 						}
-				} 
+				}
 			}
+			else
+			{
+				Type t = obj.GetType();
+
+				if (t==typeof(KeyValuePair<MetaProperty, object>))
+				{
+					KeyValuePair<MetaProperty, object> metaProperty = (KeyValuePair<MetaProperty, object>)obj;
+					if (!_cols.ContainsKey(metaProperty.Key.PropertyName))
+					{
+						_cols.Add(metaProperty.Key.PropertyName, new Column() { Name = metaProperty.Key.PropertyName });
+					}
+
+				}
+				else if (t==typeof( KeyValuePair<Measure, double>))
+				{
+					KeyValuePair<Measure, double> measure = (KeyValuePair<Measure, double>)obj;
+					if (!_cols.ContainsKey(measure.Key.Name))
+					{
+						_cols.Add(measure.Key.Name, new Column() { Name = measure.Key.Name, Value = measure.Value });
+					}
+
+				}
+			}
+		}
+		private void AddObjects(EdgeObject obj)
+		{
+
+			List<EdgeObject> edgeObjetcs = new List<EdgeObject>();
+			if (obj.MetaProperties != null)
+			{
+				foreach (KeyValuePair<MetaProperty, object> metaProperty in obj.MetaProperties)
+				{
+					if (metaProperty.Value.GetType() != typeof(EdgeObject))
+					{
+						AddColumn(metaProperty);
+					}
+					else
+					{
+						edgeObjetcs.Add((EdgeObject)metaProperty.Value);
+					}
+				}
+				foreach (EdgeObject edgeObject in edgeObjetcs)
+				{
+					AddColumn(edgeObject);
+				}
+			}
+
 		}
 		private void AddObjects(EdgeObject obj, int pass)
 		{
-			if (!objects.ContainsKey(pass))
-				objects[pass] = new List<EdgeObject>();
-			objects[pass].Add(obj);
-			//foreach (FieldInfo field in obj.GetType().DeclaringType.GetFields())
-			//{
-			//    if (field.FieldType ==typeof(EdgeObject))
-			//        AddObjects((EdgeObject)field.GetValue(obj), pass);
-			//}
+			if (!_objects.ContainsKey(pass))
+				_objects[pass] = new List<EdgeObject>();
+			_objects[pass].Add(obj);
+
 
 		}
 
@@ -164,7 +222,7 @@ namespace Edge.Data.Objects
 
 
 
-	
-		
+
+
 	}
 }
