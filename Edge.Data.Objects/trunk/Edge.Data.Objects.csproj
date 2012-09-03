@@ -31,6 +31,12 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Edge.Data.Objects.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -47,6 +53,7 @@
     <Compile Include="Objects\Measure.cs" />
     <Compile Include="Objects\MetricsUnit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="TableManager.cs" />
   </ItemGroup>
