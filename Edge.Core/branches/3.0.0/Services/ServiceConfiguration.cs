@@ -316,9 +316,13 @@ namespace Edge.Core.Services
 			{
 				val = convertFunction(raw);
 			}
-			else if (!emptyIsError && raw == null)
+			else if (raw == null && (!Object.Equals(defaultValue,default(T)) || !emptyIsError))
 			{
 				val = defaultValue;
+			}
+			else if (raw is T)
+			{
+				val = (T)raw;
 			}
 			else
 			{
