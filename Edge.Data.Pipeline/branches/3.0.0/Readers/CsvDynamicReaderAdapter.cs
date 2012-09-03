@@ -16,8 +16,8 @@ namespace Edge.Data.Pipeline
 
 		public override void Init(Stream stream, ServiceConfiguration configuration)
 		{
-			_requiredColumns = configuration.GetParameter<string>("CsvRequiredColumns").Split();
-			_delimeter = configuration.GetParameter<string>("CsvDelimeter", defaultValue: ",");
+			_requiredColumns = configuration.Parameters.GetParameter<string>("CsvRequiredColumns").Split();
+			_delimeter = configuration.Parameters.GetParameter<string>("CsvDelimeter", defaultValue: ",");
 
 			char delimeterCode ;
 
@@ -31,7 +31,7 @@ namespace Edge.Data.Pipeline
 					break;
 			}
 
-			string encoding = configuration.GetParameter<string>("CsvEncoding", emptyIsError: false);
+			string encoding = configuration.Parameters.GetParameter<string>("CsvEncoding", emptyIsError: false);
 			if (!String.IsNullOrEmpty(encoding))
 				_encoding = Encoding.GetEncoding(encoding);
 

@@ -30,7 +30,7 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override sealed Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			string failureLevelRaw =(string) this.Configuration.GetParameter(Const.ConfigurationOptions.FailureLevel,true);
+			string failureLevelRaw =(string) this.Configuration.Parameters.GetParameter(Const.ConfigurationOptions.FailureLevel,true);
 			ValidationResultType failureLevel = ValidationResultType.Error;
 			if (failureLevelRaw != null)
 				Enum.TryParse<ValidationResultType>(failureLevelRaw, out failureLevel);

@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Services
 		protected override Core.Services.ServiceOutcome DoWork()
 		{
 			// Instead of
-			string fileConflictBehavior = this.Configuration.GetParameter<string>("FileConflictBehavior", emptyIsError: false, defaultValue: "Abort");
+			string fileConflictBehavior = this.Configuration.Parameters.GetParameter<string>("FileConflictBehavior", emptyIsError: false, defaultValue: "Abort");
 
 			//string fileConflictBehavior = "Abort";
 			//if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
@@ -28,24 +28,24 @@ namespace Edge.Data.Pipeline.Services
 			#region FTP Configuration
 			/*===============================================================================================*/
 			
-			string FtpServer = this.Configuration.GetParameter("FtpServer").ToString();
+			string FtpServer = this.Configuration.Parameters.GetParameter("FtpServer").ToString();
 
 
 			
-			string[] AllowedExtensions = this.Configuration.GetParameter("AllowedExtensions").ToString().Split('|');
+			string[] AllowedExtensions = this.Configuration.Parameters.GetParameter("AllowedExtensions").ToString().Split('|');
 
 		
-			bool UsePassive =this.Configuration.GetParameter<bool>("UsePassive");
+			bool UsePassive =this.Configuration.Parameters.GetParameter<bool>("UsePassive");
 
 			
-			bool UseBinary = this.Configuration.GetParameter<bool>("UseBinary");
+			bool UseBinary = this.Configuration.Parameters.GetParameter<bool>("UseBinary");
 
 		
-			string UserId = this.Configuration.GetParameter("UserID").ToString();
+			string UserId = this.Configuration.Parameters.GetParameter("UserID").ToString();
 
 
 			
-			string Password = Core.Utilities.Encryptor.Dec(this.Configuration.GetParameter("Password").ToString());
+			string Password = Core.Utilities.Encryptor.Dec(this.Configuration.Parameters.GetParameter("Password").ToString());
 			/*===============================================================================================*/
 			#endregion
 			FtpWebRequest request;
@@ -87,7 +87,7 @@ namespace Edge.Data.Pipeline.Services
 							this.Configuration.Parameters["DeliveryFileName"] = fileInfo["Name"];
 							this.Configuration.Parameters["FileModifyDate"] = fileInfo["ModifyDate"];
 							
-							s.AddToSchedule(this.Configuration.GetParameter("FtpService").ToString(), this.Configuration.Profile.Parameters["AccountID"], this.TimeScheduled, this.Configuration.Parameters);
+							s.AddToSchedule(this.Configuration.Parameters.GetParameter("FtpService").ToString(), this.Configuration.Profile.Parameters["AccountID"], this.TimeScheduled, this.Configuration.Parameters);
 						}
 
 					}

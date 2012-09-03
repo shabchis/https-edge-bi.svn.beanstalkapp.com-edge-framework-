@@ -17,7 +17,7 @@ namespace Edge.Data.Pipeline
 
 		public override void Init(Stream stream, ServiceConfiguration configuration)
 		{
-			_xpath = configuration.GetParameter<string>("XPath");
+			_xpath = configuration.Parameters.GetParameter<string>("XPath");
 			base.Reader = new XmlDynamicReader(stream, _xpath);
 		}
 
