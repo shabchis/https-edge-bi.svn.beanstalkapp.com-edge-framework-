@@ -155,7 +155,7 @@ namespace Edge.Data.Pipeline
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
 										TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
 										TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
-										PipelineInstanceID = reader.Get<long>("PipelineInstanceID")
+										PipelineInstanceID = reader.Get<Guid>("PipelineInstanceID")
 									};
 									delivery.Outputs.Add(deliveryOutput);
 								}
@@ -860,13 +860,9 @@ namespace Edge.Data.Pipeline
 			{
 				if (_ignoreJsonErrors == null || !_ignoreJsonErrors.HasValue)
 				{
-					string ignore;
-					if (Service.Current != null && Service.Current.Instance.Configuration.Options.TryGetValue("IgnoreDeliveryJsonErrors", out ignore))
-					{
-						bool val = false;
-						Boolean.TryParse(ignore, out val);
-						_ignoreJsonErrors = val;
-					}
+					
+					if (Service.Current != null && Service.Current.Configuration.Parameters.Get<bool>("IgnoreDeliveryJsonErrors", false))
+						_ignoreJsonErrors = true;
 					else
 						_ignoreJsonErrors = false;
 				}
@@ -972,7 +968,7 @@ namespace Edge.Data.Pipeline
 								Status = reader.Get<DeliveryOutputStatus>("Status"),
 								TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
 								TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
-								PipelineInstanceID = reader.Get<long?>("PipelineInstanceID")
+								PipelineInstanceID = reader.Get<Guid?>("PipelineInstanceID")
 							};
 
 							output.Account.OriginalID = reader.Get<string>("AccountOriginalID");
@@ -1020,39 +1016,9 @@ namespace Edge.Data.Pipeline
 
 					}
 				}
-
-
-
-//                
-				
-
-				
 			}
 			return output;
 
-
-		}
-
-		internal static bool GetRuning(long parentInstanceID)
-		{
-			bool runing = false;
-			using (var client = DeliveryDBClient.Connect())
-			{
-				// Select deliveries that match a signature but none of the guids in 'exclude'
-				using (SqlCommand cmd = SqlUtility.CreateCommand(@"SELECT InstanceID
-																	FROM ServiceInstance 
-																	WHERE State!= 6 AND State!= 7 AND InstanceID=@instanceid:Bigint", System.Data.CommandType.Text))
-				{
-					cmd.Connection = client;
-					cmd.Parameters["@instanceid"].Value = parentInstanceID;
-					using (SqlDataReader reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-							runing = true;
-					}
-				}
-			}
-			return runing;
 
 		}
 	}

@@ -287,7 +287,7 @@ namespace Edge.Core.Services
 		//======================
 
 		
-		protected void Log(LogMessage message)
+		public void Log(LogMessage message)
 		{
 			if (message.Source != null)
 				throw new InvalidOperationException("The LogMessage.Source property must be null.");
@@ -297,7 +297,7 @@ namespace Edge.Core.Services
 			this.Host.Log(this.InstanceID, message);
 		}
 
-		protected void Log(string message, Exception ex, LogMessageType messageType = LogMessageType.Error)
+		public void Log(string message, Exception ex, LogMessageType messageType = LogMessageType.Error)
 		{
 			this.Log(new LogMessage()
 			{
@@ -307,7 +307,7 @@ namespace Edge.Core.Services
 			});
 		}
 
-		protected void Log(string message, LogMessageType messageType)
+		public void Log(string message, LogMessageType messageType)
 		{
 			this.Log(new LogMessage()
 			{

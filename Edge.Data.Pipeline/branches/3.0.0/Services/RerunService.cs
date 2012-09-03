@@ -12,18 +12,16 @@ using System.Configuration;
 
 namespace Edge.Data.Pipeline.Services
 {
-	class RerunService : PipelineService
+	public class RerunService : PipelineService
 	{
 
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			string serviceName = Configuration.Parameters.GetParameter("ServiceToRun").ToString();
+			string serviceName = this.Configuration.Parameters.Get<string>("ServiceToRun");
 
 
 			DateTime fromDate = this.Configuration.TimePeriod.Value.Start.ToDateTime();
 			DateTime toDate = this.Configuration.TimePeriod.Value.End.ToDateTime();
-
-
 
 			while (fromDate <= toDate)
 			{
@@ -44,23 +42,16 @@ namespace Edge.Data.Pipeline.Services
 					}
 				};
 
-				//SettingsCollection options = new SettingsCollection();
-				//options.Add(PipelineService.ConfigurationOptionNames.TimePeriod, subRange.ToAbsolute().ToString());
-				//options.Add(PipelineService.ConfigurationOptionNames.ConflictBehavior, DeliveryConflictBehavior.Ignore.ToString());
-				//foreach (var option in this.Configuration.Parameters)
-				//{
-				//    if (!options.ContainsKey(option.Key))
-				//        options.Add(option.Key, option.Value);
+				var configuration = new PipelineServiceConfiguration()
+				{
+					TimePeriod = subRange.ToAbsolute(),
+					ConflictBehavior = DeliveryConflictBehavior.Ignore
+				};
 
-				//}
-				////run the service
-				//scheduleManager.Service.AddToSchedule(serviceName, this.Configuration.Profile.Parameters["AccountID"], DateTime.Now, options);
+				foreach (var param in this.Configuration.Parameters)
+					configuration.Parameters[param.Key] = param.Value;
 
-				var configuration = new PipelineServiceConfiguration();
-				configuration.TimePeriod = subRange.ToAbsolute();
-				configuration.ConflictBehavior = DeliveryConflictBehavior.Ignore;
-				foreach(var param in this.Configuration.Parameters)
-					if (!configuration
+				this.Environment.ScheduleServiceByName(serviceName, this.Configuration.Profile.ProfileID, configuration);
 
 				fromDate = fromDate.AddDays(1);
 			}

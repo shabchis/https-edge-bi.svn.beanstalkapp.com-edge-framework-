@@ -123,6 +123,18 @@ namespace Edge.Core.Services
 			this.SchedulingRules = new LockableList<SchedulingRule>();
 		}
 
+		public ServiceConfiguration Merge(ServiceConfiguration configuration)
+		{
+			ServiceConfiguration newConfig = this.Derive();
+			CopyConfigurationData(configuration, newConfig);
+			
+			// Merge parameters
+			foreach (var param in configuration.Parameters)
+				newConfig.Parameters[param.Key] = param.Value;
+
+			return newConfig;
+		}
+
 		public ServiceConfiguration Derive()
 		{
 			return this.Derive(this.ConfigurationLevel, null);
@@ -147,7 +159,7 @@ namespace Edge.Core.Services
 			config._hostName = this._hostName;
 			this.Limits.CopyTo(config.Limits);
 
-			OnDerive(config);
+			CopyConfigurationData(this, config);
 			
 			// Merge parameters
 			foreach (var param in this.Parameters)
@@ -193,19 +205,16 @@ namespace Edge.Core.Services
 			ServiceConfiguration parentInstanceConfig = parent as ServiceConfiguration;
 			if (parentInstanceConfig != null)
 			{
-				if (parentInstanceConfig.ConfigurationLevel == ServiceConfigurationLevel.Instance)
-				{
-					// Ignore parameters that are already in the config
-					foreach (var param in parentInstanceConfig.Parameters)
-						if (!config.Parameters.ContainsKey(param.Key))
-							config.Parameters[param.Key] = param.Value;
-				}
+				// Ignore parameters that are already in the config
+				foreach (var param in parentInstanceConfig.Parameters)
+					if (!config.Parameters.ContainsKey(param.Key))
+						config.Parameters[param.Key] = param.Value;
 			}
 
 			return config;
 		}
 
-		protected virtual void OnDerive(ServiceConfiguration newConfig)
+		protected virtual void CopyConfigurationData(ServiceConfiguration sourceConfig, ServiceConfiguration targetConfig)
 		{
 		}
 

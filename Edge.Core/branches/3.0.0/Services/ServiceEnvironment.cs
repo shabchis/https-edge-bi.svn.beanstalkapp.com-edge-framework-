@@ -113,12 +113,12 @@ namespace Edge.Core.Services
 		}
 
 
-		public ServiceInstance GetServiceInstance(Guid instanceID, string hostName = null)
+		public ServiceInstance GetServiceInstance(Guid instanceID, bool stateInfoOnly = false)
 		{
 			throw new NotImplementedException();
 		}
 
-		public void ScheduleService(ServiceInstance instance)
+		public void ScheduleServiceInstance(ServiceInstance instance)
 		{
 			throw new NotImplementedException();
 			/*

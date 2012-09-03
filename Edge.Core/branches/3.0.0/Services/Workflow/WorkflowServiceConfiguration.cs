@@ -40,12 +40,13 @@ namespace Edge.Core.Services.Workflow
 			yield return this.Workflow;
 		}
 
-		protected override void OnDerive(ServiceConfiguration newConfig)
+		protected override void CopyConfigurationData(ServiceConfiguration sourceConfig, ServiceConfiguration targetConfig)
 		{
-			base.OnDerive(newConfig);
+			base.CopyConfigurationData(sourceConfig, targetConfig);
 
-			var copiedWorkflow = (WorkflowServiceConfiguration)newConfig;
-			copiedWorkflow._workflow = this._workflow;
+			var sourceWorkflow = (WorkflowServiceConfiguration)sourceConfig;
+			var targetWorkflow = (WorkflowServiceConfiguration)targetConfig;
+			targetWorkflow._workflow = sourceWorkflow._workflow;
 			
 		}
 	}

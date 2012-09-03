@@ -16,71 +16,45 @@ namespace Edge.Data.Pipeline.Services
 		{
 			if (this.Delivery == null)
 			{
+				int accountID = this.Configuration.Parameters.Get<int>("AccountID", emptyIsError: false, defaultValue: -1);
+				int channelID = this.Configuration.Parameters.Get<int>("ChannelID", emptyIsError: false, defaultValue: -1);
+
 				this.Delivery = NewDelivery();
 				this.Delivery.TimePeriodDefinition = this.Configuration.TimePeriod.Value;
-				this.Delivery.Account = (int)this.Configuration.Profile.Parameters["AccountID"] != -1 ? new Account() { ID == (int)this.Configuration.Profile.Parameters["AccountID"] } : null; // no account means there is no permission validation
-				this.Delivery.FileDirectory = this.Configuration.Parameters.GetParameter(Const.DeliveryServiceConfigurationOptions.FileDirectory).ToString();
-
-				int channelID = this.Configuration.Parameters.GetParameter<int>("ChannelID", emptyIsError: false, defaultValue: -1);
+				this.Delivery.Account = accountID != -1 ? new Account() { ID = accountID } : null;
+				this.Delivery.FileDirectory = this.Configuration.Parameters.Get<string>(Const.DeliveryServiceConfigurationOptions.FileDirectory);
+				
 				if (channelID != -1)
-					this.Delivery.Channel = new Channel()
-					{
-						ID = channelID
-					};
+					this.Delivery.Channel = new Channel() { ID = channelID };
 			}
-			WebRequest request = FileWebRequest.Create(this.Configuration.Parameters.GetParameter("SourceUrl",false).ToString());
 
-			/* FTP */
-			if (request.GetType().Equals(typeof(FtpWebRequest)))
+			DeliveryFile deliveryFile = new DeliveryFile()
 			{
-				/*------------------------------------------------------------------------------------------*/
-				#region FTP Configuration
-				/*===============================================================================================*/
+				Name = this.Configuration.Parameters.Get<string>(Const.DeliveryServiceConfigurationOptions.DeliveryFileName, false) ?? "File",
+				SourceUrl = this.Configuration.Parameters.Get<string>(Const.DeliveryServiceConfigurationOptions.SourceUrl, false)
+			};
 
-				
-				this.Delivery.Parameters.Add("UsePassive", this.Configuration.Parameters.GetParameter<bool>("UsePassive",true));
+			this.Delivery.Files.Add(deliveryFile);
 
-
-
-				this.Delivery.Parameters.Add("UseBinary", this.Configuration.Parameters.GetParameter<bool>("UseBinary"));
-
-				//Get Permissions
-				
-				string UserId = this.Configuration.Parameters.GetParameter("UserID").ToString();
-
-
-				
-				string Password = Core.Utilities.Encryptor.Dec(this.Configuration.Parameters.GetParameter("Password").ToString());
-				/*===============================================================================================*/
-				#endregion
-
-
-				this.Delivery.Files.Add(new Data.Pipeline.DeliveryFile()
-				{
-					Name = this.Configuration.Parameters.GetParameter("DeliveryFileName").ToString(),
-					SourceUrl = this.Configuration.Parameters.GetParameter(Const.DeliveryServiceConfigurationOptions.SourceUrl).ToString(),
-				});
-
-				var fileSignature = string.Format("{0}-{1}-{2}", this.Configuration.Parameters.GetParameter("DeliveryFileName"),
-											this.Configuration.Parameters.GetParameter("FileModifyDate"),
-											this.Configuration.Parameters.GetParameter("FileSize"));
-
-				this.Delivery.Files[this.Configuration.Parameters.GetParameter("DeliveryFileName").ToString()].Parameters.Add("Size", this.Configuration.Parameters.GetParameter("Size"));
-				this.Delivery.Parameters["SourceUrl"] = this.Configuration.Parameters.GetParameter("SourceUrl").ToString();
-				this.Delivery.Parameters["UserID"] = UserId;
-				this.Delivery.Parameters["Password"] = Password;
-				this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Configuration.Parameters.GetParameter("DirectoryWatcherLocation",false);
-				this.Delivery.Files[this.Configuration.Parameters.GetParameter("DeliveryFileName",false).ToString()].FileSignature = fileSignature;
-			}
-			else
+			
+			WebRequest request = FileWebRequest.Create(this.Configuration.Parameters.Get<string>("SourceUrl"));
+			if (request is FtpWebRequest)
 			{
-				this.Delivery.Files.Add(new DeliveryFile()
-				{
-					Name = this.Configuration.Parameters.GetParameter(Const.DeliveryServiceConfigurationOptions.DeliveryFileName,false).ToString() ?? "File",
-					SourceUrl = this.Configuration.Parameters.GetParameter(Const.DeliveryServiceConfigurationOptions.SourceUrl,false).ToString()
-				});
-			}
+				// FTP Configuration
+				this.Delivery.Parameters["UsePassive"] = this.Configuration.Parameters.Get<bool>("UsePassive", emptyIsError: false, defaultValue: true);
+				this.Delivery.Parameters["UseBinary"] = this.Configuration.Parameters.Get<bool>("UseBinary");
+				this.Delivery.Parameters["SourceUrl"] = this.Configuration.Parameters.Get<string>("SourceUrl");
+				this.Delivery.Parameters["UserID"] = this.Configuration.Parameters.Get<string>("UserID");
+				this.Delivery.Parameters["Password"] = Core.Utilities.Encryptor.Dec(this.Configuration.Parameters.Get<string>("Password"));
+				this.Delivery.Parameters["DirectoryWatcherLocation"] = this.Configuration.Parameters.Get<string>("DirectoryWatcherLocation", false);
 
+				
+				deliveryFile.FileSignature = string.Format("{0}-{1}-{2}", this.Configuration.Parameters.Get<object>("DeliveryFileName"),
+											this.Configuration.Parameters.Get<object>("FileModifyDate"),
+											this.Configuration.Parameters.Get<object>("FileSize"));
+
+				deliveryFile.Parameters.Add("Size", this.Configuration.Parameters.Get<string>("Size", emptyIsError: false));
+			}
 
 			this.Delivery.Save();
 

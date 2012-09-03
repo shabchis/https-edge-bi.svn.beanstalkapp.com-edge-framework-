@@ -61,7 +61,7 @@ namespace Edge.Core.Services.Workflow
 					nodeInstance.Instance = this.NewChildService(config);
 					nodeInstance.Instance.StateChanged += new EventHandler(Instance_StateChanged);
 					nodeInstance.Instance.Connect();
-					Environment.ScheduleService(nodeInstance.Instance);
+					Environment.ScheduleServiceInstance(nodeInstance.Instance);
 				}
 
 				if (failureBehavior == WorkflowNodeFailureBehavior.Terminate && nodeInstance.Instance.State == ServiceState.Ended && nodeInstance.Instance.Outcome != ServiceOutcome.Success)
