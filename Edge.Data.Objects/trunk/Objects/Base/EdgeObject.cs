@@ -113,9 +113,14 @@ namespace Edge.Data.Objects
 		Dynamic
 	}
 
+	public partial class TargetMatch : EdgeObject
+	{
+		public Target Target;
+		public string DestinationUrl;
+	}
+
 	public abstract partial class Target : EdgeObject
 	{
-		public string DestinationUrl;
 	}
 
 	public partial class KeywordTarget : Target
