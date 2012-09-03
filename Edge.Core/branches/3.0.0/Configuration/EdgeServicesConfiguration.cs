@@ -11,7 +11,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents the configuration section of the Edge services framework.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
     public class EdgeServicesConfiguration : ConfigurationSection
     {
 		#region Wrapper

@@ -137,13 +137,6 @@ namespace Edge.Core.Services
 			}
 		}
 
-
-		[Obsolete]
-		internal void InternalScheduleService(ServiceInstance instance)
-		{
-			this.Environment.ScheduleService(instance);
-		}
-
 		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID, Guid connectionGuid)
 		{
 			if (String.IsNullOrEmpty(config.ServiceClass))

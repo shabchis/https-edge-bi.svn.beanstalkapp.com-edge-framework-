@@ -112,6 +112,7 @@
     <Compile Include="Services\Workflow\WorkflowService.cs" />
     <Compile Include="Services\Workflow\WorkflowServiceConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\Evaluator.cs" />
     <Compile Include="Utilities\SqlUtility.cs" />
     <Compile Include="Utilities\Locks.cs" />
     <Compile Include="Utilities\Log.cs" />

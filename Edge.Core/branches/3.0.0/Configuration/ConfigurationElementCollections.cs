@@ -7,7 +7,7 @@ using System.Xml;
 
 namespace Edge.Core.Services.Configuration
 {
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public abstract class ConfigurationElementCollectionBase<ElementT> : ConfigurationElementCollection, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 		where ElementT: ConfigurationElement
 	{
@@ -63,7 +63,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a collection of service elements.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class ServiceElementCollection : ConfigurationElementCollectionBase<ServiceElement>
     {
         #region Constructor
@@ -149,7 +149,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a collection of execution step elements.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class WorkflowStepElementCollection : ConfigurationElementCollectionBase<WorkflowStepElement>
     {
         #region Constructor
@@ -239,7 +239,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a collection of scheduling rule elements.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class SchedulingRuleElementCollection : ConfigurationElementCollectionBase<SchedulingRuleElement>
     {
 		#region Members
@@ -333,7 +333,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a collection of account elements.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class AccountElementCollection : ConfigurationElementCollectionBase<AccountElement>
     {
         #region Constructor
@@ -408,7 +408,7 @@ namespace Edge.Core.Services.Configuration
 	/// Represents a collection of services in an account.
 	/// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class AccountServiceElementCollection : ConfigurationElementCollectionBase<AccountServiceElement>
 	{
 		#region Constructor
@@ -493,7 +493,7 @@ namespace Edge.Core.Services.Configuration
     /// </summary>
 	/// 
 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class AccountServiceSettingsElementCollection : ConfigurationElementCollectionBase<AccountServiceSettingsElement>
     {
         #region Constructor
@@ -573,7 +573,7 @@ namespace Edge.Core.Services.Configuration
         #endregion
     }
 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public	 class ExtensionElementCollection : KeyValueConfigurationCollection
 	{
 		protected override void BaseAdd(ConfigurationElement element)

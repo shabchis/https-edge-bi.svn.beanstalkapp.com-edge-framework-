@@ -12,14 +12,14 @@ namespace Edge.Core.Services.Configuration
 {
 	#region Enums
 	/*=========================*/
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public enum ServiceType
 	{
 		Executable=0,
 		Class=1,
 		Workflow=2
 	};
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public enum FailureOutcome
 	{
 		Unspecified=0,
@@ -33,7 +33,7 @@ namespace Edge.Core.Services.Configuration
 
 	#region Classes
 	/*=========================*/
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class ElementReference<ElementT> where ElementT: NamedConfigurationElement
 	{
 		internal string Value;
@@ -87,13 +87,13 @@ namespace Edge.Core.Services.Configuration
 			return Value == null ? 0 : Value.GetHashCode();
 		}
 	}
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public interface ISerializableConfigurationElement
 	{
 		void Deserialize(XmlReader reader);
 		void Serialize(XmlWriter writer, string elementName);
 	}
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public interface IServiceReferencingConfigurationElement
 	{
 		void ResolveReferences(ServiceElementCollection services, ServiceElement service);

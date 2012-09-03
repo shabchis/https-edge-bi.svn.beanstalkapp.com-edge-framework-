@@ -16,7 +16,7 @@ namespace Edge.Core.Services.Configuration
 	/// Base class for elements that have properties referencing other elements within the services section.
 	/// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public abstract class ReferencingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement, IServiceReferencingConfigurationElement
 	{
 		#region Fields
@@ -109,7 +109,7 @@ namespace Edge.Core.Services.Configuration
 
 		#endregion
 	}
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public abstract class EnabledConfigurationElement : ReferencingConfigurationElement
 	{
 		#region Fields
@@ -292,7 +292,7 @@ namespace Edge.Core.Services.Configuration
 
 		#endregion
 	}
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public abstract class NamedConfigurationElement : EnabledConfigurationElement
 	{
 		#region Fields
@@ -347,7 +347,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a single service
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class ServiceElement : NamedConfigurationElement
     {
 		public static TimeSpan DefaultMaxExecutionTime = TimeSpan.FromMinutes(15);
@@ -543,7 +543,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a single execution step element.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class WorkflowStepElement : NamedConfigurationElement
     {
 		#region Members
@@ -823,6 +823,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a single scheduling rule element.
     /// </summary>
 	[Serializable]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class SchedulingRuleElement: ReferencingConfigurationElement, ISerializable
     {
         #region Members
@@ -1068,7 +1069,7 @@ namespace Edge.Core.Services.Configuration
     /// Represents a single account element.
     /// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class AccountElement : EnabledConfigurationElement
     {
         #region Members
@@ -1173,7 +1174,7 @@ namespace Edge.Core.Services.Configuration
 	/// 
 	/// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class AccountServiceElement : NamedConfigurationElement
 	{
 		#region Members
@@ -1274,7 +1275,7 @@ namespace Edge.Core.Services.Configuration
 	/// 
 	/// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class AccountServiceSettingsElement : EnabledConfigurationElement
     {
         #region Members

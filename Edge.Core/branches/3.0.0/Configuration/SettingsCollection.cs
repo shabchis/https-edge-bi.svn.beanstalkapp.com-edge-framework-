@@ -17,7 +17,7 @@ namespace Edge.Core.Services
 	/// <c>name: value; other-name: value; </c> etc. Whitespace is flexible.
 	/// Comments enclosed in <c>/*</c> and <c>*/</c> are allowed anywhere in the string.
 	/// </remarks>
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class SettingsCollection : Dictionary<string, string>
 	{
 		/// <summary>
