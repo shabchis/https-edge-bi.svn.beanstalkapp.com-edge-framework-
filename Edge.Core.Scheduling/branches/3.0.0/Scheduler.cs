@@ -17,7 +17,7 @@ using System.ServiceModel.Description;
 
 namespace Edge.Core.Services.Scheduling
 {
-	[ServiceBehavior(InstanceContextMode=InstanceContextMode.Single)]
+	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single)]
 	public class Scheduler : ISchedulerDataService
 	{
 		#region members
@@ -92,7 +92,7 @@ namespace Edge.Core.Services.Scheduling
 			//    configFileName = args[0].Substring(1);
 			//}
 			EdgeServicesConfiguration.Load(configFileName);
-			
+
 			//wcf for the scheduler to get the profiles
 			WebServiceHost host = new WebServiceHost(this, new Uri("http://localhost:8000/"));
 
@@ -124,7 +124,7 @@ namespace Edge.Core.Services.Scheduling
 				this.AddChildServiceToSchedule(e.ServiceInstance);
 			else
 				this.AddRequestToSchedule(e.ServiceInstance);
-			
+
 		}
 
 		/// <summary>
@@ -240,7 +240,7 @@ namespace Edge.Core.Services.Scheduling
 				serviceConfiguration.Limits.MaxConcurrentGlobal = serviceElement.MaxInstances;
 				serviceConfiguration.Limits.MaxConcurrentPerProfile = serviceElement.MaxInstancesPerAccount;
 				serviceConfiguration.ServiceClass = serviceElement.Class;
-				
+
 				foreach (SchedulingRule rule in serviceElement.SchedulingRules)
 					serviceConfiguration.SchedulingRules.Add(rule);
 
@@ -261,9 +261,9 @@ namespace Edge.Core.Services.Scheduling
 				profile.Parameters.Add("AccountName", account.Name);
 				foreach (AccountServiceElement accountService in account.Services)
 				{
-					
+
 					ServiceElement serviceUse = accountService.Uses.Element;
-				
+
 					ServiceConfiguration deriveConfiguration = profile.DeriveConfiguration(_serviceBaseConfigurations[serviceUse.Name]);
 					deriveConfiguration.ConfigurationID = GuidFromString(account.ID.ToString() + "___" + serviceUse.Name);
 
@@ -360,7 +360,7 @@ namespace Edge.Core.Services.Scheduling
 						while (!found)
 						{
 							IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
-							
+
 							int countedPerConfiguration = requestsWithSameConfiguration.Count(s => (calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime && calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) || (calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime && calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
 							if (countedPerConfiguration < serviceInstance.Configuration.Limits.MaxConcurrentGlobal)
 							{
@@ -417,7 +417,7 @@ namespace Edge.Core.Services.Scheduling
 						{
 							AsLockable(serviceInstance).Unlock(_instanceLock);
 							serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
-							serviceInstance.StateChanged += new EventHandler(Instance_StateChanged);							
+							serviceInstance.StateChanged += new EventHandler(Instance_StateChanged);
 							AsLockable(serviceInstance).Lock(_instanceLock);
 
 							// Legacy stuff
@@ -597,7 +597,7 @@ namespace Edge.Core.Services.Scheduling
 			if (!_profiles.TryGetValue(Convert.ToInt32(instance.Configuration.Profile.Parameters["AccountID"]), out profile))
 				throw new KeyNotFoundException(String.Format("No profile exists with the ID '{0}' (account ID).", (instance.Configuration.Profile.Parameters["AccountID"])));
 
-			if (instance.Configuration.SchedulingRules[0].Scope!=SchedulingScope.Unplanned)
+			if (instance.Configuration.SchedulingRules[0].Scope != SchedulingScope.Unplanned)
 				throw new Exception("instance rule is not unnplaned, scheduler only get services");
 			AsLockable(instance).Unlock(_instanceLock);
 			instance.SchedulingInfo.SchedulingStatus = Services.SchedulingStatus.New;
@@ -670,6 +670,7 @@ namespace Edge.Core.Services.Scheduling
 		#endregion
 
 		#region wcf
+	
 		public ServiceProfile[] GetSchedulingProfiles()
 		{
 			ServiceProfile[] profiles = new ServiceProfile[_profiles.Count];
@@ -729,11 +730,11 @@ namespace Edge.Core.Services.Scheduling
 		}
 	}
 	#endregion
-	[ServiceContract]	
+	[ServiceContract]
 	public interface ISchedulerDataService
 	{
 		[OperationContract]
-		[WebGet(UriTemplate = "/Profiles",RequestFormat=WebMessageFormat.Json,ResponseFormat=WebMessageFormat.Json)]
+		[WebGet(UriTemplate = "/Profiles", RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json)]
 		ServiceProfile[] GetSchedulingProfiles();
 	}
 
