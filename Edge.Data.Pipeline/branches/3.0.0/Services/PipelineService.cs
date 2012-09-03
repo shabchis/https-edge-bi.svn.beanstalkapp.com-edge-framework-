@@ -198,7 +198,7 @@ namespace Edge.Data.Pipeline.Services
 					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Objects");
 					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Pipeline");
 
-					MappingConfigurationElement extension = this.Configuration.GetParameter<MappingConfigurationElement>("MappingConfigurationElement", false);
+					MappingConfigurationElement extension = this.Configuration.Parameters.GetParameter<MappingConfigurationElement>("MappingConfigurationElement", false);
 					if (extension != null)
 						extension.LoadInto(_mapping);
 				}
