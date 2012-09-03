@@ -284,7 +284,7 @@ namespace Edge.Core.Services.Configuration.Converters
 	/// 
 	/// </summary>
 	/// 
-	[Obsolete]
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class ElementReferenceConverter<ElementT>: BaseStringConverter where ElementT: NamedConfigurationElement
 	{
 		ReferencingConfigurationElement _element;
