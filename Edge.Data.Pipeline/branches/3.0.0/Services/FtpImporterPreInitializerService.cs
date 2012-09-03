@@ -6,11 +6,9 @@ using Edge.Data.Objects;
 using System.Net;
 using System.IO;
 using System.Text.RegularExpressions;
-using Edge.Core.Scheduling;
 using Edge.Core.Services;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
-using Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -19,10 +17,12 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override Core.Services.ServiceOutcome DoWork()
 		{
-			string fileConflictBehavior = "Abort";
+			// Instead of
+			string fileConflictBehavior = this.Configuration.GetParameter<string>("FileConflictBehavior", emptyIsError: false, defaultValue: "Abort");
 
-			if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
-				fileConflictBehavior = this.Instance.Configuration.Options["FileConflictBehavior"];
+			//string fileConflictBehavior = "Abort";
+			//if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
+				//fileConflictBehavior = this.Instance.Configuration.Options["FileConflictBehavior"];
 
 			#region FTP Configuration
 			/*===============================================================================================*/
@@ -136,7 +136,7 @@ namespace Edge.Data.Pipeline.Services
 				connection = new SqlConnection(AppSettings.GetConnectionString(typeof(FtpImporterPreInitializerService), "DeliveryDB"));
 				using (connection)
 				{
-					SqlCommand cmd = DataManager.CreateCommand(@"DeliveryFile_GetBySignature()", System.Data.CommandType.StoredProcedure);
+					SqlCommand cmd = SqlUtility.CreateCommand(@"DeliveryFile_GetBySignature()", System.Data.CommandType.StoredProcedure);
 					SqlParameter fileSig = new SqlParameter("signature", fileSignature);
 					cmd.Parameters.Add(fileSig);
 					cmd.Connection = connection;

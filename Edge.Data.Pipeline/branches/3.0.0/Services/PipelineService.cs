@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Edge.Core.Services;
-using Edge.Data.Pipeline.Configuration;
 using Edge.Data.Pipeline;
 using System.Text.RegularExpressions;
 using System.Configuration;
 using Edge.Core.Configuration;
 using System.Threading;
 using System.Data.SqlClient;
-using EdgeConfiguration = Edge.Core.Data;
 using Edge.Data.Pipeline.Mapping;
 using Edge.Core.Utilities;
 
@@ -29,25 +27,18 @@ namespace Edge.Data.Pipeline.Services
 
 		protected abstract ServiceOutcome DoPipelineWork();
 
-		protected override void OnEnded(ServiceOutcome outcome)
-		{
-			// TODO: update delivery history automatically?
-		}
-
 		// ==============================
 		#endregion
 
 		#region Configuration
 		// ==============================
 
-		public static class ConfigurationOptionNames
+		public new PipelineServiceConfiguration Configuration
 		{
-			public const string DeliveryID = "DeliveryID";
-			public const string TimePeriod = "TimePeriod";
-			public const string ConflictBehavior = "ConflictBehavior";
+			get { return (PipelineServiceConfiguration)base.Configuration; }
 		}
 
-
+		/*
 		DateTimeRange? _range = null;
 		public DateTimeRange TimePeriod
 		{
@@ -86,11 +77,7 @@ namespace Edge.Data.Pipeline.Services
 				return _range.Value;
 			}
 		}
-
-		protected virtual DateTimeRangeLimitation TimePeriodLimitation
-		{
-			get { return DateTimeRangeLimitation.SameDay; }
-		}
+		*/
 
 		Delivery _delivery = null;
 		public Delivery Delivery
@@ -100,9 +87,8 @@ namespace Edge.Data.Pipeline.Services
 				if (_delivery != null)
 					return _delivery;
 
-				Guid deliveryID = this.TargetDeliveryID;
-				if (deliveryID != Guid.Empty)
-					_delivery = DeliveryDB.GetDelivery(deliveryID);
+				if (this.Configuration.DeliveryID != null)
+					_delivery = DeliveryDB.GetDelivery(this.Configuration.DeliveryID.Value);
 
 				return _delivery;
 			}
@@ -115,28 +101,11 @@ namespace Edge.Data.Pipeline.Services
 			}
 		}
 
-		internal Guid TargetDeliveryID
-		{
-			get
-			{
-				Guid deliveryID;
-				string did;
-				if (!Instance.Configuration.Options.TryGetValue(ConfigurationOptionNames.DeliveryID, out did))
-					return Guid.Empty;
-
-				if (!Guid.TryParse(did, out deliveryID))
-					throw new FormatException(String.Format("'{0}' is not a valid delivery GUID.", did));
-
-				return deliveryID;
-			}
-		}
-
 		public Delivery NewDelivery()
 		{
-			var d = new Delivery(this.TargetDeliveryID);
-			d.TimePeriodDefinition = this.TimePeriod;
+			var d = new Delivery(this.Configuration.DeliveryID.Value);
+			d.TimePeriodDefinition = this.Configuration.TimePeriod.Value;
 
-			Log.Write(String.Format("Creating delivery {0}", this.TargetDeliveryID), LogMessageType.Information);
 			return d;
 		}
 
@@ -151,7 +120,7 @@ namespace Edge.Data.Pipeline.Services
 			if (this.Delivery.Outputs.Count < 1)
 				return;
 
-			ServiceInstanceInfo parent = this.Instance;
+			ServiceInstance parent = this.AsServiceInstance();
 			while (parent.ParentInstance != null)			
 				parent = parent.ParentInstance;
 
@@ -159,7 +128,7 @@ namespace Edge.Data.Pipeline.Services
 			foreach (DeliveryOutput output in this.Delivery.Outputs)
 			{
 				if (!output.PipelineInstanceID.HasValue)
-				output.PipelineInstanceID = parent.InstanceID;
+					output.PipelineInstanceID = parent.InstanceID;
 			}
 
 			this.Delivery.Save();
@@ -167,14 +136,9 @@ namespace Edge.Data.Pipeline.Services
 			// ================================
 			// Conflict behavior
 
-			DeliveryConflictBehavior behavior = defaultConflictBehavior;
-			if (getBehaviorFromConfiguration)
-			{
-				string configuredBehavior;
-				if (Instance.Configuration.Options.TryGetValue("ConflictBehavior", out configuredBehavior))
-					behavior = (DeliveryConflictBehavior)Enum.Parse(typeof(DeliveryConflictBehavior), configuredBehavior);
-			}
-
+			DeliveryConflictBehavior behavior = this.Configuration.ConflictBehavior != null ?
+				this.Configuration.ConflictBehavior.Value :
+				defaultConflictBehavior;
 
 			var processing = new List<DeliveryOutput>();
 			var committed = new List<DeliveryOutput>();
@@ -221,6 +185,7 @@ namespace Edge.Data.Pipeline.Services
 		#region Mapping
 		// ==============================
 
+		/*
 		MappingConfiguration _mapping = null;
 
 		public MappingConfiguration Mappings
@@ -247,10 +212,26 @@ namespace Edge.Data.Pipeline.Services
 				return _mapping;
 			}
 		}
+		*/
 
 		// ==============================
 		#endregion
 	}
+
+
+	[Serializable]
+	public class PipelineServiceConfiguration : ServiceConfiguration
+	{
+		Guid? _deliveryID;
+		public Guid? DeliveryID { get { return _deliveryID; } set { EnsureUnlocked(); _deliveryID = value; } }
+
+		DateTimeRange? _timePeriod;
+		public DateTimeRange? TimePeriod { get { return _timePeriod; } set { EnsureUnlocked(); _timePeriod = value; } }
+
+		DeliveryConflictBehavior? _conflictBehavior;
+		public DeliveryConflictBehavior? ConflictBehavior { get { return _conflictBehavior; } set { EnsureUnlocked(); _conflictBehavior = value; } }
+	}
+
 
 	public enum DeliveryConflictBehavior
 	{
