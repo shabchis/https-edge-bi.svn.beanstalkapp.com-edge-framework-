@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using Edge.Core.Services;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
+using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -26,33 +27,25 @@ namespace Edge.Data.Pipeline.Services
 
 			#region FTP Configuration
 			/*===============================================================================================*/
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["FtpServer"]))
-				throw new Exception("Missing Configuration Param , FtpServer");
-			string FtpServer = this.Instance.Configuration.Options["FtpServer"];
+			
+			string FtpServer = this.Configuration.GetParameter("FtpServer").ToString();
 
 
-			//Get AllowedExtensions
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["AllowedExtensions"]))
-				throw new Exception("Missing Configuration Param , AllowedExtensions");
-			string[] AllowedExtensions = this.Instance.Configuration.Options["AllowedExtensions"].Split('|');
+			
+			string[] AllowedExtensions = this.Configuration.GetParameter("AllowedExtensions").ToString().Split('|');
 
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
-				throw new Exception("Missing Configuration Param , UsePassive");
-			bool UsePassive = bool.Parse(this.Instance.Configuration.Options["UsePassive"]);
+		
+			bool UsePassive =this.Configuration.GetParameter<bool>("UsePassive");
 
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
-				throw new Exception("Missing Configuration Param , UsePassive");
-			bool UseBinary = bool.Parse(this.Instance.Configuration.Options["UseBinary"]);
+			
+			bool UseBinary = this.Configuration.GetParameter<bool>("UseBinary");
 
-			//Get Permissions
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
-				throw new Exception("Missing Configuration Param , UserID");
-			string UserId = this.Instance.Configuration.Options["UserID"];
+		
+			string UserId = this.Configuration.GetParameter("UserID").ToString();
 
 
-			if (String.IsNullOrEmpty(this.Instance.Configuration.Options["Password"]))
-				throw new Exception("Missing Configuration Param , Password");
-			string Password = Core.Utilities.Encryptor.Dec(this.Instance.Configuration.Options["Password"]);
+			
+			string Password = Core.Utilities.Encryptor.Dec(this.Configuration.GetParameter("Password").ToString());
 			/*===============================================================================================*/
 			#endregion
 			FtpWebRequest request;
@@ -89,12 +82,12 @@ namespace Edge.Data.Pipeline.Services
 							IScheduleManager s = c.CreateChannel();
 							Core.SettingsCollection options = new Core.SettingsCollection();
 
-							this.Instance.Configuration.Options[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
-							this.Instance.Configuration.Options["FileSize"] = fileInfo["Size"];
-							this.Instance.Configuration.Options["DeliveryFileName"] = fileInfo["Name"];
-							this.Instance.Configuration.Options["FileModifyDate"] = fileInfo["ModifyDate"];
+							this.Configuration.Parameters[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
+							this.Configuration.Parameters["FileSize"] = fileInfo["Size"];
+							this.Configuration.Parameters["DeliveryFileName"] = fileInfo["Name"];
+							this.Configuration.Parameters["FileModifyDate"] = fileInfo["ModifyDate"];
 							
-							s.AddToSchedule(this.Instance.Configuration.Options["FtpService"], this.Instance.AccountID, this.Instance.TimeScheduled, this.Instance.Configuration.Options);
+							s.AddToSchedule(this.Configuration.GetParameter("FtpService").ToString(), this.Configuration.Profile.Parameters["AccountID"], this.TimeScheduled, this.Configuration.Parameters);
 						}
 
 					}
@@ -107,7 +100,7 @@ namespace Edge.Data.Pipeline.Services
 
 				if (filesCounter == 0)
 				{
-					Core.Utilities.Log.Write("No files in FTP directory for account id " + this.Instance.AccountID.ToString(), Core.Utilities.LogMessageType.Information);
+					Core.Utilities.Log.Write("No files in FTP directory for account id " + this.Configuration.Profile.Parameters["AccountID"].ToString(),LogMessageType.Information);
 				}
 
 			}
@@ -115,8 +108,8 @@ namespace Edge.Data.Pipeline.Services
 			{
 				Core.Utilities.Log.Write(
 					string.Format("Cannot connect FTP server for account ID:{0}  Exception: {1}",
-					this.Instance.AccountID.ToString(), e.Message),
-					Core.Utilities.LogMessageType.Information);
+					this.Configuration.Profile.Parameters["AccountID"].ToString(), e.Message),
+					LogMessageType.Information);
 				return Edge.Core.Services.ServiceOutcome.Failure;
 			}
 

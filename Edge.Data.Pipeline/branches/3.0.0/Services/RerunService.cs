@@ -15,19 +15,15 @@ namespace Edge.Data.Pipeline.Services
 {
 	class RerunService : PipelineService	
 	{
-		protected override DateTimeRangeLimitation TimePeriodLimitation
-		{
-			get { return DateTimeRangeLimitation.None; }
-		}
-
+		
 		protected override Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			string serviceName = Instance.Configuration.GetOption("ServiceToRun");
+			string serviceName = Configuration.GetParameter("ServiceToRun").ToString();
 
 			using (ServiceClient<IScheduleManager> scheduleManager = new ServiceClient<IScheduleManager>())
 			{
-				DateTime fromDate = this.TimePeriod.Start.ToDateTime();
-				DateTime toDate = this.TimePeriod.End.ToDateTime();
+				DateTime fromDate = this.Configuration.TimePeriod.Value.Start.ToDateTime();
+				DateTime toDate = this.Configuration.TimePeriod.Value.End.ToDateTime();
 				
 
 				
@@ -53,14 +49,14 @@ namespace Edge.Data.Pipeline.Services
 					SettingsCollection options = new SettingsCollection();
 					options.Add(PipelineService.ConfigurationOptionNames.TimePeriod, subRange.ToAbsolute().ToString());
 					options.Add(PipelineService.ConfigurationOptionNames.ConflictBehavior, DeliveryConflictBehavior.Ignore.ToString());
-					foreach (var option in Instance.Configuration.Options)
+					foreach (var option in this.Configuration.Parameters)
 					{
 						if (!options.ContainsKey(option.Key))
 							options.Add(option.Key, option.Value);
 						
 					}
 					//run the service
-					scheduleManager.Service.AddToSchedule(serviceName,this.Instance.AccountID,DateTime.Now, options);
+					scheduleManager.Service.AddToSchedule(serviceName,this.Configuration.Profile.Parameters["AccountID"],DateTime.Now, options);
 
 					fromDate = fromDate.AddDays(1);
 
