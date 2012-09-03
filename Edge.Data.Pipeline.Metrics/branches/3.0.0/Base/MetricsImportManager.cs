@@ -441,25 +441,8 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnRollbackOutput(DeliveryOutput output, int pass)
 		{
-			string guid = output.OutputID.ToString("N");
-
-			_rollbackCommand = _rollbackCommand ?? DataManager.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
-			_rollbackCommand.Connection = _sqlConnection;
-			_rollbackCommand.Transaction = _rollbackTransaction;
-
-			_rollbackCommand.Parameters["@DeliveryOutputID"].Value = guid;
-			_rollbackCommand.Parameters["@TableName"].Value = output.Parameters[Consts.DeliveryHistoryParameters.CommitTableName];
-
-			_rollbackCommand.ExecuteNonQuery();
-			
-
-
-
-			// This is redundant (SP already does this) but to sync our objects in memory we do it here also
-			output.Status = DeliveryOutputStatus.RolledBack;
-
 			//For new db
-			/*string guid = output.OutputID.ToString("N");
+			string guid = output.OutputID.ToString("N");
 			if (output.Status == DeliveryOutputStatus.Staged)
 			{
 				_rollbackCommand = _rollbackCommand ?? DataManager.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
@@ -478,9 +461,7 @@ namespace Edge.Data.Pipeline.Metrics
 			else
 			{
 				throw new Exception("It should not happend");
-			} */
-			 
-
+			}
 		}
 
 		protected override void OnEndRollback(Exception ex)
