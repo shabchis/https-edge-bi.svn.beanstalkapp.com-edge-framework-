@@ -38,6 +38,20 @@ namespace Edge.Core.Utilities
 			return dbValue is DBNull ? emptyVal : convertFunc((R)dbValue);
 		}
 
+		public static T Get<T>(this SqlDataReader reader, string field, T nullVal = default(T))
+		{
+			var val = reader[field];
+			if (val is DBNull)
+				return nullVal;
+			else
+				return (T)val;
+		}
+
+		public static ConvertT Convert<SourceT, ConvertT>(this SqlDataReader reader, string field, Func<SourceT, ConvertT> convertFunc, SourceT nullVal = default(SourceT))
+		{
+			SourceT val = reader.Get<SourceT>(field, nullVal);
+			return convertFunc(val);
+		}
 
 		private static Regex _paramFinder = new Regex(@"[@$\?][A-Za-z0-9_]+:[A-Za-z0-9_]+");
 		internal static readonly string PrefixInOut = "$";
