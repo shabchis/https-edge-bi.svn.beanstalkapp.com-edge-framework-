@@ -98,11 +98,6 @@ namespace Edge.Data.Pipeline
 		public Guid? PipelineInstanceID { get; internal set; }
 
 		/// <summary>
-		/// 
-		/// </summary>
-		public bool PipelineInstanceIsRunning { get; internal set; }
-
-		/// <summary>
 		/// Gets the date the delivery file was created.
 		/// </summary>
 		public DateTime DateCreated { get; internal set; }
@@ -134,14 +129,6 @@ namespace Edge.Data.Pipeline
 				throw new InvalidOperationException("The output does not have a signature - cannot search for conflicts.");
 
 			conflicting= DeliveryDB.GetOutputsBySignature(this.Signature, exclude: this.OutputID);
-			if (conflicting != null)
-			{
-				foreach (DeliveryOutput conflict in conflicting)
-				{
-					if (conflict.PipelineInstanceID != null)
-						conflict.PipelineInstanceIsRunning = DeliveryDB.GetRuning(conflict.PipelineInstanceID.Value);
-				}
-			}
 			return conflicting;
 		}
 

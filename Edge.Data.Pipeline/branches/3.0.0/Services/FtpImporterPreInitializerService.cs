@@ -18,36 +18,15 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override Core.Services.ServiceOutcome DoWork()
 		{
-			// Instead of
-			string fileConflictBehavior = this.Configuration.Parameters.GetParameter<string>("FileConflictBehavior", emptyIsError: false, defaultValue: "Abort");
+			// FTP configuration
+			string fileConflictBehavior = this.Configuration.Parameters.Get<string>("FileConflictBehavior", emptyIsError: false, defaultValue: "Abort");			
+			string FtpServer = this.Configuration.Parameters.Get<string>("FtpServer");
+			string[] AllowedExtensions = this.Configuration.Parameters.Get<string>("AllowedExtensions").Split('|');
+			bool UsePassive =this.Configuration.Parameters.Get<bool>("UsePassive");
+			bool UseBinary = this.Configuration.Parameters.Get<bool>("UseBinary");
+			string UserId = this.Configuration.Parameters.Get<string>("UserID");
+			string Password = Encryptor.Dec(this.Configuration.Parameters.Get<string>("Password"));
 
-			//string fileConflictBehavior = "Abort";
-			//if (!String.IsNullOrEmpty(this.Instance.Configuration.Options["FileConflictBehavior"]))
-				//fileConflictBehavior = this.Instance.Configuration.Options["FileConflictBehavior"];
-
-			#region FTP Configuration
-			/*===============================================================================================*/
-			
-			string FtpServer = this.Configuration.Parameters.GetParameter("FtpServer").ToString();
-
-
-			
-			string[] AllowedExtensions = this.Configuration.Parameters.GetParameter("AllowedExtensions").ToString().Split('|');
-
-		
-			bool UsePassive =this.Configuration.Parameters.GetParameter<bool>("UsePassive");
-
-			
-			bool UseBinary = this.Configuration.Parameters.GetParameter<bool>("UseBinary");
-
-		
-			string UserId = this.Configuration.Parameters.GetParameter("UserID").ToString();
-
-
-			
-			string Password = Core.Utilities.Encryptor.Dec(this.Configuration.Parameters.GetParameter("Password").ToString());
-			/*===============================================================================================*/
-			#endregion
 			FtpWebRequest request;
 			int filesCounter = 0;
 
@@ -69,7 +48,7 @@ namespace Edge.Data.Pipeline.Services
 					Dictionary<string, string> fileInfo = GetFileInfo(fileInfoAsString);
 					
 
-					if ((fileConflictBehavior.Equals("Ignore"))||(!CheckFileConflict(fileInfo)))
+					if (fileConflictBehavior == "Ignore"||!CheckFileConflict(fileInfo))
 					{
 						//Get files with allowed extensions only.
 
@@ -77,17 +56,18 @@ namespace Edge.Data.Pipeline.Services
 						{
 							string SourceUrl = FtpServer + "/" + fileInfo["Name"];
 
-							System.ServiceModel.ChannelFactory<Edge.Core.Scheduling.IScheduleManager> c = new System.ServiceModel.ChannelFactory<Core.Scheduling.IScheduleManager>("shaybarchen");
-							c.Open();
-							IScheduleManager s = c.CreateChannel();
-							Core.SettingsCollection options = new Core.SettingsCollection();
+							PipelineServiceConfiguration config = new PipelineServiceConfiguration();
 
-							this.Configuration.Parameters[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
-							this.Configuration.Parameters["FileSize"] = fileInfo["Size"];
-							this.Configuration.Parameters["DeliveryFileName"] = fileInfo["Name"];
-							this.Configuration.Parameters["FileModifyDate"] = fileInfo["ModifyDate"];
+							config.Parameters[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
+							config.Parameters["FileSize"] = fileInfo["Size"];
+							config.Parameters["DeliveryFileName"] = fileInfo["Name"];
+							config.Parameters["FileModifyDate"] = fileInfo["ModifyDate"];
 							
-							s.AddToSchedule(this.Configuration.Parameters.GetParameter("FtpService").ToString(), this.Configuration.Profile.Parameters["AccountID"], this.TimeScheduled, this.Configuration.Parameters);
+							Environment.ScheduleServiceByName(
+								this.Configuration.Parameters.Get<string>("FtpService"),
+								this.Configuration.Profile.ProfileID,
+								config
+								);
 						}
 
 					}

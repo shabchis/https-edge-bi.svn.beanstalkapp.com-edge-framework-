@@ -9,7 +9,7 @@ namespace Edge.Core.Services
 	[Serializable]
 	public class ParameterDictionary: LockableDictionary<string,object>
 	{
-		public object GetParameter(string paramName, bool emptyIsError = true)
+		internal object Get(string paramName, bool emptyIsError = true)
 		{
 			object val = this[paramName];
 			if (emptyIsError && val == null)
@@ -17,9 +17,9 @@ namespace Edge.Core.Services
 			return val;
 		}
 
-		public T GetParameter<T>(string paramName, bool emptyIsError = true, T defaultValue = default(T), Func<object, T> convertFunction = null)
+		public T Get<T>(string paramName, bool emptyIsError = true, T defaultValue = default(T), Func<object, T> convertFunction = null)
 		{
-			object raw = this.GetParameter(paramName, emptyIsError);
+			object raw = this.Get(paramName, emptyIsError);
 			T val;
 			if (convertFunction != null)
 			{

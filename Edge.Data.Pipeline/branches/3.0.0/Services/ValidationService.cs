@@ -5,7 +5,6 @@ using System.Text;
 using Edge.Data.Pipeline.Services;
 using Edge.Data.Pipeline;
 using Edge.Data.Objects;
-using Edge.Core.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Edge.Core.Services;
@@ -30,11 +29,7 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override sealed Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			string failureLevelRaw =(string) this.Configuration.Parameters.GetParameter(Const.ConfigurationOptions.FailureLevel,true);
-			ValidationResultType failureLevel = ValidationResultType.Error;
-			if (failureLevelRaw != null)
-				Enum.TryParse<ValidationResultType>(failureLevelRaw, out failureLevel);
-			this.FailureLevel = failureLevel;
+			this.FailureLevel = this.Configuration.Parameters.Get<ValidationResultType>(Const.ConfigurationOptions.FailureLevel, false, ValidationResultType.Error);
 
 			var entries = new List<ValidationResult>();
 			ValidationResultType maxLevel = ValidationResultType.Information;
@@ -90,7 +85,12 @@ namespace Edge.Data.Pipeline.Services
 		internal void LogWrite()
 		{
             string jsonMessage = JsonConvert.SerializeObject(this);
-            Log.Write(jsonMessage, this.Exception, (LogMessageType)(int)this.ResultType);
+            Service.Current.Log(jsonMessage, this.Exception,
+				this.ResultType == ValidationResultType.Error ? LogMessageType.Error :
+				this.ResultType == ValidationResultType.Information ? LogMessageType.Information :
+				this.ResultType == ValidationResultType.Warning ? LogMessageType.Warning :
+				LogMessageType.Verbose
+			);
 		}
 	}
 

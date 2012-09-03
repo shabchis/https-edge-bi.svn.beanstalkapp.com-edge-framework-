@@ -118,6 +118,7 @@
     <Compile Include="Readers\JsonHelper.cs" />
     <Compile Include="Readers\JsonDynamicReader.cs" />
     <Compile Include="Readers\JsonObjectReader.cs" />
+    <Compile Include="Services\Configuration\PipelineServiceConfiguration.cs" />
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\FtpImporterPreInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
