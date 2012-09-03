@@ -119,7 +119,7 @@ namespace Edge.Core.Services
 			this.ConfigurationID = Guid.NewGuid();
 			this.Limits = new ServiceExecutionLimits();
 			this.ConfigurationLevel = ServiceConfigurationLevel.Template;
-			this.Parameters = new LockableDictionary<string, object>();
+			this.Parameters = new ParameterDictionary();
 			this.SchedulingRules = new LockableList<SchedulingRule>();
 		}
 
@@ -295,48 +295,6 @@ namespace Edge.Core.Services
 			throw new NotImplementedException();
 		}
 
-
-		public object GetParameter(string paramName, bool emptyIsError = true)
-		{
-			object val = this.Parameters[paramName];
-			if (emptyIsError && val == null)
-				throw new ServiceException(String.Format("The parameter '{0}' is missing in the service configuration.", paramName));
-			return val;
-		}
-
-		/// <summary>
-		/// Gets a configuration option from the Options collection and converts it to the desired type.
-		/// </summary>
-		/// <param name="convertFunction">If null, will try an automatic conversion.</param>
-		public T GetParameter<T>(string paramName, bool emptyIsError = true, T defaultValue = default(T), Func<object, T> convertFunction = null)
-		{
-			object raw = this.GetParameter(paramName, emptyIsError);
-			T val;
-			if (convertFunction != null)
-			{
-				val = convertFunction(raw);
-			}
-			else if (raw == null && (!Object.Equals(defaultValue,default(T)) || !emptyIsError))
-			{
-				val = defaultValue;
-			}
-			else if (raw is T)
-			{
-				val = (T)raw;
-			}
-			else
-			{
-				TypeConverter converter = TypeDescriptor.GetConverter(typeof(T));
-				try { val = (T)converter.ConvertTo(raw, typeof(T)); }
-				catch (Exception ex)
-				{
-					throw new ServiceException(String.Format("The parameter '{0}' could not be converted to {1}. See inner exception for details.", paramName, typeof(T).FullName), ex);
-				}
-			}
-
-			return val;
-		}
-
 		//=================
 		#endregion
 
@@ -372,7 +330,7 @@ namespace Edge.Core.Services
 			this.BaseConfiguration = (ServiceConfiguration)info.GetValue("BaseConfiguration", typeof(ServiceConfiguration));
 			this.Profile = (ServiceProfile)info.GetValue("Profile", typeof(ServiceProfile));
 			this.Limits = (ServiceExecutionLimits)info.GetValue("Limits", typeof(ServiceExecutionLimits));
-			this.Parameters = (LockableDictionary<string, object>)info.GetValue("Parameters", typeof(LockableDictionary<string, object>));
+			this.Parameters = (ParameterDictionary)info.GetValue("Parameters", typeof(LockableDictionary<string, object>));
 			this.SchedulingRules = (LockableList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(LockableList<SchedulingRule>));
 			
 			_assemblyPath = info.GetString("_assemblyPath");

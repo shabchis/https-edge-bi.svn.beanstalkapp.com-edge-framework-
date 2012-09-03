@@ -95,6 +95,7 @@
     <Compile Include="Scheduling\SchedulingRule.cs" />
     <Compile Include="Services\Enums.cs" />
     <Compile Include="Services\Exceptions.cs" />
+    <Compile Include="Services\ParameterDictionary.cs" />
     <Compile Include="Services\ServiceConnection.cs" />
     <Compile Include="Services\LogMessage.cs" />
     <Compile Include="Services\Service.cs" />
