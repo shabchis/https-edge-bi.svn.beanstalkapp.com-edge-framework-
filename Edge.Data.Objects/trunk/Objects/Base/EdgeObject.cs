@@ -9,11 +9,8 @@ namespace Edge.Data.Objects
 	{
 		public ulong GK;
 		public string Name;
-		public string OriginalID;
 
 		public Account Account;
-
-		public ObjectStatus Status;
 
 		public Dictionary<MetaProperty, object> MetaProperties;
 	}
@@ -30,6 +27,8 @@ namespace Edge.Data.Objects
 	public abstract partial class ChannelSpecificObject : EdgeObject
 	{
 		public Channel Channel;
+		public string OriginalID;
+		public ObjectStatus Status;
 	}
 
 	public enum ObjectStatus
