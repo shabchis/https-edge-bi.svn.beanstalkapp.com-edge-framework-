@@ -17,7 +17,7 @@ namespace Edge.Data.Pipeline.Services
 			BatchDownloadOperation batch = new BatchDownloadOperation();
 			batch.Progressed += new EventHandler((sender, e) =>
 			{
-				this.ReportProgress(batch.Progress * 0.95);
+				this.Progress=batch.Progress * 0.95;
 			});
 
 			foreach (DeliveryFile file in this.Delivery.Files)
