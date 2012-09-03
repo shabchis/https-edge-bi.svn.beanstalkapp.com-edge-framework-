@@ -5,6 +5,7 @@ using System.Text;
 using Edge.Data.Pipeline.Services;
 using Edge.Core.Utilities;
 using System.Net;
+using Edge.Core.Services;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -21,7 +22,7 @@ namespace Edge.Data.Pipeline.Services
 			
 			_batch.Progressed += new EventHandler((sender, e) =>
 			{
-				this.ReportProgress(_batch.Progress * 0.99);
+				this.Progress = _batch.Progress * 0.99;
 			});
 
 			foreach (DeliveryFile file in this.Delivery.Files)
@@ -29,8 +30,8 @@ namespace Edge.Data.Pipeline.Services
 				if (String.IsNullOrWhiteSpace(file.SourceUrl))
 					continue;
 
-				Log.Write(String.Format("Delivery file {0} starting download ({1}).",file.Name, file.FileID), LogMessageType.Information);
-
+				this.Log(String.Format("Delivery file {0} starting download ({1}).",file.Name, file.FileID), LogMessageType.Information);
+				
 				DownloadFile(file);
 			}
 

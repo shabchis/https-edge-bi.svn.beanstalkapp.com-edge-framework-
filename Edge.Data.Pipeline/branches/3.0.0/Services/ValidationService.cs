@@ -8,6 +8,7 @@ using Edge.Data.Objects;
 using Edge.Core.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Edge.Core.Services;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -29,7 +30,7 @@ namespace Edge.Data.Pipeline.Services
 
 		protected override sealed Core.Services.ServiceOutcome DoPipelineWork()
 		{
-			string failureLevelRaw = this.Instance.Configuration.Options[Const.ConfigurationOptions.FailureLevel];
+			string failureLevelRaw =(string) this.Configuration.GetParameter(Const.ConfigurationOptions.FailureLevel,true);
 			ValidationResultType failureLevel = ValidationResultType.Error;
 			if (failureLevelRaw != null)
 				Enum.TryParse<ValidationResultType>(failureLevelRaw, out failureLevel);
