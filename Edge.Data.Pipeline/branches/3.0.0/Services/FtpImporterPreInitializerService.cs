@@ -138,7 +138,7 @@ namespace Edge.Data.Pipeline.Services
 					{
 						if (reader.Read())
 						{
-							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature), Core.Utilities.LogMessageType.Warning);
+							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature), LogMessageType.Warning);
 							return true;
 						}
 
