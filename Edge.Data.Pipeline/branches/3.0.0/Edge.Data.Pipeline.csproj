@@ -110,7 +110,6 @@
     <Compile Include="Mapping\MappingContext.cs" />
     <Compile Include="Mapping\ReadCommand.cs" />
     <Compile Include="Mapping\ValueFormat.cs" />
-    <Compile Include="Objects\ObjectStatus.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
     <Compile Include="Objects\Signature.cs" />
     <Compile Include="Readers\Base\ReaderAdapter.cs" />
@@ -130,22 +129,10 @@
     <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
     <Compile Include="Deliveries\DeliveryImportManager.cs" />
-    <Compile Include="Objects\Account.cs" />
-    <Compile Include="Objects\Ad.cs" />
-    <Compile Include="Objects\MetricsUnit.cs" />
-    <Compile Include="Objects\Channel.cs" />
-    <Compile Include="Objects\Currency.cs" />
-    <Compile Include="Objects\Measure.cs" />
-    <Compile Include="Objects\Reflection\ExtraField.cs" />
-    <Compile Include="Objects\Reflection\MappedType.cs" />
-    <Compile Include="Objects\Targets.cs" />
-    <Compile Include="Objects\Creative.cs" />
-    <Compile Include="Objects\Segment.cs" />
     <Compile Include="Readers\Base\DynamicDictionaryObject.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
     <Compile Include="Readers\XmlDynamicReader.cs" />
-    <Compile Include="Services\PipelineWorkflowService.cs" />
     <Compile Include="Services\RerunService.cs" />
     <Compile Include="Services\PipelineService.cs" />
     <Compile Include="DateTimeRange.cs" />
@@ -153,7 +140,6 @@
     <Compile Include="Readers\Base\IReader.cs" />
     <Compile Include="Readers\XmlObjectReader.cs" />
     <Compile Include="Readers\Base\ReaderBase.cs" />
-    <Compile Include="Utilities\Configuration\OptionsConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -178,8 +164,12 @@
   <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\..\..\Edge.Core\branches\3.0.0\Edge.Core.csproj">
-      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
+      <Project>{76F5133E-50CD-4282-97E0-B431FACB3ACC}</Project>
       <Name>Edge.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Edge.Data.Objects\trunk\Edge.Data.Objects.csproj">
+      <Project>{9BC787C7-C269-476B-A87C-E345E7DB9E23}</Project>
+      <Name>Edge.Data.Objects</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
@@ -188,7 +178,7 @@
     <SvnVersion LocalPath=".">
       <Output TaskParameter="Revision" PropertyName="SvnRevision" />
     </SvnVersion>
-    <FormatVersion Version="3.0.0.%2a" Revision="$(SvnRevision)">
+    <FormatVersion Version="2.9.1.%2a" Revision="$(SvnRevision)">
       <Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
     </FormatVersion>
   </Target>

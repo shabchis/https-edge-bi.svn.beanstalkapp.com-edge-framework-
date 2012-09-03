@@ -10,7 +10,6 @@ using System.IO;
 using System.Data.Common;
 using System.Data.SqlClient;
 using Edge.Core.Services;
-using Edge.Core.Data;
 using Edge.Data.Objects;
 using System.Xml.Serialization;
 using System.Xml;
@@ -44,7 +43,7 @@ namespace Edge.Data.Pipeline
 
 			try
 			{
-				SqlCommand cmd = DataManager.CreateCommand(String.Format("{0}(@deliveryID:Char, @deep:bit)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryGet)), System.Data.CommandType.StoredProcedure);
+				SqlCommand cmd = SqlUtility.CreateCommand(String.Format("{0}(@deliveryID:Char, @deep:bit)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryGet)), System.Data.CommandType.StoredProcedure);
 				cmd.Connection = connection;
 				cmd.Parameters["@deliveryID"].Value = deliveryID.ToString("N");
 				cmd.Parameters["@deep"].Value = deep;
@@ -237,7 +236,7 @@ namespace Edge.Data.Pipeline
 					#region [Delete]
 					// ..................
 
-					SqlCommand cmd = DataManager.CreateCommand((String.Format("{0}(@deliveryID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryDelete))), System.Data.CommandType.StoredProcedure);
+					SqlCommand cmd = SqlUtility.CreateCommand((String.Format("{0}(@deliveryID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryDelete))), System.Data.CommandType.StoredProcedure);
 
 					cmd.Connection = client;
 					cmd.Transaction = transaction;
@@ -254,7 +253,7 @@ namespace Edge.Data.Pipeline
 						delivery.DateCreated = DateTime.Now;
 					delivery.DateModified = DateTime.Now;
 
-					cmd = DataManager.CreateCommand(@"
+					cmd = SqlUtility.CreateCommand(@"
 						INSERT INTO [Delivery] (
 								[DeliveryID],
 								[Account_ID],
@@ -308,7 +307,7 @@ namespace Edge.Data.Pipeline
 					foreach (KeyValuePair<string, object> param in delivery.Parameters)
 					{
 
-						cmd = DataManager.CreateCommand(@"
+						cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryParameters](
 								[DeliveryID],
 								[Key],
@@ -342,7 +341,7 @@ namespace Edge.Data.Pipeline
 							file.DateCreated = DateTime.Now;
 						file.DateModified = DateTime.Now;
 
-						cmd = DataManager.CreateCommand(@"
+						cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryFile] (
 								[DeliveryID],
 								[FileID],
@@ -394,7 +393,7 @@ namespace Edge.Data.Pipeline
 					{
 						foreach (KeyValuePair<string, object> param in file.Parameters)
 						{
-							cmd = DataManager.CreateCommand(@"
+							cmd = SqlUtility.CreateCommand(@"
 								INSERT INTO [DeliveryFileParameters] (
 									[DeliveryID],
 									[Name],
@@ -432,7 +431,7 @@ namespace Edge.Data.Pipeline
 							output.DateCreated = DateTime.Now;
 						output.DateModified = DateTime.Now;
 
-						cmd = DataManager.CreateCommand(@"
+						cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryOutput] (
 								[DeliveryID],
 								[OutputID],
@@ -490,7 +489,7 @@ namespace Edge.Data.Pipeline
 					{
 						foreach (KeyValuePair<string, object> param in output.Parameters)
 						{
-							cmd = DataManager.CreateCommand(@"
+							cmd = SqlUtility.CreateCommand(@"
 								INSERT INTO [DeliveryOutputParameters] (
 									[DeliveryID],
 									[OutputID],
@@ -522,7 +521,7 @@ namespace Edge.Data.Pipeline
 					{
 						foreach (KeyValuePair<string, double> sum in output.Checksum)
 						{
-							cmd = DataManager.CreateCommand(@"
+							cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryOutputChecksum] (
 								[DeliveryID],
 								[OutputID],
@@ -581,7 +580,7 @@ namespace Edge.Data.Pipeline
 					#region [Delete]
 					// ..................
 
-					SqlCommand cmd = DataManager.CreateCommand((String.Format("{0}(@outputID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_OutputDelete))), System.Data.CommandType.StoredProcedure);
+					SqlCommand cmd = SqlUtility.CreateCommand((String.Format("{0}(@outputID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_OutputDelete))), System.Data.CommandType.StoredProcedure);
 
 					cmd.Connection = client;
 					cmd.Transaction = transaction;
@@ -610,7 +609,7 @@ namespace Edge.Data.Pipeline
 						output.DateCreated = DateTime.Now;
 					output.DateModified = DateTime.Now;
 
-					cmd = DataManager.CreateCommand(@"
+					cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryOutput] (
 								[DeliveryID],
 								[OutputID],
@@ -667,7 +666,7 @@ namespace Edge.Data.Pipeline
 
 					foreach (KeyValuePair<string, object> param in output.Parameters)
 					{
-						cmd = DataManager.CreateCommand(@"
+						cmd = SqlUtility.CreateCommand(@"
 								INSERT INTO [DeliveryOutputParameters] (
 									[DeliveryID],
 									[OutputID],
@@ -698,7 +697,7 @@ namespace Edge.Data.Pipeline
 
 					foreach (KeyValuePair<string, double> sum in output.Checksum)
 					{
-						cmd = DataManager.CreateCommand(@"
+						cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryOutputChecksum] (
 								[DeliveryID],
 								[OutputID],
@@ -766,7 +765,7 @@ namespace Edge.Data.Pipeline
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
-				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetBySignature(@signature:NvarChar,@exclude:NvarChar)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = SqlUtility.CreateCommand("Delivery_GetBySignature(@signature:NvarChar,@exclude:NvarChar)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
 					cmd.Parameters["@signature"].Value = signature;
@@ -797,7 +796,7 @@ namespace Edge.Data.Pipeline
 
 			using (var client = DeliveryDBClient.Connect())
 			{
-				using (SqlCommand cmd = DataManager.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = SqlUtility.CreateCommand("Delivery_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2,@exact:bit)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
 					cmd.Parameters["@channelID"].Value = channelID;
@@ -829,7 +828,7 @@ namespace Edge.Data.Pipeline
 
 			using (var client = DeliveryDBClient.Connect())
 			{
-				using (SqlCommand cmd = DataManager.CreateCommand("Output_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = SqlUtility.CreateCommand("Output_GetByTargetPeriod(@channelID:Int,@accountID:Int,@targetPeriodStart:DateTime2,@targetPeriodEnd:DateTime2)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
 					cmd.Parameters["@channelID"].Value = channelID;
@@ -930,7 +929,7 @@ namespace Edge.Data.Pipeline
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
-				using (SqlCommand cmd = DataManager.CreateCommand("OutPut_GetBySignature(@signature:NvarChar,@exclude:NvarChar)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = SqlUtility.CreateCommand("OutPut_GetBySignature(@signature:NvarChar,@exclude:NvarChar)", System.Data.CommandType.StoredProcedure))
 				{
 					cmd.Connection = client;
 					cmd.Parameters["@signature"].Value = signature;
@@ -951,7 +950,7 @@ namespace Edge.Data.Pipeline
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
-				using (SqlCommand cmd = DataManager.CreateCommand("OutPut_Get(@outputID:Char)", System.Data.CommandType.StoredProcedure))
+				using (SqlCommand cmd = SqlUtility.CreateCommand("OutPut_Get(@outputID:Char)", System.Data.CommandType.StoredProcedure))
 				{
 
 					cmd.Connection = client;
@@ -1040,7 +1039,7 @@ namespace Edge.Data.Pipeline
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
-				using (SqlCommand cmd = DataManager.CreateCommand(@"SELECT InstanceID
+				using (SqlCommand cmd = SqlUtility.CreateCommand(@"SELECT InstanceID
 																	FROM ServiceInstance 
 																	WHERE State!= 6 AND State!= 7 AND InstanceID=@instanceid:Bigint", System.Data.CommandType.Text))
 				{

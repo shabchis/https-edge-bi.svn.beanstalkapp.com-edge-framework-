@@ -95,7 +95,7 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// 
 		/// </summary>
-		public long? PipelineInstanceID { get; internal set; }
+		public Guid? PipelineInstanceID { get; internal set; }
 
 		/// <summary>
 		/// 
