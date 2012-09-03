@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace Edge.Core.Services
 {
@@ -292,6 +293,44 @@ namespace Edge.Core.Services
 		public ServiceExecutionStatistics GetStatistics(int _percentile)
 		{
 			throw new NotImplementedException();
+		}
+
+
+		public object GetParameter(string paramName, bool emptyIsError = true)
+		{
+			object val = this.Parameters[paramName];
+			if (emptyIsError && val == null)
+				throw new ServiceException(String.Format("The parameter '{0}' is missing in the service configuration.", paramName));
+			return val;
+		}
+
+		/// <summary>
+		/// Gets a configuration option from the Options collection and converts it to the desired type.
+		/// </summary>
+		/// <param name="convertFunction">If null, will try an automatic conversion.</param>
+		public T GetParameter<T>(string paramName, bool emptyIsError = true, T defaultValue = default(T), Func<object, T> convertFunction = null)
+		{
+			object raw = this.GetParameter(paramName, emptyIsError);
+			T val;
+			if (convertFunction != null)
+			{
+				val = convertFunction(raw);
+			}
+			else if (!emptyIsError && raw == null)
+			{
+				val = defaultValue;
+			}
+			else
+			{
+				TypeConverter converter = TypeDescriptor.GetConverter(typeof(T));
+				try { val = (T)converter.ConvertTo(raw, typeof(T)); }
+				catch (Exception ex)
+				{
+					throw new ServiceException(String.Format("The parameter '{0}' could not be converted to {1}. See inner exception for details.", paramName, typeof(T).FullName), ex);
+				}
+			}
+
+			return val;
 		}
 
 		//=================
