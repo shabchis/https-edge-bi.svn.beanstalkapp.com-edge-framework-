@@ -17,18 +17,18 @@ namespace Edge.Data.Pipeline.Services
 			if (this.Delivery == null)
 			{
 				this.Delivery = NewDelivery();
-				this.Delivery.TimePeriodDefinition = this.TimePeriod;
-				this.Delivery.Account = this.Instance.AccountID != -1 ? new Account() { ID = this.Instance.AccountID } : null; // no account means there is no permission validation
-				this.Delivery.FileDirectory = this.Instance.Configuration.GetOption(Const.DeliveryServiceConfigurationOptions.FileDirectory);
+				this.Delivery.TimePeriodDefinition = this.Configuration.TimePeriod.Value;
+				this.Delivery.Account = (int)this.Configuration.Profile.Parameters["AccountID"] != -1 ? new Account() { ID == (int)this.Configuration.Profile.Parameters["AccountID"] } : null; // no account means there is no permission validation
+				this.Delivery.FileDirectory = this.Configuration.GetParameter(Const.DeliveryServiceConfigurationOptions.FileDirectory).ToString();
 
-				int channelID = this.Instance.Configuration.GetOption<int>("ChannelID", emptyIsError: false, defaultValue: -1);
+				int channelID = this.Configuration.GetParameter<int>("ChannelID", emptyIsError: false, defaultValue: -1);
 				if (channelID != -1)
 					this.Delivery.Channel = new Channel()
 					{
 						ID = channelID
 					};
 			}
-			WebRequest request = FileWebRequest.Create(this.Instance.Configuration.Options["SourceUrl"]);
+			WebRequest request = FileWebRequest.Create(this.Configuration.GetParameter("SourceUrl",false).ToString());
 
 			/* FTP */
 			if (request.GetType().Equals(typeof(FtpWebRequest)))
@@ -37,13 +37,12 @@ namespace Edge.Data.Pipeline.Services
 				#region FTP Configuration
 				/*===============================================================================================*/
 
-				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UsePassive"]))
-					throw new Exception("Missing Configuration Param , UsePassive");
-				this.Delivery.Parameters.Add("UsePassive", bool.Parse(this.Instance.Configuration.Options["UsePassive"]));
+				
+				this.Delivery.Parameters.Add("UsePassive", this.Configuration.GetParameter<bool>("UsePassive",true));
 
-				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UseBinary"]))
-					throw new Exception("Missing Configuration Param , UsePassive");
-				this.Delivery.Parameters.Add("UseBinary", bool.Parse(this.Instance.Configuration.Options["UseBinary"]));
+
+
+				this.Delivery.Parameters.Add("UseBinary", this.Configuration.GetParameter<bool>("UseBinary"));
 
 				//Get Permissions
 				if (String.IsNullOrEmpty(this.Instance.Configuration.Options["UserID"]))
