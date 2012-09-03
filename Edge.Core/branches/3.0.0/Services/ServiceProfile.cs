@@ -20,7 +20,7 @@ namespace Edge.Core.Services
 			set;
 		}
 		public string Name { get { return _name; } set { EnsureUnlocked(); _name = value; } }
-		public IDictionary<string, object> Parameters { get; private set; }
+		public ParameterDictionary Parameters { get; private set; }
 		public IList<ServiceConfiguration> Services { get; private set;}
 
 		public ServiceProfile()

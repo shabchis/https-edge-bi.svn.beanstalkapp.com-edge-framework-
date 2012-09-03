@@ -59,7 +59,7 @@ namespace Edge.Core.Services
 			private set;
 		}
 
-		public IDictionary<string, object> Parameters
+		public ParameterDictionary Parameters
 		{
 			get;
 			private set;
