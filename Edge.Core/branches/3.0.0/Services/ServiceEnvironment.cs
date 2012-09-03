@@ -136,6 +136,11 @@ namespace Edge.Core.Services
 			*/
 		}
 
+		public void ScheduleServiceByName(string serviceName, Guid? profileID = null, ServiceConfiguration configuration = null)
+		{
+			throw new NotImplementedException();
+		}
+
 		public void ResetUnendedServices()
 		{
 			var env = this.EnvironmentConfiguration;
