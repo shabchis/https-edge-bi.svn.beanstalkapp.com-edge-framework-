@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Configuration;
-using Edge.Core.Configuration;
 using System.Xml;
 using System.IO;
+using Edge.Core.Services.Configuration;
 
 namespace Edge.Data.Pipeline.Mapping
 {
+	[Obsolete("This class is preserved for backwards compatibility with Edge.Services.config file only.")]
 	public class MappingConfigurationElement : ConfigurationElement, ISerializableConfigurationElement
 	{
 		public const string ExtensionName = "Mappings";

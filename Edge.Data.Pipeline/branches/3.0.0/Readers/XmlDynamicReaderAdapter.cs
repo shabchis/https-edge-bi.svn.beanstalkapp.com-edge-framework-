@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Edge.Core.Services;
 using System.IO;
-using Edge.Core.Configuration;
+using Edge.Core.Services.Configuration;
 
 namespace Edge.Data.Pipeline
 {
@@ -15,9 +15,9 @@ namespace Edge.Data.Pipeline
 	{
 		string _xpath;
 
-		public override void Init(Stream stream, ServiceElement configuration)
+		public override void Init(Stream stream, ServiceConfiguration configuration)
 		{
-			_xpath = configuration.GetOption("XPath");
+			_xpath = configuration.GetParameter<string>("XPath");
 			base.Reader = new XmlDynamicReader(stream, _xpath);
 		}
 

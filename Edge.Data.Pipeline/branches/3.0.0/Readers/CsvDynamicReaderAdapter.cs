@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Edge.Core.Configuration;
 using System.IO;
+using Edge.Core.Services;
 
 namespace Edge.Data.Pipeline
 {
@@ -13,10 +14,10 @@ namespace Edge.Data.Pipeline
 		string _delimeter = null;
 		Encoding _encoding = null;
 
-		public override void Init(Stream stream, ServiceElement configuration)
+		public override void Init(Stream stream, ServiceConfiguration configuration)
 		{
-			_requiredColumns = configuration.GetOption("CsvRequiredColumns").Split();
-			_delimeter = configuration.Options["CsvDelimeter"];
+			_requiredColumns = configuration.GetParameter<string>("CsvRequiredColumns").Split();
+			_delimeter = configuration.GetParameter<string>("CsvDelimeter", defaultValue: ",");
 
 			char delimeterCode ;
 
@@ -30,7 +31,7 @@ namespace Edge.Data.Pipeline
 					break;
 			}
 
-			string encoding = configuration.Options["CsvEncoding"];
+			string encoding = configuration.GetParameter<string>("CsvEncoding", emptyIsError: false);
 			if (!String.IsNullOrEmpty(encoding))
 				_encoding = Encoding.GetEncoding(encoding);
 

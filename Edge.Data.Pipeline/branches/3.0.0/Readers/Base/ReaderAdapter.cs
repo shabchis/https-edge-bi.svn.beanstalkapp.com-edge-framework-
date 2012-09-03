@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using Edge.Core.Configuration;
+using Edge.Core.Services;
 
 namespace Edge.Data.Pipeline
 {
@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline
 	{
 		public IReader Reader { get; protected set; }
 
-		public abstract void Init(Stream stream, ServiceElement configuration);
+		public abstract void Init(Stream stream, ServiceConfiguration configuration);
 		public abstract object GetField(string field);
 
 		public void Dispose()
