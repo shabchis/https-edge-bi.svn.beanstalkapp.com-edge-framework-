@@ -185,7 +185,6 @@ namespace Edge.Data.Pipeline.Services
 		#region Mapping
 		// ==============================
 
-		/*
 		MappingConfiguration _mapping = null;
 
 		public MappingConfiguration Mappings
@@ -194,25 +193,19 @@ namespace Edge.Data.Pipeline.Services
 			{
 				if (_mapping == null)
 				{
-					ConfigurationElement extension;
-					if (!this.Instance.Configuration.Extensions.TryGetValue(MappingConfigurationElement.ExtensionName, out extension))
-					{
-						AccountElement account = EdgeServicesConfiguration.Current.Accounts.GetAccount(this.Instance.AccountID);
-						if (!account.Extensions.TryGetValue(MappingConfigurationElement.ExtensionName, out extension))
-							extension = null;
-					}
 					_mapping = new MappingConfiguration();
 					_mapping.Usings.Add("System.{0}, mscorlib");
+					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Objects");
 					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Pipeline");
 
+					MappingConfigurationElement extension = this.Configuration.GetParameter<MappingConfigurationElement>("MappingConfigurationElement", false);
 					if (extension != null)
-						((MappingConfigurationElement)extension).LoadInto(_mapping);
+						extension.LoadInto(_mapping);
 				}
 
 				return _mapping;
 			}
 		}
-		*/
 
 		// ==============================
 		#endregion
@@ -230,34 +223,27 @@ namespace Edge.Data.Pipeline.Services
 
 		DeliveryConflictBehavior? _conflictBehavior;
 		public DeliveryConflictBehavior? ConflictBehavior { get { return _conflictBehavior; } set { EnsureUnlocked(); _conflictBehavior = value; } }
-	}
 
+		protected override void Serialize(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
+		{
+			base.Serialize(info, context);
+			info.AddValue("_deliveryID", _deliveryID);
+			info.AddValue("_timePeriod", _timePeriod);
+			info.AddValue("_conflictBehavior", _conflictBehavior);
+		}
+
+		protected override void Deserialize(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
+		{
+			base.Deserialize(info, context);
+			_deliveryID = (Guid?)info.GetValue("_deliveryID", typeof(Guid?));
+			_timePeriod = (DateTimeRange?)info.GetValue("_timePeriod", typeof(DateTimeRange?));
+			_conflictBehavior = (DeliveryConflictBehavior?)info.GetValue("_conflictBehavior", typeof(DeliveryConflictBehavior?));
+		}
+	}
 
 	public enum DeliveryConflictBehavior
 	{
 		Ignore,
 		Abort
 	}
-
-	public enum DeliveryTicketBehavior
-	{
-		Ignore,
-		Abort
-	}
-
-
-	public enum DeliveryTicketStatus
-	{
-		ClaimedByOther = 0,
-		AlreadyClaimed = 1,
-		Claimed = 2
-	}
-
-	public enum DateTimeRangeLimitation
-	{
-		None,
-		SameDay,
-		SameMonth
-	}
-
 }
