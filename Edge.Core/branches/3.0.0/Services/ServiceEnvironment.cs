@@ -141,7 +141,7 @@ namespace Edge.Core.Services
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				var command = new SqlCommand(env.SP_HostUnregister, connection);
+				var command = new SqlCommand(env.SP_InstanceReset, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				connection.Open();
 				command.ExecuteNonQuery();
