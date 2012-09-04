@@ -98,6 +98,7 @@
     <Compile Include="Deliveries\DeliveryFileDownloadOperation.cs" />
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="Deliveries\DeliveryChildList.cs" />
+    <Compile Include="Deliveries\DeliveryManagerException.cs" />
     <Compile Include="Deliveries\Enums.cs" />
     <Compile Include="Deliveries\DeliveryOutput.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
@@ -129,7 +130,7 @@
     <Compile Include="FileSystem\FileManager.cs" />
     <Compile Include="Deliveries\DeliveryDB.cs" />
     <Compile Include="Deliveries\DeliveryFile.cs" />
-    <Compile Include="Deliveries\DeliveryImportManager.cs" />
+    <Compile Include="Deliveries\DeliveryManager.cs" />
     <Compile Include="Readers\Base\DynamicDictionaryObject.cs" />
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
@@ -179,7 +180,7 @@
     <SvnVersion LocalPath=".">
       <Output TaskParameter="Revision" PropertyName="SvnRevision" />
     </SvnVersion>
-    <FormatVersion Version="2.9.1.%2a" Revision="$(SvnRevision)">
+    <FormatVersion Version="3.0.0.%2a" Revision="$(SvnRevision)">
       <Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
     </FormatVersion>
   </Target>

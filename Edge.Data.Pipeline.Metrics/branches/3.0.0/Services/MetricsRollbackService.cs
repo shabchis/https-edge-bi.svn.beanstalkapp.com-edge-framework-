@@ -7,7 +7,6 @@ using Edge.Data.Pipeline;
 using Edge.Core.Utilities;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
-using Edge.Core.Data;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
@@ -17,20 +16,20 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			string[] deliveriesIds=null;
 			string[] ouputsIds=null;
-			if (Instance.Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackDeliveries))
-				deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
-			else if (Instance.Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackOutputs))
-				ouputsIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
+			if (Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackDeliveries))
+				deliveriesIds = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
+			else if (Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackOutputs))
+				ouputsIds = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
 			else
 				throw new Exception("Option RollbackDeliveries or RollbackOutputs must be defined");
-			string spRolebackbyDeliveries = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByDeliverisStoredProc);
-			string spRolebackbyOutputs = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByOutputsStoredProc);
-			string tableName = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
+			string spRolebackbyDeliveries = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByDeliverisStoredProc);
+			string spRolebackbyOutputs = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByOutputsStoredProc);
+			string tableName = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
 
 
 
 
-			using (SqlConnection conn = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.StagingDatabase)))
+			using (SqlConnection conn = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Staging)))
 			{
 				SqlTransaction tran = null;
 				SqlCommand cmd = null;
@@ -38,7 +37,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				if (deliveriesIds != null && deliveriesIds.Length > 0)
 				{
 					tran = conn.BeginTransaction();
-					cmd = DataManager.CreateCommand(spRolebackbyDeliveries, System.Data.CommandType.StoredProcedure);
+					cmd = SqlUtility.CreateCommand(spRolebackbyDeliveries, System.Data.CommandType.StoredProcedure);
 					cmd.Connection = conn;
 					cmd.Transaction = tran;
 
@@ -53,7 +52,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				if (ouputsIds != null && ouputsIds.Length > 0)
 				{
 
-					cmd = DataManager.CreateCommand(spRolebackbyOutputs, System.Data.CommandType.StoredProcedure);
+					cmd = SqlUtility.CreateCommand(spRolebackbyOutputs, System.Data.CommandType.StoredProcedure);
 					cmd.Connection = conn;
 					cmd.Transaction = tran;
 
@@ -79,30 +78,30 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			////*
 
 			/*
-			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
+			string checksumThreshold = Configuration.Parameters.Get<T>(Consts.ConfigurationOptions.ChecksumTheshold];
 			MetricsImportManagerOptions options = new MetricsImportManagerOptions()
 			{
-				SqlTransformCommand = Instance.Configuration.Options[Consts.AppSettings.SqlTransformCommand],
-				SqlStageCommand = Instance.Configuration.Options[Consts.AppSettings.SqlStageCommand],
-				SqlRollbackCommand = Instance.Configuration.Options[Consts.AppSettings.SqlRollbackCommand],
+				SqlTransformCommand = Configuration.Parameters.Get<T>(Consts.AppSettings.SqlTransformCommand],
+				SqlStageCommand = Configuration.Parameters.Get<T>(Consts.AppSettings.SqlStageCommand],
+				SqlRollbackCommand = Configuration.Parameters.Get<T>(Consts.AppSettings.SqlRollbackCommand],
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
-			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
-			string importManagerTypeName = Instance.Configuration.GetOption(Consts.ConfigurationOptions.ImportManagerType);
+			string checksumThreshold = Configuration.Parameters.Get<T>(Consts.ConfigurationOptions.ChecksumTheshold];
+			string importManagerTypeName = Configuration.GetOption(Consts.ConfigurationOptions.ImportManagerType);
 			Type importManagerType = Type.GetType(importManagerTypeName);
-			var importManager = (MetricsImportManager)Activator.CreateInstance(importManagerType, this.Instance.InstanceID, options);
+			var importManager = (MetricsImportManager)Activator.CreateInstance(importManagerType, this.InstanceID, options);
 
 			
 			string[] deliveriesIds = null;
 			string[] ouputsIds = null;
-			if (Instance.Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackDeliveries))
-				deliveriesIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
-			else if (Instance.Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackOutputs))
-				ouputsIds = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
+			if (Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackDeliveries))
+				deliveriesIds = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
+			else if (Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackOutputs))
+				ouputsIds = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
 			else
 				throw new Exception("Option RollbackDeliveries or RollbackOutputs must be defined");
 			
-			string tableName = this.Instance.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
+			string tableName = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
 			List<DeliveryOutput> outputs=new List<DeliveryOutput>();
 			List<Delivery> Deliveries=new List<Delivery>();
 			if (deliveriesIds != null && deliveriesIds.Length > 0)

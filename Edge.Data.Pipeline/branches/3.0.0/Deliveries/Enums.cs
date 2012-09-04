@@ -19,14 +19,13 @@ namespace Edge.Data.Pipeline
 
 	public enum DeliveryOutputStatus
 	{
-		// This 
-		Empty		= 0,
-		Imported	= 1,
-		Transformed = 2,
-		Staged		= 3,
-		Committed	= 4,
-		RolledBack	= 5,
-		Canceled	= 6,
-		PendingRoleBack=7
+		Empty			= 0,
+		Imported		= 1,
+		Transformed		= 2,
+		Staged			= 3,
+		Committed		= 4,
+		RolledBack		= 5,
+		Canceled		= 6,
+		RollbackPending	= 7
 	}
 }

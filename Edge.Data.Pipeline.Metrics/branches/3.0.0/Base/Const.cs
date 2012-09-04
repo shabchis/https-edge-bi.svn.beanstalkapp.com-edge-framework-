@@ -10,10 +10,10 @@ namespace Edge.Data.Pipeline.Metrics
 		public static class DeliveryHistoryParameters
 		{
 			public const string TablePerfix = "TablePerfix";
-			public const string MeasureNamesSql = "MeasureNamesSql";
-			public const string MeasureFieldsSql = "MeasureFieldsSql";
-			public const string MeasureValidateSql = "MeasureValidateSql";
-			public const string CommitTableName = "CommitTableName";
+
+			public const string DeliveryMetricsTableName = "DeliveryMetricsTableName";
+			public const string StagingMetricsTableName = "StagingMetricsTableName";
+			public const string CommitMetricsTableName = "CommitMetricsTableName";
 		}
 
 		public static class AppSettings
@@ -21,13 +21,18 @@ namespace Edge.Data.Pipeline.Metrics
 			public const string BufferSize = "BufferSize";
 			public const string SqlTransformCommand = "Sql.TransformCommand";
 			public const string SqlStageCommand = "Sql.StageCommand";
+			public const string SqlCommitCommand = "Sql.CommitCommand";
 			public const string SqlRollbackCommand = "Sql.RollbackCommand";
 			
 		}
 
 		public static class ConnectionStrings
 		{
-			public const string StagingDatabase = "StagingDatabase";
+			public const string Objects = "Edge.Objects";
+			public const string Deliveries = "Edge.Deliveries";
+			public const string Staging = "Edge.Staging";
+			public const string DataWarehouse = "Edge.Dwh";
+			public const string System = "Edge.System";
 		}
 
 		public static class ConfigurationOptions

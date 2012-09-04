@@ -6,18 +6,18 @@ using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline
 {
-	public abstract class DeliveryImportManager: IDisposable
+	public abstract class DeliveryManager: IDisposable
 	{
 		long _serviceInstanceID;
 
-		public DeliveryImportManager(long serviceInstanceID)
+		public DeliveryManager(long serviceInstanceID)
 		{
-			this.State = DeliveryImportManagerState.Idle;
+			this.State = DeliveryManagerState.Idle;
 			_serviceInstanceID = serviceInstanceID;
 		}
 		
 
-		public DeliveryImportManagerState State
+		public DeliveryManagerState State
 		{
 			get;
 			protected set;
@@ -50,7 +50,7 @@ namespace Edge.Data.Pipeline
 		public void BeginImport(Delivery delivery)
 		{
 			ThrowIfNotIdle();
-			this.State = DeliveryImportManagerState.Importing;
+			this.State = DeliveryManagerState.Importing;
 			this.CurrentDelivery = delivery;
 			
 			OnBeginImport();
@@ -58,14 +58,14 @@ namespace Edge.Data.Pipeline
 
 		public void EndImport()
 		{
-			if (this.State != DeliveryImportManagerState.Importing)
+			if (this.State != DeliveryManagerState.Importing)
 				throw new InvalidOperationException("EndImport can only be called after BeginImport.");
 			OnEndImport();
 
 			this.CurrentDelivery.Save();
 			this.CurrentDelivery = null;
 
-			this.State = DeliveryImportManagerState.Idle;
+			this.State = DeliveryManagerState.Idle;
 
 			OnDisposeImport();
 			OnDispose();
@@ -97,7 +97,7 @@ namespace Edge.Data.Pipeline
 				OnBeginTransformPass,
 				OnEndTransformPass,
 				OnTransform,
-				DeliveryImportManagerState.Transforming);
+				DeliveryManagerState.Transforming);
 		}
 
 		public void Stage(Delivery[] deliveries)
@@ -118,7 +118,7 @@ namespace Edge.Data.Pipeline
 				OnBeginStagePass,
 				OnEndStagePass,
 				OnStage,
-				DeliveryImportManagerState.Staging);
+				DeliveryManagerState.Staging);
 		}
 
 		public void Commit(Delivery[] deliveries)
@@ -139,7 +139,7 @@ namespace Edge.Data.Pipeline
 				OnBeginCommitPass,
 				OnEndCommitPass,
 				OnCommit,
-				DeliveryImportManagerState.Comitting);
+				DeliveryManagerState.Comitting);
 		}
 
 		public void RollbackDeliveries(Delivery[] deliveries)
@@ -160,7 +160,7 @@ namespace Edge.Data.Pipeline
 				OnBeginRollbackPass,
 				OnEndRollbackPass,
 				OnRollbackDelivery,
-				DeliveryImportManagerState.RollingBack);
+				DeliveryManagerState.RollingBack);
 		}
 
 		public void RollbackOutputs(DeliveryOutput[] outputs)
@@ -182,7 +182,7 @@ namespace Edge.Data.Pipeline
 				OnBeginRollbackPass,
 				OnEndRollbackPass,
 				OnRollbackOutput,
-				DeliveryImportManagerState.RollingBack);
+				DeliveryManagerState.RollingBack);
 		}
 
 		void Batch<T>(T[] items,
@@ -192,7 +192,7 @@ namespace Edge.Data.Pipeline
 			Action<int> onBeginPass,
 			Action<int> onEndPass,
 			Action<T, int> onItem,
-			DeliveryImportManagerState activeState)
+			DeliveryManagerState activeState)
 		{
 			ThrowIfNotIdle();
 			this.State = activeState;
@@ -234,7 +234,7 @@ namespace Edge.Data.Pipeline
 			}
 			finally
 			{
-				this.State = DeliveryImportManagerState.Idle;
+				this.State = DeliveryManagerState.Idle;
 			}
 
 			
@@ -245,7 +245,7 @@ namespace Edge.Data.Pipeline
 
 		void ThrowIfNotIdle()
 		{
-			if (this.State != DeliveryImportManagerState.Idle)
+			if (this.State != DeliveryManagerState.Idle)
 				throw new InvalidOperationException("DeliveryImportManager is currently in a busy state.");
 		}
 
@@ -294,7 +294,7 @@ namespace Edge.Data.Pipeline
 		protected virtual void OnDispose() { }
 	}
 
-	public enum DeliveryImportManagerState
+	public enum DeliveryManagerState
 	{
 		Idle,
 		Importing,

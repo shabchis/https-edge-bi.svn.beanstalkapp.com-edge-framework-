@@ -17,17 +17,17 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// Setup/defaults/configuration/etc.
 			// ------------------------------------------
 
-			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
-			var importManagerOptions = new MetricsImportManagerOptions()
+			string checksumThreshold = Configuration.Parameters.Get<T>(Consts.ConfigurationOptions.ChecksumTheshold);
+			var importManagerOptions = new MetricsDeliveryManagerOptions()
 			{
-				SqlTransformCommand = Instance.Configuration.Options[Consts.AppSettings.SqlTransformCommand],
-				SqlStageCommand = Instance.Configuration.Options[Consts.AppSettings.SqlStageCommand],
-				SqlRollbackCommand = Instance.Configuration.Options[Consts.AppSettings.SqlRollbackCommand],
+				SqlTransformCommand = Configuration.Parameters.Get<T>(Consts.AppSettings.SqlTransformCommand),
+				SqlStageCommand = Configuration.Parameters.Get<T>(Consts.AppSettings.SqlStageCommand),
+				SqlRollbackCommand = Configuration.Parameters.Get<T>(Consts.AppSettings.SqlRollbackCommand),
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
 
 			string fileName;
-			if (!this.Instance.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.DeliveryFileName, out fileName))
+			if (!this.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.DeliveryFileName, out fileName))
 				throw new ConfigurationException(String.Format("{0} is missing in the service configuration options.", Const.DeliveryServiceConfigurationOptions.DeliveryFileName));
 
 			DeliveryFile file = this.Delivery.Files[fileName];
@@ -36,7 +36,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			FileCompression compression;
 			string compressionOption;
-			if (this.Instance.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.Compression, out compressionOption))
+			if (this.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.Compression, out compressionOption))
 			{
 				if (!Enum.TryParse<FileCompression>(compressionOption, out compression))
 					throw new ConfigurationException(String.Format("Invalid compression type '{0}'.", compressionOption));
@@ -45,7 +45,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				compression = FileCompression.None;
 
 			// Create format processor from configuration
-			string adapterTypeName = Instance.Configuration.GetOption(Consts.ConfigurationOptions.ReaderAdapterType);
+			string adapterTypeName = Configuration.GetOption(Consts.ConfigurationOptions.ReaderAdapterType);
 			Type readerAdapterType = Type.GetType(adapterTypeName, true);
 			this.ReaderAdapter = (ReaderAdapter)Activator.CreateInstance(readerAdapterType);
 
@@ -59,9 +59,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (this.ReaderAdapter)
 				{
-					this.ReaderAdapter.Init(stream, Instance.Configuration);
+					this.ReaderAdapter.Init(stream, Configuration);
 
-					using (this.ImportManager = CreateImportManager(Instance.InstanceID, importManagerOptions))
+					using (this.ImportManager = CreateImportManager(InstanceID, importManagerOptions))
 					{
 						this.ImportManager.BeginImport(this.Delivery);
                         bool readSuccess = false;
@@ -72,7 +72,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
                         }
 
                         if (!readSuccess)
-                            Edge.Core.Utilities.Log.Write("Could Not read data from file!, check file mapping and configuration", Core.Utilities.LogMessageType.Warning);
+                            Edge.Core.Utilities.Log("Could Not read data from file!, check file mapping and configuration", Core.Utilities.LogMessageType.Warning);
 							
 						this.ImportManager.EndImport();
 					}
@@ -83,7 +83,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		}
 
 		protected virtual void LoadConfiguration() { }
-		protected abstract MetricsImportManager CreateImportManager(long serviceInstanceID, MetricsImportManagerOptions options);
+		protected abstract MetricsDeliveryManager CreateImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options);
 		protected abstract void OnRead();
 
 	}

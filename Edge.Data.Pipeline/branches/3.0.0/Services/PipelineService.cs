@@ -115,7 +115,7 @@ namespace Edge.Data.Pipeline.Services
 		/// <param name="delivery"></param>
 		/// <param name="conflictBehavior">Indicates how conflicting deliveries will be handled.</param>
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
-		public void HandleConflicts(DeliveryImportManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
+		public void HandleConflicts(DeliveryManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
 			if (this.Delivery.Outputs.Count < 1)
 				return;

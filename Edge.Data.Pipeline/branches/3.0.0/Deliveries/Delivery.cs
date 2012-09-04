@@ -11,18 +11,6 @@ namespace Edge.Data.Pipeline
 {
 	public class Delivery
 	{
-		#region Consts
-		// =============================
-		public class Consts
-		{
-			public static class ConnectionStrings
-			{
-				public const string SqlStagingDatabase = "Sql.DeliveriesDb";
-			}
-		}
-		// =============================
-		#endregion
-
 		#region Fields
 		// =============================
 
@@ -40,8 +28,7 @@ namespace Edge.Data.Pipeline
 		public Delivery(Guid specifiedDeliveryID)
 		{
 			if (specifiedDeliveryID == Guid.Empty)
-				throw new ArgumentNullException("In current version (Pipeline 2.9) a delivery ID is required when creating a new delivery. " +
-					"If this exception occured in an initializer service, check that the workflow service is defined as Edge.Data.Pipeline.Services.PipelineWorkflowService.");
+				throw new ArgumentException("Delivery ID is required when creating a new delivery.", "specifiedDeliveryID");
 
 			this.Files = new DeliveryChildList<DeliveryFile>(this);
 			this.Outputs = new DeliveryChildList<DeliveryOutput>(this);

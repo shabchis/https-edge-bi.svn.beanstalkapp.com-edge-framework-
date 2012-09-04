@@ -241,6 +241,11 @@ namespace Edge.Core.Services
 			return !Object.Equals(config1, config2);
 		}
 
+		public override int GetHashCode()
+		{
+			return this.ConfigurationID.GetHashCode();
+		}
+
 		/// <summary>
 		/// Throws an exception if the current level is not the specified level.
 		/// </summary>

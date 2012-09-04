@@ -4,24 +4,33 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
-using Edge.Core.Data;
 using System.Reflection;
 using Edge.Core.Configuration;
 using Edge.Data.Objects;
+using Edge.Core.Utilities;
 
-namespace Edge.Data.Pipeline.Common.Importing
+namespace Edge.Data.Pipeline.Metrics
 {
-	public class MetricsImportManagerOptions
+	public enum OptionsMatching
+	{
+		Any = 0,
+		All = 1,
+		Without = -1
+	}
+
+	public class MetricsDeliveryManagerOptions
 	{
 		public string StagingConnectionString { get; set; }
+		public string CommitConnectionString { get; set; }
 		public string SqlTransformCommand { get; set; }
 		public string SqlStageCommand { get; set; }
+		public string SqlCommitCommand { get; set; }
 		public string SqlRollbackCommand { get; set; }
 		public double ChecksumThreshold { get; set; }
 		public MeasureOptions MeasureOptions { get; set; }
-		public OptionsOperator MeasureOptionsOperator { get; set; }
-		public SegmentOptions SegmentOptions { get; set; }
-		public OptionsOperator SegmentOptionsOperator { get; set; }
+		public OptionsMatching MeasureOptionsMatch { get; set; }
+		public MetaPropertyOptions MetaPropertyOptions { get; set; }
+		public OptionsMatching MetaPropertyOptionsMatch { get; set; }
 	}
 
 	public static class TableDef
@@ -158,7 +167,7 @@ namespace Edge.Data.Pipeline.Common.Importing
 			DataRow row = this.Table.NewRow();
 			foreach (KeyValuePair<ColumnDef, object> col in values)
 			{
-				row[col.Key.Name] = DataManager.Normalize(col.Value);
+				row[col.Key.Name] = SqlUtility.Normalize(col.Value);
 			}
 
 			this.Table.Rows.Add(row);
