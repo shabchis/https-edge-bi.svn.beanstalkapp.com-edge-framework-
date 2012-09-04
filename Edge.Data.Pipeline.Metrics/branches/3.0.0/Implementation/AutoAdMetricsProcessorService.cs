@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Edge.Core.Data;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline;
 using Edge.Data.Pipeline.Services;
@@ -28,7 +27,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			get { return (AdMetricsImportManager)base.ImportManager; }
 		}
 
-		protected override MetricsImportManager CreateImportManager(long serviceInstanceID, MetricsImportManagerOptions options)
+		protected override MetricsDeliveryManager CreateImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options)
 		{
 			return new AdMetricsImportManager(serviceInstanceID, options);
 		}

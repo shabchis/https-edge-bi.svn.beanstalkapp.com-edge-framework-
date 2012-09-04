@@ -20,11 +20,11 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		public Dictionary<string, Account> Accounts {get; private set;}
 		public Dictionary<string, Channel> Channels {get; private set;}
-		public MetricsImportManager ImportManager { get; protected set; }
+		public MetricsDeliveryManager ImportManager { get; protected set; }
 
 		protected override void OnInit()
 		{
-			Accounts = GetAccountsFromDB(Instance.AccountID);
+			Accounts = GetAccountsFromDB(AccountID);
 			Channels = GetChannelsFromDB();
 			
 			// Load mapping configuration
@@ -56,13 +56,13 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			var n = (string)name;
 			Account a;
 			if (!Accounts.TryGetValue(n, out a))
-				throw new MappingException(String.Format("No account named '{0}' could be found, or it cannot be used from within account #{1}.", n, Instance.AccountID));
+				throw new MappingException(String.Format("No account named '{0}' could be found, or it cannot be used from within account #{1}.", n, AccountID));
 			return a;
 		}
 
 		public Account GetCurrentAccount()
 		{
-			return new Account() { ID = this.Instance.AccountID};
+			return new Account() { ID = this.AccountID};
 		}
 
 		public Channel GetChannel(dynamic name)
@@ -83,7 +83,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			var n = (string)name;
 			Segment s;
-			if (!ImportManager.SegmentTypes.TryGetValue(n, out s))
+			if (!ImportManager.MetaProperties.TryGetValue(n, out s))
 				throw new MappingException(String.Format("No segment named '{0}' could be found.", n));
 			return s;
 		}
@@ -140,7 +140,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (connection)
 				{
-					SqlCommand cmd = DataManager.CreateCommand(@"GetAccountFamily_ById(@CurrentAccountId:int)", System.Data.CommandType.StoredProcedure);
+					SqlCommand cmd = SqlUtility.CreateCommand(@"GetAccountFamily_ById(@CurrentAccountId:int)", System.Data.CommandType.StoredProcedure);
 					cmd.Connection = connection;
 					connection.Open();
 					cmd.Parameters["@CurrentAccountId"].Value = currentAccountId;
@@ -175,7 +175,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (connection)
 				{
-					SqlCommand cmd = DataManager.CreateCommand(@"GetChannels()", System.Data.CommandType.StoredProcedure);
+					SqlCommand cmd = SqlUtility.CreateCommand(@"GetChannels()", System.Data.CommandType.StoredProcedure);
 					cmd.Connection = connection;
 					connection.Open();
 					using (SqlDataReader reader = cmd.ExecuteReader())

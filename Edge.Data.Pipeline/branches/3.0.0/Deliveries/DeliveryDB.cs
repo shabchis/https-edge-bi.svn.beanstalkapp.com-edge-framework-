@@ -59,11 +59,7 @@ namespace Edge.Data.Pipeline
 						delivery = new Delivery(reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)))
 						{
 							FullyLoaded = deep,
-							Account = reader.Convert<int?, Account>("Account_ID", id => id.HasValue ? new Account()
-							{
-								ID = id.Value,
-								OriginalID = reader.Get<string>("Account_OriginalID"),
-							} : null),
+							Account = reader.Convert<int?, Account>("Account_ID", id => id.HasValue ? new Account() { ID = id.Value } : null),
 							Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
 							DateCreated = reader.Get<DateTime>("DateCreated"),
 							DateModified = reader.Get<DateTime>("DateModified"),
@@ -145,11 +141,7 @@ namespace Edge.Data.Pipeline
 									{
 
 										OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
-										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() 
-										{ 
-											ID = id.Value,
- 											OriginalID = reader.Get<string>("AccountOriginalID")
-										} : null),
+										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() {  ID = id.Value } : null),
 										Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
 										Signature = reader.Get<string>("Signature"),
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
@@ -287,7 +279,6 @@ namespace Edge.Data.Pipeline
 
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.Parameters["@account_ID"].Value = delivery.Account != null ? delivery.Account.ID : -1;
-                    cmd.Parameters["@account_originalID"].Value = delivery.Account == null ? (object)DBNull.Value : delivery.Account.OriginalID == null ? (object)DBNull.Value : delivery.Account.OriginalID;
 					cmd.Parameters["@channelID"].Value = delivery.Channel != null ? delivery.Channel.ID : -1; ;
 					cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
 					cmd.Parameters["@dateModified"].Value = delivery.DateModified;
@@ -466,7 +457,6 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 						cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
-						cmd.Parameters["@accountOriginalID"].Value = output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value;
 						cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 						cmd.Parameters["@signature"].Value = output.Signature;
 						cmd.Parameters["@status"].Value = output.Status;
@@ -644,7 +634,6 @@ namespace Edge.Data.Pipeline
 					 cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID;
 					cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 					cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
-					cmd.Parameters["@accountOriginalID"].Value = output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value;
 					cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 					cmd.Parameters["@signature"].Value = output.Signature;
 					cmd.Parameters["@status"].Value = output.Status;
@@ -971,7 +960,6 @@ namespace Edge.Data.Pipeline
 								PipelineInstanceID = reader.Get<Guid?>("PipelineInstanceID")
 							};
 
-							output.Account.OriginalID = reader.Get<string>("AccountOriginalID");
 							#endregion
 
 							#region DeliveryOutputParameters

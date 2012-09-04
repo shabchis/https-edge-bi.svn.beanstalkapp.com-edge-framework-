@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Edge.Core.Configuration;
-using Edge.Core.Data;
 using Edge.Core.Services;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
@@ -20,7 +19,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 	/// <summary>
 	/// Encapsulates the process of adding ads and ad metrics to the delivery staging database.
 	/// </summary>
-	public class AdMetricsImportManager : MetricsImportManager<AdMetricsUnit>
+	public class AdMetricsImportManager : MetricsDeliveryManager<AdMetricsUnit>
 	{
 		#region Table structure
 		/*=========================*/
@@ -109,16 +108,16 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		/// <summary>
 		/// 
 		/// </summary>
-		public AdMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
+		public AdMetricsImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID, options)
 		{
 			bool hasMeasureOptions = this.Options.MeasureOptions != MeasureOptions.None;
 			this.Options.MeasureOptions = hasMeasureOptions ? this.Options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
-			this.Options.MeasureOptionsOperator = hasMeasureOptions ? this.Options.MeasureOptionsOperator : OptionsOperator.Not;
+			this.Options.MeasureOptionsMatch = hasMeasureOptions ? this.Options.MeasureOptionsMatch : OptionsMatching.Without;
 
 			bool hasSegmentOptions = this.Options.SegmentOptions != SegmentOptions.None;
 			this.Options.SegmentOptions = hasSegmentOptions ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
-			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsOperator.And;
+			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsMatching.All;
 		}
 
 		/// <summary>
@@ -299,7 +298,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 		}
 
-		protected override string TablePrefixType
+		protected override string TablePrefix
 		{
 			get { return "AD"; }
 		}

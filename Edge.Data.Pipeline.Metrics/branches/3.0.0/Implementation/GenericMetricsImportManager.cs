@@ -15,7 +15,7 @@ using Edge.Data.Objects.Reflection;
 
 namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 {
-	public class GenericMetricsImportManager : MetricsImportManager<GenericMetricsUnit>
+	public class GenericMetricsImportManager : MetricsDeliveryManager<GenericMetricsUnit>
 	{
 		#region Table structure
 		/*=========================*/
@@ -59,16 +59,16 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 		/*=========================*/
 		#endregion
 
-		public GenericMetricsImportManager(long serviceInstanceID, MetricsImportManagerOptions options = null)
+		public GenericMetricsImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID, options)
 		{
 			bool hasMeasureOptions = this.Options.MeasureOptions != MeasureOptions.None;
 			this.Options.MeasureOptions = hasMeasureOptions ? this.Options.MeasureOptions :MeasureOptions.IsBackOffice;
-			this.Options.MeasureOptionsOperator = hasMeasureOptions ? this.Options.MeasureOptionsOperator : OptionsOperator.Or;
+			this.Options.MeasureOptionsMatch = hasMeasureOptions ? this.Options.MeasureOptionsMatch : OptionsMatching.Any;
 
 			bool hasSegmentOptions = this.Options.SegmentOptions != SegmentOptions.None;
 			this.Options.SegmentOptions = hasSegmentOptions ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
-			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsOperator.And;
+			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsMatching.All;
 		}
 
 		public override void ImportMetrics(GenericMetricsUnit metrics)
@@ -147,7 +147,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			}
 		}
 
-		protected override string TablePrefixType
+		protected override string TablePrefix
 		{
 			get { return "GEN"; }
 		}

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Edge.Data.Objects.Objects;
 using System.Reflection;
 
 namespace Edge.Data.Objects

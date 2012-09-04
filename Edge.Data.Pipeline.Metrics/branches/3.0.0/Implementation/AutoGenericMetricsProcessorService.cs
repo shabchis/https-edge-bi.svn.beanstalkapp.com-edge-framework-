@@ -27,7 +27,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			get { return (GenericMetricsImportManager)base.ImportManager; }
 		}
 
-		protected override MetricsImportManager CreateImportManager(long serviceInstanceID, MetricsImportManagerOptions options)
+		protected override MetricsDeliveryManager CreateImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options)
 		{
 			return new GenericMetricsImportManager(serviceInstanceID, options);
 		}
@@ -49,7 +49,7 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
             //Writing to Log 
             //if (metrics.Output.Checksum.Count() == 0)
             //{
-            //    Edge.Core.Utilities.Log.Write("Output checksum is empty",Core.Utilities.LogMessageType.Information);
+            //    Edge.Core.Utilities.Log("Output checksum is empty",Core.Utilities.LogMessageType.Information);
             //}
 
 			var signature = new Signature();

@@ -71,20 +71,26 @@ namespace Edge.Core.Configuration
 		/// </exception>
 		public static string Get(object caller, string setting, bool throwException = true, bool isConnectionString = false, System.Configuration.Configuration configFile = null)
 		{
-			string prefix;
+			string prefix = string.Empty;
 			Type targetType = null;
 
 			// Get the type to start the search with - either the passed Type object or the type of the object passed
-			if (caller is string)
-				prefix = (string)caller;
-			else
+			if (caller != null)
 			{
-				targetType = caller is Type ? (Type)caller :
-					caller.GetType();
-				prefix = targetType.FullName;
+				if (caller is string)
+				{
+					prefix = (string)caller;
+				}
+				else
+				{
+					targetType = caller is Type ? (Type)caller :
+						caller.GetType();
+					prefix = targetType.FullName;
+				}
+				prefix += ".";
 			}
 
-			string originalKey = prefix + "." + setting;
+			string originalKey = prefix + setting;
 
 			string settingKey = null;
 			string val = null;
@@ -95,7 +101,7 @@ namespace Edge.Core.Configuration
 			// Go up the class hierarchy searching for requested config var
 			while (val == null && prefix != null)
 			{
-				settingKey = prefix + "." + setting;
+				settingKey = prefix + setting;
 
 				// Try getting app setting/conn string from custom config file
 				bool useExeConfig = true;
@@ -151,6 +157,11 @@ namespace Edge.Core.Configuration
 			return Get(caller, name, throwException, true, configFile);
 		}
 
+		public static string GetConnectionString(string name, bool throwException = true, System.Configuration.Configuration configFile = null)
+		{
+			return GetConnectionString(null, name, throwException, configFile);
+		}
+
 		public static string GetConnectionString(object caller, string name)
 		{
 			return GetConnectionString(caller, name, true);
@@ -189,7 +200,7 @@ namespace Edge.Core.Configuration
 		/// <summary>
 		/// Retrieves a setting with the current prefix.
 		/// </summary>
-		public string Get(string setting)
+		public string AppSetting(string setting)
 		{
 			return Get(_caller, setting, configFile: _configFile);
 		}
@@ -197,7 +208,7 @@ namespace Edge.Core.Configuration
 		/// <summary>
 		/// Retrieves a connection string with the current prefix.
 		/// </summary>
-		public string GetConnectionString(string name)
+		public string ConnectionString(string name)
 		{
 			return Get(_caller, name, isConnectionString: true, configFile: _configFile);
 		}

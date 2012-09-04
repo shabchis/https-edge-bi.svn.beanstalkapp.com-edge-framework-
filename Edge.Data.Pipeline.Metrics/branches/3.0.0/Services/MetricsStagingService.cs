@@ -17,43 +17,42 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// ----------------
 			// SETUP
 
-			string checksumThreshold = Instance.Configuration.Options[Consts.ConfigurationOptions.ChecksumTheshold];
+			string checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
 			
-			MetricsImportManagerOptions options = new MetricsImportManagerOptions()
+			MetricsDeliveryManagerOptions options = new MetricsDeliveryManagerOptions()
 			{
-				SqlTransformCommand = Instance.Configuration.Options[Consts.AppSettings.SqlTransformCommand],
-				SqlStageCommand = Instance.Configuration.Options[Consts.AppSettings.SqlStageCommand],
-				SqlRollbackCommand = Instance.Configuration.Options[Consts.AppSettings.SqlRollbackCommand],
+				SqlTransformCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlTransformCommand),
+				SqlStageCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlStageCommand),
+				SqlRollbackCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlRollbackCommand),
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
 
-			string importManagerTypeName = Instance.Configuration.GetOption(Consts.ConfigurationOptions.ImportManagerType);
-			Type importManagerType = Type.GetType(importManagerTypeName);
+			Type importManagerType = Configuration.Parameters.Get<Type>(Consts.ConfigurationOptions.ImportManagerType, convertFunction: raw => Type.GetType((string)raw));
 
-			var importManager = (MetricsImportManager) Activator.CreateInstance(importManagerType, this.Instance.InstanceID, options);
-			ReportProgress(0.1);
+			var importManager = (MetricsDeliveryManager) Activator.CreateInstance(importManagerType, this.InstanceID, options);
+			Progress = 0.1;
 
 			// ----------------
 			// TICKETS
 
 			// Only check tickets, don't check conflicts
 			this.HandleConflicts(importManager, DeliveryConflictBehavior.Ignore, getBehaviorFromConfiguration: false);
-			ReportProgress(0.2);
+			Progress = 0.2;
 
 			// ----------------
 			// TRANSFORM
 			try
 			{
-				Log.Write("Transform: start", LogMessageType.Information);
+				Log("Transform: start", LogMessageType.Information);
 				importManager.Transform(new Delivery[] { this.Delivery });
-				Log.Write("Transform: end", LogMessageType.Information);
+				Log("Transform: end", LogMessageType.Information);
 			}
 			catch (Exception ex)
 			{
 				throw new Exception(String.Format("Delivery {0} failed during Transform.", this.Delivery.DeliveryID), ex);
 			}
 
-			ReportProgress(0.6);
+			Progress = 0.6;
 
 			// ----------------
 			// COMMIT
@@ -62,16 +61,16 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				try
 				{
-					Log.Write("Staging: start", LogMessageType.Information);
+					Log("Staging: start", LogMessageType.Information);
 					importManager.Stage(new Delivery[] { this.Delivery });
-					Log.Write("Staging: end", LogMessageType.Information);
+					Log("Staging: end", LogMessageType.Information);
 					success = true;
 				}
 				catch (DeliveryConflictException dceex)
 				{
-					Log.Write("Rollback: start", LogMessageType.Information);
+					Log("Rollback: start", LogMessageType.Information);
 					importManager.RollbackOutputs(dceex.ConflictingOutputs);
-					Log.Write("Rollback: end", LogMessageType.Information);
+					Log("Rollback: end", LogMessageType.Information);
 				}
 				catch (Exception ex)
 				{

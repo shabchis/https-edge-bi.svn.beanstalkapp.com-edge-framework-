@@ -43,8 +43,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Base\Classes.cs" />
-    <Compile Include="Checksums\DbDbChecksumBaseService.cs" />
-    <Compile Include="Checksums\DeliveryDBChecksumBaseService.cs" />
     <Compile Include="Implementation\AdMetricsImportManager.cs" />
     <Compile Include="Implementation\AutoAdMetricsProcessorService.cs" />
     <Compile Include="Implementation\AutoGenericMetricsProcessorService.cs" />
@@ -52,7 +50,7 @@
     <Compile Include="Services\MetricsStagingService.cs" />
     <Compile Include="Implementation\GenericMetricsImportManager.cs" />
     <Compile Include="Base\Const.cs" />
-    <Compile Include="Base\MetricsImportManager.cs" />
+    <Compile Include="Base\MetricsDeliveryManager.cs" />
     <Compile Include="Services\MetricsProcessorServiceBase.cs" />
     <Compile Include="Services\MetricsRollbackService.cs" />
   </ItemGroup>
@@ -61,8 +59,12 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Edge.Core\branches\3.0.0\Edge.Core.csproj">
-      <Project>{AD4B53AD-B28A-4E90-9483-D2F7C8E6D436}</Project>
+      <Project>{76F5133E-50CD-4282-97E0-B431FACB3ACC}</Project>
       <Name>Edge.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Edge.Data.Objects\trunk\Edge.Data.Objects.csproj">
+      <Project>{9BC787C7-C269-476B-A87C-E345E7DB9E23}</Project>
+      <Name>Edge.Data.Objects</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Edge.Data.Pipeline\branches\3.0.0\Edge.Data.Pipeline.csproj">
       <Project>{53391A99-E8CA-4262-A8E0-5F05A1CC6608}</Project>
