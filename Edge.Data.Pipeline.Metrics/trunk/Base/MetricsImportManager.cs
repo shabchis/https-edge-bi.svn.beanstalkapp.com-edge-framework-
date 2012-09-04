@@ -357,7 +357,17 @@ namespace Edge.Data.Pipeline.Metrics
 					List<DeliveryOutput> outputs = new List<DeliveryOutput>();
 					foreach (string existOutput in existsOutPuts)
 					{
-						DeliveryOutput o = DeliveryOutput.Get(Guid.Parse(existOutput));
+						try
+						{
+							DeliveryOutput o = DeliveryOutput.Get(Guid.Parse(existOutput));
+						}
+						catch (Exception )
+						{
+							throw new Exception(existOutput);
+							
+							
+						}
+					
 						o.Parameters[Consts.DeliveryOutputParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
 						outputs.Add(o);
 
