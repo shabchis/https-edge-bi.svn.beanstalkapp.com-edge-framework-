@@ -336,7 +336,7 @@ namespace Edge.Data.Pipeline.Metrics
 			_stageCommand.Parameters["@MeasuresNamesSQL"].Value = measuresNamesSQL;
 			_stageCommand.Parameters["@MeasuresFieldNamesSQL"].Size = 4000;
 			_stageCommand.Parameters["@MeasuresFieldNamesSQL"].Value = measuresFieldNamesSQL;
-			_stageCommand.Parameters["@OutputIDsPerSignature"].Size = 4000;
+			_stageCommand.Parameters["@OutputIDsPerSignature"].Size = 8000;
 			_stageCommand.Parameters["@OutputIDsPerSignature"].Direction = ParameterDirection.Output;
 			_stageCommand.Parameters["@DeliveryID"].Size = 4000;
 			_stageCommand.Parameters["@DeliveryID"].Value = deliveryId;
@@ -356,21 +356,10 @@ namespace Edge.Data.Pipeline.Metrics
 					existsOutPuts = outPutsIDsPerSignature.Split(',');
 					List<DeliveryOutput> outputs = new List<DeliveryOutput>();
 					foreach (string existOutput in existsOutPuts)
-					{
-						try
-						{
+					{					
 							DeliveryOutput o = DeliveryOutput.Get(Guid.Parse(existOutput));
-						}
-						catch (Exception )
-						{
-							throw new Exception(existOutput);
-							
-							
-						}
-					
-						o.Parameters[Consts.DeliveryOutputParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
-						outputs.Add(o);
-
+							o.Parameters[Consts.DeliveryOutputParameters.CommitTableName] = delivery.Parameters["CommitTableName"];
+							outputs.Add(o);
 					}
 					throw new DeliveryConflictException(string.Format("DeliveryOutputs with the same signature are already committed in the database\n Deliveries:\n {0}:", outPutsIDsPerSignature)) { ConflictingOutputs = outputs.ToArray() };
 				}
