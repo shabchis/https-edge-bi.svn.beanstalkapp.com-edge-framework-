@@ -24,7 +24,6 @@ namespace Edge.Data.Pipeline.Metrics
 		public Dictionary<string, Measure> Measures { get; private set; }
 		public Dictionary<string, MetaProperty> MetaProperties { get; private set; }
 		public MetricsDeliveryManagerOptions Options { get; private set; }
-		public string DeliveryName { get; private set; }
 
 		/*=========================*/
 		#endregion
@@ -32,7 +31,7 @@ namespace Edge.Data.Pipeline.Metrics
 		#region Constructors
 		/*=========================*/
 
-		public MetricsDeliveryManager(long serviceInstanceID, string deliveryName, MetricsDeliveryManagerOptions options = null)
+		public MetricsDeliveryManager(long serviceInstanceID, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
@@ -44,7 +43,6 @@ namespace Edge.Data.Pipeline.Metrics
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
 
 			this.Options = options;
-			this.DeliveryName = deliveryName;
 		}
 
 		/*=========================*/
@@ -57,7 +55,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 		protected override void OnBeginImport()
 		{
-			this._tablePrefix = string.Format("{0}_{1}_{2}_{3}", this.CurrentDelivery.Account.ID, this.DeliveryName, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
+			this._tablePrefix = string.Format("{0}_{1}_{2}_{3}", this.CurrentDelivery.Account.ID, this.CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
 			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this._tablePrefix);
 
 			int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
@@ -82,8 +80,12 @@ namespace Edge.Data.Pipeline.Metrics
 			// MAPPER: setup bulks for objects and metrics
 		}
 
-		public abstract void ImportObject(EdgeObject edgeObject);
-		public abstract void ImportMetrics(MetricsUnit metrics);
+		public void ImportMetrics(DeliveryOutput targetOutput, MetricsUnit metrics)
+		{
+			EnsureBeginImport();
+
+			// Import objects into object buffers
+		}
 
 		protected override void OnEndImport()
 		{
