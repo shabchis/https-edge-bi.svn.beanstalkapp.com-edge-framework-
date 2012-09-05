@@ -76,7 +76,6 @@ namespace Edge.Data.Pipeline.Metrics
 			AdMetricsUnit exampleUnit = new AdMetricsUnit();
 			_tableManager = new TableManager(_sqlConnection);
 			string tableName=_tableManager.CreateDeliveryMetricsTable(this._tablePrefix,exampleUnit);
-			
 			this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
 
 			// CHECKSUMMANAGER: setup
@@ -88,7 +87,10 @@ namespace Edge.Data.Pipeline.Metrics
 		{
 			EnsureBeginImport();
 
-			// Import objects into object buffers
+			foreach (EdgeObject obj in metrics.GetObjectDimensions())
+			{
+
+			}
 		}
 
 		protected override void OnEndImport()
@@ -187,7 +189,7 @@ namespace Edge.Data.Pipeline.Metrics
 
 				// TABLEMANAGER: find matching staging table and save to delivery parameter
 				string stagingMetricsTableName=_tableManager.FindStagingTable(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
-				this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName]=stagingMetricsTableName
+				this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
 				
 				// TABLEMANAGER: call metrics insert SP with identity manager USID --> GK translation
 			}
