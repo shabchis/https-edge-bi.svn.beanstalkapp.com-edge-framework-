@@ -14,13 +14,22 @@ namespace Edge.Data.Objects
 
 		public Currency Currency;
 
-		public List<Target> TargetDimensions;
+		public List<TargetMatch> TargetDimensions;
 		public Dictionary<Measure, double> MeasureValues;
+
+		public abstract IEnumerable<EdgeObject> GetObjectDimensions();
 	}
 
-	public class AdMetricsUnit : MetricsUnit
+	public class AdMetricsUnit: MetricsUnit
 	{
 		public Ad Ad;
+
+		public override IEnumerable<EdgeObject> GetObjectDimensions()
+		{
+			yield return this.Ad;
+			foreach (TargetMatch target in this.TargetDimensions)
+				yield return target;
+		}
 	}
 
 	public class GenericMetricsUnit : MetricsUnit
@@ -29,5 +38,15 @@ namespace Edge.Data.Objects
 		public Account Account;
 
 		public Dictionary<MetaProperty, object> PropertyDimensions;
+
+		public override IEnumerable<EdgeObject> GetObjectDimensions()
+		{
+			foreach (var prop in this.PropertyDimensions)
+				if (prop.Value is EdgeObject)
+					yield return (EdgeObject)prop.Value;
+
+			foreach (TargetMatch target in this.TargetDimensions)
+				yield return target;
+		}
 	}
 }
