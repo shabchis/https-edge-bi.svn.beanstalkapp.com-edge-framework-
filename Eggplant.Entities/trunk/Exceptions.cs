@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Eggplant2
+namespace Eggplant
 {
 	[Serializable]
 	public class MappingException : Exception

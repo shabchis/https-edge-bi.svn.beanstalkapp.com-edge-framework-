@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Eggplant2.Model;
-using Eggplant2.Persistence;
+using Eggplant.Entities.Model;
+using Eggplant.Entities.Persistence;
 using System.Data;
 
-namespace Eggplant2.Queries
+namespace Eggplant.Entities.Queries
 {
 
 	public class Query<T> : QueryBase
@@ -71,9 +71,9 @@ namespace Eggplant2.Queries
 			return this;
 		}
 
-		public Query<T> Filter(params FilterExpression[] filter)
+		public Query<T> Filter(string filterExpression)
 		{
-			return (Query<T>) base.Filter(filter);
+			return (Query<T>)base.Filter(filterExpression);
 		}
 
 		public new Query<T> Sort(IEntityProperty property, SortOrder order)

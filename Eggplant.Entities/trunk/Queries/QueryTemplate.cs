@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Eggplant2.Persistence;
-using Eggplant2.Model;
+using Eggplant.Entities.Persistence;
+using Eggplant.Entities.Model;
 using System.Data;
 
-namespace Eggplant2.Queries
+namespace Eggplant.Entities.Queries
 {
 	public abstract class QueryTemplate : TemplateBase
 	{

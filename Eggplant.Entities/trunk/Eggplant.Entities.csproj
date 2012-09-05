@@ -45,6 +45,12 @@
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Eggplant.Entities.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -54,6 +60,7 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Eggplant.Entities.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
   <ItemGroup>
@@ -62,10 +69,10 @@
     <Compile Include="Model\EntityDefinition.cs" />
     <Compile Include="Model\EntityProperty.cs" />
     <Compile Include="Persistence\InboundMapping.cs" />
+    <Compile Include="Persistence\OutboundMapping.cs" />
     <Compile Include="Persistence\PersistenceConnection.cs" />
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Queries\Enums.cs" />
-    <Compile Include="Queries\FilterExpression.cs" />
     <Compile Include="Queries\Query.cs" />
     <Compile Include="Queries\QueryBase.cs" />
     <Compile Include="Queries\QueryTemplate.cs" />

@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Eggplant2.Model;
-using Eggplant2.Persistence;
+using Eggplant.Entities.Model;
+using Eggplant.Entities.Persistence;
 using System.Data;
 
-namespace Eggplant2.Queries
+namespace Eggplant.Entities.Queries
 {
 	public abstract class QueryBase
 	{
@@ -33,9 +33,9 @@ namespace Eggplant2.Queries
 			return this;
 		}
 
-		public QueryBase Filter(string filter)
+		public QueryBase Filter(string filterExpression)
 		{
-			this.FilterExpression = filter;
+			this.FilterExpression = filterExpression;
 			return this;
 		}
 
@@ -43,6 +43,11 @@ namespace Eggplant2.Queries
 		{
 			this.SortingList.Add(new KeyValuePair<IEntityProperty, SortOrder>(property, order));
 			return this;
+		}
+
+		public QueryBase Column(string placeHolder, IEntityProperty property)
+		{
+			throw new NotImplementedException();
 		}
 
 		public QueryBase Param(string name, object value, DbType? dbType = null, int? size = null)
@@ -85,12 +90,7 @@ namespace Eggplant2.Queries
 			// .....................................
 			// Filters
 
-			var filters = new StringBuilder();
-			for (int i = 0; i < this.FilterExpressions.Length; i++)
-			{
-				FilterExpression expression = this.FilterExpressions[i];
-
-			}
+			// TODO: filters
 		}
 	}
 

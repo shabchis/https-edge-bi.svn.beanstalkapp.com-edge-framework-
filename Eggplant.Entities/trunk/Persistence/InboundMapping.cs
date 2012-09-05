@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Eggplant2.Model;
+using Eggplant.Entities.Model;
 using System.Data.Common;
 
-namespace Eggplant2.Persistence
+namespace Eggplant.Entities.Persistence
 {
 	public interface IInboundMapping
 	{

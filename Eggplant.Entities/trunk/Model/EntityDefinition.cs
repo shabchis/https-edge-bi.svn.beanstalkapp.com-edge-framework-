@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 
-namespace Eggplant2.Model
+namespace Eggplant.Entities.Model
 {
 	public interface IEntityDefinition
 	{
