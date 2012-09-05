@@ -23,7 +23,8 @@ namespace Edge.Data.Objects
 	public enum MeasureOptions
 	{
 		None = 0x0,
-		ChecksumRequired = 0x80
+		ChecksumRequired = 0x80,
+		All = 0xff
 	}
 
 	
