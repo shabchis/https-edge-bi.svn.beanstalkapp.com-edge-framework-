@@ -9,7 +9,6 @@ namespace Edge.Data.Objects
 	{
 		public string DestinationUrl;
 		public Creative Creative;
-
 	}
 
 }
