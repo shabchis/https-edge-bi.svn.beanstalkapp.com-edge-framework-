@@ -16,8 +16,6 @@ namespace Edge.Data.Objects
 
 		public List<Target> TargetDimensions;
 		public Dictionary<Measure, double> MeasureValues;
-
-		//public DeliveryOutput Output;
 	}
 
 	public class AdMetricsUnit : MetricsUnit

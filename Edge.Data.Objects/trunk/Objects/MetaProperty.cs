@@ -18,7 +18,8 @@ namespace Edge.Data.Objects
 	[Flags]
 	public enum MetaPropertyOptions
 	{
-		None = 0x0
+		None = 0x0,
+		All = 0xff
 	}
 
 }
