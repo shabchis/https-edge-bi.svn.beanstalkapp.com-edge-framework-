@@ -45,8 +45,8 @@
     <Compile Include="Base\Classes.cs" />
     <Compile Include="Base\TableManager.cs" />
     <Compile Include="Implementation\AdMetricsImportManager.cs" />
-    <Compile Include="Implementation\AutoAdMetricsProcessorService.cs" />
-    <Compile Include="Implementation\AutoGenericMetricsProcessorService.cs" />
+    <Compile Include="Services\AutoAdMetricsProcessorService.cs" />
+    <Compile Include="Services\AutoGenericMetricsProcessorService.cs" />
     <Compile Include="Services\AutoMetricsProcessorServiceBase.cs" />
     <Compile Include="Services\MetricsStagingService.cs" />
     <Compile Include="Implementation\GenericMetricsImportManager.cs" />

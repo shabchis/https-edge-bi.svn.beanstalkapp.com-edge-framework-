@@ -9,9 +9,7 @@ using Edge.Core.Configuration;
 using Edge.Core.Services;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
-using Edge.Data.Objects.Reflection;
 using Edge.Data.Pipeline;
-using Edge.Data.Pipeline.Common.Importing;
 
 
 namespace Edge.Data.Pipeline.Metrics.AdMetrics
@@ -21,90 +19,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 	/// </summary>
 	public class AdMetricsImportManager : MetricsDeliveryManager<AdMetricsUnit>
 	{
-		#region Table structure
-		/*=========================*/
-
-		public static class Tables
-		{
-			public class Ad
-			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef Channel_ID = new ColumnDef("Channel_ID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Account_ID = new ColumnDef("Account_ID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef Account_OriginalID = new ColumnDef("Account_OriginalID", type: SqlDbType.NVarChar, size: 100, nullable: true);
-				public static ColumnDef Name = new ColumnDef("Name", size: 100);
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
-				public static ColumnDef AdStatus = new ColumnDef("AdStatus", type: SqlDbType.Int, nullable: true);
-				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
-			}
-
-			public class AdCreative
-			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef Name = new ColumnDef("Name", size: 100);
-				public static ColumnDef CreativeType = new ColumnDef("CreativeType", type: SqlDbType.Int);
-				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
-			}
-
-			public class AdTarget
-			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef Status = new ColumnDef("Status", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
-				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
-			}
-
-			public class AdSegment
-			{
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef SegmentID = new ColumnDef("SegmentID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 4000);
-				public static ColumnDef Status = new ColumnDef("Status", type: SqlDbType.Int, nullable: true);
-				public static ColumnDef Value = new ColumnDef("Value", size: 4000);
-				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
-
-			}
-
-			public class Metrics
-			{
-				public static ColumnDef MetricsUsid = new ColumnDef("MetricsUsid", size: 32, type: SqlDbType.Char, nullable: false);
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef DownloadedDate = new ColumnDef("DownloadedDate", type: SqlDbType.DateTime, nullable: true, defaultValue: "GetDate()");
-				public static ColumnDef OutputID = new ColumnDef("OutputID", type: SqlDbType.Char, size: 32, nullable: false);
-				public static ColumnDef TargetPeriodStart = new ColumnDef("TargetPeriodStart", type: SqlDbType.DateTime, nullable: false);
-				public static ColumnDef TargetPeriodEnd = new ColumnDef("TargetPeriodEnd", type: SqlDbType.DateTime, nullable: false);
-				public static ColumnDef Currency = new ColumnDef("Currency", size: 10);
-			}
-
-			public class MetricsDimensionTarget
-			{
-				public static ColumnDef MetricsUsid = new ColumnDef("MetricsUsid", size: 32, type: SqlDbType.Char, nullable: false);
-				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
-				public static ColumnDef TypeID = new ColumnDef("TypeID", type: SqlDbType.Int, nullable: false);
-				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef Status = new ColumnDef("Status", type: SqlDbType.Int);
-				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
-				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
-				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
-			}
-		}
-
-		/*=========================*/
-		#endregion
-
-		/// <summary>
-		/// A function delegate that returns a usid for an ad. If null, Ad.OriginalID is used.
-		/// </summary>
-		public Func<Ad, long> OnAdUsidRequired = null;
-
+		
 		/// <summary>
 		/// 
 		/// </summary>
@@ -112,28 +27,12 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			: base(serviceInstanceID, options)
 		{
 			bool hasMeasureOptions = this.Options.MeasureOptions != MeasureOptions.None;
-			this.Options.MeasureOptions = hasMeasureOptions ? this.Options.MeasureOptions : MeasureOptions.IsTarget | MeasureOptions.IsCalculated | MeasureOptions.IsBackOffice;
-			this.Options.MeasureOptionsMatch = hasMeasureOptions ? this.Options.MeasureOptionsMatch : OptionsMatching.Without;
+			this.Options.MeasureOptions = hasMeasureOptions ? this.Options.MeasureOptions : MeasureOptions.All;
+			this.Options.MeasureOptionsMatch = hasMeasureOptions ? this.Options.MeasureOptionsMatch : OptionsMatching.Any;
 
-			bool hasSegmentOptions = this.Options.SegmentOptions != SegmentOptions.None;
-			this.Options.SegmentOptions = hasSegmentOptions ? this.Options.SegmentOptions : Data.Objects.SegmentOptions.All;
-			this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsMatching.All;
-		}
-
-		/// <summary>
-		/// Uses OnAdUsidRequired to extract a usid for an ad, or ad.OriginalID if the function delegate is not defined.
-		/// </summary>
-		private string GetAdIdentity(Ad ad)
-		{
-			string val;
-			if (this.OnAdUsidRequired != null)
-				val = this.OnAdUsidRequired(ad).ToString();
-			else if (String.IsNullOrEmpty(ad.OriginalID))
-				throw new Exception("Ad.OriginalID is required. If it is not available, provide a function for AdMetricsImportManager.OnAdUsidRequired that returns a unique value for this ad.");
-			else
-				val = ad.OriginalID.ToString();
-
-			return val;
+			bool hasSegmentOptions = this.Options.MetaPropertyOptions != MetaPropertyOptions.None;
+			this.Options.MetaPropertyOptions = hasSegmentOptions ? this.Options.MetaPropertyOptions : MetaPropertyOptions.All;
+			this.Options.MetaPropertyOptionsMatch = hasSegmentOptions ? this.Options.MetaPropertyOptionsMatch : OptionsMatching.Any;
 		}
 
 		/// <summary>
