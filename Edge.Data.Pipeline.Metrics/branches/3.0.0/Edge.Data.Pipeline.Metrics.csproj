@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Base\Classes.cs" />
+    <Compile Include="Base\TableManager.cs" />
     <Compile Include="Implementation\AdMetricsImportManager.cs" />
     <Compile Include="Implementation\AutoAdMetricsProcessorService.cs" />
     <Compile Include="Implementation\AutoGenericMetricsProcessorService.cs" />
