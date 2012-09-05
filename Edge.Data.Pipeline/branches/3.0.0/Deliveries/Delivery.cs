@@ -72,6 +72,11 @@ namespace Edge.Data.Pipeline
 		public string Description { get; set; }
 
 		/// <summary>
+		/// A name to be used to identify this delivery. Used to create tables etc.
+		/// </summary>
+		public string Name { get; set; }
+
+		/// <summary>
 		/// Gets the date the delivery was created.
 		/// </summary>
 		public DateTime DateCreated { get; internal set; }
@@ -185,6 +190,5 @@ namespace Edge.Data.Pipeline
 		}
 		// =============================
 		#endregion
-
 	}
 }
