@@ -5,7 +5,7 @@ using System.Text;
 using System.Xml;
 using System.IO;
 
-namespace Eggplant2.Persistence
+namespace Eggplant.Entities.Persistence
 {
 	public abstract class PersistenceStore
 	{

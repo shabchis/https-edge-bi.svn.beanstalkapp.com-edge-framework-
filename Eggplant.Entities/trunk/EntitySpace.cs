@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Eggplant2.Persistence;
-using Eggplant2.Model;
-using Eggplant2.Queries;
+using Eggplant.Entities.Persistence;
+using Eggplant.Entities.Model;
+using Eggplant.Entities.Queries;
 using System.Reflection;
 
-namespace Eggplant2
+namespace Eggplant
 {
 	public class EntitySpace
 	{
@@ -21,9 +21,15 @@ namespace Eggplant2
 			this.Definitions = new Dictionary<Type,IEntityDefinition>();
 		}
 
-		public InboundMapping<T> CreateInputMapping<T>()
+		public InboundMapping<T> CreateInboundMapping<T>()
 		{
 			return new InboundMapping<T>(this);
+		}
+
+		public OutboundMapping<T> CreateOutboundMapping<T>()
+		{
+			throw new NotImplementedException();
+			//return new OutboundMapping<T>(this);
 		}
 
 		public EntityDefinition<T> GetDefinition<T>()

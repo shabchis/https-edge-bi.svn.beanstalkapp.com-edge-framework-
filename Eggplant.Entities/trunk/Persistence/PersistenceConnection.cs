@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data.Common;
 
-namespace Eggplant2.Persistence
+namespace Eggplant.Entities.Persistence
 {
 	public class PersistenceConnection: IDisposable
 	{

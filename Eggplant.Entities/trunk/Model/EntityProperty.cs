@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
-using Eggplant2.Persistence;
+using Eggplant.Entities.Persistence;
 
-namespace Eggplant2.Model
+namespace Eggplant.Entities.Model
 {
 
 	#region Interfaces

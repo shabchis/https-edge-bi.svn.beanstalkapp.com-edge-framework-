@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
-using Eggplant2.Model;
-using Eggplant2.Persistence;
+using Eggplant.Entities.Model;
+using Eggplant.Entities.Persistence;
 
-namespace Eggplant2.Queries
+namespace Eggplant.Entities.Queries
 {
 	public abstract class TemplateBase
 	{

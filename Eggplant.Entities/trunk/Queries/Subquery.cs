@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data;
-using Eggplant2.Model;
+using Eggplant.Entities.Model;
 
-namespace Eggplant2.Queries
+namespace Eggplant.Entities.Queries
 {
 	public class Subquery : QueryBase
 	{
@@ -20,14 +20,19 @@ namespace Eggplant2.Queries
 			return (Subquery)base.Select(properties);
 		}
 
-		public new Subquery Filter(params object[] filter)
+		public new Subquery Filter(string filterExpression)
 		{
-			return (Subquery)base.Filter(filter);
+			return (Subquery)base.Filter(filterExpression);
 		}
 
 		public new Subquery Sort(IEntityProperty property, SortOrder order)
 		{
 			return (Subquery)base.Sort(property, order);
+		}
+
+		public new Subquery Column(string placeHolder, IEntityProperty property)
+		{
+			return (Subquery)base.Column(placeHolder, property);
 		}
 
 		public new Subquery Param(string name, object value, DbType? dbType = null, int? size = null)
