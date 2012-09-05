@@ -52,6 +52,7 @@ namespace Edge.Data.Pipeline.Metrics
 		/*=========================*/
 
 		private string _tablePrefix;
+		private TableManager _tableManager;
 
 		protected override void OnBeginImport()
 		{
@@ -72,8 +73,11 @@ namespace Edge.Data.Pipeline.Metrics
 			// EXAMPLE - ObjectManager.CreateDeliveryObjectTables(string tablePrefix)
 
 			// TABLEMANAGER: run SP to create metrics table
-			// EXAMPLE - TableManager.CreateDeliveryMetricsTable(string tablePrefix, MetricsUnit exampleUnit) ad_gk ad_usid!!!!! foreach edge object
-			//this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = 
+			AdMetricsUnit exampleUnit = new AdMetricsUnit();
+			_tableManager = new TableManager(_sqlConnection);
+			string tableName=_tableManager.CreateDeliveryMetricsTable(this._tablePrefix,exampleUnit);
+			
+			this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
 
 			// CHECKSUMMANAGER: setup
 
@@ -180,8 +184,10 @@ namespace Edge.Data.Pipeline.Metrics
 			}
 			else if (pass == StagingPass_Metrics)
 			{
+
 				// TABLEMANAGER: find matching staging table and save to delivery parameter
-				// this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = TableManager.FindStagingTable(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName]);
+				string stagingMetricsTableName=_tableManager.FindStagingTable(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName]=stagingMetricsTableName
 				
 				// TABLEMANAGER: call metrics insert SP with identity manager USID --> GK translation
 			}
