@@ -4,24 +4,38 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 using System.Data;
+using Edge.Data.Pipeline.Metrics;
+using System.Data.SqlClient;
+using Edge.Core.Configuration;
+using Edge.Core.Utilities;
+
 
 namespace Edge.Data.Objects
 {
 	internal class TableManager
 	{
+		string _tablePrefix;
+		SqlConnection _sqlConnection;
+		public TableManager(SqlConnection connection)
+		{
+			_sqlConnection = connection;
+		}
 		public class Column
 		{
 			public string Name { get; set; }
 			public SqlDbType DbType { get; set; }
-			public int Length { get; set; }
+			public int Size { get; set; }
 			public object Value { get; set; }
-
+			public bool Nullable { get; set; }
+			public string DefaultValue { get; set; }
 		}
 
 		Dictionary<string, Column> _cols = new Dictionary<string, Column>();
 		EdgeObjectsManager _objectsManger = new EdgeObjectsManager();
-		public List<Column> GetColumnsList(MetricsUnit metricsUnit)
+		public string CreateDeliveryMetricsTable(string tablePerifx, MetricsUnit metricsUnit)
 		{
+			_tablePrefix = tablePerifx;
+			string tableName;
 			#region looping object in predetermined order-
 			int pass = 0;
 			if (metricsUnit is AdMetricsUnit)
@@ -81,41 +95,68 @@ namespace Edge.Data.Objects
 			}
 			#endregion
 
+			#region createMetricsTable
 
-			return _cols.Values.ToList();
+			StringBuilder builder = new StringBuilder();
+			tableName = string.Format("{0}_Metrics", this._tablePrefix);
+			builder.AppendFormat("create table [dbo].{0}(\n", tableName);
+			foreach (Column col in _cols.Values)
+			{
 
+				builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}, \n",
+					col.Name,
+					col.DbType,
+					col.Size != 0 ? string.Format("({0})", col.Size) : null,
+					col.Nullable ? "null" : "not null",
+					col.DefaultValue != string.Empty ? string.Format("Default {0}", col.DefaultValue) : string.Empty
+				);
+			}
+			builder.Remove(builder.Length - 1, 1);
+			builder.Append(");");
+			using (SqlCommand command = new SqlCommand(builder.ToString(), _sqlConnection))
+			{
+				command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
+				command.ExecuteNonQuery();
 
+			}
+
+			#endregion
+			return tableName;
 		}
 		private void AddColumn(object obj)
 		{
 			string typeName = obj.GetType().Name;
-
+			string edgeobjectsSuffix = "Usid";
+			string colName;
 			if (obj.GetType().IsSubclassOf(typeof(EdgeObject)))
 			{
 				switch (typeName)
 				{
 					case "Ad":
 						{
+							colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
 							Ad ad = (Ad)obj;
-							if (!_cols.ContainsKey(typeName))
+							if (!_cols.ContainsKey(colName))
 							{
 
-								_cols.Add(typeName, new Column() { Name = typeName, Value = ad.GK });
+								_cols.Add(colName, new Column() { Name = colName, Value = ad.GK });
 							}
 							break;
 						}
 					case "CompositeCreative":
 						{
+							colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
 							CompositeCreative composite = (CompositeCreative)obj;
-							if (!_cols.ContainsKey(typeName))
-								_cols.Add(typeName, new Column() { Name = typeName });
+							if (!_cols.ContainsKey(colName))
+								_cols.Add(colName, new Column() { Name = colName });
 							var childCreatives = composite.ChildCreatives.OrderBy(p => p.Key);
 
 
 							foreach (var childCreative in childCreatives)
 							{
-								if (!_cols.ContainsKey(childCreative.Key))
-									_cols.Add(childCreative.Key, new Column() { Name = childCreative.Key, Value = childCreative.Value.GK });
+								colName = string.Format("{0}_{1}", childCreative.Key, edgeobjectsSuffix);
+								if (!_cols.ContainsKey(colName))
+									_cols.Add(colName, new Column() { Name = colName, Value = childCreative.Value.GK });
 
 							}
 
@@ -123,10 +164,11 @@ namespace Edge.Data.Objects
 						}
 					case "SingleCreative":
 						{
-							if (!_cols.ContainsKey(typeName))
+							colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
+							if (!_cols.ContainsKey(colName))
 							{
 								Creative creative = (Creative)obj;
-								_cols.Add("Creative", new Column() { Name = "Creative", Value = creative.GK });
+								_cols.Add(colName, new Column() { Name = colName, Value = creative.GK });
 							}
 							break;
 						}
@@ -135,14 +177,15 @@ namespace Edge.Data.Objects
 							if (obj is Target)
 							{
 								int i = 2;
-								string targetName = typeName;
-								while (_cols.ContainsKey(targetName))
+								colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
+
+								while (_cols.ContainsKey(colName))
 								{
-									targetName = string.Format("{0}{1}", typeName, i);
+									colName = string.Format("{0}{1}_{2}", typeName, i, edgeobjectsSuffix);
 									i++;
 								}
 								Target target = (Target)obj;
-								_cols.Add(targetName, new Column() { Name = targetName, Value = target.GK });
+								_cols.Add(colName, new Column() { Name = colName, Value = target.GK });
 							}
 							break;
 						}
@@ -164,7 +207,7 @@ namespace Edge.Data.Objects
 				else if (t == typeof(KeyValuePair<Measure, double>))
 				{
 					KeyValuePair<Measure, double> measure = (KeyValuePair<Measure, double>)obj;
-					string name = measure.Key.IsCurrency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+					string name = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
 					if (!_cols.ContainsKey(name))
 					{
 						_cols.Add(name, new Column() { Name = name, Value = measure.Value });
@@ -196,6 +239,28 @@ namespace Edge.Data.Objects
 
 		}
 
+
+		public string FindStagingTable(string metricsTableName)
+		{
+			string stagingTableName;
+			using (SqlCommand command = SqlUtility.CreateCommand(AppSettings.Get(this, "SP_FindStagingTable"), CommandType.StoredProcedure))
+			{
+				command.Parameters["@templateTable"].Value = metricsTableName;
+				command.Parameters["@templateDB"].Value = "";//TODO: FROM WHERE DO i TAKE THIS TABLE?
+				command.Parameters["@searchDB"].Value = "";//TODO: FROM WHERE DO i TAKE THIS TABLE?
+				using (SqlDataReader reader = command.ExecuteReader())
+				{
+					if (!reader.Read())
+						throw new Exception("No staging table   Found");
+					else
+						stagingTableName = reader["TABLE_NAME"].ToString();
+
+				}
+
+
+			}
+			return stagingTableName;
+		}
 	}
 	public class EdgeObjectsManager
 	{
