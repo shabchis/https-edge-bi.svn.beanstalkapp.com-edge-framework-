@@ -19,52 +19,59 @@ namespace Edge.Data.Objects
 		}
 
 		Dictionary<string, Column> _cols = new Dictionary<string, Column>();
-		Dictionary<int, List<EdgeObject>> _objects = new Dictionary<int, List<EdgeObject>>();
+		EdgeObjectsManager _objectsManger = new EdgeObjectsManager();
 		public List<Column> GetColumnsList(MetricsUnit metricsUnit)
 		{
+			#region looping object in predetermined order-
 			int pass = 0;
 			if (metricsUnit is AdMetricsUnit)
 			{
 				AdMetricsUnit adMetricsUnit = (AdMetricsUnit)metricsUnit;
-				AddObjects(adMetricsUnit.Ad, pass);
-				AddObjects(adMetricsUnit.Ad.Creative, pass);
+				_objectsManger.Add(adMetricsUnit.Ad, pass);
+				_objectsManger.Add(adMetricsUnit.Ad.Creative, pass);
 			}
 			foreach (var target in metricsUnit.TargetDimensions)
 			{
-				AddObjects(target, pass);
+				_objectsManger.Add(target, pass);
 			}
 
 
-			while (_objects.ContainsKey(pass) && _objects[pass] != null && _objects[pass].Count > 0)
+			while (_objectsManger.ContainsKey(pass) && _objectsManger[pass] != null && _objectsManger[pass].Count > 0)
 			{
-				foreach (var obj in _objects[pass])
+				foreach (var obj in _objectsManger[pass])
 				{
 					AddColumn(obj);
 				}
 
-				foreach (var obj in _objects[pass])
+				foreach (var obj in _objectsManger[pass])
 				{
 					foreach (var field in obj.GetType().GetFields())
 					{
 						if (field.FieldType.IsSubclassOf(typeof(EdgeObject)))
 						{
-							AddObjects((EdgeObject)field.GetValue(obj), pass + 1);
+							_objectsManger.Add((EdgeObject)field.GetValue(obj), pass + 1);
 						}
 					}
 				}
 				pass++;
 			}
+			#endregion
 
-
-
-			foreach (List<EdgeObject> edgeObjects in _objects.Values)
+			#region runing deeper on all edgeobjects and relevant properties
+			foreach (List<EdgeObject> edgeObjects in _objectsManger.ObjectsByPassValues())
 			{
 				foreach (EdgeObject edgeObject in edgeObjects)
 				{
 					AddObjects(edgeObject);
 				}
 			}
+			foreach (EdgeObject edgeObject in _objectsManger.GetOtherObjects())
+			{
+				AddColumn(edgeObject);
+			}
+			#endregion
 
+			#region runing on measures
 			if (metricsUnit.MeasureValues != null)
 			{
 				foreach (KeyValuePair<Measure, double> measure in metricsUnit.MeasureValues)
@@ -72,6 +79,7 @@ namespace Edge.Data.Objects
 					AddColumn(measure);
 				}
 			}
+			#endregion
 
 
 			return _cols.Values.ToList();
@@ -144,7 +152,7 @@ namespace Edge.Data.Objects
 			{
 				Type t = obj.GetType();
 
-				if (t==typeof(KeyValuePair<MetaProperty, object>))
+				if (t == typeof(KeyValuePair<MetaProperty, object>))
 				{
 					KeyValuePair<MetaProperty, object> metaProperty = (KeyValuePair<MetaProperty, object>)obj;
 					if (!_cols.ContainsKey(metaProperty.Key.PropertyName))
@@ -153,12 +161,13 @@ namespace Edge.Data.Objects
 					}
 
 				}
-				else if (t==typeof( KeyValuePair<Measure, double>))
+				else if (t == typeof(KeyValuePair<Measure, double>))
 				{
 					KeyValuePair<Measure, double> measure = (KeyValuePair<Measure, double>)obj;
-					if (!_cols.ContainsKey(measure.Key.Name))
+					string name = measure.Key.IsCurrency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+					if (!_cols.ContainsKey(name))
 					{
-						_cols.Add(measure.Key.Name, new Column() { Name = measure.Key.Name, Value = measure.Value });
+						_cols.Add(name, new Column() { Name = name, Value = measure.Value });
 					}
 
 				}
@@ -167,7 +176,7 @@ namespace Edge.Data.Objects
 		private void AddObjects(EdgeObject obj)
 		{
 
-			List<EdgeObject> edgeObjetcs = new List<EdgeObject>();
+
 			if (obj.MetaProperties != null)
 			{
 				foreach (KeyValuePair<MetaProperty, object> metaProperty in obj.MetaProperties)
@@ -178,59 +187,61 @@ namespace Edge.Data.Objects
 					}
 					else
 					{
-						edgeObjetcs.Add((EdgeObject)metaProperty.Value);
+						if (!_objectsManger.ContainsKey((EdgeObject)metaProperty.Value))
+							_objectsManger.Add((EdgeObject)metaProperty.Value);
 					}
 				}
-				foreach (EdgeObject edgeObject in edgeObjetcs)
-				{
-					AddColumn(edgeObject);
-				}
+
 			}
 
 		}
-		private void AddObjects(EdgeObject obj, int pass)
-		{
-			if (!_objects.ContainsKey(pass))
-				_objects[pass] = new List<EdgeObject>();
-			_objects[pass].Add(obj);
 
+	}
+	public class EdgeObjectsManager
+	{
+		Dictionary<EdgeObject, EdgeObject> _allObjects = new Dictionary<EdgeObject, EdgeObject>();
+		Dictionary<int, List<EdgeObject>> _objectsByPass = new Dictionary<int, List<EdgeObject>>();
+		Dictionary<EdgeObject, EdgeObject> _otherObjects = new Dictionary<EdgeObject, EdgeObject>();
+		public List<EdgeObject> this[int index]
+		{
+			get
+			{
+				return _objectsByPass[index];
+			}
 
 		}
+		public void Add(EdgeObject obj, int pass)
+		{
 
 
+			if (!_objectsByPass.ContainsKey(pass))
+				_objectsByPass.Add(pass, new List<EdgeObject>());
+			_objectsByPass[pass].Add(obj);
 
+		}
+		public void Add(EdgeObject obj)
+		{
+			if (_allObjects.ContainsKey(obj))
+				throw new System.ArgumentException(string.Format("element {0} of type {1}  already exists in _allObjects dictionary", obj.Name, obj.GetType().Name));
+			_otherObjects.Add(obj, obj);
+			_allObjects.Add(obj, obj);
+		}
+		public bool ContainsKey(EdgeObject obj)
+		{
+			return _allObjects.ContainsKey(obj) ? true : false;
+		}
+		public bool ContainsKey(int pass)
+		{
+			return _objectsByPass.ContainsKey(pass) ? true : false;
+		}
+		public Dictionary<int, List<EdgeObject>>.ValueCollection ObjectsByPassValues()
+		{
+			return _objectsByPass.Values;
+		}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		public Dictionary<EdgeObject, EdgeObject>.ValueCollection GetOtherObjects()
+		{
+			return _otherObjects.Values;
+		}
 	}
 }
