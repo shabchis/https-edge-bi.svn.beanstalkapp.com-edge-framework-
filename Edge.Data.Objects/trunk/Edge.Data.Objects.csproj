@@ -46,19 +46,38 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Column.cs" />
     <Compile Include="DummyMapper.cs" />
-    <Compile Include="Objects\Base\EdgeObject.cs" />
+    <Compile Include="Objects\Account.cs" />
+    <Compile Include="Objects\Ad.cs" />
+    <Compile Include="Objects\AdGroup.cs" />
+    <Compile Include="Objects\Campaign.cs" />
+    <Compile Include="Objects\Channel.cs" />
+    <Compile Include="Objects\ChannelSpecificObject.cs" />
+    <Compile Include="Objects\Creative.cs" />
+    <Compile Include="Objects\Creatives\ImageCreative.cs" />
+    <Compile Include="Objects\Creatives\TextCreative.cs" />
     <Compile Include="Objects\Currency.cs" />
+    <Compile Include="Objects\EdgeObject.cs" />
+    <Compile Include="Objects\LandingPage.cs" />
     <Compile Include="Objects\Measure.cs" />
+    <Compile Include="Objects\MetaProperty.cs" />
     <Compile Include="Objects\MetricsUnit.cs" />
+    <Compile Include="Objects\Segment.cs" />
+    <Compile Include="Objects\Target.cs" />
+    <Compile Include="Objects\TargetMatch.cs" />
+    <Compile Include="Objects\Targets\AgeTarget.cs" />
+    <Compile Include="Objects\Targets\GenderTarget.cs" />
+    <Compile Include="Objects\Targets\KeywordTarget.cs" />
+    <Compile Include="Objects\Targets\PlacementTarget.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
-    <Compile Include="TableManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Objects\Base\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
