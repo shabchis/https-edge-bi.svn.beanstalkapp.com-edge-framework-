@@ -54,7 +54,7 @@ namespace Eggplant.Entities.Queries
 			SubqueryTemplate template;
 			//try
 			//{
-			template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.ResultSet == collectionMapping.ResultSet);
+			template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.DataSet == collectionMapping.DataSet);
 			//}
 			//catch (Exception ex)
 			//{
