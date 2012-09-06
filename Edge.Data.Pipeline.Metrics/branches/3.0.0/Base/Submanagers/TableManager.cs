@@ -16,6 +16,7 @@ namespace Edge.Data.Objects
 	{
 		string _tablePrefix;
 		SqlConnection _sqlConnection;
+		string _edgeobjectsSuffix = "Usid";
 		public TableManager(SqlConnection connection)
 		{
 			_sqlConnection = connection;
@@ -126,7 +127,7 @@ namespace Edge.Data.Objects
 		private void AddColumn(object obj)
 		{
 			string typeName = obj.GetType().Name;
-			string edgeobjectsSuffix = "Usid";
+
 			string colName;
 			if (obj.GetType().IsSubclassOf(typeof(EdgeObject)))
 			{
@@ -134,7 +135,7 @@ namespace Edge.Data.Objects
 				{
 					case "Ad":
 						{
-							colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
+							colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
 							Ad ad = (Ad)obj;
 							if (!_cols.ContainsKey(colName))
 							{
@@ -145,7 +146,7 @@ namespace Edge.Data.Objects
 						}
 					case "CompositeCreative":
 						{
-							colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
+							colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
 							CompositeCreative composite = (CompositeCreative)obj;
 							if (!_cols.ContainsKey(colName))
 								_cols.Add(colName, new Column() { Name = colName });
@@ -154,7 +155,7 @@ namespace Edge.Data.Objects
 
 							foreach (var childCreative in childCreatives)
 							{
-								colName = string.Format("{0}_{1}", childCreative.Key, edgeobjectsSuffix);
+								colName = string.Format("{0}_{1}", childCreative.Key, _edgeobjectsSuffix);
 								if (!_cols.ContainsKey(colName))
 									_cols.Add(colName, new Column() { Name = colName, Value = childCreative.Value.GK });
 
@@ -164,7 +165,7 @@ namespace Edge.Data.Objects
 						}
 					case "SingleCreative":
 						{
-							colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
+							colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
 							if (!_cols.ContainsKey(colName))
 							{
 								Creative creative = (Creative)obj;
@@ -177,11 +178,11 @@ namespace Edge.Data.Objects
 							if (obj is Target)
 							{
 								int i = 2;
-								colName = string.Format("{0}_{1}", typeName, edgeobjectsSuffix);
+								colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
 
 								while (_cols.ContainsKey(colName))
 								{
-									colName = string.Format("{0}{1}_{2}", typeName, i, edgeobjectsSuffix);
+									colName = string.Format("{0}{1}_{2}", typeName, i, _edgeobjectsSuffix);
 									i++;
 								}
 								Target target = (Target)obj;
@@ -238,8 +239,6 @@ namespace Edge.Data.Objects
 			}
 
 		}
-
-
 		public string FindStagingTable(string metricsTableName)
 		{
 			string stagingTableName;
@@ -260,6 +259,73 @@ namespace Edge.Data.Objects
 
 			}
 			return stagingTableName;
+		}
+
+		internal void Staging(string deliveryTable, string stagingTable)
+		{
+			List<Column> cols=_cols.Values.ToList();
+			StringBuilder builder = new StringBuilder();
+			builder.AppendFormat("INSERT INTO {0}\n(", stagingTable);
+			for (int i = 0; i < cols.Count; i++)
+			{
+				if (i != cols.Count - 1)
+					builder.AppendFormat("\t{0},\n", cols[i].Name);
+				else
+					builder.AppendFormat("\t{0})\n",cols[i].Name);
+			}
+			builder.Append("\tVALUES (SELECT\n");
+			for (int i = 0; i < cols.Count; i++)
+			{
+				string colName;
+				if (cols[i].Name.Contains(_edgeobjectsSuffix))
+					colName = "GKS.GK";
+				else
+					colName =string.Format("{0}.{1}","Metrics", cols[i].Name);
+
+				if (i != cols.Count - 1)
+					builder.AppendFormat("\t{0},\n", colName);
+				else
+					builder.AppendFormat("\t{0})\n", colName);
+
+			}
+			builder.Append("\tWHERE (\n");
+			bool firstFilter=true;
+			for (int i = 0; i < cols.Count; i++)
+			{
+				string filter=string.Empty;
+				if (cols[i].Name.Contains(_edgeobjectsSuffix))
+				{
+					if (firstFilter)
+					{
+					filter = string.Format("Metrics.{0}=GKS.Usid\n");
+						firstFilter=false;
+					}
+					else					
+					filter = string.Format("AND Metrics.{0}=GKS.Usid\n");			
+				}				
+
+
+				if (i != cols.Count - 1)
+				{
+					if (string.IsNullOrEmpty(filter))
+						filter = "\t)";
+					else
+						filter = string.Format("\t{0})\n", filter);
+				}
+
+				if (!string.IsNullOrEmpty(filter))
+					builder.Append(filter);
+
+			}
+			using (SqlCommand command=new SqlCommand(builder.ToString(), _sqlConnection))
+			{
+				command.ExecuteNonQuery();
+			}
+
+
+			
+
+
 		}
 	}
 	public class EdgeObjectsManager
