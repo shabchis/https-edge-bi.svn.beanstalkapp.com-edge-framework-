@@ -9,6 +9,13 @@ namespace Edge.Data.Objects
 	{
 		public string DestinationUrl;
 		public Creative Creative;
+		public override bool HasChilds()
+		{
+			if (Creative!=null)
+				return true;
+			else
+				return false;
+		}
 
 		public override IEnumerable<EdgeObject> GetChildObjects()
 		{
