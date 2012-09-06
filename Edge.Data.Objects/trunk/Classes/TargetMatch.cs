@@ -9,6 +9,13 @@ namespace Edge.Data.Objects
 	{
 		public Target Target;
 		public string DestinationUrl;
+		public override bool HasChilds()
+		{
+			if (Target != null)
+				return true;
+			else
+				return false;
+		}
 
 		public override IEnumerable<EdgeObject> GetChildObjects()
 		{
