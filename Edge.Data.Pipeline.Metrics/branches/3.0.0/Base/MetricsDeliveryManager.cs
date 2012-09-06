@@ -192,6 +192,8 @@ namespace Edge.Data.Pipeline.Metrics
 				this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
 				
 				// TABLEMANAGER: call metrics insert SP with identity manager USID --> GK translation
+				_tableManager.Staging(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
+					this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
 			}
 		}
 
