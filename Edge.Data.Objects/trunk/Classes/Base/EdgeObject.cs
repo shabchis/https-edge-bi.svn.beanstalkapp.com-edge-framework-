@@ -13,5 +13,10 @@ namespace Edge.Data.Objects
 		public Account Account;
 
 		public Dictionary<MetaProperty, object> MetaProperties;
+
+		public virtual IEnumerable<EdgeObject> GetChildObjects()
+		{
+			return null;
+		}
 	}
 }

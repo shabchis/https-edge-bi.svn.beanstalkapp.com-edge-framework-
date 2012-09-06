@@ -48,7 +48,6 @@
   <ItemGroup>
     <Compile Include="Classes\Account.cs" />
     <Compile Include="Classes\Ad.cs" />
-    <Compile Include="Classes\AdGroup.cs" />
     <Compile Include="Classes\Base\ChannelSpecificObject.cs" />
     <Compile Include="Classes\Base\EdgeObject.cs" />
     <Compile Include="Classes\Campaign.cs" />
@@ -73,7 +72,6 @@
     <Compile Include="Model\Ad.cs" />
     <Compile Include="Model\Base\ChannelSpecificObject.cs" />
     <Compile Include="Model\Base\EdgeObject.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
