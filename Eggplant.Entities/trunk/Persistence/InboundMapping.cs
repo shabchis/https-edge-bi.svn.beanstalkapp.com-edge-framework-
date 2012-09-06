@@ -10,7 +10,7 @@ namespace Eggplant.Entities.Persistence
 	public interface IInboundMapping
 	{
 		EntitySpace EntitySpace { get; }
-		string ResultSet { get; }
+		string DataSet { get; }
 		Dictionary<IEntityProperty, IInboundMapping> SubMappings { get; }
 	}
 
@@ -30,7 +30,7 @@ namespace Eggplant.Entities.Persistence
 		public EntityDefinition<T> EntityDefinition { get; private set; }
 		public Delegate MappingFunction { get; set; }
 		public Dictionary<IEntityProperty, IInboundMapping> SubMappings { get; private set; }
-		public string ResultSet { get; set; }
+		public string DataSet { get; set; }
 
 		// ===================================
 		// Internal
@@ -71,14 +71,14 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
-		public InboundMapping<T> Collection<V>(ICollectionProperty<V> collection, string resultSet, string field)
+		public InboundMapping<T> Collection<V>(ICollectionProperty<V> collection, string dataSet, string field)
 		{
-			return this.Collection<V>(collection, resultSet, context => context.Assign(context.GetField<V>(field)));
+			return this.Collection<V>(collection, dataSet, context => context.Assign(context.GetField<V>(field)));
 		}
 
-		public InboundMapping<T> Collection<V>(ICollectionProperty<V> collection, string resultSet, Action<InboundCollectionMappingContext<T,V>> function)
+		public InboundMapping<T> Collection<V>(ICollectionProperty<V> collection, string dataSet, Action<InboundCollectionMappingContext<T,V>> function)
 		{
-			var collectionMapping = new InboundMapping<ICollection<V>>(this.EntitySpace) { ResultSet = resultSet };
+			var collectionMapping = new InboundMapping<ICollection<V>>(this.EntitySpace) { DataSet = dataSet };
 
 			collectionMapping.SubMappings[collection.Value] = new InboundMapping<V>(this.EntitySpace)
 			{
@@ -90,33 +90,33 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
-		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, string key, string value)
+		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, string key, string value)
 		{
-			return this.Dictionary<K, V>(dictionary, resultSet,
+			return this.Dictionary<K, V>(dictionary, dataSet,
 				context => context.Assign(context.GetField<K>(key)),
 				context => context.Assign(context.GetField<V>(value))
 			);
 		}
 
-		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, Action<InboundCollectionMappingContext<T,K>> key, string value)
+		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, Action<InboundCollectionMappingContext<T,K>> key, string value)
 		{
-			return this.Dictionary<K, V>(dictionary, resultSet,
+			return this.Dictionary<K, V>(dictionary, dataSet,
 				key,
 				context => context.Assign(context.GetField<V>(value))
 			);
 		}
 
-		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, string key, Action<InboundCollectionMappingContext<T,V>> value)
+		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, string key, Action<InboundCollectionMappingContext<T,V>> value)
 		{
-			return this.Dictionary<K, V>(dictionary, resultSet,
+			return this.Dictionary<K, V>(dictionary, dataSet,
 				context => context.Assign(context.GetField<K>(key)),
 				value
 			);
 		}
 
-		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, Action<InboundCollectionMappingContext<T,K>> key, Action<InboundCollectionMappingContext<T,V>> value)
+		public InboundMapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, Action<InboundCollectionMappingContext<T,K>> key, Action<InboundCollectionMappingContext<T,V>> value)
 		{
-			var dictMapping = new InboundMapping<IDictionary<K,V>>(this.EntitySpace) { ResultSet = resultSet, };
+			var dictMapping = new InboundMapping<IDictionary<K,V>>(this.EntitySpace) { DataSet = dataSet, };
 
 			dictMapping.SubMappings[dictionary.Key] = new InboundMapping<K>(this.EntitySpace)
 			{
@@ -150,7 +150,7 @@ namespace Eggplant.Entities.Persistence
 			: base(mapping.EntitySpace)
 		{
 			this.Connection = connection;
-			this.ResultSet = mapping.ResultSet;
+			this.DataSet = mapping.DataSet;
 			this.MappingFunction = mapping.MappingFunction;
 			foreach (var sub in mapping.SubMappings)
 			{

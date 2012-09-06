@@ -12,7 +12,7 @@ namespace Eggplant.Entities.Queries
 	{
 		public QueryTemplate Template { get; set; }
 		public int Index { get; set; }
-		public string ResultSet { get; set; }
+		public string DataSet { get; set; }
 		public string CommandText { get; set; }
 		public Dictionary<string, Func<QueryBase, bool>> Columns { get; private set; }
 

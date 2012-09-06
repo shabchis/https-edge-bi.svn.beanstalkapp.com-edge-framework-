@@ -44,16 +44,16 @@ namespace Eggplant.Entities.Queries
 			};
 		}
 
-		public QueryTemplate<T> Subquery(string resultSet, string commandText, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> Subquery(string dataSet, string commandText, Action<SubqueryTemplate> inner = null)
 		{
-			return this.Subquery(resultSet, -1, commandText, inner);
+			return this.Subquery(dataSet, -1, commandText, inner);
 		}
 
-		public QueryTemplate<T> Subquery(string resultSet, int index, string commandText, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> Subquery(string dataSet, int index, string commandText, Action<SubqueryTemplate> inner = null)
 		{
 			var subqueryTemplate = new SubqueryTemplate()
 			{
-				ResultSet = resultSet,
+				DataSet = dataSet,
 				Index = index < 0 ? this.SubqueryTemplates.Count : index,
 				CommandText = commandText
 			};
@@ -70,9 +70,9 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public QueryTemplate<T> DefaultSubquery(string resultSet)
+		public QueryTemplate<T> DefaultSubquery(string dataSet)
 		{
-			this.DefaultSubqueryTemplate = this.SubqueryTemplates.Find(t => t.ResultSet == resultSet);
+			this.DefaultSubqueryTemplate = this.SubqueryTemplates.Find(t => t.DataSet == dataSet);
 			return this;
 		}
 
