@@ -9,6 +9,11 @@ namespace Edge.Data.Objects
 	{
 		public string DestinationUrl;
 		public Creative Creative;
+
+		public override IEnumerable<EdgeObject> GetChildObjects()
+		{
+			yield return this.Creative;
+		}
 	}
 
 }

@@ -9,6 +9,11 @@ namespace Edge.Data.Objects
 	{
 		public Target Target;
 		public string DestinationUrl;
+
+		public override IEnumerable<EdgeObject> GetChildObjects()
+		{
+			yield return Target;
+		}
 	}
 
 }
