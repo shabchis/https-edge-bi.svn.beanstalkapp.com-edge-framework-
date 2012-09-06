@@ -41,7 +41,7 @@ namespace Edge.Data.Objects
 			int pass = 0;
 			if (metricsUnit is AdMetricsUnit)
 			{
-				AdMetricsUnit adMetricsUnit = (AdMetricsUnit)metricsUnit;
+				AdMetricsUnit adMetricsUnit = (AdMetricsUnit)metricsUnit;				
 				_objectsManger.Add(adMetricsUnit.Ad, pass);
 				_objectsManger.Add(adMetricsUnit.Ad.Creative, pass);
 			}
@@ -129,67 +129,18 @@ namespace Edge.Data.Objects
 			string typeName = obj.GetType().Name;
 
 			string colName;
-			if (obj.GetType().IsSubclassOf(typeof(EdgeObject)))
+			if (obj is EdgeObject)
 			{
-				switch (typeName)
+				colName = obj.GetType().Name;
+				if (!_cols.ContainsKey(colName))
 				{
-					case "Ad":
-						{
-							colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
-							Ad ad = (Ad)obj;
-							if (!_cols.ContainsKey(colName))
-							{
-
-								_cols.Add(colName, new Column() { Name = colName, Value = ad.GK });
-							}
-							break;
-						}
-					case "CompositeCreative":
-						{
-							colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
-							CompositeCreative composite = (CompositeCreative)obj;
-							if (!_cols.ContainsKey(colName))
-								_cols.Add(colName, new Column() { Name = colName });
-							var childCreatives = composite.ChildCreatives.OrderBy(p => p.Key);
-
-
-							foreach (var childCreative in childCreatives)
-							{
-								colName = string.Format("{0}_{1}", childCreative.Key, _edgeobjectsSuffix);
-								if (!_cols.ContainsKey(colName))
-									_cols.Add(colName, new Column() { Name = colName, Value = childCreative.Value.GK });
-
-							}
-
-							break;
-						}
-					case "SingleCreative":
-						{
-							colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
-							if (!_cols.ContainsKey(colName))
-							{
-								Creative creative = (Creative)obj;
-								_cols.Add(colName, new Column() { Name = colName, Value = creative.GK });
-							}
-							break;
-						}
-					default:
-						{
-							if (obj is Target)
-							{
-								int i = 2;
-								colName = string.Format("{0}_{1}", typeName, _edgeobjectsSuffix);
-
-								while (_cols.ContainsKey(colName))
-								{
-									colName = string.Format("{0}{1}_{2}", typeName, i, _edgeobjectsSuffix);
-									i++;
-								}
-								Target target = (Target)obj;
-								_cols.Add(colName, new Column() { Name = colName, Value = target.GK });
-							}
-							break;
-						}
+					_cols.Add(colName, new Column() { Name = colName, Value = ((EdgeObject)obj).GK });
+					if (!((EdgeObject)obj).HasChilds())
+						return;
+					foreach (var child in ((EdgeObject)obj).GetChildObjects())
+					{
+						AddColumn(child);
+					}
 				}
 			}
 			else
@@ -237,6 +188,7 @@ namespace Edge.Data.Objects
 				}
 
 			}
+
 
 		}
 		public string FindStagingTable(string metricsTableName)
