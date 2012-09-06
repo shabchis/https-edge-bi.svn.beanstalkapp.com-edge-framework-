@@ -18,6 +18,14 @@ namespace Edge.Data.Objects
 			foreach (var pair in ChildCreatives.OrderBy(p => p.Key))
 				yield return pair.Value;
 		}
+		public override bool HasChilds()
+		{
+
+			if (ChildCreatives != null && ChildCreatives.Count > 0)
+				return true;
+			else
+				return false;			
+		}
 	}
 
 	public abstract partial class SingleCreative : Creative
