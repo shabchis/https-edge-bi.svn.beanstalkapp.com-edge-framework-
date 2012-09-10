@@ -18,7 +18,7 @@ namespace Eggplant.Entities.Model
 		bool AllowEmpty { get; set; }
 		MemberInfo TargetMember { get; set; }
 
-		IInboundMappingContext CreateInboundContext(IInboundMapping mapping, PersistenceConnection connection);
+		IMappingContext CreateContext(IMapping mapping, MappingDirection direction, PersistenceConnection connection);
 	}
 
 	public interface ICollectionProperty:IEntityProperty
@@ -70,9 +70,9 @@ namespace Eggplant.Entities.Model
 
 		#region Interfaces
 
-		public virtual IInboundMappingContext CreateInboundContext(IInboundMapping mapping, PersistenceConnection connection)
+		public virtual IMappingContext CreateContext(IMapping mapping, MappingDirection dir, PersistenceConnection connection)
 		{
-			return new InboundMappingContext<ValueT>((InboundMapping<ValueT>)mapping, connection);
+			return new MappingContext<ValueT>((Mapping<ValueT>)mapping, dir, connection);
 		}
 
 		#endregion
@@ -110,9 +110,9 @@ namespace Eggplant.Entities.Model
 		{
 		}
 
-		public override IInboundMappingContext CreateInboundContext(IInboundMapping mapping, PersistenceConnection connection)
+		public override IMappingContext CreateContext(IMapping mapping, MappingDirection dir, PersistenceConnection connection)
 		{
-			return new InboundCollectionMappingContext<EntityT, ValueT>((InboundMapping<ICollection<ValueT>>)mapping, connection)
+			return new CollectionMappingContext<EntityT, ValueT>((Mapping<ICollection<ValueT>>)mapping, dir, connection)
 			{
 				ValueProperty = this.Value
 			};
@@ -143,12 +143,12 @@ namespace Eggplant.Entities.Model
 		{
 		}
 
-		public override IInboundMappingContext CreateInboundContext(IInboundMapping mapping, PersistenceConnection connection)
+		public override IMappingContext CreateContext(IMapping mapping, MappingDirection dir, PersistenceConnection connection)
 		{
 			//return new InboundCollectionMappingContext<EntityT, KeyT>(this.Key, (InboundMapping<EntityT>)mapping, connection);
 			//return new InboundCollectionMappingContext<EntityT, ValueT>(this.Value, (InboundMapping<EntityT>)mapping, connection);
 
-			return new InboundDictionaryMappingContext<EntityT, KeyT, ValueT>((InboundMapping<IDictionary<KeyT, ValueT>>)mapping, connection)
+			return new DictionaryMappingContext<EntityT, KeyT, ValueT>((Mapping<IDictionary<KeyT, ValueT>>)mapping, dir, connection)
 			{
 				KeyProperty = this.Key,
 				ValueProperty = this.Value

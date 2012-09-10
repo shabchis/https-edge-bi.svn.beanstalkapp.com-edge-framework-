@@ -20,9 +20,9 @@ namespace Eggplant.Entities.Queries
 			this.Subqueries = new List<Subquery>();
 		}
 
-		public new InboundMappingContext<T> MappingContext
+		public new MappingContext<T> MappingContext
 		{
-			get { return (InboundMappingContext<T>)base.MappingContext; }
+			get { return (MappingContext<T>)base.MappingContext; }
 			internal set { base.MappingContext = value; }
 		}
 
@@ -47,7 +47,7 @@ namespace Eggplant.Entities.Queries
 		{
 			this.SelectList.Add(collection);
 
-			IInboundMapping collectionMapping;
+			IMapping collectionMapping;
 			if (!this.MappingContext.SubMappings.TryGetValue(collection, out collectionMapping))
 				throw new MappingException(String.Format("No inbound mapping defined for the collection property {0}.", collection.Name));
 
@@ -61,7 +61,7 @@ namespace Eggplant.Entities.Queries
 			//}
 
 			Subquery subquery = template.Start(this.Connection);
-			subquery.MappingContext = (IInboundMappingContext)collectionMapping;
+			subquery.MappingContext = (IMappingContext)collectionMapping;
 
 			this.Subqueries.Add(subquery);
 

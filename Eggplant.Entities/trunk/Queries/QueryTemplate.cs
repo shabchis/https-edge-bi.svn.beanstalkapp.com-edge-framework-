@@ -23,7 +23,7 @@ namespace Eggplant.Entities.Queries
 
 	public class QueryTemplate<T> : QueryTemplate
 	{
-		public InboundMapping<T> InboundMapping;
+		public Mapping<T> InboundMapping;
 		//public OutboundMapping<T> OutboundMapping;
 
 		internal QueryTemplate(EntitySpace space):base(space)
@@ -40,7 +40,7 @@ namespace Eggplant.Entities.Queries
 			{
 				Connection = connection,
 				EntitySpace = this.EntitySpace,
-				MappingContext = new InboundMappingContext<T>(this.InboundMapping, connection)
+				MappingContext = new MappingContext<T>(this.InboundMapping, this.InboundMapping.Direction, connection)
 			};
 		}
 

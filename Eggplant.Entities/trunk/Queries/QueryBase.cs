@@ -12,7 +12,7 @@ namespace Eggplant.Entities.Queries
 	{
 		public EntitySpace EntitySpace { get; internal set; }
 		public virtual PersistenceConnection Connection { get; set; }
-		public IInboundMappingContext MappingContext { get; internal set; }
+		public IMappingContext MappingContext { get; internal set; }
 		public List<IEntityProperty> SelectList { get; private set; }
 		public string FilterExpression { get; set; }
 		public List<KeyValuePair<IEntityProperty, SortOrder>> SortingList { get; private set; }

@@ -21,16 +21,11 @@ namespace Eggplant
 			this.Definitions = new Dictionary<Type,IEntityDefinition>();
 		}
 
-		public InboundMapping<T> CreateInboundMapping<T>()
+		public Mapping<T> CreateMapping<T>(MappingDirection direction)
 		{
-			return new InboundMapping<T>(this);
+			return new Mapping<T>(this, direction);
 		}
 
-		public OutboundMapping<T> CreateOutboundMapping<T>()
-		{
-			throw new NotImplementedException();
-			//return new OutboundMapping<T>(this);
-		}
 
 		public EntityDefinition<T> GetDefinition<T>()
 		{
@@ -58,7 +53,7 @@ namespace Eggplant
 			return (EntityDefinition<T>)def;
 		}
 
-		public QueryTemplate<T> CreateQueryTemplate<T>(InboundMapping<T> inboundMapping = null)
+		public QueryTemplate<T> CreateQueryTemplate<T>(Mapping<T> inboundMapping = null)
 		{
 			return new QueryTemplate<T>(this)
 			{
