@@ -68,8 +68,7 @@
     <Compile Include="Exceptions.cs" />
     <Compile Include="Model\EntityDefinition.cs" />
     <Compile Include="Model\EntityProperty.cs" />
-    <Compile Include="Persistence\InboundMapping.cs" />
-    <Compile Include="Persistence\OutboundMapping.cs" />
+    <Compile Include="Persistence\Mapping.cs" />
     <Compile Include="Persistence\PersistenceConnection.cs" />
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Queries\Enums.cs" />
