@@ -9,12 +9,15 @@ namespace Edge.Data.Objects
 	{
 		public Target Target;
 		public string DestinationUrl;
-		public override bool HasChilds()
+		public override bool HasChildsObjects
 		{
-			if (Target != null)
-				return true;
-			else
-				return false;
+			get
+			{
+				if (Target != null)
+					return true;
+				else
+					return false;
+			}
 		}
 
 		public override IEnumerable<EdgeObject> GetChildObjects()

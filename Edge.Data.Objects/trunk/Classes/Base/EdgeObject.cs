@@ -14,9 +14,9 @@ namespace Edge.Data.Objects
 
 		public Dictionary<MetaProperty, object> MetaProperties;
 
-		public virtual bool HasChilds()
-		{			
-				return false;			
+		public virtual bool HasChildsObjects
+		{
+			get { return false; }
 		}
 
 		public virtual IEnumerable<EdgeObject> GetChildObjects()
