@@ -135,7 +135,7 @@ namespace Edge.Data.Objects
 				if (!_cols.ContainsKey(colName))
 				{
 					_cols.Add(colName, new Column() { Name = colName, Value = ((EdgeObject)obj).GK });
-					if (!((EdgeObject)obj).HasChilds())
+					if (!((EdgeObject)obj).HasChildsObjects)
 						return;
 					foreach (var child in ((EdgeObject)obj).GetChildObjects())
 					{
@@ -280,7 +280,7 @@ namespace Edge.Data.Objects
 
 		}
 	}
-	public class EdgeObjectsManager
+	internal class EdgeObjectsManager
 	{
 		Dictionary<EdgeObject, EdgeObject> _allObjects = new Dictionary<EdgeObject, EdgeObject>();
 		Dictionary<int, List<EdgeObject>> _objectsByPass = new Dictionary<int, List<EdgeObject>>();
