@@ -104,7 +104,7 @@ namespace Edge.Core.Services.Scheduling
 
 
 			Environment = environment;
-			environment.ServiceScheduleRequested += new EventHandler<ServiceInstanceEventArgs>(environment_ServiceScheduleRequested);
+			environment.ServiceScheduleRequested += new EventHandler<ServiceScheduleRequestedEventArgs>(environment_ServiceScheduleRequested);
 
 			_percentile = int.Parse(AppSettings.Get(this, "Percentile"));
 			_neededScheduleTimeLine = TimeSpan.Parse(AppSettings.Get(this, "NeededScheduleTimeLine"));
@@ -117,7 +117,7 @@ namespace Edge.Core.Services.Scheduling
 
 		}
 
-		void environment_ServiceScheduleRequested(object sender, ServiceInstanceEventArgs e)
+		void environment_ServiceScheduleRequested(object sender, ServiceScheduleRequestedEventArgs e)
 		{
 
 			if (e.ServiceInstance.ParentInstance == null)
