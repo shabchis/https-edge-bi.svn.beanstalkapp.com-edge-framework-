@@ -16,4 +16,16 @@ namespace Edge.Core.Services
 		  System.Runtime.Serialization.StreamingContext context)
 			: base(info, context) { }
 	}
+
+	[Serializable]
+	public class ServiceEnvironmentException : Exception
+	{
+		public ServiceEnvironmentException() { }
+		public ServiceEnvironmentException(string message) : base(message) { }
+		public ServiceEnvironmentException(string message, Exception inner) : base(message, inner) { }
+		protected ServiceEnvironmentException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
+	}
 }

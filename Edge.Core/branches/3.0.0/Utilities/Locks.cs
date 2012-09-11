@@ -524,7 +524,7 @@ namespace Edge.Core
 			info.AddValue("IsLocked", this.IsLocked);
 		}
 
-		private LockableDictionary(SerializationInfo info, StreamingContext context)
+		protected LockableDictionary(SerializationInfo info, StreamingContext context)
 		{
 			_inner = (Dictionary<TKey, TValue>)info.GetValue("_inner", typeof(Dictionary<TKey, TValue>));
 

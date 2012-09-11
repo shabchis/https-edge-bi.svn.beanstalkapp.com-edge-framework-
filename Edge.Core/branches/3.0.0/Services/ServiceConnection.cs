@@ -17,7 +17,7 @@ namespace Edge.Core.Services
 	{
 		public Action<ServiceStateInfo> StateChangedCallback { get; set; }
 		public Action<object> OutputGeneratedCallback { get; set; }
-		public WcfClient<IServiceExecutionHost> Host { get; private set; }
+		public WcfDuplexClient<IServiceExecutionHost> HostChannel { get; private set; }
 		public Guid Guid { get; private set; }
 		public Guid ServiceInstanceID { get; private set; }
 
@@ -25,15 +25,15 @@ namespace Edge.Core.Services
 		{
 			this.Guid = Guid.NewGuid();
 			this.ServiceInstanceID = serviceInstanceID;
-			this.Host = new WcfClient<IServiceExecutionHost>(environment, this, endpointName, endpointAddress);
+			this.HostChannel = new WcfDuplexClient<IServiceExecutionHost>(environment, this, endpointName, endpointAddress);
 			//TODO: add environment to StreamingContext
-			this.Host.Open();
-			this.Host.Channel.Connect(this.ServiceInstanceID, this.Guid);
+			this.HostChannel.Open();
+			this.HostChannel.Channel.Connect(this.ServiceInstanceID, this.Guid);
 		}
 
 		internal void RefreshState()
 		{
-			this.Host.Channel.NotifyState(this.ServiceInstanceID);
+			this.HostChannel.Channel.NotifyState(this.ServiceInstanceID);
 		}
 
 		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo)
@@ -51,15 +51,15 @@ namespace Edge.Core.Services
 		public void Dispose()
 		{
 			// Close the channel if it is still open
-			if (Host != null)
+			if (HostChannel != null)
 			{
-				if (Host.State == CommunicationState.Opened)
+				if (HostChannel.State == CommunicationState.Opened)
 				{
-					Host.Channel.Disconnect(this.ServiceInstanceID, this.Guid);
-					Host.Close();
+					HostChannel.Channel.Disconnect(this.ServiceInstanceID, this.Guid);
+					HostChannel.Close();
 				}
-				else if (Host.State != CommunicationState.Closed)
-					Host.Abort();
+				else if (HostChannel.State != CommunicationState.Closed)
+					HostChannel.Abort();
 			}
 		}
 	}

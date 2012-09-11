@@ -161,7 +161,7 @@ namespace Edge.Core.Services
 				Connect();
 
 			// Initialize
-			this.Connection.Host.Channel.InitializeService(
+			this.Connection.HostChannel.Channel.InitializeService(
 				this.Configuration,
 				this.SchedulingInfo,
 				this.InstanceID,
@@ -191,7 +191,7 @@ namespace Edge.Core.Services
 				throw new InvalidOperationException("Service can only be started when it is in the Ready state.");
 
 			// Start the service
-			try { this.Connection.Host.Channel.StartService(this.InstanceID); }
+			try { this.Connection.HostChannel.Channel.StartService(this.InstanceID); }
 			catch (Exception ex)
 			{
 				throw new ServiceException("Could not start this instance.", ex);
@@ -218,7 +218,7 @@ namespace Edge.Core.Services
 				if (State != ServiceState.Running && State != ServiceState.Paused)
 					throw new InvalidOperationException("Service can only be aborted when it is in the Running or Waiting state.");
 
-				this.Connection.Host.Channel.AbortService(this.InstanceID);
+				this.Connection.HostChannel.Channel.AbortService(this.InstanceID);
 			}
 		}
 
@@ -248,9 +248,12 @@ namespace Edge.Core.Services
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Environment = context.Context as ServiceEnvironment; //new ServiceEnvironment();
 
-			//object pid = info.GetValue("ParentInstanceID", typeof(object));
-			//if (pid != null)
-				//this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
+			object pid = info.GetValue("ParentInstanceID", typeof(object));
+			if (pid != null)
+				this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
+
+			if (String.IsNullOrEmpty(this.Configuration.HostName))
+				this.Configuration.HostName = this.Environment.EnvironmentConfiguration.DefaultHostName;
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))

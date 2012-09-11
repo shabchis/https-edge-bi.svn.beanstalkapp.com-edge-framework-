@@ -47,4 +47,11 @@ namespace Edge.Core.Services
 		[OperationContract(IsOneWay = true)]
 		void ReceiveOutput(object output);
 	}
+
+	[ServiceContract(Name = "ServiceEnvironmentEventListener", Namespace = "http://www.edge.bi/contracts")]
+	internal interface IServiceEnvironmentEventListener
+	{
+		[OperationContract(IsOneWay = true)]
+		void ServiceScheduleRequestedEvent(ServiceScheduleRequestedEventArgs args);
+	}
 }

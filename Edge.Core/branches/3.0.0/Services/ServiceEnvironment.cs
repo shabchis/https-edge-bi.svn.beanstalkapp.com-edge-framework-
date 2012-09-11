@@ -11,16 +11,17 @@ using System.Xml;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
+using System.ServiceModel.Description;
+using System.ServiceModel;
 
 namespace Edge.Core.Services
 {
-	public class ServiceEnvironment
+	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
+	public class ServiceEnvironment : IServiceEnvironmentEventListener, IDisposable
 	{
 		private Dictionary<string, ServiceExecutionHostInfo> _hosts;
 
 		public ServiceEnvironmentConfiguration EnvironmentConfiguration { get; private set; }
-
-		public event EventHandler<ServiceInstanceEventArgs> ServiceScheduleRequested;
 
 		// TODO: remove the reference to proxy from here, this should be loaded from a list of hosts in the database
 		public ServiceEnvironment(ServiceEnvironmentConfiguration environmentConfig)
@@ -69,8 +70,8 @@ namespace Edge.Core.Services
 				command.CommandType = CommandType.StoredProcedure;
 				command.Parameters.AddWithValue("@hostName", host.HostName);
 				command.Parameters.AddWithValue("@hostGuid", host.HostGuid.ToString("N"));
-				command.Parameters.AddWithValue("@endpointName", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == "Default").Name);
-				command.Parameters.AddWithValue("@endpointAddress", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == "Default").Address.ToString());
+				command.Parameters.AddWithValue("@endpointName", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceExecutionHost).FullName).Name);
+				command.Parameters.AddWithValue("@endpointAddress", host.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceExecutionHost).FullName).Address.ToString());
 				connection.Open();
 				command.ExecuteNonQuery();
 			}
@@ -114,29 +115,6 @@ namespace Edge.Core.Services
 
 
 		public ServiceInstance GetServiceInstance(Guid instanceID, bool stateInfoOnly = false)
-		{
-			throw new NotImplementedException();
-		}
-
-		public void ScheduleServiceInstance(ServiceInstance instance)
-		{
-			throw new NotImplementedException();
-			/*
-			// TODO: temporarily using host to get to the target environment
-			var host = (ServiceExecutionHost)_hosts[ServiceExecutionHost.LOCALNAME];
-			if (RemotingServices.IsTransparentProxy(host))
-			{
-				host.InternalScheduleService(instance);
-			}
-			else
-			{
-				if (ServiceScheduleRequested != null)
-					ServiceScheduleRequested(this, new ServiceInstanceEventArgs() { ServiceInstance = instance });
-			}
-			*/
-		}
-
-		public void ScheduleServiceByName(string serviceName, Guid? profileID = null, ServiceConfiguration configuration = null)
 		{
 			throw new NotImplementedException();
 		}
@@ -206,12 +184,149 @@ namespace Edge.Core.Services
 				command.ExecuteNonQuery();
 			}
 		}
+
+		// .............................................................
+		// ENVIRONMENT EVENTS
+
+		public event EventHandler<ServiceScheduleRequestedEventArgs> ServiceScheduleRequested;
+
+		WcfHost _eventListener = null;
+		Dictionary<ServiceEnvironmentEventType, ServiceEnvironmentEventListenerInfo> _environmentListeners = null;
+
+		public void RefreshEventListenersList()
+		{
+			if (_environmentListeners == null)
+				_environmentListeners = new Dictionary<ServiceEnvironmentEventType, ServiceEnvironmentEventListenerInfo>();
+			else
+				_environmentListeners.Clear();
+
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				var command = new SqlCommand(env.SP_EnvironmentEventList, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				connection.Open();
+				using (SqlDataReader reader = command.ExecuteReader())
+				{
+					while (reader.Read())
+					{
+						var info = new ServiceEnvironmentEventListenerInfo()
+						{
+							EventType = SqlUtility.ClrValue<string, ServiceEnvironmentEventType>(
+								reader["EventType"],
+								ev => (ServiceEnvironmentEventType) Enum.Parse(typeof(ServiceEnvironmentEventType), ev, false),
+								(ServiceEnvironmentEventType) 0
+							),
+							EndpointName = SqlUtility.ClrValue<string>(reader["EndpointName"]),
+							EndpointAddress = SqlUtility.ClrValue<string>(reader["EndpointAddress"])
+						};
+						_environmentListeners.Add(info.EventType, info);
+					}
+				}
+			}
+		}
+
+		public void ListenForEvents(ServiceEnvironmentEventType eventType)
+		{
+			if (_eventListener == null)
+			{
+				_eventListener = new WcfHost(this, this);
+
+				ServiceEndpoint[] rawEndpoints = _eventListener.Description.Endpoints.ToArray();
+				_eventListener.Description.Endpoints.Clear();
+				foreach (ServiceEndpoint endpoint in rawEndpoints)
+				{
+					endpoint.Address = new EndpointAddress(new Uri(endpoint.Address.Uri.ToString().Replace("{guid}", Guid.NewGuid().ToString("N"))));
+					_eventListener.AddServiceEndpoint(endpoint);
+				}
+
+				_eventListener.Open();
+			}
+
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				// FUTURE: in the future save all endpoints to DB
+				var command = new SqlCommand(env.SP_EnvironmentEventRegister, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				command.Parameters.AddWithValue("@eventType", eventType.ToString());
+				command.Parameters.AddWithValue("@endpointName", _eventListener.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Name);
+				command.Parameters.AddWithValue("@endpointAddress", _eventListener.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Address.ToString());
+				connection.Open();
+				command.ExecuteNonQuery();
+			}
+		}
+
+		void IServiceEnvironmentEventListener.ServiceScheduleRequestedEvent(ServiceScheduleRequestedEventArgs args)
+		{
+			if (ServiceScheduleRequested != null)
+				ServiceScheduleRequested(this, args);
+		}
+
+		public void ScheduleServiceInstance(ServiceInstance instance)
+		{
+			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs() { ServiceInstance = instance });
+		}
+
+		public void ScheduleServiceByName(string serviceName, Guid? profileID = null, ServiceConfiguration overridingConfiguration = null)
+		{
+			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs()
+			{
+				ServiceName = serviceName,
+				ProfileID = profileID,
+				OverridingConfiguration = overridingConfiguration
+			});
+		}
+
+
+		private void NotifyScheduleServiceRequest(ServiceScheduleRequestedEventArgs args)
+		{
+			RefreshEventListenersList();
+			ServiceEnvironmentEventListenerInfo listenerInfo;
+			if (!_environmentListeners.TryGetValue(ServiceEnvironmentEventType.ServiceScheduleRequested, out listenerInfo))
+				throw new ServiceEnvironmentException("Could not find a registered listener for ServiceScheduleRequested events in the database.");
+
+			try
+			{
+				using (var listener = new WcfClient<IServiceEnvironmentEventListener>(this, listenerInfo.EndpointName, listenerInfo.EndpointAddress))
+				{
+					listener.Channel.ServiceScheduleRequestedEvent(args);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new ServiceEnvironmentException(String.Format("Failed WCF call to the registered listener for ServiceScheduleRequested events ({0}).", listenerInfo.EndpointAddress), ex);
+			}
+		}
+
+		#region IDisposable Members
+
+		void IDisposable.Dispose()
+		{
+			// Close WCF host				
+			if (_eventListener != null)
+			{
+				if (_eventListener.State == CommunicationState.Faulted)
+					_eventListener.Abort();
+				else
+					_eventListener.Close();
+			}
+		}
+
+		#endregion
 	}
 
 	public class ServiceExecutionHostInfo
 	{
 		public string HostName;
 		public Guid HostGuid;
+		public string EndpointName;
+		public string EndpointAddress;
+	}
+
+	public class ServiceEnvironmentEventListenerInfo
+	{
+		public ServiceEnvironmentEventType EventType;
 		public string EndpointName;
 		public string EndpointAddress;
 	}
@@ -227,10 +342,17 @@ namespace Edge.Core.Services
 		public string SP_HostUnregister;
 		public string SP_InstanceSave;
 		public string SP_InstanceReset;
+		public string SP_EnvironmentEventRegister;
+		public string SP_EnvironmentEventList;
 	}
 
-	public class ServiceInstanceEventArgs : EventArgs
+	[Serializable]
+	public class ServiceScheduleRequestedEventArgs : EventArgs
 	{
 		public ServiceInstance ServiceInstance { get; set; }
+		public string ServiceName { get; set; }
+		public Guid? ProfileID { get; set; }
+		public ServiceConfiguration OverridingConfiguration { get; set; }
 	}
 }
+	
