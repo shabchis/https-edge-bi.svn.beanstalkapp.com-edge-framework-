@@ -104,7 +104,9 @@ namespace Edge.Core.Services.Scheduling
 
 
 			Environment = environment;
+			environment.ListenForEvents(ServiceEnvironmentEventType.ServiceScheduleRequested);
 			environment.ServiceScheduleRequested += new EventHandler<ServiceScheduleRequestedEventArgs>(environment_ServiceScheduleRequested);
+
 
 			_percentile = int.Parse(AppSettings.Get(this, "Percentile"));
 			_neededScheduleTimeLine = TimeSpan.Parse(AppSettings.Get(this, "NeededScheduleTimeLine"));
@@ -119,11 +121,24 @@ namespace Edge.Core.Services.Scheduling
 
 		void environment_ServiceScheduleRequested(object sender, ServiceScheduleRequestedEventArgs e)
 		{
-
-			if (e.ServiceInstance.ParentInstance == null)
-				this.AddChildServiceToSchedule(e.ServiceInstance);
+			if (e.ServiceInstance != null)
+			{
+				if (e.ServiceInstance.ParentInstance == null)
+					this.AddChildServiceToSchedule(e.ServiceInstance);
+				else
+					this.AddRequestToSchedule(e.ServiceInstance);
+			}
 			else
-				this.AddRequestToSchedule(e.ServiceInstance);
+			{
+				ServiceProfile profile=_profiles[e.AccountID];
+				IEnumerable<ServiceConfiguration> configuration= from sc in profile.Services
+														  where sc.ServiceName==e.ServiceName
+														  select sc;
+				ServiceConfiguration mergedConfiguration = configuration.ToList<ServiceConfiguration>()[0].Merge(e.OverridingConfiguration);
+
+				ServiceInstance instance = Environment.NewServiceInstance(mergedConfiguration);
+				this.AddRequestToSchedule(instance);
+			}
 
 		}
 
@@ -670,7 +685,7 @@ namespace Edge.Core.Services.Scheduling
 		#endregion
 
 		#region wcf
-	
+
 		public ServiceProfile[] GetSchedulingProfiles()
 		{
 			ServiceProfile[] profiles = new ServiceProfile[_profiles.Count];

@@ -303,6 +303,16 @@ namespace Edge.Core.Services
 				OverridingConfiguration = overridingConfiguration
 			});
 		}
+		public void ScheduleServiceByName(string serviceName, int accountID, ServiceConfiguration overridingConfiguration = null)
+		{
+			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs()
+			{
+				ServiceName = serviceName,				
+				OverridingConfiguration = overridingConfiguration,
+				AccountID=accountID
+				
+			});
+		}
 
 
 		private void NotifyScheduleServiceRequest(ServiceScheduleRequestedEventArgs args)
@@ -378,6 +388,7 @@ namespace Edge.Core.Services
 	{
 		public ServiceInstance ServiceInstance { get; set; }
 		public string ServiceName { get; set; }
+		public int AccountID { get; set; }
 		public Guid? ProfileID { get; set; }
 		public ServiceConfiguration OverridingConfiguration { get; set; }
 	}

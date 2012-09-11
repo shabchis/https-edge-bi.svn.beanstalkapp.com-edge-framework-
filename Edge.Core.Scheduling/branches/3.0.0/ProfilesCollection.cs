@@ -10,6 +10,7 @@ namespace Edge.Core.Scheduling
 	{
 		private List<ServiceProfile> _profiles = new List<ServiceProfile>();
 		private Dictionary<int, ServiceProfile> _profileByAccountId = new Dictionary<int, ServiceProfile>();
+		private Dictionary<Guid, ServiceProfile> _profileByProfileID = new Dictionary<Guid, ServiceProfile>();
 
 		
 
@@ -23,10 +24,18 @@ namespace Edge.Core.Scheduling
 				return _profileByAccountId[accountID];
 			}
 		}
+		public ServiceProfile this[Guid profileID]
+		{
+			get
+			{
+				return _profileByProfileID[profileID];
+			}
+		}
 		public void Add(ServiceProfile item)
 		{
 			_profiles.Add(item);
 			_profileByAccountId.Add(int.Parse(item.Parameters["AccountID"].ToString()), item);
+			_profileByProfileID.Add(item.ProfileID, item);
 		}
 
 		public void Clear()
