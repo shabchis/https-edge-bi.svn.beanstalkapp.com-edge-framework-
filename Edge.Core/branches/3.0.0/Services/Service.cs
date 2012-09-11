@@ -258,12 +258,12 @@ namespace Edge.Core.Services
 
 		protected ServiceInstance NewChildService(ServiceConfiguration child)
 		{
-			return Environment.NewServiceInstance(child, ServiceInstance.ForService(this));
+			return Environment.NewServiceInstance(child, ServiceInstance.FromService(this));
 		}
 
 		public ServiceInstance AsServiceInstance()
 		{
-			return ServiceInstance.ForService(this);
+			return ServiceInstance.FromService(this);
 		}
 
 		//======================
