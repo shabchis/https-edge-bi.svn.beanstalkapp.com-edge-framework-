@@ -248,12 +248,9 @@ namespace Edge.Core.Services
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
 			this.Environment = context.Context as ServiceEnvironment; //new ServiceEnvironment();
 
-			object pid = info.GetValue("ParentInstanceID", typeof(object));
-			if (pid != null)
-				this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
-
-			if (String.IsNullOrEmpty(this.Configuration.HostName))
-				this.Configuration.HostName = this.Environment.EnvironmentConfiguration.DefaultHostName;
+			//object pid = info.GetValue("ParentInstanceID", typeof(object));
+			//if (pid != null)
+				//this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
