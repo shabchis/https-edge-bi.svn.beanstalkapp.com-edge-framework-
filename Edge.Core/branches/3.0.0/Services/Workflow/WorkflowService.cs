@@ -61,7 +61,14 @@ namespace Edge.Core.Services.Workflow
 					nodeInstance.Instance = this.NewChildService(config);
 					nodeInstance.Instance.StateChanged += new EventHandler(Instance_StateChanged);
 					nodeInstance.Instance.Connect();
-					Environment.ScheduleServiceInstance(nodeInstance.Instance);
+					try
+					{
+						Environment.ScheduleServiceInstance(nodeInstance.Instance);
+					}
+					catch (Exception ex)
+					{
+						throw new WorkflowException(String.Format("Error trying to run the step '{0}'.", nodeInstance.Node.Name), ex);
+					}
 				}
 
 				if (failureBehavior == WorkflowNodeFailureBehavior.Terminate && nodeInstance.Instance.State == ServiceState.Ended && nodeInstance.Instance.Outcome != ServiceOutcome.Success)

@@ -5,6 +5,11 @@ using System.Text;
 
 namespace Edge.Core.Services
 {
+	public enum ServiceEnvironmentEventType
+	{
+		ServiceScheduleRequested
+	}
+
 	public enum ServiceState
 	{
 		Uninitialized = 0,

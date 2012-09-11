@@ -3,12 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Edge.Core.Services
 {
 	[Serializable]
 	public class ParameterDictionary: LockableDictionary<string,object>
 	{
+		public ParameterDictionary()
+		{
+		}
+
 		internal object Get(string paramName, bool emptyIsError = true)
 		{
 			object val = this[paramName];
@@ -44,6 +49,10 @@ namespace Edge.Core.Services
 			}
 
 			return val;
+		}
+
+		private ParameterDictionary(SerializationInfo info, StreamingContext context): base(info, context)
+		{
 		}
 
 	}

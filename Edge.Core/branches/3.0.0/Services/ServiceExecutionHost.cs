@@ -115,11 +115,14 @@ namespace Edge.Core.Services
 			lock (_services)
 			{
 				if (!_services.TryGetValue(instanceID, out runtimeInfo))
+				{
 					runtimeInfo = new ServiceRuntimeInfo(instanceID);
-
-				runtimeInfo.Connections.Add(connectionGuid, OperationContext.Current.GetCallbackChannel<IServiceConnection>());
-				_services.Add(instanceID, runtimeInfo);
+					_services.Add(instanceID, runtimeInfo);
+				}
 			}
+
+			runtimeInfo.Connections.Add(connectionGuid, OperationContext.Current.GetCallbackChannel<IServiceConnection>());
+			
 		}
 
 		/// <summary>
