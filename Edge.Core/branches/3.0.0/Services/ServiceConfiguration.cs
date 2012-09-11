@@ -321,6 +321,7 @@ namespace Edge.Core.Services
 			info.AddValue("ConfigurationLevel", ConfigurationLevel);
 			info.AddValue("BaseConfiguration", BaseConfiguration);
 			info.AddValue("Profile", Profile);
+			info.AddValue("HostName", _hostName);
 			info.AddValue("Limits", Limits);
 			info.AddValue("Parameters", Parameters);
 			info.AddValue("SchedulingRules", SchedulingRules);
@@ -346,7 +347,8 @@ namespace Edge.Core.Services
 			this.Limits = (ServiceExecutionLimits)info.GetValue("Limits", typeof(ServiceExecutionLimits));
 			this.Parameters = (ParameterDictionary)info.GetValue("Parameters", typeof(LockableDictionary<string, object>));
 			this.SchedulingRules = (LockableList<SchedulingRule>)info.GetValue("SchedulingRules", typeof(LockableList<SchedulingRule>));
-			
+
+			_hostName = info.GetString("HostName");
 			_assemblyPath = info.GetString("_assemblyPath");
 			_serviceType = info.GetString("_serviceType");
 			_serviceName = info.GetString("_serviceName");
