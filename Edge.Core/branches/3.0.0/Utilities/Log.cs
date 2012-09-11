@@ -60,7 +60,7 @@ namespace Edge.Core.Utilities
 		{
 			if (Service.Current != null)
 			{
-				_instance = ServiceInstance.ForService(Service.Current);
+				_instance = ServiceInstance.FromService(Service.Current);
 				_source = _instance.Configuration.ServiceName;
 			}
 		}

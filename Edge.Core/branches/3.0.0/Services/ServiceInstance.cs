@@ -10,6 +10,10 @@ using System.Diagnostics;
 using System.Security;
 using System.Runtime.Remoting.Contexts;
 using System.ServiceModel;
+using System.Data;
+using Edge.Core.Utilities;
+using System.IO;
+using System.Xml;
 
 namespace Edge.Core.Services
 {
@@ -43,7 +47,7 @@ namespace Edge.Core.Services
 		public event EventHandler StateChanged;
 		public event EventHandler<ServiceOutputEventArgs> OutputGenerated;
 
-		private ServiceInstance()
+		internal ServiceInstance()
 		{
 		}
 
@@ -82,6 +86,28 @@ namespace Edge.Core.Services
 				Configuration.Profile == null ? "default" : Configuration.Profile.ProfileID.ToString("N"),
 				InstanceID.ToString("N")
 			);
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is ServiceInstance ?
+				((ServiceInstance)obj).InstanceID == this.InstanceID :
+				base.Equals(obj);
+		}
+
+		public static bool operator ==(ServiceInstance instance1, ServiceInstance instance2)
+		{
+			return Object.Equals(instance1, instance2);
+		}
+
+		public static bool operator !=(ServiceInstance instance1, ServiceInstance instance2)
+		{
+			return !Object.Equals(instance1, instance2);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.InstanceID.GetHashCode();
 		}
 
 		//=================
@@ -233,7 +259,8 @@ namespace Edge.Core.Services
 		{
 			info.AddValue("InstanceID", InstanceID);
 			info.AddValue("Configuration", Configuration);
-			info.AddValue("ParentInstanceID", this.ParentInstance == null ? null : (object) this.ParentInstance.InstanceID);
+			info.AddValue("ParentInstanceID", this.ParentInstance == null ? null : (object)this.ParentInstance.InstanceID);
+			//info.AddValue("ParentInstance", this.ParentInstance);
 			info.AddValue("StateInfo", StateInfo);
 			info.AddValue("SchedulingInfo", SchedulingInfo);
 
@@ -244,13 +271,14 @@ namespace Edge.Core.Services
 		{
 			this.InstanceID = (Guid) info.GetValue("InstanceID", typeof(Guid));
 			this.Configuration = (ServiceConfiguration)info.GetValue("Configuration", typeof(ServiceConfiguration));
+			//this.ParentInstance = (ServiceInstance)info.GetValue("ParentInstance", typeof(ServiceInstance));
 			this.StateInfo = (ServiceStateInfo)info.GetValue("StateInfo", typeof(ServiceStateInfo));
 			this.SchedulingInfo = (SchedulingInfo)info.GetValue("SchedulingInfo", typeof(SchedulingInfo));
-			this.Environment = context.Context as ServiceEnvironment; //new ServiceEnvironment();
+			this.Environment = context.Context as ServiceEnvironment;
 
-			//object pid = info.GetValue("ParentInstanceID", typeof(object));
-			//if (pid != null)
-				//this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
+			object pid = info.GetValue("ParentInstanceID", typeof(object));
+			if (pid != null)
+				this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
 			if (info.GetBoolean("IsLocked"))
@@ -274,7 +302,7 @@ namespace Edge.Core.Services
 		#region Static
 		//=================
 
-		public static ServiceInstance ForService(Service serviceEngine)
+		internal static ServiceInstance FromService(Service serviceEngine)
 		{
 			ServiceInstance instance = new ServiceInstance()
 			{
@@ -285,6 +313,45 @@ namespace Edge.Core.Services
 				SchedulingInfo = serviceEngine.SchedulingInfo,
 				Configuration = serviceEngine.Configuration
 			};
+
+			return instance;
+		}
+
+		internal static ServiceInstance FromSqlData(IDataRecord record, ServiceEnvironment environment, ServiceInstance childInstance)
+		{
+			ServiceInstance instance = new ServiceInstance()
+			{
+				InstanceID = record.Convert<string, Guid>("InstanceID", raw => Guid.Parse(raw)),
+				Environment = environment,
+				StateInfo = new ServiceStateInfo()
+				{
+					Progress = record.Get<double>("Progress"),
+					State = record.Get<ServiceState>("State"),
+					Outcome = record.Get<ServiceOutcome>("Outcome"),
+					TimeInitialized = record.Get<DateTime>("TimeInitialized"),
+					TimeStarted = record.Get<DateTime>("TimeStarted"),
+					TimeEnded = record.Get<DateTime>("TimeEnded"),
+					TimeLastPaused = record.Get<DateTime>("TimeLastPaused"),
+					TimeLastResumed = record.Get<DateTime>("TimeLastResumed")
+				},
+				SchedulingInfo = record.IsDBNull("Scheduling_Status", "Scheduling_Scope", "Scheduling_MaxDeviationBefore", "Scheduling_MaxDeviationAfter", "Scheduling_RequestedTime", "Scheduling_ExpectedStartTime", "Scheduling_ExpectedEndTime") ? null : new SchedulingInfo()
+				{
+					SchedulingStatus = record.Get<SchedulingStatus>("Scheduling_Status"),
+					SchedulingScope = record.Get <SchedulingScope>("Scheduling_Scope"),
+					MaxDeviationBefore = record.Get<TimeSpan>("Scheduling_MaxDeviationBefore"),
+					MaxDeviationAfter = record.Get<TimeSpan>("Scheduling_MaxDeviationAfter"),
+					RequestedTime = record.Get<DateTime>("Scheduling_RequestedTime"),
+					ExpectedStartTime = record.Get<DateTime>("Scheduling_ExpectedStartTime"),
+					ExpectedEndTime = record.Get<DateTime>("Scheduling_ExpectedEndTime"),
+				}
+			};
+
+			var stringReader = new StringReader(record.Get<String>("Configuration"));
+			using (var xmlReader = new XmlTextReader(stringReader))
+				instance.Configuration = (ServiceConfiguration)new NetDataContractSerializer().ReadObject(xmlReader);
+
+			if (childInstance != null)
+				childInstance.ParentInstance = instance;
 
 			return instance;
 		}

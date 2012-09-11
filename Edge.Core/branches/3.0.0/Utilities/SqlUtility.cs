@@ -38,7 +38,7 @@ namespace Edge.Core.Utilities
 			return dbValue is DBNull ? emptyVal : convertFunc((R)dbValue);
 		}
 
-		public static T Get<T>(this SqlDataReader reader, string field, T nullVal = default(T))
+		public static T Get<T>(this IDataRecord reader, string field, T nullVal = default(T))
 		{
 			var val = reader[field];
 			if (val is DBNull)
@@ -47,10 +47,18 @@ namespace Edge.Core.Utilities
 				return (T)val;
 		}
 
-		public static ConvertT Convert<SourceT, ConvertT>(this SqlDataReader reader, string field, Func<SourceT, ConvertT> convertFunc, SourceT nullVal = default(SourceT))
+		public static ConvertT Convert<SourceT, ConvertT>(this IDataRecord reader, string field, Func<SourceT, ConvertT> convertFunc, SourceT nullVal = default(SourceT))
 		{
 			SourceT val = reader.Get<SourceT>(field, nullVal);
 			return convertFunc(val);
+		}
+
+		public static bool IsDBNull(this IDataRecord reader, params string[] fields)
+		{
+			bool isnull = true;
+			for (int i = 0; i < fields.Length; i++)
+				isnull &= reader[fields[i]] is DBNull;
+			return isnull;
 		}
 
 		private static Regex _paramFinder = new Regex(@"[@$\?][A-Za-z0-9_]+:[A-Za-z0-9_]+");

@@ -114,9 +114,35 @@ namespace Edge.Core.Services
 		}
 
 
-		public ServiceInstance GetServiceInstance(Guid instanceID, bool stateInfoOnly = false)
+		public ServiceInstance GetServiceInstance(Guid instanceID)
 		{
-			throw new NotImplementedException();
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				var command = new SqlCommand(env.SP_InstanceGet, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				command.Parameters.AddWithValue("@instanceID", instanceID.ToString("N"));
+				connection.Open();
+				ServiceInstance requestedInstance = null;
+				using (SqlDataReader reader = command.ExecuteReader())
+				{
+					ServiceInstance instance = null;
+					ServiceInstance childInstance = null;
+					do
+					{
+						if (!reader.Read())
+							continue;
+
+						instance = ServiceInstance.FromSqlData(reader, this, childInstance);
+						if (requestedInstance == null)
+							requestedInstance = instance;
+
+						childInstance = instance;
+					}
+					while (reader.NextResult());
+				}
+				return requestedInstance;
+			}
 		}
 
 		public void ResetUnendedServices()
@@ -342,6 +368,7 @@ namespace Edge.Core.Services
 		public string SP_HostUnregister;
 		public string SP_InstanceSave;
 		public string SP_InstanceReset;
+		public string SP_InstanceGet;
 		public string SP_EnvironmentEventRegister;
 		public string SP_EnvironmentEventList;
 	}
