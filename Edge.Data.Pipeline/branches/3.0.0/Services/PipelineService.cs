@@ -150,7 +150,7 @@ namespace Edge.Data.Pipeline.Services
 				{
 					if (conflict.PipelineInstanceID != null)
 					{
-						ServiceInstance instance = Environment.GetServiceInstance(conflict.PipelineInstanceID.Value, stateInfoOnly: true);
+						ServiceInstance instance = Environment.GetServiceInstance(conflict.PipelineInstanceID.Value);
 						if (instance.State != ServiceState.Ended)
 							processing.Add(conflict);
 					}
