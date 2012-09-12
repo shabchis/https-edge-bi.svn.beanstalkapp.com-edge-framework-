@@ -14,6 +14,7 @@ using Edge.Core.Scheduling;
 using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.ServiceModel.Description;
+using System.Xml;
 
 namespace Edge.Core.Services.Scheduling
 {
@@ -53,7 +54,7 @@ namespace Edge.Core.Services.Scheduling
 		private bool _started = false;
 		Action _schedulerTimer;
 		Action _RequiredServicesTimer;
-		WebServiceHost host;
+		ServiceHost host;
 
 		#endregion
 
@@ -95,14 +96,14 @@ namespace Edge.Core.Services.Scheduling
 			EdgeServicesConfiguration.Load(configFileName);
 
 			//wcf for the scheduler to get the profiles
-			host = new WebServiceHost(this, new Uri("http://localhost:8000/"));
 
-
-			ServiceEndpoint ep = host.AddServiceEndpoint(typeof(ISchedulerDataService), new WebHttpBinding(), "bla");
+			host = new WebServiceHost(this);
 			
-			ServiceDebugBehavior sdb = host.Description.Behaviors.Find<ServiceDebugBehavior>();
-			sdb.IncludeExceptionDetailInFaults = true;
-			sdb.HttpHelpPageEnabled = true;
+			
+
+			
+	       
+			
 			
 			//todo: take care of exeptions, should it be here?
 			host.Open();
