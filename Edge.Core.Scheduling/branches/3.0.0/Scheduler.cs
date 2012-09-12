@@ -97,7 +97,16 @@ namespace Edge.Core.Services.Scheduling
 
 			//wcf for the scheduler to get the profiles
 
-			host = new WebServiceHost(this);
+			host = new WebServiceHost(this, new Uri("http://localhost:9000"));
+			BasicHttpBinding binding=new BasicHttpBinding();
+			binding.MaxReceivedMessageSize=4 * 1024 * 1024;
+			binding.MaxBufferSize=4 * 1024 * 1024;
+			binding.MaxBufferPoolSize=4 * 1024 * 1024;
+			binding.ReaderQuotas.MaxBytesPerRead = 4 * 1024 * 1024;
+			binding.ReaderQuotas.MaxArrayLength=4 * 1024 * 1024;
+			
+			host.AddServiceEndpoint(typeof(ISchedulerDataService), binding, "http://localhost:9000/");
+			
 			
 			
 
