@@ -15,6 +15,7 @@ using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.ServiceModel.Description;
 using System.Xml;
+using System.Runtime.Serialization;
 
 namespace Edge.Core.Services.Scheduling
 {
@@ -97,16 +98,23 @@ namespace Edge.Core.Services.Scheduling
 
 			//wcf for the scheduler to get the profiles
 
-			host = new WebServiceHost(this, new Uri("http://localhost:9000"));
-			BasicHttpBinding binding=new BasicHttpBinding();
-			binding.MaxReceivedMessageSize=4 * 1024 * 1024;
-			binding.MaxBufferSize=4 * 1024 * 1024;
-			binding.MaxBufferPoolSize=4 * 1024 * 1024;
-			binding.ReaderQuotas.MaxBytesPerRead = 4 * 1024 * 1024;
-			binding.ReaderQuotas.MaxArrayLength=4 * 1024 * 1024;
+			host = new WebServiceHost(this, new Uri("http://localhost:9000/"));
+			WebHttpBinding binding = new WebHttpBinding();
+			binding.MaxReceivedMessageSize = 2147483647;
+			binding.MaxBufferSize = 2147483647;
+			binding.MaxBufferPoolSize= 2147483647;
+			binding.ReaderQuotas.MaxBytesPerRead = 2147483647;
+			binding.ReaderQuotas.MaxArrayLength = 2147483647;
+			binding.Name = "BLA";
+
 			
-			host.AddServiceEndpoint(typeof(ISchedulerDataService), binding, "http://localhost:9000/");
 			
+			
+			ServiceEndpoint ep=  host.AddServiceEndpoint(typeof(ISchedulerDataService), binding, "http://localhost:9000/");
+		
+
+			DataContractSerializerOperationBehavior be = ep.Contract.Operations[0].Behaviors.Find<DataContractSerializerOperationBehavior>();
+			be.MaxItemsInObjectGraph = 2147483647;
 			
 			
 
@@ -136,8 +144,10 @@ namespace Edge.Core.Services.Scheduling
 
 		void environment_ServiceScheduleRequested(object sender, ServiceScheduleRequestedEventArgs e)
 		{
+			
 			if (e.ServiceInstance != null)
 			{
+				
 				if (e.ServiceInstance.ParentInstance == null)
 					this.AddChildServiceToSchedule(e.ServiceInstance);
 				else
@@ -152,8 +162,10 @@ namespace Edge.Core.Services.Scheduling
 				ServiceConfiguration mergedConfiguration = configuration.ToList<ServiceConfiguration>()[0].Merge(e.OverridingConfiguration);
 
 				ServiceInstance instance = Environment.NewServiceInstance(mergedConfiguration);
+				
 				this.AddRequestToSchedule(instance);
 			}
+			
 
 		}
 
