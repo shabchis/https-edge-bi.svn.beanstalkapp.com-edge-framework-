@@ -281,8 +281,8 @@ namespace Edge.Core.Services
 				this.ParentInstance = this.Environment.GetServiceInstance((Guid)pid);
 
 			// Was locked before serialization? Lock 'em up and throw away the key!
-			if (info.GetBoolean("IsLocked"))
-				((ILockable)this).Lock();
+			//if (info.GetBoolean("IsLocked"))
+			//    ((ILockable)this).Lock();
 		}
 
 		//=================

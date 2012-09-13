@@ -357,8 +357,8 @@ namespace Edge.Core.Services
 
 			Deserialize(info, context);
 
-			if (info.GetBoolean("IsLocked"))
-			    ((ILockable)this).Lock();
+			//if (info.GetBoolean("IsLocked"))
+			    //((ILockable)this).Lock();
 		}
 	
 		protected virtual void Deserialize(SerializationInfo info, StreamingContext context)
