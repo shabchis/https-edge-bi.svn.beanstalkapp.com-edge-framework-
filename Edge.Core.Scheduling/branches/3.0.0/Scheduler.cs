@@ -110,7 +110,7 @@ namespace Edge.Core.Services.Scheduling
 			
 			
 			
-			ServiceEndpoint ep=  host.AddServiceEndpoint(typeof(ISchedulerDataService), binding, "http://localhost:9000/");
+			ServiceEndpoint ep=  host.AddServiceEndpoint(typeof(ISchedulerDataService), binding, "http://localhost:9500/");
 		
 
 			DataContractSerializerOperationBehavior be = ep.Contract.Operations[0].Behaviors.Find<DataContractSerializerOperationBehavior>();
@@ -283,8 +283,15 @@ namespace Edge.Core.Services.Scheduling
 				serviceConfiguration.Limits.MaxConcurrentPerProfile = serviceElement.MaxInstancesPerAccount;
 				serviceConfiguration.ServiceClass = serviceElement.Class;
 
-				foreach (SchedulingRule rule in serviceElement.SchedulingRules)
-					serviceConfiguration.SchedulingRules.Add(rule);
+				foreach (SchedulingRuleElement rule in serviceElement.SchedulingRules)
+					serviceConfiguration.SchedulingRules.Add(new SchedulingRule()
+						{
+							Scope=rule.CalendarUnit,
+							Days=rule.SubUnits,
+							MaxDeviationAfter=rule.MaxDeviation,
+							Times = rule.ExactTimes
+							
+						});
 
 				((ILockable)serviceConfiguration).Lock();
 
@@ -310,8 +317,15 @@ namespace Edge.Core.Services.Scheduling
 					deriveConfiguration.ConfigurationID = GuidFromString(account.ID.ToString() + "___" + serviceUse.Name);
 
 
-					foreach (SchedulingRule rule in serviceUse.SchedulingRules)
-						deriveConfiguration.SchedulingRules.Add(rule);
+					foreach (SchedulingRuleElement rule in serviceUse.SchedulingRules)
+						deriveConfiguration.SchedulingRules.Add(new SchedulingRule()
+						{
+							Scope = rule.CalendarUnit,
+							Days = rule.SubUnits,
+							MaxDeviationAfter = rule.MaxDeviation,
+							Times=rule.ExactTimes
+
+						});
 					foreach (var option in serviceUse.Options)
 						deriveConfiguration.Parameters[option.Key] = option.Value;
 					deriveConfiguration.Limits.MaxConcurrentGlobal = serviceUse.MaxInstances;
@@ -565,8 +579,17 @@ namespace Edge.Core.Services.Scheduling
 									};
 									AsLockable(request).Lock(_instanceLock);
 
-									if (!_unscheduledRequests.ContainsSignature(request) && !_scheduledRequests.ContainsSignature(request))
-										yield return request;
+									lock (_scheduledRequests)
+									{
+										lock (_unscheduledRequests)
+										{
+											if (!(_unscheduledRequests.ContainsSignature(request) && _scheduledRequests.ContainsSignature(request)))
+												yield return request;
+											
+										}
+										
+									}
+									
 								}
 								requestedTime = requestedTime.AddDays(1);
 							}

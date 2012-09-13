@@ -20,7 +20,7 @@ namespace Edge.Core.Scheduling
 		}
 		public string GetSignature(ServiceInstance instance)
 		{
-			return String.Format("profile:{0},base:{1},name:{2},scope:{3},time:{4}", instance.Configuration.Profile.Parameters["AccountID"], instance.Configuration.BaseConfiguration.ServiceName, instance.Configuration.ServiceName, instance.SchedulingInfo.SchedulingScope, instance.SchedulingInfo.RequestedTime);
+			return String.Format("BaseConfigurationID:{0},scope:{1},time:{2}",instance.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile).ConfigurationID,  instance.SchedulingInfo.SchedulingScope, instance.SchedulingInfo.RequestedTime);
 
 		}
 		public bool ContainsSignature(ServiceInstance requestToCheck)
@@ -35,8 +35,9 @@ namespace Edge.Core.Scheduling
 
 		public void Add(ServiceInstance item)
 		{
+			
 			_requestsByGuid.Add(item.InstanceID, item);
-			if (item.SchedulingInfo.SchedulingScope != SchedulingScope.Unplanned) //since it unplaned it does not matter , their can be many of the same
+			if (item.SchedulingInfo.SchedulingScope != SchedulingScope.Unplanned)
 				_requestsBySignature.Add(GetSignature(item), item);
 		}
 
