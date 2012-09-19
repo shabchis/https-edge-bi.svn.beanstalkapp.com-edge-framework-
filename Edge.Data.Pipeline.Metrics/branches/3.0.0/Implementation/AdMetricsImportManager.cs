@@ -216,5 +216,15 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 		{
 			base.OnTransform(delivery, pass);
 		}
+
+		protected override void OnBeginCommit()
+		{
+			base.OnBeginCommit();
+		}
+
+		protected override void OnCommit(Delivery delivery, int pass)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
