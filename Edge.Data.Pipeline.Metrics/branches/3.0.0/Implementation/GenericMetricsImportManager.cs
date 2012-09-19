@@ -166,6 +166,10 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 		{
 			base.OnTransform(delivery, pass);
 		}
-		
+
+		protected override void OnCommit(Delivery delivery, int pass)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
