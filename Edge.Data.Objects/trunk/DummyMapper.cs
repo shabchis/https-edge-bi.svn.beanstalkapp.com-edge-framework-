@@ -18,6 +18,7 @@ namespace Edge.Data.Objects
 		private Dictionary<string, string> AgeGroupTarget;
 		private Dictionary<string, string> Segment;
 		private Dictionary<string, string> Campaign;
+		private Dictionary<string, string> Ad; 
 
 		public DummyMapper()
 		{
@@ -54,6 +55,12 @@ namespace Edge.Data.Objects
 				{"Budget","int_Field1"}
 			};
 			Mapping.Add(typeof(Edge.Data.Objects.Campaign), Campaign);
+
+			Ad = new Dictionary<string, string>()
+			{
+				{"DestinationUrl","string_Field1"}
+			};
+			Mapping.Add(typeof(Edge.Data.Objects.Ad), Ad);
 
 			Segment = new Dictionary<string, string>()
 			{
