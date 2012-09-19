@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name = "Segment")]
 	public partial class Segment : ChannelSpecificObject
 	{
 		public MetaProperty MetaProperty;

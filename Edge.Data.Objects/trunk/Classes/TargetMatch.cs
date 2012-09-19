@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name = "Target")]
 	public partial class TargetMatch : EdgeObject
 	{
 		public Target Target;
