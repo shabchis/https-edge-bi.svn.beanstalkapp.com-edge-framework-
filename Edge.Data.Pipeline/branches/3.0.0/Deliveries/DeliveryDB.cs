@@ -457,6 +457,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 						cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
+						cmd.Parameters["@accountOriginalID"].Value = output.Account != null ? output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value : (object)DBNull.Value;
 						cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 						cmd.Parameters["@signature"].Value = output.Signature;
 						cmd.Parameters["@status"].Value = output.Status;
