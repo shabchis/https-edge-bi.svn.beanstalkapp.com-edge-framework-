@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name="CreativeImage")]
 	public partial class ImageCreative : SingleCreative
 	{
 		public string ImageUrl;

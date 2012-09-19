@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="Classes\Account.cs" />
     <Compile Include="Classes\Ad.cs" />
+    <Compile Include="Classes\Base\Attributes.cs" />
     <Compile Include="Classes\Base\ChannelSpecificObject.cs" />
     <Compile Include="Classes\Base\EdgeObject.cs" />
     <Compile Include="Classes\Campaign.cs" />
