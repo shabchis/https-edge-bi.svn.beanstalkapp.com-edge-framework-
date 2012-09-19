@@ -114,7 +114,7 @@ namespace Edge.Core.Services
 		}
 
 
-		public ServiceInstance GetServiceInstance(Guid instanceID)
+		public ServiceInstance GetServiceInstance(Guid instanceID, bool stateInfoOnly = false)
 		{
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
@@ -122,6 +122,7 @@ namespace Edge.Core.Services
 				var command = new SqlCommand(env.SP_InstanceGet, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				command.Parameters.AddWithValue("@instanceID", instanceID.ToString("N"));
+				command.Parameters.AddWithValue("@stateInfoOnly", stateInfoOnly);
 				connection.Open();
 				ServiceInstance requestedInstance = null;
 				using (SqlDataReader reader = command.ExecuteReader())
@@ -133,7 +134,7 @@ namespace Edge.Core.Services
 						if (!reader.Read())
 							continue;
 
-						instance = ServiceInstance.FromSqlData(reader, this, childInstance);
+						instance = ServiceInstance.FromSqlData(reader, this, childInstance, stateInfoOnly);
 						if (requestedInstance == null)
 							requestedInstance = instance;
 
@@ -294,27 +295,6 @@ namespace Edge.Core.Services
 			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs() { ServiceInstance = instance });
 		}
 
-		public void ScheduleServiceByName(string serviceName, Guid? profileID = null, ServiceConfiguration overridingConfiguration = null)
-		{
-			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs()
-			{
-				ServiceName = serviceName,
-				ProfileID = profileID,
-				OverridingConfiguration = overridingConfiguration
-			});
-		}
-		public void ScheduleServiceByName(string serviceName, int accountID, ServiceConfiguration overridingConfiguration = null)
-		{
-			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs()
-			{
-				ServiceName = serviceName,				
-				OverridingConfiguration = overridingConfiguration,
-				AccountID=accountID
-				
-			});
-		}
-
-
 		private void NotifyScheduleServiceRequest(ServiceScheduleRequestedEventArgs args)
 		{
 			RefreshEventListenersList();
@@ -387,10 +367,6 @@ namespace Edge.Core.Services
 	public class ServiceScheduleRequestedEventArgs : EventArgs
 	{
 		public ServiceInstance ServiceInstance { get; set; }
-		public string ServiceName { get; set; }
-		public int AccountID { get; set; }
-		public Guid? ProfileID { get; set; }
-		public ServiceConfiguration OverridingConfiguration { get; set; }
 	}
 }
 	
