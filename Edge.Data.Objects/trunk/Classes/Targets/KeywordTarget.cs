@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name = "TargetKeyword")]
 	public partial class KeywordTarget : Target
 	{
 		public KeywordMatchType MatchType;

@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name = "TextCreative")]
 	public partial class TextCreative : SingleCreative
 	{
 		public TextCreativeType TextType;

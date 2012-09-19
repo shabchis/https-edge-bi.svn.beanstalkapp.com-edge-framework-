@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name = "LandingPage")]
 	public partial class LandingPage : EdgeObject
 	{
 		public LandingPageType LandingPageType;

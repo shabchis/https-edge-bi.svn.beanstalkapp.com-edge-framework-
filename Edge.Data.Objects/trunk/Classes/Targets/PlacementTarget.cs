@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
+	[TableInfo(Name = "TargetPlacement")]
 	public partial class PlacementTarget : Target
 	{
 		public string Value;
