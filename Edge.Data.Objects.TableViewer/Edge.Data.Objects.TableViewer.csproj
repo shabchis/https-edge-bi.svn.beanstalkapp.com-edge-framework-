@@ -12,10 +12,11 @@
     <OutputType>Library</OutputType>
     <NoStandardLibraries>false</NoStandardLibraries>
     <AssemblyName>Edge.Data.Objects.TableViewer</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <SGenUseProxyTypes>false</SGenUseProxyTypes>
     <ConnectionString>
     </ConnectionString>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,6 +45,11 @@
   <ItemGroup>
     <Reference Include="Edge.Data.Objects">
       <HintPath>obj\sqlclr\Edge.Data.Objects.dll</HintPath>
+      <Private>False</Private>
+      <SubType>SQLCLR</SubType>
+    </Reference>
+    <Reference Include="Eggplant.Entities">
+      <HintPath>obj\sqlclr\Eggplant.Entities.dll</HintPath>
       <Private>False</Private>
       <SubType>SQLCLR</SubType>
     </Reference>
