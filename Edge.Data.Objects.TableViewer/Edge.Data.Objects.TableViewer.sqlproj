@@ -88,9 +88,6 @@
     <Content Include="Test Scripts\GetTableStructureByName.sql" />
   </ItemGroup>
   <ItemGroup>
-    <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
     <PreDeploy Include="PreDeployScript.sql" />
   </ItemGroup>
   <ItemGroup>
