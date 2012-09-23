@@ -12,11 +12,12 @@
     <OutputType>Library</OutputType>
     <NoStandardLibraries>false</NoStandardLibraries>
     <AssemblyName>Edge.Data.Objects.TableViewer</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <SGenUseProxyTypes>false</SGenUseProxyTypes>
     <ConnectionString>
     </ConnectionString>
-    <TargetFrameworkProfile />
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -43,8 +44,7 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildBinPath)\SqlServer.targets" />
   <ItemGroup>
-    <Reference Include="Edge.Data.Objects">
-      <HintPath>obj\sqlclr\Edge.Data.Objects.dll</HintPath>
+    <Reference Include="Edge.Data.Objects, Version=0.0.0.0, Culture=neutral, PublicKeyToken=63c5f9cdd72ef67f, processorArchitecture=MSIL">
       <Private>False</Private>
       <SubType>SQLCLR</SubType>
     </Reference>
