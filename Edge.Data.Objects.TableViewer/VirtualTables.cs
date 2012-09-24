@@ -28,7 +28,8 @@ public partial class StoredProcedures
 					if (!type.Equals(typeof(Segment)))
 						if (type.IsSubclassOf(typeof(EdgeObject)) && !type.IsAbstract)
 						{
-							sb.Append(string.Format("SELECT '{0} ' Union ", type.Name));
+							string tableName = ((TableInfoAttribute)Attribute.GetCustomAttribute(type, typeof(TableInfoAttribute))).Name;
+							sb.Append(string.Format("SELECT '{0} ' Union ", tableName));
 						}
 				}
 				sb.Append("(SELECT distinct [Name] From MetaProperty where AccountID in(@accountID,-1))");
