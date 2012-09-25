@@ -9,7 +9,7 @@
     <PostConversionAddToScc>
     </PostConversionAddToScc>
     <TargetDatabaseSet>True</TargetDatabaseSet>
-    <PermissionSet>EXTERNAL_ACCESS</PermissionSet>
+    <PermissionSet>UNSAFE</PermissionSet>
     <Trustworthy>True</Trustworthy>
   </PropertyGroup>
   <PropertyGroup>

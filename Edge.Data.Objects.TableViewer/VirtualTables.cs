@@ -28,10 +28,12 @@ public partial class StoredProcedures
 					if (!type.Equals(typeof(Segment)))
 						if (type.IsSubclassOf(typeof(EdgeObject)) && !type.IsAbstract)
 						{
+							//Get table name from class attribute
 							string tableName = ((TableInfoAttribute)Attribute.GetCustomAttribute(type, typeof(TableInfoAttribute))).Name;
 							sb.Append(string.Format("SELECT '{0} ' Union ", tableName));
 						}
 				}
+
 				sb.Append("(SELECT distinct [Name] From MetaProperty where AccountID in(@accountID,-1))");
 				SqlCommand cmd = new SqlCommand(sb.ToString());
 				SqlParameter account = new SqlParameter("@accountID", accountID);
@@ -63,6 +65,8 @@ public partial class StoredProcedures
 
 		#region Getting Type from table name
 		/****************************************************************/
+		
+
 		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
 
 		if (type != null)
@@ -247,12 +251,14 @@ public partial class StoredProcedures
 	[Microsoft.SqlServer.Server.SqlProcedure]
 	public static void GetTableStructureByName(SqlString virtualTableName)
 	{
+		
 		string sqlAssembly = typeof(Creative).Assembly.FullName;
 		string classNamespace = typeof(Creative).Namespace;
 		DummyMapper mapper = new DummyMapper();
 
 		#region Getting Type from table name
 		/****************************************************************/
+		Attribute[] attributes = Attribute.GetCustomAttributes(typeof(Creative).Assembly);
 		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
 
 		if (type == null)
@@ -265,8 +271,9 @@ public partial class StoredProcedures
 
 			type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, baseValueType, sqlAssembly));
 		}
+		 
 		/****************************************************************/
-		#endregion
+		#endregion 
 
 		//Creating Select by Dummy table name
 		StringBuilder col = new StringBuilder();
@@ -274,7 +281,8 @@ public partial class StoredProcedures
 		/*******************************************************/
 
 		Dictionary<string, string> tableStructure = GetTableStructure(type);
-
+		
+		
 		foreach (MemberInfo member in type.GetMembers())
 		{
 			if (IsRelevant(member))
@@ -287,6 +295,9 @@ public partial class StoredProcedures
 				bool isEnum = false;
 
 
+				//bool a = ((FieldInfo)(member)).FieldType.FullName.Contains(classNamespace);
+
+				/*
 				if (((FieldInfo)(member)).FieldType.FullName.Contains(classNamespace))//Memeber is class member from Edge.Data.Object
 				{
 					//Getting Enum Types
@@ -318,9 +329,8 @@ public partial class StoredProcedures
 
 
 				}
-
-
-
+				 
+				 */
 
 				//Creating sql select query
 				col.Append(string.Format(" Select '{0}', '{1}', '{2}', '{3}', '{4}' Union ",
@@ -358,8 +368,11 @@ public partial class StoredProcedures
 			throw new Exception("Could not get table data", e);
 		}
 		/****************************************************************/
+
 		#endregion
+
 	}
+
 
 	private static bool IsRelevant(MemberInfo member)
 	{
@@ -371,12 +384,10 @@ public partial class StoredProcedures
 		else
 			return true;
 	}
-
 	private static Dictionary<string, string> GetTableStructure(Type type)
 	{
 		Dictionary<string, string> structure = new Dictionary<string, string>();
 		string dbtableName = string.Empty;
-		bool isMetaProperty = false;
 
 		if (type != null)
 		{
@@ -397,7 +408,7 @@ public partial class StoredProcedures
 		}
 		else // EdgeObject Type
 		{
-			isMetaProperty = true;
+			//isMetaProperty = true;
 			dbtableName = typeof(EdgeObject).Name;
 		}
 
