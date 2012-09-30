@@ -12,6 +12,9 @@ using System.Reflection;
 
 public partial class StoredProcedures
 {
+
+	static string CONN_STRING = "Data Source=BI_RND;Initial Catalog=EdgeObjects;Integrated Security=True;Pooling=False";
+
 	[Microsoft.SqlServer.Server.SqlProcedure]
 	public static void GetTablesNamesByAccountID(SqlInt32 accountID)
 	{
@@ -246,8 +249,6 @@ public partial class StoredProcedures
 
 	}
 
-
-
 	[Microsoft.SqlServer.Server.SqlProcedure]
 	public static void GetTableStructureByName(SqlString virtualTableName)
 	{
@@ -287,50 +288,52 @@ public partial class StoredProcedures
 		{
 			if (IsRelevant(member))
 			{
-				//Get Params and types
 				string sql_name = string.Empty;
 				string sql_type = string.Empty;
 				string dotNet_name = string.Empty;
 				string dotNet_type = string.Empty;
 				bool isEnum = false;
-
-
-				//bool a = ((FieldInfo)(member)).FieldType.FullName.Contains(classNamespace);
-
-				/*
-				if (((FieldInfo)(member)).FieldType.FullName.Contains(classNamespace))//Memeber is class member from Edge.Data.Object
+				
+				//Verify that memeber is class member of Edge.Data.Object
+				if ((((PropertyInfo)(member)).ReflectedType).FullName.Contains(classNamespace))
 				{
 					//Getting Enum Types
-					if ((((FieldInfo)(member)).FieldType).BaseType == typeof(Enum))
+					if (((PropertyInfo)(member)).ReflectedType.IsEnum)
 					{
 						sql_name = member.Name;
 						sql_type = tableStructure[mapper.GetMap(type, member.Name)];
 						dotNet_name = member.Name;
-						dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
+						dotNet_type = ((MemberInfo)(((PropertyInfo)(member)).ReflectedType)).Name;
 						isEnum = true;
 					}
 
 					//Getting Types that are not Enum 
-					if ((((FieldInfo)(member)).FieldType).BaseType != typeof(Enum))
+					else
 					{
-						sql_name = member.Name + "ID";
-						sql_type = tableStructure[sql_name];
-						dotNet_name = member.Name + ".ID";
-						dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
+						sql_name = member.ReflectedType.Name + "ID";
+						
+						if (!tableStructure.TryGetValue(sql_name, out sql_type))
+						{
+							//Get Sql field name from mapper.
+							string sqlMappedName = mapper.GetMap(type, member.ReflectedType.Name);
+							sql_type = tableStructure[sql_name];
+						}
+						dotNet_name = member.ReflectedType.Name + ".ID";
+						dotNet_type = ((MemberInfo)(((PropertyInfo)(member)).ReflectedType)).Name;
 					}
 				}
 
 				else
 				{
-					sql_name = mapper.GetMap(type, member.Name);
+					sql_name = mapper.GetMap(type, member.ReflectedType.Name);
 					sql_type = tableStructure[sql_name];
-					dotNet_name = member.Name;
-					dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
+					dotNet_name = member.ReflectedType.Name;
+					dotNet_type = ((MemberInfo)(((PropertyInfo)(member)).ReflectedType)).Name;
 
 
 				}
 				 
-				 */
+				 
 
 				//Creating sql select query
 				col.Append(string.Format(" Select '{0}', '{1}', '{2}', '{3}', '{4}' Union ",
@@ -352,7 +355,7 @@ public partial class StoredProcedures
 
 		try
 		{
-			using (SqlConnection conn = new SqlConnection("context connection=true"))
+			using (SqlConnection conn = new SqlConnection("Data Source=BI_RND;Initial Catalog=EdgeObjects;Integrated Security=True;Pooling=False"))
 			{
 				conn.Open();
 				cmd.Connection = conn;
@@ -419,7 +422,7 @@ public partial class StoredProcedures
 
 		try
 		{
-			using (SqlConnection conn = new SqlConnection("context connection=true"))
+			using (SqlConnection conn = new SqlConnection(CONN_STRING))
 			{
 				conn.Open();
 				cmd.Connection = conn;
