@@ -5,15 +5,8 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public abstract partial class EdgeObject
+	public abstract class EdgeObjectBase
 	{
-		public ulong GK;
-		public string Name;
-
-		public Account Account;
-
-		public Dictionary<MetaProperty, object> MetaProperties;
-
 		public virtual bool HasChildsObjects
 		{
 			get { return false; }
@@ -23,5 +16,15 @@ namespace Edge.Data.Objects
 		{
 			return null;
 		}
+	}
+
+	public abstract partial class EdgeObject : EdgeObjectBase
+	{
+		public ulong GK;
+		public string Name;
+
+		public Account Account;
+
+		public Dictionary<MetaProperty, object> MetaProperties;
 	}
 }
