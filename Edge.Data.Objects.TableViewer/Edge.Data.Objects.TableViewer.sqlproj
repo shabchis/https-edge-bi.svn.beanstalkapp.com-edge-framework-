@@ -74,6 +74,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="VirtualTables.cs" />
@@ -117,7 +118,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Edge.Data.Objects.TableViewer.publish.xml" />
+    <None Include="BI_RND.EdgeObjects.publish.xml" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

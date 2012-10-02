@@ -1,6 +1,6 @@
 ﻿DECLARE	@return_value int
 
 EXEC	@return_value = [dbo].[GetTableStructureByName]
-		@virtualTableName = N'TextCreative'
+		@virtualTableName = N'Color'
 SELECT	'Return Value' = @return_value
 
