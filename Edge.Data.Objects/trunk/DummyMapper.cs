@@ -35,6 +35,12 @@ namespace Edge.Data.Objects
 
 			Mapping.Add(typeof(Edge.Data.Objects.EdgeObject), EdgeObject);
 
+			KeywordTarget = new Dictionary<string, string>()
+			{
+				{"MatchType","int_Field1"}
+			};
+			Mapping.Add(typeof(Edge.Data.Objects.KeywordTarget), KeywordTarget);
+
 			TextCreative = new Dictionary<string, string>()
 			{
 				{"TextType","int_Field1"},
