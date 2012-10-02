@@ -6,7 +6,7 @@ using Microsoft.SqlServer.Server;
 using Edge.Data.Objects;
 using System.Collections.Generic;
 using System.Text;
-
+using System.Linq;
 using System.Reflection;
 
 
@@ -68,9 +68,10 @@ public partial class StoredProcedures
 
 		#region Getting Type from table name
 		/****************************************************************/
-		
 
-		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
+		Type type = GetTypeByTableName(virtualTableName.Value);
+
+		//Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
 
 		if (type != null)
 		{
@@ -252,38 +253,18 @@ public partial class StoredProcedures
 	[Microsoft.SqlServer.Server.SqlProcedure]
 	public static void GetTableStructureByName(SqlString virtualTableName)
 	{
-		
-		string sqlAssembly = typeof(Creative).Assembly.FullName;
-		string classNamespace = typeof(Creative).Namespace;
 		DummyMapper mapper = new DummyMapper();
+		string classNamespace = typeof(Creative).Namespace;
 
-		#region Getting Type from table name
-		/****************************************************************/
-		Attribute[] attributes = Attribute.GetCustomAttributes(typeof(Creative).Assembly);
-		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName.Value, sqlAssembly));
-
-		if (type == null)
-		{
-			Int32 metaPropertyID = 0;
-			string baseValueType = GetMetaPropertyBaseValueType(virtualTableName.Value, SqlInt32.Null, out metaPropertyID);
-
-			if (string.IsNullOrEmpty(baseValueType))
-				return;
-
-			type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, baseValueType, sqlAssembly));
-		}
-		 
-		/****************************************************************/
-		#endregion 
+		Type type = GetTypeByTableName(virtualTableName.Value);
 
 		//Creating Select by Dummy table name
 		StringBuilder col = new StringBuilder();
 		#region Members
 		/*******************************************************/
 
-		Dictionary<string, string> tableStructure = GetTableStructure(type);
-		
-		
+		Dictionary<string, string> tableStructure = GetSqlTableStructure(type);
+
 		foreach (MemberInfo member in type.GetMembers())
 		{
 			if (IsRelevant(member))
@@ -293,50 +274,44 @@ public partial class StoredProcedures
 				string dotNet_name = string.Empty;
 				string dotNet_type = string.Empty;
 				bool isEnum = false;
-				
+
 				//Verify that memeber is class member of Edge.Data.Object
-				if ((((PropertyInfo)(member)).ReflectedType).FullName.Contains(classNamespace))
+				if (((FieldInfo)(member)).FieldType.FullName.Contains(classNamespace))//Memeber is class member from Edge.Data.Object
 				{
 					//Getting Enum Types
-					if (((PropertyInfo)(member)).ReflectedType.IsEnum)
+					if ((((FieldInfo)(member)).FieldType).BaseType == typeof(Enum))
 					{
 						sql_name = member.Name;
 						sql_type = tableStructure[mapper.GetMap(type, member.Name)];
 						dotNet_name = member.Name;
-						dotNet_type = ((MemberInfo)(((PropertyInfo)(member)).ReflectedType)).Name;
+						dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
 						isEnum = true;
 					}
 
 					//Getting Types that are not Enum 
-					else
+					if ((((FieldInfo)(member)).FieldType).BaseType != typeof(Enum))
 					{
-						sql_name = member.ReflectedType.Name + "ID";
-						
-						if (!tableStructure.TryGetValue(sql_name, out sql_type))
-						{
-							//Get Sql field name from mapper.
-							string sqlMappedName = mapper.GetMap(type, member.ReflectedType.Name);
-							sql_type = tableStructure[sql_name];
-						}
-						dotNet_name = member.ReflectedType.Name + ".ID";
-						dotNet_type = ((MemberInfo)(((PropertyInfo)(member)).ReflectedType)).Name;
+						sql_name = member.Name + "ID";
+						sql_type = tableStructure[sql_name];
+						dotNet_name = member.Name + ".ID";
+						dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
 					}
 				}
 
 				else
 				{
-					sql_name = mapper.GetMap(type, member.ReflectedType.Name);
+					sql_name = mapper.GetMap(type, member.Name);
 					sql_type = tableStructure[sql_name];
-					dotNet_name = member.ReflectedType.Name;
-					dotNet_type = ((MemberInfo)(((PropertyInfo)(member)).ReflectedType)).Name;
+					dotNet_name = member.Name;
+					dotNet_type = ((MemberInfo)(((FieldInfo)(member)).FieldType)).Name;
 
 
 				}
-				 
-				 
+
+
 
 				//Creating sql select query
-				col.Append(string.Format(" Select '{0}', '{1}', '{2}', '{3}', '{4}' Union ",
+				col.Append(string.Format(" Select '{0}' as 'SQL Name', '{1}' as 'SQL Type', '{2}' as '.Net Name', '{3}' as '.Net Type', '{4}' as 'IsEnum' Union ",
 												sql_name,
 												sql_type,
 												dotNet_name,
@@ -348,7 +323,7 @@ public partial class StoredProcedures
 		}
 
 		//Removing last "union string"
-		col.Remove(col.Length - 5, 5);
+		col.Remove(col.Length - 6, 6);
 
 		//Creating SQL command 
 		SqlCommand cmd = new SqlCommand(col.ToString());
@@ -376,18 +351,71 @@ public partial class StoredProcedures
 
 	}
 
+	
+	
+	
+	private static Type GetTypeByTableName(string virtualTableName)
+	{
 
+		string sqlAssembly = typeof(Creative).Assembly.FullName;
+		string classNamespace = typeof(Creative).Namespace;
+
+		Type type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, virtualTableName, sqlAssembly));
+
+		//Get type from Attribute table name
+		#region Try Get Type from Attribute
+		/************************************************/
+		if (type == null) // Unrecognized type name ( ex. TargetKeyword )
+		{
+			var assemblyNestedTypes = from t in Assembly.GetAssembly(typeof(Creative)).GetTypes()
+									  where t.IsClass && t.Namespace == classNamespace
+									  select t;
+
+			foreach (Type t in assemblyNestedTypes)
+			{
+				TableInfoAttribute tableInfo = (TableInfoAttribute)Attribute.GetCustomAttribute(t, typeof(TableInfoAttribute));
+				if (tableInfo != null && tableInfo.Name == virtualTableName)
+				{
+					type = t;
+				}
+			}
+		}
+
+		/************************************************/
+		#endregion
+
+
+
+
+		//Get type from Meta Property Name
+		#region Try Get Type from Meta Property Table
+		/************************************************/
+		if (type == null) // still Unrecognized type name ( ex. color )
+		{
+			Int32 metaPropertyID = 0;
+			string baseValueType = GetMetaPropertyBaseValueType(virtualTableName, SqlInt32.Null, out metaPropertyID);
+
+			if (!string.IsNullOrEmpty(baseValueType))
+				type = Type.GetType(string.Format("{0}.{1},{2}", classNamespace, baseValueType, sqlAssembly));
+		/************************************************/
+		#endregion
+		}
+
+		return type;
+	}
 	private static bool IsRelevant(MemberInfo member)
 	{
-		if (member.Name.Equals("MetaProperties")) return false;
+		if (member.DeclaringType != typeof(EdgeObject) && !member.DeclaringType.IsSubclassOf(typeof(EdgeObject)))
+			return false;
+
+		if (member.Name == "MetaProperties") return false;
 		else if (member.MemberType == MemberTypes.Constructor || member.MemberType == MemberTypes.Method
-				|| member.Name.Equals("MetaProperty")
-			)
+				|| member.Name == "MetaProperty")
 			return false;
 		else
 			return true;
 	}
-	private static Dictionary<string, string> GetTableStructure(Type type)
+	private static Dictionary<string, string> GetSqlTableStructure(Type type)
 	{
 		Dictionary<string, string> structure = new Dictionary<string, string>();
 		string dbtableName = string.Empty;
@@ -467,7 +495,7 @@ public partial class StoredProcedures
 
 		try
 		{
-			using (SqlConnection conn = new SqlConnection("context connection=true"))
+			using (SqlConnection conn = new SqlConnection(CONN_STRING))
 			{
 				conn.Open();
 				cmd.Connection = conn;
