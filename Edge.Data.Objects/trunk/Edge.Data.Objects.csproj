@@ -73,6 +73,7 @@
     <Compile Include="Model\Ad.cs" />
     <Compile Include="Model\Base\ChannelSpecificObject.cs" />
     <Compile Include="Model\Base\EdgeObject.cs" />
+    <Compile Include="Model\Campaign.cs" />
     <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
