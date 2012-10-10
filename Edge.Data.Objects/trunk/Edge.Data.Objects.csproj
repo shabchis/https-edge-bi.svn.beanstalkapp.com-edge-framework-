@@ -69,11 +69,6 @@
     <Compile Include="Classes\Targets\KeywordTarget.cs" />
     <Compile Include="Classes\Targets\PlacementTarget.cs" />
     <Compile Include="DummyMapper.cs" />
-    <Compile Include="Model\Account.cs" />
-    <Compile Include="Model\Ad.cs" />
-    <Compile Include="Model\Base\ChannelSpecificObject.cs" />
-    <Compile Include="Model\Base\EdgeObject.cs" />
-    <Compile Include="Model\Campaign.cs" />
     <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
@@ -85,6 +80,9 @@
       <Project>{AD4B53AD-B28A-4E90-9483-E2F7C8E6D436}</Project>
       <Name>Eggplant.Entities</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Model\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
