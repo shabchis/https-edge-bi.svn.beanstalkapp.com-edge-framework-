@@ -6,9 +6,7 @@ using System.Text;
 namespace Edge.Data.Objects
 {
 	public abstract class MetricsUnit
-	{
-		public Guid Usid = Guid.NewGuid();
-
+	{	
 		public DateTime TimePeriodStart;
 		public DateTime TimePeriodEnd;
 
