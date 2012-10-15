@@ -5,18 +5,23 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public class Measure
+	public partial class Measure
 	{
 		public int ID;
 		public string Name;
+		public string DisplayName;
+		public Account Account;
+		public Channel Channel;
+		public Measure BaseMeasure;
+		public string StringFormat;
 		public MeasureDataType DataType; // if true, table manager adds another column called {name}_Converted
 		public MeasureOptions Options;
 	}
 
 	public enum MeasureDataType
 	{
-		Number,
-		Currency
+		Number = 1,
+		Currency = 2
 	}
 
 	[Flags]
