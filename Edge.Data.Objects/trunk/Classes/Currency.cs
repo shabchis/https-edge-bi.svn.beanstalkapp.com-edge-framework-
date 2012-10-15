@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public class CurrencyRate
+	public partial class CurrencyRate
 	{
 		public Currency Currency;
 		public DateTime RateDate;
@@ -14,7 +14,7 @@ namespace Edge.Data.Objects
 		//public DeliveryOutput Output;
 	}
 
-	public class Currency
+	public partial class Currency
 	{
 		public string Code;
 	}

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public abstract class MetricsUnit
+	public abstract partial class MetricsUnit
 	{	
 		public DateTime TimePeriodStart;
 		public DateTime TimePeriodEnd;
@@ -18,7 +18,7 @@ namespace Edge.Data.Objects
 		public abstract IEnumerable<EdgeObject> GetObjectDimensions();
 	}
 
-	public class AdMetricsUnit: MetricsUnit
+	public partial class AdMetricsUnit: MetricsUnit
 	{
 		public Ad Ad;
 
@@ -30,7 +30,7 @@ namespace Edge.Data.Objects
 		}
 	}
 
-	public class GenericMetricsUnit : MetricsUnit
+	public partial class GenericMetricsUnit : MetricsUnit
 	{
 		public Channel Channel;
 		public Account Account;

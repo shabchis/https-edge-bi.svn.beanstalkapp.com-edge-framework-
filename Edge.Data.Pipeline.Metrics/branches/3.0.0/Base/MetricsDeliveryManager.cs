@@ -65,6 +65,7 @@ namespace Edge.Data.Pipeline.Metrics
 			// this.Measures = 
 			// this.MetaProperties = 
 
+
 			// Connect to database
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
@@ -73,9 +74,9 @@ namespace Edge.Data.Pipeline.Metrics
 			// EXAMPLE - ObjectManager.CreateDeliveryObjectTables(string tablePrefix)
 
 			// TABLEMANAGER: run SP to create metrics table
-			AdMetricsUnit exampleUnit = new AdMetricsUnit();
+			var exampleUnit = new AdMetricsUnit();
 			_tableManager = new TableManager(_sqlConnection);
-			string tableName=_tableManager.CreateDeliveryMetricsTable(this._tablePrefix,exampleUnit);
+			string tableName = _tableManager.CreateDeliveryMetricsTable(this._tablePrefix,exampleUnit);
 			this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
 
 			// CHECKSUMMANAGER: setup
@@ -186,7 +187,6 @@ namespace Edge.Data.Pipeline.Metrics
 			}
 			else if (pass == StagingPass_Metrics)
 			{
-
 				// TABLEMANAGER: find matching staging table and save to delivery parameter
 				string stagingMetricsTableName=_tableManager.FindStagingTable(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
 				this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
