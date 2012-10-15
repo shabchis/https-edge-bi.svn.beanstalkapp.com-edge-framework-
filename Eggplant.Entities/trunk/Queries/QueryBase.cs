@@ -16,7 +16,6 @@ namespace Eggplant.Entities.Queries
 		public List<IEntityProperty> SelectList { get; private set; }
 		public string FilterExpression { get; set; }
 		public List<KeyValuePair<IEntityProperty, SortOrder>> SortingList { get; private set; }
-		public Dictionary<string, QueryParameter> Parameters { get; private set; }
 		public bool IsPrepared { get; private set; }
 
 		public QueryBase()
@@ -24,7 +23,6 @@ namespace Eggplant.Entities.Queries
 			this.IsPrepared = false;
 			this.SelectList = new List<IEntityProperty>();
 			this.SortingList = new List<KeyValuePair<IEntityProperty, SortOrder>>();
-			this.Parameters = new Dictionary<string, QueryParameter>();
 		}
 
 		public QueryBase Select(params IEntityProperty[] properties)
@@ -50,55 +48,10 @@ namespace Eggplant.Entities.Queries
 			throw new NotImplementedException();
 		}
 
-		public QueryBase Param(string name, object value, DbType? dbType = null, int? size = null)
-		{
-			QueryParameter param;
-			if (dbType != null || size != null || !this.Parameters.TryGetValue(name, out param))
-			{
-				this.Parameters[name] = param = new QueryParameter()
-				{
-					Name = name,
-					DbType = dbType,
-					Size = size
-				};
-			}
-			param.Value = value;
 
-			return this;
-		}
 
-		protected void Prepare(SubqueryTemplate template)
-		{
-			// .....................................
-			// Columns
-
-			var columns = new StringBuilder();
-			int columnCount = 0;
-			foreach (var condition in template.Columns)
-			{
-				if (!condition.Value(this))
-					continue;
-
-				// Add the column name
-				columns.Append(condition.Key);
-
-				columnCount++;
-				if (columnCount < template.Columns.Count)
-					columns.Append(", ");
-			}
-
-			// .....................................
-			// Filters
-
-			// TODO: filters
-		}
+		
 	}
 
-	public class QueryParameter
-	{
-		public string Name;
-		public object Value;
-		public DbType? DbType;
-		public int? Size;
-	}
+	
 }

@@ -9,6 +9,7 @@ namespace Eggplant.Entities.Persistence
 {
 	public enum MappingDirection
 	{
+		Both,
 		Inbound,
 		Outbound
 	}
@@ -18,16 +19,14 @@ namespace Eggplant.Entities.Persistence
 		EntitySpace EntitySpace { get; }
 		string DataSet { get; }
 		Dictionary<IEntityProperty, IMapping> SubMappings { get; }
-		MappingDirection Direction { get; }
 	}
 
 	public class Mapping<T>: IMapping
 	{
-		internal Mapping(EntitySpace space, MappingDirection direction)
+		internal Mapping(EntitySpace space)
 		{
 			this.EntitySpace = space;
 			this.EntityDefinition = space.GetDefinition<T>();
-			this.Direction = direction;
 			this.SubMappings = new Dictionary<IEntityProperty, IMapping>();
 		}
 
@@ -39,7 +38,6 @@ namespace Eggplant.Entities.Persistence
 		public Delegate MappingFunction { get; set; }
 		public Dictionary<IEntityProperty, IMapping> SubMappings { get; private set; }
 		public string DataSet { get; set; }
-		public MappingDirection Direction { get; private set; }
 
 		// ===================================
 		// Internal
@@ -83,7 +81,7 @@ namespace Eggplant.Entities.Persistence
 		/// </summary>
 		public Mapping<T> Scalar<V>(IEntityProperty<V> property, Action<MappingContext<V>> function)
 		{
-			this.SubMappings[property] = new Mapping<V>(this.EntitySpace, this.Direction) { MappingFunction = function };
+			this.SubMappings[property] = new Mapping<V>(this.EntitySpace) { MappingFunction = function };
 			return this;
 		}
 
@@ -100,9 +98,9 @@ namespace Eggplant.Entities.Persistence
 
 		public Mapping<T> Collection<V>(ICollectionProperty<V> collection, string dataSet, Action<CollectionMappingContext<T,V>> function)
 		{
-			var collectionMapping = new Mapping<ICollection<V>>(this.EntitySpace, this.Direction) { DataSet = dataSet };
+			var collectionMapping = new Mapping<ICollection<V>>(this.EntitySpace) { DataSet = dataSet };
 
-			collectionMapping.SubMappings[collection.Value] = new Mapping<V>(this.EntitySpace, this.Direction)
+			collectionMapping.SubMappings[collection.Value] = new Mapping<V>(this.EntitySpace)
 			{
 				MappingFunction = function
 			};
@@ -150,14 +148,14 @@ namespace Eggplant.Entities.Persistence
 
 		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, Action<CollectionMappingContext<T,K>> key, Action<CollectionMappingContext<T,V>> value)
 		{
-			var dictMapping = new Mapping<IDictionary<K, V>>(this.EntitySpace, this.Direction) { DataSet = dataSet, };
+			var dictMapping = new Mapping<IDictionary<K, V>>(this.EntitySpace) { DataSet = dataSet, };
 
-			dictMapping.SubMappings[dictionary.Key] = new Mapping<K>(this.EntitySpace, this.Direction)
+			dictMapping.SubMappings[dictionary.Key] = new Mapping<K>(this.EntitySpace)
 			{
 				MappingFunction = key
 			};
 
-			dictMapping.SubMappings[dictionary.Value] = new Mapping<V>(this.EntitySpace, this.Direction)
+			dictMapping.SubMappings[dictionary.Value] = new Mapping<V>(this.EntitySpace)
 			{
 				MappingFunction = value
 			};
@@ -171,6 +169,7 @@ namespace Eggplant.Entities.Persistence
 	public interface IMappingContext : IMapping
 	{
 		PersistenceConnection Connection { get; }
+		MappingDirection Direction { get; }
 
 		object AssignedValue { get; }
 		V GetField<V>(string field, Func<object,V> convertFunction = null);
@@ -181,8 +180,9 @@ namespace Eggplant.Entities.Persistence
 	public class MappingContext<T> : Mapping<T>, IMappingContext
 	{
 		public PersistenceConnection Connection { get; private set; }
+		public MappingDirection Direction { get; private set; }
 
-		internal MappingContext(Mapping<T> mapping, MappingDirection dir, PersistenceConnection connection) : base(mapping.EntitySpace, dir)
+		internal MappingContext(Mapping<T> mapping, MappingDirection dir, PersistenceConnection connection) : base(mapping.EntitySpace)
 		{
 			this.Connection = connection;
 			this.DataSet = mapping.DataSet;
