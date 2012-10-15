@@ -8,22 +8,14 @@ using System.Data;
 
 namespace Eggplant.Entities.Queries
 {
-
-	public class Query<T> : QueryBase
+	public abstract class Query : QueryBase
 	{
-		public QueryTemplate<T> Template { get; private set; }
 		public List<Subquery> Subqueries { get; private set; }
+		protected Dictionary<string, QueryArgument> Args;
 
-		internal Query(QueryTemplate<T> template)
+		internal Query()
 		{
-			this.Template = template;
 			this.Subqueries = new List<Subquery>();
-		}
-
-		public new MappingContext<T> MappingContext
-		{
-			get { return (MappingContext<T>)base.MappingContext; }
-			internal set { base.MappingContext = value; }
 		}
 
 		public override PersistenceConnection Connection
@@ -37,6 +29,34 @@ namespace Eggplant.Entities.Queries
 					subquery.Connection = Connection;
 			}
 		}
+
+		public V Argument<V>(string argumentName)
+		{
+			return (V)Args[argumentName].Value;
+		}
+
+
+	}
+
+	public class Query<T> : Query
+	{
+		public QueryTemplate<T> Template { get; private set; }
+		
+
+		internal Query(QueryTemplate<T> template)
+		{
+			this.Template = template;
+
+			if (template.Arguments != null && template.Arguments.Count > 0)
+				Args = new Dictionary<string, QueryArgument>(template.Arguments);
+		}
+
+		public new MappingContext<T> MappingContext
+		{
+			get { return (MappingContext<T>)base.MappingContext; }
+			internal set { base.MappingContext = value; }
+		}
+
 
 		public new Query<T> Select(params IEntityProperty[] properties)
 		{
@@ -71,7 +91,7 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public Query<T> Filter(string filterExpression)
+		public new Query<T> Filter(string filterExpression)
 		{
 			return (Query<T>)base.Filter(filterExpression);
 		}
@@ -81,9 +101,16 @@ namespace Eggplant.Entities.Queries
 			return (Query<T>) base.Sort(property, order);
 		}
 
-		public new Query<T> Param(string name, object value, DbType? dbType = null, int? size = null)
+		public Query<T> Argument<V>(string argumentName, V value)
 		{
-			return (Query<T>) base.Param(name, value, dbType, size);
+			QueryArgument arg;
+			if (!Args.TryGetValue(argumentName, out arg))
+				throw new KeyNotFoundException(String.Format("Argument '{0}' is not defined in the query template.", argumentName));
+			if (!arg.ArgumentType.IsAssignableFrom(typeof(V)))
+				throw new ArgumentException(String.Format("Argument '{0}' requires values of type {1}.", argumentName, arg.ArgumentType));
+			
+			arg.Value = value;
+			return this;
 		}
 
 		public void Prepare()
@@ -92,7 +119,10 @@ namespace Eggplant.Entities.Queries
 
 			foreach (Subquery subquery in this.Subqueries)
 			{
+				//subquery.pre
 			}
+
+			//this.IsPrepared = true;
 		}
 
 		public IEnumerable<T> Execute(QueryExecutionMode mode)

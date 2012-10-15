@@ -8,17 +8,29 @@ using System.Data;
 
 namespace Eggplant.Entities.Queries
 {
-	public abstract class QueryTemplate : TemplateBase
+	public abstract class QueryTemplate
 	{
 		public EntitySpace EntitySpace { get; private set; }
 		public List<SubqueryTemplate> SubqueryTemplates { get; private set; }
 		public SubqueryTemplate DefaultSubqueryTemplate { get; set; }
+		public Dictionary<string, QueryArgument> Arguments { get; private set;  }
 
 		internal QueryTemplate(EntitySpace space)
 		{
 			this.EntitySpace = space;
 			this.SubqueryTemplates = new List<SubqueryTemplate>();
+			this.Arguments = new Dictionary<string, QueryArgument>();
 		}
+	}
+
+	public class QueryArgument
+	{
+		public string Name;
+		public object Value;
+		public Type ArgumentType;
+		public bool IsRequired;
+		public object DefaultValue;
+		public object EmptyValue;
 	}
 
 	public class QueryTemplate<T> : QueryTemplate
@@ -40,7 +52,7 @@ namespace Eggplant.Entities.Queries
 			{
 				Connection = connection,
 				EntitySpace = this.EntitySpace,
-				MappingContext = new MappingContext<T>(this.InboundMapping, this.InboundMapping.Direction, connection)
+				MappingContext = new MappingContext<T>(this.InboundMapping, MappingDirection.Inbound, connection)
 			};
 		}
 
@@ -55,7 +67,7 @@ namespace Eggplant.Entities.Queries
 			{
 				DataSet = dataSet,
 				Index = index < 0 ? this.SubqueryTemplates.Count : index,
-				CommandText = commandText
+				CommandText = ParseText(commandText)
 			};
 
 			if (index >= 0)
@@ -70,6 +82,12 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
+		private static string ParseText(string commandText)
+		{
+			const string columnFinderPattern = @"\bas\s+(?<column>[a-zA-Z_]\w*)?\s*((--\s*#\s*COLUMN\s*$)|(\/\*\s*#\s*COLUMN\s*\*\/))";
+			throw new NotImplementedException();
+		}
+
 		public QueryTemplate<T> DefaultSubquery(string dataSet)
 		{
 			this.DefaultSubqueryTemplate = this.SubqueryTemplates.Find(t => t.DataSet == dataSet);
@@ -82,6 +100,20 @@ namespace Eggplant.Entities.Queries
 				throw new ArgumentException("Subquery was be added to the the SubqueryTemplates list first.", "subqueryTemplate");
 
 			this.DefaultSubqueryTemplate = subqueryTemplate;
+			return this;
+		}
+
+		public QueryTemplate<T> Argument<V>(string argumentName, bool required = true, V defaultValue = default(V), V emptyValue = default(V))
+		{
+			this.Arguments[argumentName] = new QueryArgument()
+			{
+				Name = argumentName,
+				ArgumentType = typeof(V),
+				IsRequired = required,
+				DefaultValue = defaultValue,
+				EmptyValue = emptyValue
+			};
+
 			return this;
 		}
 	}

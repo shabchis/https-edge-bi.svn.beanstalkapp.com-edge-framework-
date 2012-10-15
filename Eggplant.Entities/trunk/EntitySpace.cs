@@ -7,7 +7,7 @@ using Eggplant.Entities.Model;
 using Eggplant.Entities.Queries;
 using System.Reflection;
 
-namespace Eggplant
+namespace Eggplant.Entities
 {
 	public class EntitySpace
 	{
@@ -21,9 +21,9 @@ namespace Eggplant
 			this.Definitions = new Dictionary<Type,IEntityDefinition>();
 		}
 
-		public Mapping<T> CreateMapping<T>(MappingDirection direction)
+		public Mapping<T> CreateMapping<T>()
 		{
-			return new Mapping<T>(this, direction);
+			return new Mapping<T>(this);
 		}
 
 

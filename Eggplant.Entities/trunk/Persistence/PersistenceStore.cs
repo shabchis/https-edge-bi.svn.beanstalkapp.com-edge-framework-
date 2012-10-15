@@ -37,9 +37,10 @@ namespace Eggplant.Entities.Persistence
 
 		public override PersistenceConnection Connect()
 		{
-//			var innerConnection = new System.Data.SqlClient.SqlConnection(this.ConnectionString);
-//			return new PersistenceConnection(innerConnection);
-			return new PersistenceConnection(null);
+			var innerConnection = new System.Data.SqlClient.SqlConnection(this.ConnectionString);
+			innerConnection.Open();
+			return new PersistenceConnection(innerConnection);
+			//return new PersistenceConnection(null);
 		}
 	}
 }
