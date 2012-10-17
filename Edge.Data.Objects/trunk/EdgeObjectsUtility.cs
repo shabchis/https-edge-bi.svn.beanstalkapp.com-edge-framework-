@@ -66,7 +66,7 @@ namespace Edge.Data.Objects
 			ColumnParseEnded = 2
 		}
 
-		static Regex _columnRegex = new Regex(@"(?<columnSyntax>.*)\s+as\s+(?<columnName>[a-zA-Z_]\w*)?\s*(from|,)", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+		static Regex _columnRegex = new Regex(@"(?<columnSyntax>.*)\s+as\s+(?<columnName>[a-zA-Z_]\w*)?\s*($|,)", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 		static Regex _columnsStartRegex = new Regex(@"(--\s*#\s*COLUMNS-START\s*$)|(/\*\s*#\s*COLUMNS-START\s*\*/)", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 		static Regex _columnsEndRegex = new Regex(@"(--\s*#\s*COLUMNS-END\s*$)|(/\*\s*#\s*COLUMNS-END\s*\*/)", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 		static Regex _filterRegex = new Regex(@"(--\s*#\s*FILTER\s*$)|(/\*\s*#\s*FILTER\s*\*/)", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -145,11 +145,11 @@ namespace Edge.Data.Objects
 				foreach (Match columnMatch in columnMatches)
 				{
 					string columnName = columnMatch.Groups["columnName"].Value;
-					SubqueryColumnCondition columnCondition;
-					if (subqueryTemplate.Columns.TryGetValue(columnName, out columnCondition))
+					SubqueryConditionalColumn columnCondition;
+					if (subqueryTemplate.ConditionalColumns.TryGetValue(columnName, out columnCondition))
 						columnCondition.ColumnSyntax = columnMatch.Groups["columnSyntax"].Value.Trim();
 					else
-						throw new EdgeTemplateException(String.Format("Column '{0}' in the command SQL must first be defined as a column condition (subquery.Column()).", columnName));
+						throw new EdgeTemplateException(String.Format("Column '{0}' in the command SQL must first be defined as a conditional column (subquery.ConditionalColumn()).", columnName));
 				}
 			}
 

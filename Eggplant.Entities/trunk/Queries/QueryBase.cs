@@ -16,7 +16,8 @@ namespace Eggplant.Entities.Queries
 		public List<IEntityProperty> SelectList { get; private set; }
 		public string FilterExpression { get; set; }
 		public List<KeyValuePair<IEntityProperty, SortOrder>> SortingList { get; private set; }
-		public bool IsPrepared { get; private set; }
+		public bool IsPrepared { get; protected set; }
+		public string PreparedCommandText { get; protected set; }
 
 		public QueryBase()
 		{

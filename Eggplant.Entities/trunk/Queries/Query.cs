@@ -119,10 +119,15 @@ namespace Eggplant.Entities.Queries
 
 			foreach (Subquery subquery in this.Subqueries)
 			{
-				//subquery.pre
+				if (!subquery.IsPrepared)
+					subquery.Prepare();
+				cmdText.Append(subquery.PreparedCommandText);
+				if (!subquery.PreparedCommandText.Trim().EndsWith(";"))
+					cmdText.Append(";");
 			}
 
-			//this.IsPrepared = true;
+			this.PreparedCommandText = cmdText.ToString();
+			this.IsPrepared = true;
 		}
 
 		public IEnumerable<T> Execute(QueryExecutionMode mode)
