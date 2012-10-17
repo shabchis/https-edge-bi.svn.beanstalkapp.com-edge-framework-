@@ -5,17 +5,15 @@ select *
 from
 (
 	select
-		-- # COLUMNS-BEGIN
-		-- ----------------------
-			this.ID												as ID				-- # COLUMN
-			,isnull(this.Name,			base.Name)				as Name				-- # COLUMN
-			,isnull(this.DisplayName,	base.DisplayName)		as DisplayName		-- # COLUMN
-			,isnull(this.AccountID,		base.AccountID)			as AccountID		-- # COLUMN
-			,isnull(this.ChannelID,		base.ChannelID)			as ChannelID		-- # COLUMN
-			,isnull(this.StringFormat,	base.StringFormat)		as StringFormat		-- # COLUMN
-			,base.DataType										as DataType			-- # COLUMN
-			,base.Options										as Options			-- # COLUMN
-		-- ----------------------
+		-- # COLUMNS-START
+			this.ID												as ID
+			,isnull(this.Name,			base.Name)				as Name
+			,isnull(this.DisplayName,	base.DisplayName)		as DisplayName
+			,isnull(this.AccountID,		base.AccountID)			as AccountID
+			,isnull(this.ChannelID,		base.ChannelID)			as ChannelID
+			,isnull(this.StringFormat,	base.StringFormat)		as StringFormat
+			,base.DataType										as DataType
+			,base.Options										as Options
 		-- # COLUMNS-END
 	from
 		Measure this
@@ -67,6 +65,6 @@ from
 		)
 ) as m
 
--- # WHERE
+-- # FILTER
 
 -- # SORTING

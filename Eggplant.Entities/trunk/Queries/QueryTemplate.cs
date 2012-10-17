@@ -67,7 +67,7 @@ namespace Eggplant.Entities.Queries
 			{
 				DataSet = dataSet,
 				Index = index < 0 ? this.SubqueryTemplates.Count : index,
-				CommandText = ParseText(commandText)
+				CommandText = commandText
 			};
 
 			if (index >= 0)
@@ -80,12 +80,6 @@ namespace Eggplant.Entities.Queries
 				inner(subqueryTemplate);
 
 			return this;
-		}
-
-		private static string ParseText(string commandText)
-		{
-			const string columnFinderPattern = @"\bas\s+(?<column>[a-zA-Z_]\w*)?\s*((--\s*#\s*COLUMN\s*$)|(\/\*\s*#\s*COLUMN\s*\*\/))";
-			throw new NotImplementedException();
 		}
 
 		public QueryTemplate<T> DefaultSubquery(string dataSet)
@@ -116,5 +110,7 @@ namespace Eggplant.Entities.Queries
 
 			return this;
 		}
+
+		
 	}
 }
