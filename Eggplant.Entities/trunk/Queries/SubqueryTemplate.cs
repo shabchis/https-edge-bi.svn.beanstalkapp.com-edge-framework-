@@ -16,23 +16,23 @@ namespace Eggplant.Entities.Queries
 		public int Index { get; set; }
 		public string DataSet { get; set; }
 		public string CommandText { get; set; }
-		public Dictionary<string, SubqueryColumnCondition> Columns { get; private set; }
+		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
 		public Dictionary<string, SubqueryParameter> Parameters { get; private set; }
 
 		public SubqueryTemplate()
 		{
-			this.Columns = new Dictionary<string, SubqueryColumnCondition>();
+			this.ConditionalColumns = new Dictionary<string, SubqueryConditionalColumn>();
 			this.Parameters = new Dictionary<string, SubqueryParameter>();
 		}
 
-		public SubqueryTemplate Column(string column, IEntityProperty mappedProperty)
+		public SubqueryTemplate ConditionalColumn(string column, IEntityProperty mappedProperty)
 		{
-			return Column(column, column, mappedProperty);
+			return ConditionalColumn(column, column, mappedProperty);
 		}
 
-		public SubqueryTemplate Column(string columnAlias, string columnSyntax, IEntityProperty mappedProperty)
+		public SubqueryTemplate ConditionalColumn(string columnAlias, string columnSyntax, IEntityProperty mappedProperty)
 		{
-			this.Columns[columnAlias] = new SubqueryColumnCondition()
+			this.ConditionalColumns[columnAlias] = new SubqueryConditionalColumn()
 			{
 				ColumnAlias = columnAlias,
 				ColumnSyntax = columnSyntax,
@@ -43,14 +43,14 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public SubqueryTemplate Column(string column, Func<QueryBase, bool> condition)
+		public SubqueryTemplate ConditionalColumn(string column, Func<QueryBase, bool> condition)
 		{
-			return Column(column, column, condition);
+			return ConditionalColumn(column, column, condition);
 		}
 
-		public SubqueryTemplate Column(string columnAlias, string columnSyntax, Func<QueryBase, bool> condition)
+		public SubqueryTemplate ConditionalColumn(string columnAlias, string columnSyntax, Func<QueryBase, bool> condition)
 		{
-			this.Columns[columnAlias] = new SubqueryColumnCondition()
+			this.ConditionalColumns[columnAlias] = new SubqueryConditionalColumn()
 			{
 				ColumnAlias = columnAlias,
 				ColumnSyntax = columnSyntax,
@@ -123,7 +123,7 @@ namespace Eggplant.Entities.Queries
 		public int? Size;
 	}
 
-	public class SubqueryColumnCondition
+	public class SubqueryConditionalColumn
 	{
 		public string ColumnAlias;
 		public string ColumnSyntax;

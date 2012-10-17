@@ -54,14 +54,14 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		protected void Prepare()
+		internal void Prepare()
 		{
 			// .....................................
 			// Columns
 
 			var columns = new StringBuilder();
 			int columnCount = 0;
-			foreach (KeyValuePair<string, SubqueryColumnCondition> columnCondition in this.Template.Columns)
+			foreach (KeyValuePair<string, SubqueryConditionalColumn> columnCondition in this.Template.ConditionalColumns)
 			{
 				if (!columnCondition.Value.Condition(this))
 					continue;
@@ -70,7 +70,7 @@ namespace Eggplant.Entities.Queries
 				columns.Append(columnCondition.Value.ColumnSyntax);
 
 				columnCount++;
-				if (columnCount < this.Template.Columns.Count)
+				if (columnCount < this.Template.ConditionalColumns.Count)
 					columns.Append(", ");
 			}
 
@@ -78,6 +78,17 @@ namespace Eggplant.Entities.Queries
 			// Filters
 
 			// TODO: filters
+
+			// .....................................
+			// Sorting
+
+			// TODO: sorting
+
+			// .....................................
+			this.PreparedCommandText = this.Template.CommandText
+				.Replace("{columns}", columns.ToString())
+			;
+			this.IsPrepared = true;
 		}
 
 	}

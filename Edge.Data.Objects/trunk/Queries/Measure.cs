@@ -39,14 +39,14 @@ namespace Edge.Data.Objects
 					"Measure",
 					EdgeObjectsUtility.GetEdgeTemplate("Measure.sql", "Measure.Queries.Get"),
 					subquery => subquery
-						.Column("ID", Measure.Properties.ID)
-						.Column("Name", Measure.Properties.Name)
-						.Column("DisplayName", Measure.Properties.DisplayName)
-						.Column("AccountID", Measure.Properties.Account)
-						.Column("ChannelID", Measure.Properties.Channel)
-						.Column("StringFormat", Measure.Properties.StringFormat)
-						.Column("DataType", Measure.Properties.DataType)
-						.Column("Options", Measure.Properties.Options)
+						.ConditionalColumn("ID", Measure.Properties.ID)
+						.ConditionalColumn("Name", Measure.Properties.Name)
+						.ConditionalColumn("DisplayName", Measure.Properties.DisplayName)
+						.ConditionalColumn("AccountID", Measure.Properties.Account)
+						.ConditionalColumn("ChannelID", Measure.Properties.Channel)
+						.ConditionalColumn("StringFormat", Measure.Properties.StringFormat)
+						.ConditionalColumn("DataType", Measure.Properties.DataType)
+						.ConditionalColumn("Options", Measure.Properties.Options)
 						.Param("@accountID", query => query.Argument<Account>("account") == null ? -1 : query.Argument<Account>("account").ID)
 						.Param("@channelID", query => query.Argument<Channel>("channel") == null ? -1 : query.Argument<Channel>("channel").ID)
 						.ParseEdgeTemplate()
