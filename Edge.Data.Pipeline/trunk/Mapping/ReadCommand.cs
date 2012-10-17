@@ -77,6 +77,11 @@ namespace Edge.Data.Pipeline.Mapping
 			get { return _fragments; }
 		}
 
+		public override string ToString()
+		{
+			return this.VarName;
+		}
+
 		void CreateRegex()
 		{
 			if (!String.IsNullOrWhiteSpace(this.RegexPattern))
@@ -147,7 +152,12 @@ namespace Edge.Data.Pipeline.Mapping
 						}
 					}
 					else
-						add = false;
+					{
+						if (this.IsRequired)
+							throw new MappingException(String.Format("The regular expression '{0}' for required read command '{1}' failed.", this.RegexPattern, this.VarName));
+						else
+							add = false;
+					}
 				}
 				
 				if (add)
