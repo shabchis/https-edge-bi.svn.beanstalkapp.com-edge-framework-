@@ -61,13 +61,13 @@ namespace Eggplant.Entities.Queries
 
 			var columns = new StringBuilder();
 			int columnCount = 0;
-			foreach (var condition in this.Template.Columns)
+			foreach (KeyValuePair<string, SubqueryColumnCondition> columnCondition in this.Template.Columns)
 			{
-				if (!condition.Value(this))
+				if (!columnCondition.Value.Condition(this))
 					continue;
 
 				// Add the column name
-				columns.Append(condition.Key);
+				columns.Append(columnCondition.Value.ColumnSyntax);
 
 				columnCount++;
 				if (columnCount < this.Template.Columns.Count)
@@ -79,6 +79,7 @@ namespace Eggplant.Entities.Queries
 
 			// TODO: filters
 		}
+
 	}
 
 }

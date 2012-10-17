@@ -68,7 +68,7 @@
     <Compile Include="Classes\Targets\GenderTarget.cs" />
     <Compile Include="Classes\Targets\KeywordTarget.cs" />
     <Compile Include="Classes\Targets\PlacementTarget.cs" />
-    <Compile Include="EdgeObjects.cs" />
+    <Compile Include="EdgeObjectsUtility.cs" />
     <Compile Include="Model\Account.cs" />
     <Compile Include="Model\Ad.cs" />
     <Compile Include="Model\AdMetricsUnit.cs" />

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence;
+using System.Text.RegularExpressions;
+using System.IO;
 
 namespace Eggplant.Entities.Queries
 {
@@ -14,23 +16,47 @@ namespace Eggplant.Entities.Queries
 		public int Index { get; set; }
 		public string DataSet { get; set; }
 		public string CommandText { get; set; }
-		public Dictionary<string, Func<QueryBase, bool>> Columns { get; private set; }
+		public Dictionary<string, SubqueryColumnCondition> Columns { get; private set; }
 		public Dictionary<string, SubqueryParameter> Parameters { get; private set; }
 
 		public SubqueryTemplate()
 		{
-			this.Columns = new Dictionary<string, Func<QueryBase, bool>>();
+			this.Columns = new Dictionary<string, SubqueryColumnCondition>();
 			this.Parameters = new Dictionary<string, SubqueryParameter>();
 		}
 
-		public SubqueryTemplate Column(string columnName, IEntityProperty condition)
+		public SubqueryTemplate Column(string column, IEntityProperty mappedProperty)
 		{
-			return Column(columnName, query => query.SelectList.Count == 0 || query.SelectList.Contains(condition));
+			return Column(column, column, mappedProperty);
 		}
 
-		public SubqueryTemplate Column(string columnName, Func<QueryBase, bool> condition)
+		public SubqueryTemplate Column(string columnAlias, string columnSyntax, IEntityProperty mappedProperty)
 		{
-			this.Columns[columnName] = condition;
+			this.Columns[columnAlias] = new SubqueryColumnCondition()
+			{
+				ColumnAlias = columnAlias,
+				ColumnSyntax = columnSyntax,
+				Condition = query => query.SelectList.Count == 0 || query.SelectList.Contains(mappedProperty),
+				MappedProperty = mappedProperty
+			};
+
+			return this;
+		}
+
+		public SubqueryTemplate Column(string column, Func<QueryBase, bool> condition)
+		{
+			return Column(column, column, condition);
+		}
+
+		public SubqueryTemplate Column(string columnAlias, string columnSyntax, Func<QueryBase, bool> condition)
+		{
+			this.Columns[columnAlias] = new SubqueryColumnCondition()
+			{
+				ColumnAlias = columnAlias,
+				ColumnSyntax = columnSyntax,
+				Condition = condition,
+				MappedProperty = null
+			};
 
 			return this;
 		}
@@ -97,5 +123,12 @@ namespace Eggplant.Entities.Queries
 		public int? Size;
 	}
 
+	public class SubqueryColumnCondition
+	{
+		public string ColumnAlias;
+		public string ColumnSyntax;
+		public IEntityProperty MappedProperty;
+		public Func<QueryBase, bool> Condition;
+	}
 
 }

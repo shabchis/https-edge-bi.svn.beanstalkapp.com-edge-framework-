@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<Measure> Default = EdgeObjects.EntitySpace.CreateMapping<Measure>()
+			public static Mapping<Measure> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Measure>()
 				.Scalar<int>(Measure.Properties.ID, "ID")
 				.Scalar<string>(Measure.Properties.Name, "Name")
 				.Scalar<string>(Measure.Properties.DisplayName, "DisplayName")
@@ -34,10 +34,10 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			//public Query<Measure> GetByName = new Query<Measure>()
-			public static QueryTemplate<Measure> Get = EdgeObjects.EntitySpace.CreateQueryTemplate<Measure>(Mappings.Default)
+			public static QueryTemplate<Measure> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Measure>(Mappings.Default)
 				.Subquery(
 					"Measure",
-					EdgeObjects.QueryTemplateText("Measure.sql", "Measure.Queries.Get"),
+					EdgeObjectsUtility.GetEdgeTemplate("Measure.sql", "Measure.Queries.Get"),
 					subquery => subquery
 						.Column("ID", Measure.Properties.ID)
 						.Column("Name", Measure.Properties.Name)
@@ -49,6 +49,7 @@ namespace Edge.Data.Objects
 						.Column("Options", Measure.Properties.Options)
 						.Param("@accountID", query => query.Argument<Account>("account") == null ? -1 : query.Argument<Account>("account").ID)
 						.Param("@channelID", query => query.Argument<Channel>("channel") == null ? -1 : query.Argument<Channel>("channel").ID)
+						.ParseEdgeTemplate()
 					)
 				.Argument<Account>("account", required: false)
 				.Argument<Channel>("channel", required: false)
