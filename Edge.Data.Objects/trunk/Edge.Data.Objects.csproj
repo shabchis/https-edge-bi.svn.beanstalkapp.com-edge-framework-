@@ -61,7 +61,7 @@
     <Compile Include="Classes\Measure.cs" />
     <Compile Include="Classes\MetaProperty.cs" />
     <Compile Include="Classes\MetricsUnit.cs" />
-    <Compile Include="Classes\Segment.cs" />
+    <Compile Include="Classes\PropertyOption.cs" />
     <Compile Include="Classes\Target.cs" />
     <Compile Include="Classes\TargetMatch.cs" />
     <Compile Include="Classes\Targets\AgeTarget.cs" />
