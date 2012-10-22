@@ -5,13 +5,13 @@ using Eggplant.Entities.Model;
 
 namespace Edge.Data.Objects
 {
-	public partial class Segment
+	public partial class PropertyOption
 	{
-		public static EntityDefinition<Segment> Definition = new EntityDefinition<Segment>(baseDefinition: ChannelSpecificObject.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<PropertyOption> Definition = new EntityDefinition<PropertyOption>(baseDefinition: ChannelSpecificObject.Definition, fromReflection: typeof(Properties));
 
 		public static class Properties
 		{
-			public static ReferenceProperty<Segment, MetaProperty> MetaProperty = new ReferenceProperty<Segment, MetaProperty>("MetaProperty");
+			public static ReferenceProperty<PropertyOption, MetaProperty> MetaProperty = new ReferenceProperty<PropertyOption, MetaProperty>("MetaProperty");
 		}
 	}
 }
