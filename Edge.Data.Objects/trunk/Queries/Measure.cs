@@ -47,25 +47,26 @@ namespace Edge.Data.Objects
 						.ConditionalColumn("StringFormat", Measure.Properties.StringFormat)
 						.ConditionalColumn("DataType", Measure.Properties.DataType)
 						.ConditionalColumn("Options", Measure.Properties.Options)
-						.Param("@accountID", query => query.Argument<Account>("account") == null ? -1 : query.Argument<Account>("account").ID)
-						.Param("@channelID", query => query.Argument<Channel>("channel") == null ? -1 : query.Argument<Channel>("channel").ID)
+						.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
+						.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
 						.ParseEdgeTemplate()
+						.SetTopLevel(true)
 					)
-				.Argument<Account>("account", required: false)
-				.Argument<Channel>("channel", required: false)
+				.Param<Account>("account", required: false)
+				.Param<Channel>("channel", required: false)
 			;
 		}
 
-		public static IEnumerable<Measure> Get(Account account, Channel channel, PersistenceConnection connection)
+		public static IEnumerable<Measure> Get(PersistenceConnection connection, Account account = null, Channel channel = null)
 		{			
-			return Measure.Queries.Get.Start()
-				.Argument<Account>("account", account)
-				.Argument<Channel>("channel", channel)
+			return Measure.Queries.Get.Start(connection)
 				.Select(
 					Measure.Properties.Name,
 					Measure.Properties.DisplayName
 					)
-				.Filter("{property:Measure.Properties.DataType} = {enum:MeasureType.Currency}")
+				.Filter(Measure.Properties.DataType, " = ", MeasureDataType.Currency)
+				.Param<Account>("account", account)
+				.Param<Channel>("channel", channel)
 				.Execute(QueryExecutionMode.Buffered);
 		}
 	}

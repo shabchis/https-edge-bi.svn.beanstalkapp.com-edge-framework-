@@ -59,9 +59,9 @@
     <Compile Include="Classes\Currency.cs" />
     <Compile Include="Classes\LandingPage.cs" />
     <Compile Include="Classes\Measure.cs" />
-    <Compile Include="Classes\MetaProperty.cs" />
+    <Compile Include="Classes\ConnectionDefinition.cs" />
     <Compile Include="Classes\MetricsUnit.cs" />
-    <Compile Include="Classes\PropertyOption.cs" />
+    <Compile Include="Classes\Segment.cs" />
     <Compile Include="Classes\Target.cs" />
     <Compile Include="Classes\TargetMatch.cs" />
     <Compile Include="Classes\Targets\AgeTarget.cs" />
@@ -87,7 +87,7 @@
     <Compile Include="Model\KeywordTarget.cs" />
     <Compile Include="Model\LandingPage.cs" />
     <Compile Include="Model\Measure.cs" />
-    <Compile Include="Model\MetaProperty.cs" />
+    <Compile Include="Model\ConnectionDefinition.cs" />
     <Compile Include="Model\MetricsUnit.cs" />
     <Compile Include="Model\PlacementTarget.cs" />
     <Compile Include="Model\Segment.cs" />

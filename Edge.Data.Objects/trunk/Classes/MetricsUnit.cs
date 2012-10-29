@@ -35,7 +35,7 @@ namespace Edge.Data.Objects
 		public Channel Channel;
 		public Account Account;
 
-		public Dictionary<MetaProperty, object> PropertyDimensions;
+		public Dictionary<ConnectionDefinition, object> PropertyDimensions;
 
 		public override IEnumerable<EdgeObject> GetObjectDimensions()
 		{

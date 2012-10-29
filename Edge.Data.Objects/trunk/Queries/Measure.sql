@@ -4,8 +4,9 @@
 select *
 from
 (
+-- TODO: bring only accountID = -1 and InheritedByDefault = true
 	select
-		-- # COLUMNS-START
+		-- #COLUMNS-START
 			this.ID												as ID
 			,isnull(this.Name,			base.Name)				as Name
 			,isnull(this.DisplayName,	base.DisplayName)		as DisplayName
@@ -14,7 +15,7 @@ from
 			,isnull(this.StringFormat,	base.StringFormat)		as StringFormat
 			,base.DataType										as DataType
 			,base.Options										as Options
-		-- # COLUMNS-END
+		-- #COLUMNS-END
 	from
 		Measure this
 		left outer join Measure base on 
@@ -65,6 +66,6 @@ from
 		)
 ) as m
 
--- # FILTER
+-- #FILTER
 
--- # SORTING
+-- #SORTING
