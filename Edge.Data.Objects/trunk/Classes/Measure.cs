@@ -14,6 +14,7 @@ namespace Edge.Data.Objects
 		public Channel Channel;
 		public Measure BaseMeasure;
 		public string StringFormat;
+		public bool InheritedByDefault;
 		public MeasureDataType DataType; // if true, table manager adds another column called {name}_Converted
 		public MeasureOptions Options;
 	}

@@ -13,9 +13,9 @@ namespace Edge.Data.Objects
 		{
 			public static ReferenceProperty<GenericMetricsUnit, Channel> Channel = new ReferenceProperty<GenericMetricsUnit, Channel>("Channel");
 			public static ReferenceProperty<GenericMetricsUnit, Account> Account = new ReferenceProperty<GenericMetricsUnit, Account>("Account");
-			public static DictionaryProperty<GenericMetricsUnit, MetaProperty, Object> PropertyDimensions = new DictionaryProperty<GenericMetricsUnit, MetaProperty, Object>("PropertyDimensions")
+			public static DictionaryProperty<GenericMetricsUnit, ConnectionDefinition, Object> PropertyDimensions = new DictionaryProperty<GenericMetricsUnit, ConnectionDefinition, Object>("PropertyDimensions")
 			{
-				Key = new ReferenceProperty<GenericMetricsUnit, MetaProperty>(null),
+				Key = new ReferenceProperty<GenericMetricsUnit, ConnectionDefinition>(null),
 				Value = new ValueProperty<GenericMetricsUnit, Object>(null)
 			};
 		}

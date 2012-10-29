@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static ReferenceProperty<PropertyOption, MetaProperty> MetaProperty = new ReferenceProperty<PropertyOption, MetaProperty>("MetaProperty");
+			public static ReferenceProperty<PropertyOption, ConnectionDefinition> MetaProperty = new ReferenceProperty<PropertyOption, ConnectionDefinition>("MetaProperty");
 		}
 	}
 }

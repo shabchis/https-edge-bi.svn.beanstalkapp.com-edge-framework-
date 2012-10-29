@@ -5,18 +5,18 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public partial class MetaProperty
+	public partial class ConnectionDefinition
 	{
 		public int ID;
-		public string PropertyName;
+		public string ConnectionName; // THEME
 		public Account Account;
 		public Channel Channel;
-		public Type BaseValueType;
-		public MetaPropertyOptions Options;
+		public Type BaseValueType; // Segment
+		public ConnectionOptions Options;
 	}
 
 	[Flags]
-	public enum MetaPropertyOptions
+	public enum ConnectionOptions
 	{
 		None = 0x0,
 		All = 0xff
