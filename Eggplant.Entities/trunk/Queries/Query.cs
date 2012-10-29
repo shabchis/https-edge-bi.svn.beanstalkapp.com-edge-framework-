@@ -5,50 +5,16 @@ using System.Text;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence;
 using System.Data;
+using System.Data.SqlClient;
 
 namespace Eggplant.Entities.Queries
 {
-	public abstract class Query : QueryBase
-	{
-		public List<Subquery> Subqueries { get; private set; }
-		protected Dictionary<string, QueryArgument> Args;
-
-		internal Query()
-		{
-			this.Subqueries = new List<Subquery>();
-		}
-
-		public override PersistenceConnection Connection
-		{
-			get { return base.Connection; }
-			set
-			{
-				// Pass down connection to subqueries
-				base.Connection = value;
-				foreach (Subquery subquery in this.Subqueries)
-					subquery.Connection = Connection;
-			}
-		}
-
-		public V Argument<V>(string argumentName)
-		{
-			return (V)Args[argumentName].Value;
-		}
-
-
-	}
-
 	public class Query<T> : Query
 	{
-		public QueryTemplate<T> Template { get; private set; }
+		public QueryTemplate<T> Template { get; internal set; }
 		
-
-		internal Query(QueryTemplate<T> template)
+		internal Query()
 		{
-			this.Template = template;
-
-			if (template.Arguments != null && template.Arguments.Count > 0)
-				Args = new Dictionary<string, QueryArgument>(template.Arguments);
 		}
 
 		public new MappingContext<T> MappingContext
@@ -80,7 +46,7 @@ namespace Eggplant.Entities.Queries
 			//{
 			//}
 
-			Subquery subquery = template.Start(this.Connection);
+			Subquery subquery = template.Start(this);
 			subquery.MappingContext = (IMappingContext)collectionMapping;
 
 			this.Subqueries.Add(subquery);
@@ -91,25 +57,21 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public new Query<T> Filter(string filterExpression)
+		public new Query<T> Filter(params object[] filterExpression)
 		{
-			return (Query<T>)base.Filter(filterExpression);
+			base.Filter(filterExpression);
+			return this;
 		}
 
 		public new Query<T> Sort(IEntityProperty property, SortOrder order)
 		{
-			return (Query<T>) base.Sort(property, order);
+			base.Sort(property, order);
+			return this;
 		}
 
-		public Query<T> Argument<V>(string argumentName, V value)
+		public new Query<T> Param<V>(string paramName, V value)
 		{
-			QueryArgument arg;
-			if (!Args.TryGetValue(argumentName, out arg))
-				throw new KeyNotFoundException(String.Format("Argument '{0}' is not defined in the query template.", argumentName));
-			if (!arg.ArgumentType.IsAssignableFrom(typeof(V)))
-				throw new ArgumentException(String.Format("Argument '{0}' requires values of type {1}.", argumentName, arg.ArgumentType));
-			
-			arg.Value = value;
+			base.Param<V>(paramName, value);
 			return this;
 		}
 
@@ -121,9 +83,13 @@ namespace Eggplant.Entities.Queries
 			{
 				if (!subquery.IsPrepared)
 					subquery.Prepare();
-				cmdText.Append(subquery.PreparedCommandText);
-				if (!subquery.PreparedCommandText.Trim().EndsWith(";"))
-					cmdText.Append(";");
+
+				if (!subquery.Template.IsStandalone)
+				{
+					cmdText.Append(subquery.PreparedCommandText);
+					if (!subquery.PreparedCommandText.Trim().EndsWith(";"))
+						cmdText.Append(";");
+				}
 			}
 
 			this.PreparedCommandText = cmdText.ToString();
@@ -132,8 +98,75 @@ namespace Eggplant.Entities.Queries
 
 		public IEnumerable<T> Execute(QueryExecutionMode mode)
 		{
+			if (!this.IsPrepared)
+				this.Prepare();
+
+			var conn = (SqlConnection)this.Connection.DbConnection;
+
+			var commands = new List<SqlCommand>();
+			var mainCommand = new SqlCommand(this.PreparedCommandText, conn);
+			commands.Add(mainCommand);
+
+			// Set all parameter values
+			foreach (Subquery subquery in this.Subqueries)
+			{
+				// Choose the right command object
+				SqlCommand cmd;
+				if (subquery.Template.IsStandalone)
+				{
+					cmd = new SqlCommand(subquery.PreparedCommandText, conn);
+					commands.Add(cmd);
+				}
+				else
+					cmd = mainCommand;
+
+				// Add parameters to the command object
+				foreach (DbParameter param in subquery.DbParameters.Values)
+				{
+					var p = new SqlParameter(
+						param.Name,
+						param.ValueFunction != null ? param.ValueFunction(this) : param.Value
+					);
+
+					if (param.Size != null)
+						p.Size = param.Size.Value;
+					if (param.DbType != null)
+						p.DbType = param.DbType.Value;
+
+					cmd.Parameters.Add(p);
+				}
+			}
+
+			// Organize mappings
+			//foreach(
+
+			// Execute all commands
 			throw new NotImplementedException();
 		}
 
 	}
+
+	public abstract class Query : QueryBase
+	{
+		public List<Subquery> Subqueries { get; private set; }
+
+		internal Query()
+		{
+			this.Subqueries = new List<Subquery>();
+		}
+
+		public override PersistenceConnection Connection
+		{
+			get { return base.Connection; }
+			set
+			{
+				// Pass down connection to subqueries
+				base.Connection = value;
+				foreach (Subquery subquery in this.Subqueries)
+					subquery.Connection = Connection;
+			}
+		}
+	}
+
+
 }
