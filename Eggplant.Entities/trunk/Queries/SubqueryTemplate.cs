@@ -10,19 +10,31 @@ using System.IO;
 
 namespace Eggplant.Entities.Queries
 {
-	public class SubqueryTemplate
+	public class SubqueryTemplate: QueryTemplateBase
 	{
-		public QueryTemplate Template { get; set; }
+		public bool IsTopLevel { get; set; }
+		public bool IsStandalone { get; set; }
+		public QueryTemplate Template { get; internal set; }
 		public int Index { get; set; }
 		public string DataSet { get; set; }
 		public string CommandText { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
-		public Dictionary<string, SubqueryParameter> Parameters { get; private set; }
 
-		public SubqueryTemplate()
+		public SubqueryTemplate(EntitySpace space): base(space)
 		{
 			this.ConditionalColumns = new Dictionary<string, SubqueryConditionalColumn>();
-			this.Parameters = new Dictionary<string, SubqueryParameter>();
+		}
+
+		public SubqueryTemplate SetTopLevel(bool topLevel)
+		{
+			this.IsTopLevel = topLevel;
+			return this;
+		}
+
+		public SubqueryTemplate SetStandalone(bool standalone)
+		{
+			this.IsStandalone = standalone;
+			return this;
 		}
 
 		public SubqueryTemplate ConditionalColumn(string column, IEntityProperty mappedProperty)
@@ -36,19 +48,19 @@ namespace Eggplant.Entities.Queries
 			{
 				ColumnAlias = columnAlias,
 				ColumnSyntax = columnSyntax,
-				Condition = query => query.SelectList.Count == 0 || query.SelectList.Contains(mappedProperty),
+				Condition = subquery => subquery.SelectList.Count == 0 || subquery.SelectList.Contains(mappedProperty),
 				MappedProperty = mappedProperty
 			};
 
 			return this;
 		}
 
-		public SubqueryTemplate ConditionalColumn(string column, Func<QueryBase, bool> condition)
+		public SubqueryTemplate ConditionalColumn(string column, Func<Subquery, bool> condition)
 		{
 			return ConditionalColumn(column, column, condition);
 		}
 
-		public SubqueryTemplate ConditionalColumn(string columnAlias, string columnSyntax, Func<QueryBase, bool> condition)
+		public SubqueryTemplate ConditionalColumn(string columnAlias, string columnSyntax, Func<Subquery, bool> condition)
 		{
 			this.ConditionalColumns[columnAlias] = new SubqueryConditionalColumn()
 			{
@@ -61,66 +73,36 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public new SubqueryTemplate Param(string name, DbType dbType, int? size = null)
+		public new SubqueryTemplate DbParam(string name, object value, DbType? dbType = null, int? size = null)
 		{
-			this.Parameters[name] = new SubqueryParameter()
+			base.DbParam(name, value, dbType, size);
+			return this;
+		}
+
+		public new SubqueryTemplate DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)
+		{
+			base.DbParam(name, valueFunc, dbType, size);
+			return this;
+		}
+
+		internal Subquery Start(Query q)
+		{
+			Subquery subquery = new Subquery()
 			{
-				Name = name,
-				DbType = dbType,
-				Size = size
+				ParentQuery = q,
+				Template = this
 			};
 
-			return this;
-		}
+			subquery.Connection = q.Connection;
 
-		public new SubqueryTemplate Param(string name, Func<Query, object> valueFunction, DbType? dbType = null, int? size = null)
-		{
-			this.Parameters[name] = new SubqueryParameter()
-			{
-				Name = name,
-				ValueFunction = valueFunction,
-				DbType = dbType,
-				Size = size
-			};
+			foreach (DbParameter parameter in this.DbParameters.Values)
+				subquery.DbParameters.Add(parameter.Name, parameter.Clone());
 
-			return this;
-		}
-
-		public new SubqueryTemplate Param(string name, object value, DbType? dbType = null, int? size = null)
-		{
-			SubqueryParameter param;
-			if (dbType != null || size != null || !this.Parameters.TryGetValue(name, out param))
-			{
-				this.Parameters[name] = param = new SubqueryParameter()
-				{
-					Name = name,
-					DbType = dbType,
-					Size = size
-				};
-			}
-			param.Value = value;
-
-			return this;
-		}
-
-
-		internal Subquery Start(PersistenceConnection connection)
-		{
-			Subquery subquery = new Subquery();
-			foreach (SubqueryParameter parameter in this.Parameters.Values)
-				subquery.Parameters.Add(parameter.Name, parameter);
+			foreach (QueryParameter parameter in this.Parameters.Values)
+				subquery.Parameters.Add(parameter.Name, parameter.Clone());
 
 			return subquery;
 		}
-	}
-
-	public class SubqueryParameter
-	{
-		public string Name;
-		public object Value;
-		public Func<Query, object> ValueFunction;
-		public DbType? DbType;
-		public int? Size;
 	}
 
 	public class SubqueryConditionalColumn
@@ -128,7 +110,7 @@ namespace Eggplant.Entities.Queries
 		public string ColumnAlias;
 		public string ColumnSyntax;
 		public IEntityProperty MappedProperty;
-		public Func<QueryBase, bool> Condition;
+		public Func<Subquery, bool> Condition;
 	}
 
 }

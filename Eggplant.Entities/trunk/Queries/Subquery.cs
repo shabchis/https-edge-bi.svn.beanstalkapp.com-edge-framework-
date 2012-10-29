@@ -4,73 +4,89 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using Eggplant.Entities.Model;
+using Eggplant.Entities.Persistence;
 
 namespace Eggplant.Entities.Queries
 {
 	public class Subquery : QueryBase
 	{
-		public SubqueryTemplate Template { get; private set; }
-		public Dictionary<string, SubqueryParameter> Parameters { get; private set; }
+		public Query ParentQuery { get; internal set; }
+		public SubqueryTemplate Template { get; internal set; }
 
 		internal Subquery()
 		{
-			this.Parameters = new Dictionary<string, SubqueryParameter>();
+		}
+
+		private void ThrowIfTopLevel()
+		{
+			if (this.Template.IsTopLevel)
+				throw new InvalidOperationException("Top level subtemplate receives the select, filter and sort lists from the main query.");
 		}
 
 		public new Subquery Select(params IEntityProperty[] properties)
 		{
+			ThrowIfTopLevel();
 			return (Subquery)base.Select(properties);
 		}
 
-		public new Subquery Filter(string filterExpression)
+		public new Subquery Filter(params object[] filterExpression)
 		{
+			ThrowIfTopLevel();
 			return (Subquery)base.Filter(filterExpression);
 		}
 
 		public new Subquery Sort(IEntityProperty property, SortOrder order)
 		{
+			ThrowIfTopLevel();
 			return (Subquery)base.Sort(property, order);
 		}
 
-		public new Subquery Column(string placeHolder, IEntityProperty property)
+		public new Subquery DbParam(string name, object value, DbType? dbType = null, int? size = null)
 		{
-			return (Subquery)base.Column(placeHolder, property);
+			ThrowIfTopLevel();
+			base.DbParam(name, value, dbType, size);
+			return this;
 		}
 
-		public Subquery Param(string name, object value, DbType? dbType = null, int? size = null)
+		public new Subquery Param<V>(string paramName, V value)
 		{
-			SubqueryParameter param;
-			if (dbType != null || size != null || !this.Parameters.TryGetValue(name, out param))
-			{
-				this.Parameters[name] = param = new SubqueryParameter()
-				{
-					Name = name,
-					DbType = dbType,
-					Size = size
-				};
-			}
-			param.Value = value;
-
+			ThrowIfTopLevel();
+			base.Param<V>(paramName, value);
 			return this;
 		}
 
 		internal void Prepare()
 		{
 			// .....................................
+			// If top level, inherit all selects, filters, sorting
+			this.SelectList.Clear();
+			this.SelectList.AddRange(this.ParentQuery.SelectList);
+			this.FilterExpression = this.ParentQuery.FilterExpression;
+			this.SortingList.Clear();
+			this.SortingList.AddRange(this.ParentQuery.SortingList);
+
+			// .....................................
 			// Columns
 
 			var columns = new StringBuilder();
-			int columnCount = 0;
+			var expressionParts = new List<SubqueryConditionalColumn>();
 			foreach (KeyValuePair<string, SubqueryConditionalColumn> columnCondition in this.Template.ConditionalColumns)
 			{
 				if (!columnCondition.Value.Condition(this))
 					continue;
 
-				// Add the column name
-				columns.Append(columnCondition.Value.ColumnSyntax);
+				expressionParts.Add(columnCondition.Value);
+			}
+			for (int i = 0; i < expressionParts.Count; i++)
+			{
+				SubqueryConditionalColumn columnCondition = expressionParts[i];
 
-				columnCount++;
-				if (columnCount < this.Template.ConditionalColumns.Count)
+				// Add the column name
+				columns.Append(columnCondition.ColumnSyntax);
+				columns.Append(" as ");
+				columns.Append(columnCondition.ColumnAlias);
+
+				if (i < expressionParts.Count-1)
 					columns.Append(", ");
 			}
 
@@ -87,6 +103,8 @@ namespace Eggplant.Entities.Queries
 			// .....................................
 			this.PreparedCommandText = this.Template.CommandText
 				.Replace("{columns}", columns.ToString())
+				.Replace("{filter}", string.Empty)
+				.Replace("{sorting}", string.Empty);
 			;
 			this.IsPrepared = true;
 		}

@@ -8,29 +8,14 @@ using System.Data;
 
 namespace Eggplant.Entities.Queries
 {
-	public abstract class QueryTemplate
+	public abstract class QueryTemplate : QueryTemplateBase
 	{
-		public EntitySpace EntitySpace { get; private set; }
 		public List<SubqueryTemplate> SubqueryTemplates { get; private set; }
-		public SubqueryTemplate DefaultSubqueryTemplate { get; set; }
-		public Dictionary<string, QueryArgument> Arguments { get; private set;  }
-
-		internal QueryTemplate(EntitySpace space)
+		
+		internal QueryTemplate(EntitySpace space): base(space)
 		{
-			this.EntitySpace = space;
 			this.SubqueryTemplates = new List<SubqueryTemplate>();
-			this.Arguments = new Dictionary<string, QueryArgument>();
 		}
-	}
-
-	public class QueryArgument
-	{
-		public string Name;
-		public object Value;
-		public Type ArgumentType;
-		public bool IsRequired;
-		public object DefaultValue;
-		public object EmptyValue;
 	}
 
 	public class QueryTemplate<T> : QueryTemplate
@@ -46,14 +31,33 @@ namespace Eggplant.Entities.Queries
 		/// Creates a new empty query using this template.
 		/// </summary>
 		/// <returns></returns>
-		public Query<T> Start(PersistenceConnection connection = null)
+		public Query<T> Start(PersistenceConnection connection)
 		{
-			return new Query<T>(this)
+			if (connection == null)
+				throw new ArgumentNullException("connection");
+
+			var q = new Query<T>()
 			{
+				Template = this,
 				Connection = connection,
 				EntitySpace = this.EntitySpace,
 				MappingContext = new MappingContext<T>(this.InboundMapping, MappingDirection.Inbound, connection)
 			};
+
+			foreach (DbParameter parameter in this.DbParameters.Values)
+				q.DbParameters.Add(parameter.Name, parameter.Clone());
+
+			foreach (QueryParameter parameter in this.Parameters.Values)
+				q.Parameters.Add(parameter.Name, parameter.Clone());
+
+			// Possibly not needed because this is done by Select
+			foreach (SubqueryTemplate subquerytpl in this.SubqueryTemplates)
+			{
+				Subquery subquery = subquerytpl.Start(q);
+				q.Subqueries.Add(subquery);
+			}
+
+			return q;
 		}
 
 		public QueryTemplate<T> Subquery(string dataSet, string commandText, Action<SubqueryTemplate> inner = null)
@@ -63,7 +67,7 @@ namespace Eggplant.Entities.Queries
 
 		public QueryTemplate<T> Subquery(string dataSet, int index, string commandText, Action<SubqueryTemplate> inner = null)
 		{
-			var subqueryTemplate = new SubqueryTemplate()
+			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{
 				DataSet = dataSet,
 				Index = index < 0 ? this.SubqueryTemplates.Count : index,
@@ -82,32 +86,21 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public QueryTemplate<T> DefaultSubquery(string dataSet)
+		public new QueryTemplate<T> DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)
 		{
-			this.DefaultSubqueryTemplate = this.SubqueryTemplates.Find(t => t.DataSet == dataSet);
+			base.DbParam(name, valueFunc, dbType, size);
 			return this;
 		}
 
-		public QueryTemplate<T> DefaultSubquery(SubqueryTemplate subqueryTemplate)
+		public new QueryTemplate<T> DbParam(string name, object value, DbType? dbType = null, int? size = null)
 		{
-			if (!this.SubqueryTemplates.Contains(subqueryTemplate))
-				throw new ArgumentException("Subquery was be added to the the SubqueryTemplates list first.", "subqueryTemplate");
-
-			this.DefaultSubqueryTemplate = subqueryTemplate;
+			base.DbParam(name, value, dbType, size);
 			return this;
 		}
 
-		public QueryTemplate<T> Argument<V>(string argumentName, bool required = true, V defaultValue = default(V), V emptyValue = default(V))
+		public new QueryTemplate<T> Param<V>(string paramName, bool required = true, V defaultValue = default(V), V emptyValue = default(V))
 		{
-			this.Arguments[argumentName] = new QueryArgument()
-			{
-				Name = argumentName,
-				ArgumentType = typeof(V),
-				IsRequired = required,
-				DefaultValue = defaultValue,
-				EmptyValue = emptyValue
-			};
-
+			base.Param<V>(paramName, required, defaultValue, emptyValue);
 			return this;
 		}
 
