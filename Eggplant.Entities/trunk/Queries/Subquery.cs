@@ -17,40 +17,40 @@ namespace Eggplant.Entities.Queries
 		{
 		}
 
-		private void ThrowIfTopLevel()
+		private void ThrowIfRoot()
 		{
-			if (this.Template.IsTopLevel)
-				throw new InvalidOperationException("Top level subtemplate receives the select, filter and sort lists from the main query.");
+			if (this.Template.IsRoot)
+				throw new InvalidOperationException("Root subtemplate receives the select, filter and sort lists from the main query.");
 		}
 
 		public new Subquery Select(params IEntityProperty[] properties)
 		{
-			ThrowIfTopLevel();
+			ThrowIfRoot();
 			return (Subquery)base.Select(properties);
 		}
 
 		public new Subquery Filter(params object[] filterExpression)
 		{
-			ThrowIfTopLevel();
+			ThrowIfRoot();
 			return (Subquery)base.Filter(filterExpression);
 		}
 
 		public new Subquery Sort(IEntityProperty property, SortOrder order)
 		{
-			ThrowIfTopLevel();
+			ThrowIfRoot();
 			return (Subquery)base.Sort(property, order);
 		}
 
 		public new Subquery DbParam(string name, object value, DbType? dbType = null, int? size = null)
 		{
-			ThrowIfTopLevel();
+			ThrowIfRoot();
 			base.DbParam(name, value, dbType, size);
 			return this;
 		}
 
 		public new Subquery Param<V>(string paramName, V value)
 		{
-			ThrowIfTopLevel();
+			ThrowIfRoot();
 			base.Param<V>(paramName, value);
 			return this;
 		}

@@ -15,6 +15,18 @@ namespace Eggplant.Entities.Persistence
 
 		public abstract PersistenceConnection Connect();
 
+		[ThreadStatic]
+		internal static PersistenceConnection ThreadConnection;
+		public PersistenceConnection ConnectThread()
+		{
+			if (ThreadConnection != null)
+				throw new InvalidOperationException("Cannot connect the current thread to this store because a different connection is still active on this thread.");
+
+			PersistenceConnection connection = this.Connect();
+			ThreadConnection = connection;
+
+			return connection;
+		}
 
 		public static PersistenceStore LoadFromConfiguration(string configurationName)
 		{

@@ -6,6 +6,7 @@ using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence;
 using System.Data;
 using System.Data.SqlClient;
+using System.Collections;
 
 namespace Eggplant.Entities.Queries
 {
@@ -40,7 +41,7 @@ namespace Eggplant.Entities.Queries
 			SubqueryTemplate template;
 			//try
 			//{
-			template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.DataSet == collectionMapping.DataSet);
+			template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.ResultSetName == collectionMapping.ResultSetName);
 			//}
 			//catch (Exception ex)
 			//{
@@ -137,14 +138,50 @@ namespace Eggplant.Entities.Queries
 				}
 			}
 
-			// Organize mappings
-			//foreach(
+			// Setup caching for subquery relationships
+			foreach(SubqueryTemplate subqueryTemplate in this.Template.SubqueryTemplates)
+			{
+				//subqueryTemplate.Relationships.Keys
+			}
+
+			var passes = new List<QueryExecutionMappingPass>();
+			BuildMappingPasses(null, this.MappingContext, passes);
 
 			// Execute all commands
 			throw new NotImplementedException();
 		}
 
+		void BuildMappingPasses(IEntityProperty property, IMapping mapping, List<QueryExecutionMappingPass> passes)
+		{
+			Subquery subquery = this.Subqueries.Find(s => s.Template.ResultSetName == mapping.ResultSetName);
+			QueryExecutionMappingPass pass = passes.Find(p => p.Subquery == subquery);
+			if (pass == null)
+			{
+				pass = new QueryExecutionMappingPass() { Subquery = subquery };
+				passes.Add(pass);
+			}
+
+			if (property != null)
+			{
+				if (subquery.SelectList.Contains(property) && mapping.ResultSetName == subquery.Template.ResultSetName)
+					pass.Mappings.Add(mapping);
+			}
+
+			// Current pass
+			foreach (var pair in mapping.SubMappings)
+				if (subquery.SelectList.Contains(pair.Key))
+					BuildMappingPasses(pair.Key, pair.Value, passes);
+		}
+
 	}
+
+	internal class QueryExecutionMappingPass
+	{
+		public List<IMapping> Mappings = new List<IMapping>();
+		public Subquery Subquery;
+		public List<object> ResultsCache; // for mappings with child relationships
+	}
+
 
 	public abstract class Query : QueryBase
 	{
