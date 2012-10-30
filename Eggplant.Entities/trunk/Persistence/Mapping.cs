@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Eggplant.Entities.Model;
 using System.Data.Common;
+using Eggplant.Entities.Queries;
 
 namespace Eggplant.Entities.Persistence
 {
@@ -17,7 +18,7 @@ namespace Eggplant.Entities.Persistence
 	public interface IMapping
 	{
 		EntitySpace EntitySpace { get; }
-		string DataSet { get; }
+		string ResultSetName { get; }
 		Dictionary<IEntityProperty, IMapping> SubMappings { get; }
 	}
 
@@ -37,7 +38,7 @@ namespace Eggplant.Entities.Persistence
 		public EntityDefinition<T> EntityDefinition { get; private set; }
 		public Delegate MappingFunction { get; set; }
 		public Dictionary<IEntityProperty, IMapping> SubMappings { get; private set; }
-		public string DataSet { get; set; }
+		public string ResultSetName { get; set; }
 
 		// ===================================
 		// Internal
@@ -61,8 +62,10 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
+		
+
 		/// <summary>
-		/// Maps a dataset field to a scalar property.
+		/// Maps a result set field to a scalar property.
 		/// </summary>
 		public Mapping<T> Scalar<V>(IEntityProperty<V> property, string field)
 		{
@@ -85,9 +88,9 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
-		public Mapping<T> Collection<V>(ICollectionProperty<V> collection, string dataSet, string field)
+		public Mapping<T> Collection<V>(ICollectionProperty<V> collection, string resultSet, string field)
 		{
-			return this.Collection<V>(collection, dataSet, context =>
+			return this.Collection<V>(collection, resultSet, context =>
 			{
 				if (context.Direction == MappingDirection.Inbound)
 					context.Assign(context.GetField<V>(field));
@@ -96,9 +99,9 @@ namespace Eggplant.Entities.Persistence
 			});
 		}
 
-		public Mapping<T> Collection<V>(ICollectionProperty<V> collection, string dataSet, Action<CollectionMappingContext<T,V>> function)
+		public Mapping<T> Collection<V>(ICollectionProperty<V> collection, string resultSet, Action<CollectionMappingContext<T, V>> function)
 		{
-			var collectionMapping = new Mapping<ICollection<V>>(this.EntitySpace) { DataSet = dataSet };
+			var collectionMapping = new Mapping<ICollection<V>>(this.EntitySpace) { ResultSetName = resultSet };
 
 			collectionMapping.SubMappings[collection.Value] = new Mapping<V>(this.EntitySpace)
 			{
@@ -110,9 +113,9 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
-		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, string key, string value)
+		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, string key, string value)
 		{
-			return this.Dictionary<K, V>(dictionary, dataSet,
+			return this.Dictionary<K, V>(dictionary, resultSet,
 				context =>
 				{
 					if (context.Direction == MappingDirection.Inbound)
@@ -130,25 +133,25 @@ namespace Eggplant.Entities.Persistence
 			);
 		}
 
-		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, Action<CollectionMappingContext<T,K>> key, string value)
+		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, Action<CollectionMappingContext<T, K>> key, string value)
 		{
-			return this.Dictionary<K, V>(dictionary, dataSet,
+			return this.Dictionary<K, V>(dictionary, resultSet,
 				key,
 				context => context.Assign(context.GetField<V>(value))
 			);
 		}
 
-		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, string key, Action<CollectionMappingContext<T,V>> value)
+		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, string key, Action<CollectionMappingContext<T, V>> value)
 		{
-			return this.Dictionary<K, V>(dictionary, dataSet,
+			return this.Dictionary<K, V>(dictionary, resultSet,
 				context => context.Assign(context.GetField<K>(key)),
 				value
 			);
 		}
 
-		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string dataSet, Action<CollectionMappingContext<T,K>> key, Action<CollectionMappingContext<T,V>> value)
+		public Mapping<T> Dictionary<K, V>(IDictionaryProperty<K, V> dictionary, string resultSet, Action<CollectionMappingContext<T, K>> key, Action<CollectionMappingContext<T, V>> value)
 		{
-			var dictMapping = new Mapping<IDictionary<K, V>>(this.EntitySpace) { DataSet = dataSet, };
+			var dictMapping = new Mapping<IDictionary<K, V>>(this.EntitySpace) { ResultSetName = resultSet, };
 
 			dictMapping.SubMappings[dictionary.Key] = new Mapping<K>(this.EntitySpace)
 			{
@@ -181,11 +184,12 @@ namespace Eggplant.Entities.Persistence
 	{
 		public PersistenceConnection Connection { get; private set; }
 		public MappingDirection Direction { get; private set; }
+		//public SubqueryExectionContext ActiveSubquery { get; internal set; }
 
 		internal MappingContext(Mapping<T> mapping, MappingDirection dir, PersistenceConnection connection) : base(mapping.EntitySpace)
 		{
 			this.Connection = connection;
-			this.DataSet = mapping.DataSet;
+			this.ResultSetName = mapping.ResultSetName;
 			this.MappingFunction = mapping.MappingFunction;
 			foreach (var sub in mapping.SubMappings)
 			{

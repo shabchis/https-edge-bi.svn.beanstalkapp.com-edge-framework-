@@ -23,6 +23,8 @@ namespace Eggplant.Entities.Persistence
 		void IDisposable.Dispose()
 		{
 			DbConnection.Dispose();
+			if (PersistenceStore.ThreadConnection == this)
+				PersistenceStore.ThreadConnection = null;
 		}
 	}
 }

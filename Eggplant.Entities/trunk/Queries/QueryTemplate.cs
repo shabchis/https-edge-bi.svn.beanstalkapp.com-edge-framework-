@@ -10,6 +10,7 @@ namespace Eggplant.Entities.Queries
 {
 	public abstract class QueryTemplate : QueryTemplateBase
 	{
+		public SubqueryTemplate RootSubqueryTemplate { get; set; }
 		public List<SubqueryTemplate> SubqueryTemplates { get; private set; }
 		
 		internal QueryTemplate(EntitySpace space): base(space)
@@ -31,10 +32,15 @@ namespace Eggplant.Entities.Queries
 		/// Creates a new empty query using this template.
 		/// </summary>
 		/// <returns></returns>
-		public Query<T> Start(PersistenceConnection connection)
+		public Query<T> Start(PersistenceConnection connection = null)
 		{
 			if (connection == null)
-				throw new ArgumentNullException("connection");
+			{
+				connection = PersistenceStore.ThreadConnection;
+
+				if (connection == null)
+					throw new ArgumentNullException("When there is no active thread connection, a connection object must be supplied.", "connection");
+			}
 
 			var q = new Query<T>()
 			{
@@ -60,30 +66,40 @@ namespace Eggplant.Entities.Queries
 			return q;
 		}
 
-		public QueryTemplate<T> Subquery(string dataSet, string commandText, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> RootSubquery(string commandText, Action<SubqueryTemplate> inner = null)
 		{
-			return this.Subquery(dataSet, -1, commandText, inner);
+			SubqueryTemplate root = SubqueryInit(null, commandText, inner);
+			if (root.Relationships.Count > 0)
+				throw new QueryTemplateException("Root subquery cannot have any relationships.");
+
+			this.RootSubqueryTemplate = root;
+			return this;
 		}
 
-		public QueryTemplate<T> Subquery(string dataSet, int index, string commandText, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> Subquery(string resultSetName, string commandText, Action<SubqueryTemplate> inner = null)
+		{
+			SubqueryInit(resultSetName, commandText, inner);
+			return this;
+		}
+
+		private SubqueryTemplate SubqueryInit(string resultSetName, string commandText, Action<SubqueryTemplate> inner)
 		{
 			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{
-				DataSet = dataSet,
-				Index = index < 0 ? this.SubqueryTemplates.Count : index,
-				CommandText = commandText
+				ResultSetName = resultSetName,
+				CommandText = commandText,
+				Template = this
 			};
 
-			if (index >= 0)
-				this.SubqueryTemplates.Insert(index, subqueryTemplate);
-			else
-				this.SubqueryTemplates.Add(subqueryTemplate);
+			if (this.SubqueryTemplates.Any(p => p.ResultSetName == resultSetName))
+				throw new QueryTemplateException("Cannot add subquery template with a result set name that is already included.");
 
-			// Activate inner only for the command
+			this.SubqueryTemplates.Add(subqueryTemplate);
+
 			if (inner != null)
 				inner(subqueryTemplate);
 
-			return this;
+			return subqueryTemplate;
 		}
 
 		public new QueryTemplate<T> DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)

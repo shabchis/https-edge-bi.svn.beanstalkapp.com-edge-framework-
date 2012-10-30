@@ -12,23 +12,23 @@ namespace Eggplant.Entities.Queries
 {
 	public class SubqueryTemplate: QueryTemplateBase
 	{
-		public bool IsTopLevel { get; set; }
+
 		public bool IsStandalone { get; set; }
 		public QueryTemplate Template { get; internal set; }
-		public int Index { get; set; }
-		public string DataSet { get; set; }
+		public string ResultSetName { get; set; }
 		public string CommandText { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
+		public Dictionary<SubqueryTemplate, SubqueryRelationship> Relationships { get; private set; }
 
 		public SubqueryTemplate(EntitySpace space): base(space)
 		{
 			this.ConditionalColumns = new Dictionary<string, SubqueryConditionalColumn>();
+			this.Relationships = new Dictionary<SubqueryTemplate, SubqueryRelationship>();
 		}
 
-		public SubqueryTemplate SetTopLevel(bool topLevel)
+		public bool IsRoot
 		{
-			this.IsTopLevel = topLevel;
-			return this;
+			get { return this.Template.RootSubqueryTemplate == this; }
 		}
 
 		public SubqueryTemplate SetStandalone(bool standalone)
@@ -73,6 +73,19 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
+		public SubqueryTemplate RootRelationship(Action<SubqueryRelationship> relationshipInit)
+		{
+			return Relationship(null, relationshipInit);
+		}
+
+		public SubqueryTemplate Relationship(string resultSetName, Action<SubqueryRelationship> relationshipInit)
+		{
+			var relationship = new SubqueryRelationship();
+			relationshipInit(relationship);
+			this.Relationships.Add(this.Template.SubqueryTemplates.Find(subtpl => subtpl.ResultSetName == resultSetName), relationship);
+			return this;
+		}
+
 		public new SubqueryTemplate DbParam(string name, object value, DbType? dbType = null, int? size = null)
 		{
 			base.DbParam(name, value, dbType, size);
@@ -111,6 +124,32 @@ namespace Eggplant.Entities.Queries
 		public string ColumnSyntax;
 		public IEntityProperty MappedProperty;
 		public Func<Subquery, bool> Condition;
+	}
+
+	public class SubqueryRelationship
+	{
+		public List<SubqueryRelationshipField> Fields;
+
+		public SubqueryRelationship Field(string child, string parent)
+		{
+			if (Fields == null)
+				Fields = new List<SubqueryRelationshipField>();
+
+			this.Fields.Add(new SubqueryRelationshipField(child, parent));
+			return this;
+		}
+	}
+
+	public struct SubqueryRelationshipField
+	{
+		public string ChildField;
+		public string ParentField;
+
+		public SubqueryRelationshipField(string child, string parent)
+		{
+			ChildField = child;
+			ParentField = parent;
+		}
 	}
 
 }
