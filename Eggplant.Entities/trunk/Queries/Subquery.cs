@@ -12,6 +12,7 @@ namespace Eggplant.Entities.Queries
 	{
 		public Query ParentQuery { get; internal set; }
 		public SubqueryTemplate Template { get; internal set; }
+		public string PreparedCommandText { get; protected set; }
 
 		internal Subquery()
 		{
