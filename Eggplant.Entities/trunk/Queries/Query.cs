@@ -13,6 +13,9 @@ namespace Eggplant.Entities.Queries
 	public class Query<T> : Query
 	{
 		public QueryTemplate<T> Template { get; internal set; }
+
+		protected List<SqlCommand> PreparedCommands { get; private set; }
+		private List<SubqueryExecutionData> ExecutionData;
 		
 		internal Query()
 		{
@@ -78,87 +81,78 @@ namespace Eggplant.Entities.Queries
 
 		public void Prepare()
 		{
-			var cmdText = new StringBuilder();
+			// Create execution list based on select list and active mappings
+			this.ExecutionData = new List<SubqueryExecutionData>();
+			PrepareExecutionData(null, this.MappingContext);
 
-			foreach (Subquery subquery in this.Subqueries)
+			// ----------------------------------------
+			// Prepare SQL commands
+			var mainCommandText = new StringBuilder();
+			SqlCommand mainCommand = new SqlCommand();
+			this.PreparedCommands = new List<SqlCommand>();
+			
+			foreach (SubqueryExecutionData execdata in this.ExecutionData)
 			{
-				if (!subquery.IsPrepared)
-					subquery.Prepare();
+				if (!execdata.Subquery.IsPrepared)
+					execdata.Subquery.Prepare();
 
-				if (!subquery.Template.IsStandalone)
+				// Apply subquery SQL to command object
+				if (execdata.Subquery.Template.IsStandalone && !execdata.Subquery.Template.IsRoot)
 				{
-					cmdText.Append(subquery.PreparedCommandText);
-					if (!subquery.PreparedCommandText.Trim().EndsWith(";"))
-						cmdText.Append(";");
-				}
-			}
-
-			this.PreparedCommandText = cmdText.ToString();
-			this.IsPrepared = true;
-		}
-
-		public IEnumerable<T> Execute(QueryExecutionMode mode)
-		{
-			if (!this.IsPrepared)
-				this.Prepare();
-
-			var conn = (SqlConnection)this.Connection.DbConnection;
-
-			var commands = new List<SqlCommand>();
-			var mainCommand = new SqlCommand(this.PreparedCommandText, conn);
-			commands.Add(mainCommand);
-
-			// Set all parameter values
-			foreach (Subquery subquery in this.Subqueries)
-			{
-				// Choose the right command object
-				SqlCommand cmd;
-				if (subquery.Template.IsStandalone)
-				{
-					cmd = new SqlCommand(subquery.PreparedCommandText, conn);
-					commands.Add(cmd);
+					execdata.TargetCommand = new SqlCommand(execdata.Subquery.PreparedCommandText);
+					this.PreparedCommands.Add(execdata.TargetCommand);
 				}
 				else
-					cmd = mainCommand;
+				{
+					execdata.TargetCommand = mainCommand;
+
+					mainCommandText.Append(execdata.Subquery.PreparedCommandText);
+					if (!execdata.Subquery.PreparedCommandText.Trim().EndsWith(";"))
+						mainCommandText.Append(";");
+				}
 
 				// Add parameters to the command object
-				foreach (DbParameter param in subquery.DbParameters.Values)
+				foreach (DbParameter param in execdata.Subquery.DbParameters.Values)
 				{
-					var p = new SqlParameter(
-						param.Name,
-						param.ValueFunction != null ? param.ValueFunction(this) : param.Value
-					);
+					var p = new SqlParameter() { ParameterName = param.Name };// param.ValueFunction != null ? param.ValueFunction(this) : param.Value
 
 					if (param.Size != null)
 						p.Size = param.Size.Value;
 					if (param.DbType != null)
 						p.DbType = param.DbType.Value;
 
-					cmd.Parameters.Add(p);
+					// TODO: avoid exceptions on duplicate parameter names by prefixing them?
+					execdata.TargetCommand.Parameters.Add(p);
+				}
+
+				// Add this subquery's relationships to its parent's 'Children' relation list for easy lookup during execution
+				foreach (var relationship in execdata.Subquery.Template.Relationships)
+				{
+					SubqueryExecutionData parent = this.ExecutionData.Find(s => s.Subquery.Template == relationship.Key);
+					if (parent.Children == null)
+						parent.Children = new List<SubqueryRelationship>();
+
+					parent.Children.Add(relationship.Value);
 				}
 			}
 
-			// Setup caching for subquery relationships
-			foreach(SubqueryTemplate subqueryTemplate in this.Template.SubqueryTemplates)
-			{
-				//subqueryTemplate.Relationships.Keys
-			}
+			// ----------------------------------------
+			// Finalize the main command object
+			mainCommand.CommandText = mainCommandText.ToString();
+			this.PreparedCommands.Insert(0, mainCommand);
 
-			var passes = new List<QueryExecutionMappingPass>();
-			BuildMappingPasses(null, this.MappingContext, passes);
-
-			// Execute all commands
-			throw new NotImplementedException();
+			this.IsPrepared = true;
 		}
 
-		void BuildMappingPasses(IEntityProperty property, IMapping mapping, List<QueryExecutionMappingPass> passes)
+		// Recursive helper function
+		void PrepareExecutionData(IEntityProperty property, IMapping mapping)
 		{
 			Subquery subquery = this.Subqueries.Find(s => s.Template.ResultSetName == mapping.ResultSetName);
-			QueryExecutionMappingPass pass = passes.Find(p => p.Subquery == subquery);
+			SubqueryExecutionData pass = this.ExecutionData.Find(p => p.Subquery == subquery);
 			if (pass == null)
 			{
-				pass = new QueryExecutionMappingPass() { Subquery = subquery };
-				passes.Add(pass);
+				pass = new SubqueryExecutionData() { Subquery = subquery };
+				this.ExecutionData.Add(pass);
 			}
 
 			if (property != null)
@@ -170,16 +164,40 @@ namespace Eggplant.Entities.Queries
 			// Current pass
 			foreach (var pair in mapping.SubMappings)
 				if (subquery.SelectList.Contains(pair.Key))
-					BuildMappingPasses(pair.Key, pair.Value, passes);
+					PrepareExecutionData(pair.Key, pair.Value);
 		}
 
+
+		public IEnumerable<T> Execute(QueryExecutionMode mode)
+		{
+			if (!this.IsPrepared)
+				this.Prepare();
+
+			var conn = (SqlConnection)this.Connection.DbConnection;
+
+			// Set all parameter values
+			foreach (SubqueryExecutionData execdata in this.ExecutionData)
+			{
+				// Add parameters to the command object
+				foreach (DbParameter param in execdata.Subquery.DbParameters.Values)
+					execdata.TargetCommand.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+			}
+
+			// Execute all commands
+			throw new NotImplementedException();
+		}
+
+		
 	}
 
-	internal class QueryExecutionMappingPass
+	internal class SubqueryExecutionData
 	{
-		public List<IMapping> Mappings = new List<IMapping>();
 		public Subquery Subquery;
-		public List<object> ResultsCache; // for mappings with child relationships
+		public List<IMapping> Mappings = new List<IMapping>();
+		public List<SubqueryRelationship> Children;
+		public SqlCommand TargetCommand;
+
+		//public Dictionary<Subquery, Dictionary<Identity, object>> ResultsCache; // for mappings with child relationships
 	}
 
 

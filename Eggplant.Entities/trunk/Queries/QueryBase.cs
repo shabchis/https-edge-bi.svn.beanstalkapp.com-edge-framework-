@@ -17,11 +17,9 @@ namespace Eggplant.Entities.Queries
 		public virtual PersistenceConnection Connection { get; set; }
 		public IMappingContext MappingContext { get; internal set; }
 		
-		public List<IEntityProperty> SelectList { get; private set; }
-		public List<SortingDefinition> SortingList { get; private set; }
+		public virtual List<IEntityProperty> SelectList { get; private set; }
+		public virtual List<SortingDefinition> SortingList { get; private set; }
 		public bool IsPrepared { get; protected set; }
-		public string PreparedCommandText { get; protected set; }
-
 		
 
 		public QueryBase()
@@ -44,7 +42,7 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public object[] FilterExpression
+		public virtual object[] FilterExpression
 		{
 			get { return _filter; }
 			set
