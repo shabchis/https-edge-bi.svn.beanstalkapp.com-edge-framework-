@@ -106,8 +106,6 @@ namespace Eggplant.Entities.Queries
 				Template = this
 			};
 
-			subquery.Connection = q.Connection;
-
 			foreach (DbParameter parameter in this.DbParameters.Values)
 				subquery.DbParameters.Add(parameter.Name, parameter.Clone());
 

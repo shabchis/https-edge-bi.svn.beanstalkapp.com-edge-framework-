@@ -10,6 +10,22 @@ using System.Collections;
 
 namespace Eggplant.Entities.Queries
 {
+	public abstract class Query : QueryBase
+	{
+		public List<Subquery> Subqueries { get; private set; }
+
+		internal Query()
+		{
+			this.Subqueries = new List<Subquery>();
+		}
+
+		public override PersistenceConnection Connection
+		{
+			get;
+			internal set;
+		}
+	}
+
 	public class Query<T> : Query
 	{
 		public QueryTemplate<T> Template { get; internal set; }
@@ -41,15 +57,7 @@ namespace Eggplant.Entities.Queries
 			if (!this.MappingContext.SubMappings.TryGetValue(collection, out collectionMapping))
 				throw new MappingException(String.Format("No inbound mapping defined for the collection property {0}.", collection.Name));
 
-			SubqueryTemplate template;
-			//try
-			//{
-			template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.ResultSetName == collectionMapping.ResultSetName);
-			//}
-			//catch (Exception ex)
-			//{
-			//}
-
+			SubqueryTemplate template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.ResultSetName == collectionMapping.ResultSetName);
 			Subquery subquery = template.Start(this);
 			subquery.MappingContext = (IMappingContext)collectionMapping;
 
@@ -145,9 +153,9 @@ namespace Eggplant.Entities.Queries
 		}
 
 		// Recursive helper function
-		void PrepareExecutionData(IEntityProperty property, IMapping mapping)
+		void PrepareExecutionData(IEntityProperty property, IMappingContext context)
 		{
-			Subquery subquery = this.Subqueries.Find(s => s.Template.ResultSetName == mapping.ResultSetName);
+			Subquery subquery = this.Subqueries.Find(s => s.Template.ResultSetName == context.ResultSetName);
 			SubqueryExecutionData pass = this.ExecutionData.Find(p => p.Subquery == subquery);
 			if (pass == null)
 			{
@@ -155,32 +163,64 @@ namespace Eggplant.Entities.Queries
 				this.ExecutionData.Add(pass);
 			}
 
+			/*
 			if (property != null)
 			{
-				if (subquery.SelectList.Contains(property) && mapping.ResultSetName == subquery.Template.ResultSetName)
-					pass.Mappings.Add(mapping);
+				if (subquery.SelectList.Contains(property) && context.ResultSetName == subquery.Template.ResultSetName)
+					pass.Mappings.Add(context);
 			}
+			*/
 
 			// Current pass
-			foreach (var pair in mapping.SubMappings)
+			foreach (var pair in context.SubMappings)
 				if (subquery.SelectList.Contains(pair.Key))
-					PrepareExecutionData(pair.Key, pair.Value);
+					PrepareExecutionData(pair.Key, (IMappingContext) pair.Value);
 		}
 
+		public Query<T> Connect(PersistenceConnection connection = null)
+		{
+			if (connection == null)
+			{
+				connection = PersistenceStore.ThreadConnection;
+
+				if (connection == null)
+					throw new ArgumentNullException("There is no active thread connection - a valid connection object must be supplied.", "connection");
+			}
+
+			this.Connection = connection;
+
+			return this;
+		}
 
 		public IEnumerable<T> Execute(QueryExecutionMode mode)
 		{
+			if (this.Connection == null)
+			{
+				try { Connect(); }
+				catch (ArgumentNullException) { throw new QueryExecutionException("There is no active thread connection - Connect must be called with a valid connection object before Execute."); }
+			}
+
 			if (!this.IsPrepared)
 				this.Prepare();
 
 			var conn = (SqlConnection)this.Connection.DbConnection;
 
-			// Set all parameter values
 			foreach (SubqueryExecutionData execdata in this.ExecutionData)
 			{
 				// Add parameters to the command object
 				foreach (DbParameter param in execdata.Subquery.DbParameters.Values)
 					execdata.TargetCommand.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+
+				// Execute the command
+				using (SqlDataReader reader = execdata.TargetCommand.ExecuteReader())
+				{
+					while (reader.Read())
+					{
+						// Get target - instantiate property value
+						object target = execdata.Subquery.MappingContext.InstantiationFunction.Invoke(execdata.Subquery.MappingContext, null);
+						execdata.Subquery.MappingContext.Apply(target);
+					}
+				}
 			}
 
 			// Execute all commands
@@ -193,35 +233,10 @@ namespace Eggplant.Entities.Queries
 	internal class SubqueryExecutionData
 	{
 		public Subquery Subquery;
-		public List<IMapping> Mappings = new List<IMapping>();
+		//public List<IMappingContext> Mappings = new List<IMappingContext>();
 		public List<SubqueryRelationship> Children;
 		public SqlCommand TargetCommand;
 
 		//public Dictionary<Subquery, Dictionary<Identity, object>> ResultsCache; // for mappings with child relationships
 	}
-
-
-	public abstract class Query : QueryBase
-	{
-		public List<Subquery> Subqueries { get; private set; }
-
-		internal Query()
-		{
-			this.Subqueries = new List<Subquery>();
-		}
-
-		public override PersistenceConnection Connection
-		{
-			get { return base.Connection; }
-			set
-			{
-				// Pass down connection to subqueries
-				base.Connection = value;
-				foreach (Subquery subquery in this.Subqueries)
-					subquery.Connection = Connection;
-			}
-		}
-	}
-
-
 }

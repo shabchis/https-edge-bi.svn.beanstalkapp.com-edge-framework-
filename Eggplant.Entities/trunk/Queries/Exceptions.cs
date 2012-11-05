@@ -16,4 +16,16 @@ namespace Eggplant.Entities.Queries
 		  System.Runtime.Serialization.StreamingContext context)
 			: base(info, context) { }
 	}
+
+	[Serializable]
+	public class QueryExecutionException : Exception
+	{
+		public QueryExecutionException() { }
+		public QueryExecutionException(string message) : base(message) { }
+		public QueryExecutionException(string message, Exception inner) : base(message, inner) { }
+		protected QueryExecutionException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
+	}
 }

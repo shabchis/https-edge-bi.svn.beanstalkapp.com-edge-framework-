@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 
 		public Account Account;
 
-		public Dictionary<MetaProperty, object> MetaProperties;
+		public Dictionary<ConnectionDefinition, object> Connections;
 	}
 	
 	public abstract class EdgeObjectBase

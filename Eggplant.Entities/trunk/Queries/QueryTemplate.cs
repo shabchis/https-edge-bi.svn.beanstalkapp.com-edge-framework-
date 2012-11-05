@@ -32,23 +32,14 @@ namespace Eggplant.Entities.Queries
 		/// Creates a new empty query using this template.
 		/// </summary>
 		/// <returns></returns>
-		public Query<T> Start(PersistenceConnection connection = null)
+		public Query<T> Start()
 		{
-			if (connection == null)
-			{
-				connection = PersistenceStore.ThreadConnection;
-
-				if (connection == null)
-					throw new ArgumentNullException("When there is no active thread connection, a connection object must be supplied.", "connection");
-			}
-
 			var q = new Query<T>()
 			{
 				Template = this,
-				Connection = connection,
-				EntitySpace = this.EntitySpace,
-				MappingContext = new MappingContext<T>(this.InboundMapping, MappingDirection.Inbound, connection)
+				EntitySpace = this.EntitySpace
 			};
+			q.MappingContext = new MappingContext<T>(q, this.InboundMapping, MappingDirection.Inbound);
 
 			foreach (DbParameter parameter in this.DbParameters.Values)
 				q.DbParameters.Add(parameter.Name, parameter.Clone());
@@ -65,6 +56,8 @@ namespace Eggplant.Entities.Queries
 
 			return q;
 		}
+
+
 
 		public QueryTemplate<T> RootSubquery(string commandText, Action<SubqueryTemplate> inner = null)
 		{

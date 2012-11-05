@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 using Eggplant.Entities.Persistence;
+using Eggplant.Entities.Queries;
 
 namespace Eggplant.Entities.Model
 {
@@ -16,9 +17,12 @@ namespace Eggplant.Entities.Model
 		string Name { get; }
 		AccessMode AccessMode { get; set; }
 		bool AllowEmpty { get; set; }
-		MemberInfo TargetMember { get; set; }
+		Type PropertyType { get; }
 
-		IMappingContext CreateContext(IMapping mapping, MappingDirection direction, PersistenceConnection connection);
+		object GetValue(object target);
+		void SetValue(object target, object value);
+
+		IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection direction);
 	}
 
 	public interface ICollectionProperty:IEntityProperty
@@ -33,6 +37,8 @@ namespace Eggplant.Entities.Model
 
 	public interface IEntityProperty<ValueT> : IEntityProperty
 	{
+		new ValueT GetValue(object target);
+		new void SetValue(object target, ValueT value); 
 	}
 
 	public interface ICollectionProperty<ValueT> : IEntityProperty<ValueT>, ICollectionProperty
@@ -53,26 +59,71 @@ namespace Eggplant.Entities.Model
 		public string Name { get; private set; }
 		public AccessMode AccessMode { get; set; }
 		public bool AllowEmpty { get; set; }
-		public MemberInfo TargetMember { get; set; }
 
-		public Func<EntityT, ValueT, AssignmentResult> OnAdd;
-		public Func<EntityT, ValueT, AssignmentResult> OnRemove;
+		public Func<EntityT, ValueT> Getter { get; set; }
+		public Action<EntityT, ValueT> Setter { get; set; }
+
+		//public Func<EntityT, ValueT, AssignmentResult> OnAdd;
+		//public Func<EntityT, ValueT, AssignmentResult> OnRemove;
 
 		public EntityProperty(string name)
 		{
 			this.Name = name;
 		}
 
-		//protected virtual InboundMappingContext<ValueT> CreateInboundContext(InboundMapping<ValueT> mapping, PersistenceConnection connection)
-		//{
-		//    return new InboundMappingContext<ValueT>(mapping, connection);
-		//}
-
-		#region Interfaces
-
-		public virtual IMappingContext CreateContext(IMapping mapping, MappingDirection dir, PersistenceConnection connection)
+		public ValueT GetValue(EntityT target)
 		{
-			return new MappingContext<ValueT>((Mapping<ValueT>)mapping, dir, connection);
+			return this.Getter(target);
+		}
+
+		public void SetValue(EntityT target, ValueT value)
+		{
+			this.Setter(target, value);
+		}
+
+		public virtual IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection dir)
+		{
+			return new MappingContext<ValueT>(query, (Mapping<ValueT>)mapping, dir);
+		}
+
+		public Type PropertyType { get { return typeof(ValueT); } }
+
+		
+		#region IEntityProperty<ValueT> Members
+
+		ValueT IEntityProperty<ValueT>.GetValue(object target)
+		{
+			return this.GetValue((EntityT)target);
+		}
+
+		void IEntityProperty<ValueT>.SetValue(object target, ValueT value)
+		{
+			this.SetValue((EntityT)target, value);
+		}
+
+		#endregion
+
+		#region IEntityProperty Members
+
+		MethodInfo IEntityProperty.Getter
+		{
+			get { return this.Getter.Method; }
+		}
+
+		MethodInfo IEntityProperty.Setter
+		{
+			get { return this.Setter.Method; }
+		}
+
+
+		object IEntityProperty.GetValue(object target)
+		{
+			return this.GetValue((EntityT)target);
+		}
+
+		void IEntityProperty.SetValue(object target, object value)
+		{
+			this.SetValue((EntityT)target, (ValueT) value);
 		}
 
 		#endregion
@@ -110,9 +161,9 @@ namespace Eggplant.Entities.Model
 		{
 		}
 
-		public override IMappingContext CreateContext(IMapping mapping, MappingDirection dir, PersistenceConnection connection)
+		public override IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection dir)
 		{
-			return new CollectionMappingContext<EntityT, ValueT>((Mapping<ICollection<ValueT>>)mapping, dir, connection)
+			return new CollectionMappingContext<EntityT, ValueT>(query, (Mapping<ICollection<ValueT>>)mapping, dir)
 			{
 				ValueProperty = this.Value
 			};
@@ -143,12 +194,12 @@ namespace Eggplant.Entities.Model
 		{
 		}
 
-		public override IMappingContext CreateContext(IMapping mapping, MappingDirection dir, PersistenceConnection connection)
+		public override IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection dir)
 		{
 			//return new InboundCollectionMappingContext<EntityT, KeyT>(this.Key, (InboundMapping<EntityT>)mapping, connection);
 			//return new InboundCollectionMappingContext<EntityT, ValueT>(this.Value, (InboundMapping<EntityT>)mapping, connection);
 
-			return new DictionaryMappingContext<EntityT, KeyT, ValueT>((Mapping<IDictionary<KeyT, ValueT>>)mapping, dir, connection)
+			return new DictionaryMappingContext<EntityT, KeyT, ValueT>(query, (Mapping<IDictionary<KeyT, ValueT>>)mapping, dir)
 			{
 				KeyProperty = this.Key,
 				ValueProperty = this.Value

@@ -18,6 +18,12 @@ namespace Eggplant.Entities.Queries
 		{
 		}
 
+		public override PersistenceConnection Connection
+		{
+			get { return this.ParentQuery.Connection; }
+			internal set { throw new NotSupportedException("Subquery connection cannot be set directly and must use the parent query's connection."); }
+		}
+
 		private void ThrowIfRoot()
 		{
 			if (this.Template.IsRoot)

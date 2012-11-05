@@ -14,7 +14,7 @@ namespace Eggplant.Entities.Queries
 		object[] _filter; 
 		
 		public EntitySpace EntitySpace { get; internal set; }
-		public virtual PersistenceConnection Connection { get; set; }
+		public abstract PersistenceConnection Connection { get; internal set; }
 		public IMappingContext MappingContext { get; internal set; }
 		
 		public virtual List<IEntityProperty> SelectList { get; private set; }
