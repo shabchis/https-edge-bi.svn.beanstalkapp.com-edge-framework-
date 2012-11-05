@@ -20,6 +20,11 @@ namespace Edge.Data.Objects
 			public static ValueProperty<Measure, String> StringFormat = new ValueProperty<Measure, String>("StringFormat");
 			public static ValueProperty<Measure, MeasureDataType> DataType = new ValueProperty<Measure, MeasureDataType>("DataType");
 			public static ValueProperty<Measure, MeasureOptions> Options = new ValueProperty<Measure, MeasureOptions>("Options");
+
+			public static CollectionProperty<Measure, ConnectionDefinition> TEMPConnections = new CollectionProperty<Measure, ConnectionDefinition>("Connections")
+			{
+				Value = new ReferenceProperty<Measure, ConnectionDefinition>(null)
+			};
 		}
 	}
 }

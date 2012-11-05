@@ -17,6 +17,7 @@ namespace Eggplant.Entities.Persistence
 
 		[ThreadStatic]
 		internal static PersistenceConnection ThreadConnection;
+
 		public PersistenceConnection ConnectThread()
 		{
 			if (ThreadConnection != null)
