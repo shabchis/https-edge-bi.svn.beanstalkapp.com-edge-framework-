@@ -205,7 +205,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
 					attribute = "@GDNCubeName";
 				else attribute = "@CubeName";
 
-				string cmdTxt = string.Format(@"SELECT AnalysisSettings.value('data(/AnalysisSettings/{0}[1]', 'nvarchar(MAX)')
+				string cmdTxt = string.Format(@"SELECT AnalysisSettings.value('data(/AnalysisSettings/{0})[1]', 'nvarchar(MAX)')
                         from [dbo].[User_GUI_Account]
                         where Account_ID = @Account_ID",attribute);
 
