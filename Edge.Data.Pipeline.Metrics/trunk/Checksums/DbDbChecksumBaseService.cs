@@ -191,18 +191,27 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
                 CheckType = this.Instance.Configuration.Name
             };
         }
-        public string GetCubeName(int accountId)
+        public string GetCubeName(int accountId, bool isGDN)
         {
             string cubeName = string.Empty;
             using (SqlConnection sqlCon = new SqlConnection(AppSettings.GetConnectionString(this, "OltpDB")))
             {
                 sqlCon.Open();
 
-                SqlCommand sqlCommand = new SqlCommand(
-                    @"SELECT AnalysisSettings.value('data(/AnalysisSettings/@CubeName)[1]', 'nvarchar(MAX)')
+				string attribute = string.Empty;
+
+				//getting attribute for xml 
+				if (isGDN)
+					attribute = "@GDNCubeName";
+				else attribute = "@CubeName";
+
+				string cmdTxt = string.Format(@"SELECT AnalysisSettings.value('data(/AnalysisSettings/{0}[1]', 'nvarchar(MAX)')
                         from [dbo].[User_GUI_Account]
-                        where Account_ID = @Account_ID"
-                    );
+                        where Account_ID = @Account_ID",attribute);
+
+				Log.Write(cmdTxt,LogMessageType.Information);
+
+				SqlCommand sqlCommand = new SqlCommand(cmdTxt);
 
                 SqlParameter accountIdParam = new SqlParameter("@Account_ID", System.Data.SqlDbType.Int);
                 accountIdParam.Value = accountId;
