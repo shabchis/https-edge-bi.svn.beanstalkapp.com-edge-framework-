@@ -15,7 +15,8 @@ namespace Eggplant.Entities.Persistence
 		string ResultSetName { get; }
 		IEntityProperty Property { get; }
 		MethodInfo InstantiationFunction { get; }
-		Dictionary<IEntityProperty, IMapping> SubMappings { get; }
+		List<IMapping> SubMappings { get; }
+		IMappingContext CreateContext(QueryBase query, MappingDirection direction);
 	}
 
 	public interface IMappingContext : IMapping

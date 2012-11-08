@@ -68,8 +68,6 @@
     <Compile Include="Exceptions.cs" />
     <Compile Include="Model\EntityDefinition.cs" />
     <Compile Include="Model\EntityProperty.cs" />
-    <Compile Include="Persistence\CollectionMappingContext.cs" />
-    <Compile Include="Persistence\DictionaryMappingContext.cs" />
     <Compile Include="Persistence\Interfaces.cs" />
     <Compile Include="Persistence\Mapping.cs" />
     <Compile Include="Persistence\MappingContext.cs" />
