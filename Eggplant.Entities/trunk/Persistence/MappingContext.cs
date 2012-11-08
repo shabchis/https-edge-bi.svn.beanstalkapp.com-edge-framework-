@@ -22,9 +22,9 @@ namespace Eggplant.Entities.Persistence
 			this.MappingFunction = mapping.MappingFunction;
 			this.Property = mapping.Property;
 
-			foreach (var sub in mapping.SubMappings)
+			foreach (IMapping sub in mapping.SubMappings)
 			{
-				this.SubMappings.Add(sub.Key, sub.Key.CreateContext(this.Query, sub.Value, dir));
+				this.SubMappings.Add(sub.CreateContext(this.Query, dir));
 			}
 		}
 
@@ -55,6 +55,21 @@ namespace Eggplant.Entities.Persistence
 
 			this.Property.SetValue(this.Target, value);
 
+			return this;
+		}
+
+		// TODO: add more FromSubquery overloads till T5?
+
+		public MappingContext<T> FromSubquery<V>(string subqueryName, Action<MappingContext<V>> function)
+		{
+			this.SubMappings.Add(new Mapping<V>(this.EntitySpace) { MappingFunction = function });
+			return this;
+		}
+
+		public MappingContext<T> FromSubquery<T1, T2>(string subqueryName, Action<MappingContext<T1>> function1, Action<MappingContext<T2>> function2)
+		{
+			this.SubMappings.Add(new Mapping<T1>(this.EntitySpace) { MappingFunction = function1 });
+			this.SubMappings.Add(new Mapping<T2>(this.EntitySpace) { MappingFunction = function2 });
 			return this;
 		}
 

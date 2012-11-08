@@ -14,24 +14,24 @@ namespace Edge.Data.Objects
 		{
 			public static Mapping<Measure> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Measure>()
 				.Instantiate(context => new Measure())
-				.Scalar<int>(Measure.Properties.ID, "ID")
-				.Scalar<string>(Measure.Properties.Name, "Name")
-				.Scalar<string>(Measure.Properties.DisplayName, "DisplayName")
-				.Scalar<Account>(Measure.Properties.Account, account => account
+				.Map<int>(Measure.Properties.ID, "ID")
+				.Map<string>(Measure.Properties.Name, "Name")
+				.Map<string>(Measure.Properties.DisplayName, "DisplayName")
+				.Map<Account>(Measure.Properties.Account, account => account
 					.Instantiate(context => new Account())
-					.Scalar<int>(Account.Properties.ID, "AccountID")
+					.Map<int>(Account.Properties.ID, "AccountID")
 					)
-				.Scalar<Channel>(Measure.Properties.Channel, channel => channel
+				.Map<Channel>(Measure.Properties.Channel, channel => channel
 					.Instantiate(context => new Channel())
-					.Scalar<int>(Channel.Properties.ID, "ChannelID")
+					.Map<int>(Channel.Properties.ID, "ChannelID")
 					)
-				.Scalar<Measure>(Measure.Properties.BaseMeasure, measure => measure
+				.Map<Measure>(Measure.Properties.BaseMeasure, measure => measure
 					.Instantiate(context => new Measure())
-					.Scalar<int>(Measure.Properties.ID, "BaseMeasureID")
+					.Map<int>(Measure.Properties.ID, "BaseMeasureID")
 					)
-				.Scalar<string>(Measure.Properties.StringFormat, "StringFormat")
-				.Scalar<MeasureDataType>(Measure.Properties.DataType, "DataType")
-				.Scalar<MeasureOptions>(Measure.Properties.Options, "Options")
+				.Map<string>(Measure.Properties.StringFormat, "StringFormat")
+				.Map<MeasureDataType>(Measure.Properties.DataType, "DataType")
+				.Map<MeasureOptions>(Measure.Properties.Options, "Options")
 				.Collection<ConnectionDefinition>(Measure.Properties.TEMPConnections, "Connections", collection => collection
 					//.Instantiate(context => new ConnectionDefinition())
 					.Scalar<int>(ConnectionDefinition.Properties.ID, "ConnectionID")

@@ -49,26 +49,6 @@ namespace Eggplant.Entities.Queries
 			return (Query<T>) base.Select(properties);
 		}
 
-		public Query<T> Select(ICollectionProperty collection, Action<Subquery> subqueryInit)
-		{
-			this.SelectList.Add(collection);
-
-			IMapping collectionMapping;
-			if (!this.MappingContext.SubMappings.TryGetValue(collection, out collectionMapping))
-				throw new MappingException(String.Format("No inbound mapping defined for the collection property {0}.", collection.Name));
-
-			SubqueryTemplate template = this.Template.SubqueryTemplates.First(subqueryTemplate => subqueryTemplate.ResultSetName == collectionMapping.ResultSetName);
-			Subquery subquery = template.Start(this);
-			subquery.MappingContext = (IMappingContext)collectionMapping;
-
-			this.Subqueries.Add(subquery);
-
-			if (subqueryInit != null)
-				subqueryInit(subquery);
-
-			return this;
-		}
-
 		public new Query<T> Filter(params object[] filterExpression)
 		{
 			base.Filter(filterExpression);
@@ -91,7 +71,7 @@ namespace Eggplant.Entities.Queries
 		{
 			// Create execution list based on select list and active mappings
 			this.ExecutionData = new List<SubqueryExecutionData>();
-			PrepareExecutionData(null, this.MappingContext);
+			PrepareExecutionData(this.MappingContext);
 
 			// ----------------------------------------
 			// Prepare SQL commands
@@ -153,7 +133,7 @@ namespace Eggplant.Entities.Queries
 		}
 
 		// Recursive helper function
-		void PrepareExecutionData(IEntityProperty property, IMappingContext context)
+		void PrepareExecutionData(IMappingContext context)
 		{
 			Subquery subquery = this.Subqueries.Find(s => s.Template.ResultSetName == context.ResultSetName);
 			SubqueryExecutionData pass = this.ExecutionData.Find(p => p.Subquery == subquery);
@@ -172,9 +152,9 @@ namespace Eggplant.Entities.Queries
 			*/
 
 			// Current pass
-			foreach (var pair in context.SubMappings)
-				if (subquery.SelectList.Contains(pair.Key))
-					PrepareExecutionData(pair.Key, (IMappingContext) pair.Value);
+			foreach (IMappingContext sub in context.SubMappings)
+				if (sub.Property == null || subquery.SelectList.Contains(sub.Property))
+					PrepareExecutionData(sub);
 		}
 
 		public Query<T> Connect(PersistenceConnection connection = null)
@@ -218,7 +198,7 @@ namespace Eggplant.Entities.Queries
 					{
 						// Get target - instantiate property value
 						object target = execdata.Subquery.MappingContext.InstantiationFunction.Invoke(execdata.Subquery.MappingContext, null);
-						execdata.Subquery.MappingContext.Apply(target);
+						//execdata.Subquery.MappingContext.Apply(target);
 					}
 				}
 			}

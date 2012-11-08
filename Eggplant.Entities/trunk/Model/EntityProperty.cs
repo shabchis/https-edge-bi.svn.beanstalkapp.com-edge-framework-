@@ -24,34 +24,12 @@ namespace Eggplant.Entities.Model
 
 		object GetValue(object target);
 		void SetValue(object target, object value);
-
-		IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection direction);
-	}
-
-	public interface ICollectionProperty:IEntityProperty
-	{
-		IEntityProperty Value { get; }
-	}
-
-	public interface IDictionaryProperty : ICollectionProperty
-	{
-		IEntityProperty Key { get; }
 	}
 
 	public interface IEntityProperty<ValueT> : IEntityProperty
 	{
 		new ValueT GetValue(object target);
 		new void SetValue(object target, ValueT value); 
-	}
-
-	public interface ICollectionProperty<ValueT> : IEntityProperty<ValueT>, ICollectionProperty
-	{
-		new IEntityProperty<ValueT> Value { get; }
-	}
-
-	public interface IDictionaryProperty<KeyT, ValueT> : ICollectionProperty<ValueT>, IDictionaryProperty
-	{
-		new IEntityProperty<KeyT> Key { get; }
 	}
 
 	// ==============================
@@ -116,11 +94,6 @@ namespace Eggplant.Entities.Model
 		public void SetValue(EntityT target, ValueT value)
 		{
 			this.Setter(target, value);
-		}
-
-		public virtual IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection dir)
-		{
-			return new MappingContext<ValueT>(query, (Mapping<ValueT>)mapping, dir);
 		}
 
 		public Type PropertyType { get { return typeof(ValueT); } }
@@ -191,133 +164,6 @@ namespace Eggplant.Entities.Model
 		{
 		}
 	}
-
-	public class CollectionProperty<EntityT, ValueT> : EntityProperty<EntityT, ICollection<ValueT>>, ICollectionProperty<ValueT>
-	{
-		public ScalarProperty<EntityT, ValueT> Value;
-		
-		public CollectionProperty(string name) : base(name)
-		{
-		}
-
-		public override IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection dir)
-		{
-			return new CollectionMappingContext<EntityT, ValueT>(query, (Mapping<ICollection<ValueT>>)mapping, dir)
-			{
-				ValueProperty = this.Value
-			};
-		}
-
-		IEntityProperty ICollectionProperty.Value
-		{
-			get { return this.Value; }
-		}
-		
-		IEntityProperty<ValueT> ICollectionProperty<ValueT>.Value
-		{
-			get { return this.Value; }
-		}
-
-		#region IEntityProperty<ValueT> Members
-
-		public ValueT GetValue(object target)
-		{
-			throw new NotImplementedException();
-		}
-
-		public void SetValue(object target, ValueT value)
-		{
-			throw new NotImplementedException();
-		}
-
-		#endregion
-
-		#region IEntityProperty Members
-
-
-		public new Delegate Getter
-		{
-			get
-			{
-				throw new NotImplementedException();
-			}
-			set
-			{
-				throw new NotImplementedException();
-			}
-		}
-
-		public new Delegate Setter
-		{
-			get
-			{
-				throw new NotImplementedException();
-			}
-			set
-			{
-				throw new NotImplementedException();
-			}
-		}
-
-		object IEntityProperty.GetValue(object target)
-		{
-			throw new NotImplementedException();
-		}
-
-		public void SetValue(object target, object value)
-		{
-			throw new NotImplementedException();
-		}
-
-		#endregion
-	}
-
-	public class DictionaryProperty<EntityT, KeyT, ValueT> : EntityProperty<EntityT, IDictionary<KeyT, ValueT>>, IDictionaryProperty<KeyT, ValueT>
-	{
-		public ScalarProperty<EntityT, ValueT> Value;
-		public ScalarProperty<EntityT, KeyT> Key;
-
-		public DictionaryProperty(string name) : base(name)
-		{
-		}
-
-		public override IMappingContext CreateContext(QueryBase query, IMapping mapping, MappingDirection dir)
-		{
-			//return new InboundCollectionMappingContext<EntityT, KeyT>(this.Key, (InboundMapping<EntityT>)mapping, connection);
-			//return new InboundCollectionMappingContext<EntityT, ValueT>(this.Value, (InboundMapping<EntityT>)mapping, connection);
-
-			return new DictionaryMappingContext<EntityT, KeyT, ValueT>(query, (Mapping<IDictionary<KeyT, ValueT>>)mapping, dir)
-			{
-				KeyProperty = this.Key,
-				ValueProperty = this.Value
-			};
-		}
-
-		#region Interfaces
-
-		IEntityProperty IDictionaryProperty.Key
-		{
-			get { return this.Key; }
-		}
-		
-		IEntityProperty<KeyT> IDictionaryProperty<KeyT, ValueT>.Key
-		{
-			get { return this.Key; }
-		}
-
-		IEntityProperty ICollectionProperty.Value
-		{
-			get { return this.Value; }
-		}
-
-		IEntityProperty<ValueT> ICollectionProperty<ValueT>.Value
-		{
-			get { return this.Value; }
-		}
-
-		#endregion
-	}
-
 
 	public enum AccessMode
 	{
