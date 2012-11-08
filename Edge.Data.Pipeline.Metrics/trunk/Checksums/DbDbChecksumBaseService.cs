@@ -209,7 +209,7 @@ namespace Edge.Data.Pipeline.Metrics.Checksums
                         from [dbo].[User_GUI_Account]
                         where Account_ID = @Account_ID",attribute);
 
-				Log.Write(cmdTxt,LogMessageType.Information);
+				//Log.Write(cmdTxt,LogMessageType.Information);
 
 				SqlCommand sqlCommand = new SqlCommand(cmdTxt);
 
