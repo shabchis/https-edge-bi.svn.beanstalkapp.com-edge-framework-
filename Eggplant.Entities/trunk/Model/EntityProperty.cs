@@ -19,6 +19,9 @@ namespace Eggplant.Entities.Model
 		bool AllowEmpty { get; set; }
 		Type PropertyType { get; }
 
+		Delegate Getter { get; set; }
+		Delegate Setter { get; set; }
+
 		object GetValue(object target);
 		void SetValue(object target, object value);
 
@@ -60,8 +63,42 @@ namespace Eggplant.Entities.Model
 		public AccessMode AccessMode { get; set; }
 		public bool AllowEmpty { get; set; }
 
-		public Func<EntityT, ValueT> Getter { get; set; }
-		public Action<EntityT, ValueT> Setter { get; set; }
+		public Func<EntityT, ValueT> Getter
+		{
+			get
+			{
+				if (this.Getter == null)
+					return null;
+
+				if (!(((IEntityProperty)this).Getter is Func<EntityT, ValueT>))
+					throw new InvalidCastException(String.Format("The getter for this property is not a Func<{0}, {1}>; cast the property to IEntityProperty in order to retrieve the delegate.", typeof(EntityT).Name, typeof(ValueT).Name));
+
+				return (Func<EntityT, ValueT>) ((IEntityProperty)this).Getter;
+			}
+
+			set
+			{
+				((IEntityProperty)this).Getter = value; 
+			}
+		}
+		public Action<EntityT, ValueT> Setter
+		{
+			get
+			{
+				if (this.Getter == null)
+					return null;
+
+				if (!(((IEntityProperty)this).Setter is Action<EntityT, ValueT>))
+					throw new InvalidCastException(String.Format("The setter for this property is not a Action<{0}, {1}>; cast the property to IEntityProperty in order to retrieve the delegate.", typeof(EntityT).Name, typeof(ValueT).Name));
+
+				return (Action<EntityT, ValueT>)((IEntityProperty)this).Setter;
+			}
+
+			set
+			{
+				((IEntityProperty)this).Setter = value;
+			}
+		}
 
 		//public Func<EntityT, ValueT, AssignmentResult> OnAdd;
 		//public Func<EntityT, ValueT, AssignmentResult> OnRemove;
@@ -105,14 +142,16 @@ namespace Eggplant.Entities.Model
 
 		#region IEntityProperty Members
 
-		MethodInfo IEntityProperty.Getter
+		Delegate IEntityProperty.Getter
 		{
-			get { return this.Getter.Method; }
+			get;
+			set;
 		}
 
-		MethodInfo IEntityProperty.Setter
+		Delegate IEntityProperty.Setter
 		{
-			get { return this.Setter.Method; }
+			get;
+			set;
 		}
 
 
@@ -169,8 +208,6 @@ namespace Eggplant.Entities.Model
 			};
 		}
 
-		#region Interfaces
-
 		IEntityProperty ICollectionProperty.Value
 		{
 			get { return this.Value; }
@@ -181,6 +218,56 @@ namespace Eggplant.Entities.Model
 			get { return this.Value; }
 		}
 
+		#region IEntityProperty<ValueT> Members
+
+		public ValueT GetValue(object target)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void SetValue(object target, ValueT value)
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
+
+		#region IEntityProperty Members
+
+
+		public new Delegate Getter
+		{
+			get
+			{
+				throw new NotImplementedException();
+			}
+			set
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		public new Delegate Setter
+		{
+			get
+			{
+				throw new NotImplementedException();
+			}
+			set
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		object IEntityProperty.GetValue(object target)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void SetValue(object target, object value)
+		{
+			throw new NotImplementedException();
+		}
 
 		#endregion
 	}

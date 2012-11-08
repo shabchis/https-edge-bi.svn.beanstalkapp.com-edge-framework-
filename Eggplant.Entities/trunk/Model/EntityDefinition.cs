@@ -35,12 +35,27 @@ namespace Eggplant.Entities.Model
 						continue;
 
 					var entityProperty = (IEntityProperty) info.GetValue(null);
-					if (entityProperty.TargetMember == null)
+					if (entityProperty.Getter == null || entityProperty.Setter == null)
 					{
 						// Try to get target member manually
 						MemberInfo[] potentialMembers = typeof(T).GetMember(entityProperty.Name, MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance);
 						if (potentialMembers.Length > 0)
-							entityProperty.TargetMember = potentialMembers[0];
+						{
+							MemberInfo bestMatchMember = potentialMembers[0];
+							
+							if (bestMatchMember is FieldInfo)
+							{
+								var fieldInfo = (FieldInfo)bestMatchMember;
+								if (entityProperty.Getter == null ) entityProperty.Getter = new Func<object, object>(entity => fieldInfo.GetValue(entity));
+								if (entityProperty.Setter == null) entityProperty.Setter = new Action<object, object>((entity, value) => fieldInfo.SetValue(entity, value));
+							}
+							if (bestMatchMember is PropertyInfo)
+							{
+								var propertyInfo = (PropertyInfo)bestMatchMember;
+								if (entityProperty.Getter == null) entityProperty.Getter = new Func<object, object>(entity => propertyInfo.GetValue(entity,null));
+								if (entityProperty.Setter == null) entityProperty.Setter = new Action<object, object>((entity, value) => propertyInfo.SetValue(entity, value, null));
+							}
+						}
 					}
 
 					this.Properties.Add(info.Name, entityProperty);
