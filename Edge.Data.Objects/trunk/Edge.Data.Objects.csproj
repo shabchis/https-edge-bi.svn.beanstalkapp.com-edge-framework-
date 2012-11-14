@@ -69,33 +69,6 @@
     <Compile Include="Classes\Targets\KeywordTarget.cs" />
     <Compile Include="Classes\Targets\PlacementTarget.cs" />
     <Compile Include="EdgeObjectsUtility.cs" />
-    <Compile Include="Model\Account.cs" />
-    <Compile Include="Model\Ad.cs" />
-    <Compile Include="Model\AdMetricsUnit.cs" />
-    <Compile Include="Model\AgeTarget.cs" />
-    <Compile Include="Model\Campaign.cs" />
-    <Compile Include="Model\Channel.cs" />
-    <Compile Include="Model\ChannelSpecificObject.cs" />
-    <Compile Include="Model\CompositeCreative.cs" />
-    <Compile Include="Model\Creative.cs" />
-    <Compile Include="Model\Currency.cs" />
-    <Compile Include="Model\CurrencyRate.cs" />
-    <Compile Include="Model\EdgeObject.cs" />
-    <Compile Include="Model\GenderTarget.cs" />
-    <Compile Include="Model\GenericMetricsUnit.cs" />
-    <Compile Include="Model\ImageCreative.cs" />
-    <Compile Include="Model\KeywordTarget.cs" />
-    <Compile Include="Model\LandingPage.cs" />
-    <Compile Include="Model\Measure.cs" />
-    <Compile Include="Model\ConnectionDefinition.cs" />
-    <Compile Include="Model\MetricsUnit.cs" />
-    <Compile Include="Model\PlacementTarget.cs" />
-    <Compile Include="Model\Segment.cs" />
-    <Compile Include="Model\SingleCreative.cs" />
-    <Compile Include="Model\Target.cs" />
-    <Compile Include="Model\TargetMatch.cs" />
-    <Compile Include="Model\TextCreative.cs" />
-    <Compile Include="Queries\Measure.cs" />
     <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
@@ -107,9 +80,6 @@
       <Project>{AD4B53AD-B28A-4E90-9483-E2F7C8E6D436}</Project>
       <Name>Eggplant.Entities</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Queries\Measure.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
