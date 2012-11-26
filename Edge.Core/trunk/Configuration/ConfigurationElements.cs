@@ -1167,6 +1167,7 @@ namespace Edge.Core.Configuration
 	public class AccountServiceElement: NamedConfigurationElement
 	{
 		#region Members
+		private ConfigurationProperty s_maxExecutionTime;
 		private ConfigurationProperty s_uses;
 		private ConfigurationProperty s_settings;
 		private ConfigurationProperty s_schedulingRules;
@@ -1184,6 +1185,12 @@ namespace Edge.Core.Configuration
 				null,
 				ConfigurationPropertyOptions.IsRequired);
 
+			s_maxExecutionTime = new ConfigurationProperty(
+			   "MaxExecutionTime",
+			   typeof(TimeSpan),
+			   ServiceElement.DefaultMaxExecutionTime
+			   );
+
 			s_settings = new ConfigurationProperty(
 				"Settings",
 				typeof(AccountServiceSettingsElementCollection),
@@ -1197,6 +1204,7 @@ namespace Edge.Core.Configuration
 				ConfigurationPropertyOptions.IsDefaultCollection);
 
 			InnerProperties.Add(s_uses);
+			InnerProperties.Add(s_maxExecutionTime);
 			InnerProperties.Add(s_settings);
 			InnerProperties.Add(s_schedulingRules);
 
@@ -1209,6 +1217,19 @@ namespace Edge.Core.Configuration
 		{
 			get { return base.Name ?? this.Uses.Element.Name; }
 		}
+
+		public TimeSpan MaxExecutionTime
+		{
+			get
+			{
+				return (TimeSpan)base[s_maxExecutionTime];
+			}
+			set
+			{
+				base[s_maxExecutionTime] = value;
+			}
+		}
+
 		
 		public SchedulingRuleElementCollection SchedulingRules
 		{
