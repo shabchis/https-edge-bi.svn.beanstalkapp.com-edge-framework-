@@ -9,7 +9,7 @@ using Eggplant.Entities.Queries;
 
 namespace Eggplant.Entities.Persistence
 {
-	public class Mapping<T>: IMapping
+	public abstract class Mapping<T>: IMapping
 	{
 		internal Mapping(EntitySpace space)
 		{
@@ -23,11 +23,7 @@ namespace Eggplant.Entities.Persistence
 
 		public EntitySpace EntitySpace { get; private set; }
 		public EntityDefinition<T> EntityDefinition { get; private set; }
-		public Delegate MappingFunction { get; set; }
-		public IEntityProperty<T> Property { get; internal set; }
-		public List<IMapping> SubMappings { get; private set; }
-		public string ResultSetName { get; set; }
-		public Func<IMappingContext, T> InstantiationFunction { get; set; }
+		public IList<IMapping> SubMappings { get; private set; }
 
 		// ===================================
 		// Internal
@@ -38,82 +34,124 @@ namespace Eggplant.Entities.Persistence
 		/// <summary>
 		/// Inherits all mappings from the base base mapping.
 		/// </summary>
-		public Mapping<T> Inherit(IMapping baseMapping, bool @override = false)
+		public Mapping<T> Inherit(IMapping baseMapping)
 		{
-			foreach (IMapping mapping in baseMapping.SubMappings)
-			{
-				IMapping existing = null;
-				if (mapping.Property != null)
-					existing = this.SubMappings.Single(subMapping => subMapping.Property == mapping.Property);
-
-				if (existing != null)
-				{
-					// If we already have this property defined, either override it or ignore
-					if (@override)
-						this.SubMappings.Remove(existing);
-					else
-						continue;
-				}
-
-				this.SubMappings.Add(mapping);
-			}
-
+			// Add any submappings from base that are not already defined here
+			((List<IMapping>)this.SubMappings).InsertRange(0, baseMapping.SubMappings.Where(m=>!this.SubMappings.Any(s=>s.Equals(m))));
 			return this;
 		}
 
-		public Mapping<T> Instantiate(Func<IMappingContext, T> instantiationFunction)
+		public Mapping<T> Set(Func<MappingContext<T>, T> function)
 		{
-			this.InstantiationFunction = instantiationFunction;
+			return this.Do(new Action<MappingContext<T>>(context => {
 
+				if (context.Direction == MappingDirection.Outbound)
+					throw new MappingException("Cannot perform a Set() mapping in an outbound mapping.");
+
+				context.SetTarget(function(context));
+			}));
+
+		}
+
+		public Mapping<T> Do(Action<MappingContext<T>> action)
+		{
+			this.SubMappings.Add(new ActionMapping<T>(this.EntitySpace) { Action = action });
 			return this;
 		}
 
-		/// <summary>
-		/// Maps a result set field to a scalar property.
-		/// </summary>
-		public Mapping<T> Map<V>(IEntityProperty<V> property, string field)
+		public Mapping<T> Map<V>(string variable, Action<VariableMapping<V>> init)
 		{
-			return this.Map<V>(property, context =>
-				{
-					if (context.Direction == MappingDirection.Inbound)
-						context.SetValue(context.GetField<V>(field));
-					else
-						context.SetField(field, context.Target);
-				}
+			var submapping = new VariableMapping<V>(this.EntitySpace) { Variable = variable };
+			this.SubMappings.Add(submapping);
+			init(submapping);
+			return this;
+		}
+
+		public Mapping<T> Map<V>(string variable, string field)
+		{
+			return this.Map<V>(variable, mapping => mapping
+				.Set(context =>
+					context.Direction == MappingDirection.Inbound ?
+						context.GetField<V>(field) :
+						context.GetVariable<V>(variable)
+				)
 			);
 		}
 
-		/// <summary>
-		/// Activates a function when a scalar property needs mapping.
-		/// </summary>
-		public Mapping<T> Map<V>(IEntityProperty<V> property, Action<MappingContext<V>> function)
+		public Mapping<T> Map<V>(IEntityProperty<V> property, Action<PropertyMapping<V>> init)
 		{
-			this.SubMappings.Add(new Mapping<V>(this.EntitySpace) { Property = property, MappingFunction = function });
+			var submapping = new PropertyMapping<V>(this.EntitySpace) { Property = property };
+			this.SubMappings.Add(submapping);
+			init(submapping);
 			return this;
 		}
 
-		public MappingContext<T> CreateContext(QueryBase query, MappingDirection dir)
+		public Mapping<T> Map<V>(IEntityProperty<V> property, string field)
 		{
-			return new MappingContext<T>(query, this, dir);
+			return this.Map<V>(property, mapping => mapping
+				.Set(context =>
+					context.Direction == MappingDirection.Inbound ?
+						context.GetField<V>(field) :
+						mapping.Property.GetValue(context.Target)
+				)
+			);
 		}
 
-		#region IMapping Members
 
-		MethodInfo IMapping.InstantiationFunction
+		public Mapping<T> MapSubquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
 		{
-			get { return this.InstantiationFunction.Method; }
+			var submapping = new SubqueryMapping<V>(this.EntitySpace) { SubqueryName = subqueryName };
+			this.SubMappings.Add(submapping);
+			init(submapping);
+			return this;
 		}
 
-		IEntityProperty IMapping.Property
+		public Mapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
-			get { return this.Property; }
+			return this.MapSubquery<object>(subqueryName, init);
 		}
 
-		IMappingContext IMapping.CreateContext(QueryBase query, MappingDirection dir)
+		public Mapping<T> MapInline<V>(Action<InlineMapping<V>> init)
 		{
-			return this.CreateContext(query, dir);
+			var inlineMapping = new InlineMapping<V>(this.EntitySpace);
+			this.SubMappings.Add(inlineMapping);
+			init(inlineMapping);
+			return this;
 		}
 
-		#endregion
+		public Mapping<T> MapInline(Action<InlineMapping<object>> init)
+		{
+			return this.MapInline<object>(init);
+		}
+
+		// Finds the nearest parent context
+		public MappingContext<T> FromContext(MappingContext context)
+		{
+			throw new NotImplementedException();
+		}
+
+		/*
+		protected virtual MappingContext<T> CreateContext(MappingContext parentContext)
+		{
+			return new MappingContext<T>()
+			{
+				ActiveSubquery = parentContext.ActivateSubquery,
+				ActiveMapping = this
+			};
+		}
+
+		internal void Activate(MappingContext parentContext)
+		{
+			MappingContext<T> context = CreateContext(parentContext);
+			context.Value = this.SetFunction(context);
+			foreach (IMapping submapping in this.SubMappings)
+				submapping.Activate(context);
+		}
+		*/
+
+		MappingContext IMapping.CreateContext(MappingContext baseContext)
+		{
+			return new MappingContext<T>(baseContext);
+		}
 	}
 }

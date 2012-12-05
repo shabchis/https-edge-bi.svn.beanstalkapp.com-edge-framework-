@@ -5,17 +5,26 @@ using System.Text;
 using System.Data;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence;
+using System.Data.SqlClient;
 
 namespace Eggplant.Entities.Queries
 {
 	public class Subquery : QueryBase
 	{
-		public Query ParentQuery { get; internal set; }
-		public SubqueryTemplate Template { get; internal set; }
+		public Query ParentQuery { get; private set; }
+		public SubqueryTemplate Template { get; private set; }
 		public string PreparedCommandText { get; protected set; }
+		
+		internal SqlCommand Command { get; internal set; }
+		internal int ResultSetIndex { get; internal set; }
 
-		internal Subquery()
+		internal Subquery(Query parent, SubqueryTemplate template)
 		{
+			foreach (DbParameter parameter in template.DbParameters.Values)
+				this.DbParameters.Add(parameter.Name, parameter.Clone());
+
+			foreach (QueryParameter parameter in template.Parameters.Values)
+				this.Parameters.Add(parameter.Name, parameter.Clone());
 		}
 
 		public override PersistenceConnection Connection

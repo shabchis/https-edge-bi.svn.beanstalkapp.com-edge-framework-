@@ -9,89 +9,74 @@ using Eggplant.Entities.Queries;
 
 namespace Eggplant.Entities.Persistence
 {
-	public class MappingContext<T> : Mapping<T>, IMappingContext
+	public abstract class MappingContext
 	{
-		public QueryBase Query { get; private set; }
-		public MappingDirection Direction { get; private set; }
+		public Query Query { get; internal set; }
+		public MappingDirection Direction { get; internal set; }
+
+		public Subquery ActivateSubquery { get; internal set; }
+		public IMapping ActiveMapping { get; internal set; }
 		public object Target { get; internal set; }
-
-		internal MappingContext(QueryBase query, Mapping<T> mapping, MappingDirection dir)
-			: base(mapping.EntitySpace)
+		
+		internal MappingContext(Query query, MappingDirection direction)
 		{
-			this.ResultSetName = mapping.ResultSetName;
-			this.MappingFunction = mapping.MappingFunction;
-			this.Property = mapping.Property;
-
-			foreach (IMapping sub in mapping.SubMappings)
-			{
-				this.SubMappings.Add(sub.CreateContext(this.Query, dir));
-			}
+			this.Query = query;
+			this.Direction = direction;
 		}
 
-		public V GetField<V>(string field, Func<object, V> convertFunction = null)
+		public object GetField(string field)
+		{
+			return GetField<object>(field);
+		}
+
+		public V GetField<V>(string field, Func<object, V> convert = null)
 		{
 			throw new NotImplementedException();
 		}
 
-		public MappingContext<T> SetField(string field, object value)
+		public void SetField(string field, object value)
 		{
 			if (this.Direction != MappingDirection.Outbound)
 				throw new InvalidOperationException("Cannot set data set fields during an inbound mapping operation.");
 
 			throw new NotImplementedException();
-			return this;
 		}
 
-		public MappingContext<T> SetValue(T value)
+		public void SetVariable(string variable, object value)
 		{
-			if (this.Direction != MappingDirection.Inbound)
-				throw new InvalidOperationException("Cannot assign entity property values during an inbound mapping operation.");
-
-			if (this.Property == null)
-				throw new MappingException("Cannot assign value because the mapping property is null.");
-
-			if (this.Target == null)
-				throw new MappingException("Cannot assign value because the mapping target is null.");
-
-			this.Property.SetValue(this.Target, value);
-
-			return this;
+			throw new NotImplementedException();
 		}
 
-		// TODO: add more FromSubquery overloads till T5?
-
-		public MappingContext<T> FromSubquery<V>(string subqueryName, Action<MappingContext<V>> function)
+		public object GetVariable(string variable)
 		{
-			this.SubMappings.Add(new Mapping<V>(this.EntitySpace) { MappingFunction = function });
-			return this;
+			return GetVariable<object>(variable);
 		}
 
-		public MappingContext<T> FromSubquery<T1, T2>(string subqueryName, Action<MappingContext<T1>> function1, Action<MappingContext<T2>> function2)
+		public V GetVariable<V>(string variable, Func<object, V> convert = null)
 		{
-			this.SubMappings.Add(new Mapping<T1>(this.EntitySpace) { MappingFunction = function1 });
-			this.SubMappings.Add(new Mapping<T2>(this.EntitySpace) { MappingFunction = function2 });
-			return this;
+			throw new NotImplementedException();
 		}
 
-		#region Explicit
-
-		void IMappingContext.SetField(string field, object value)
+		internal virtual void SetTarget(object target)
 		{
-			this.SetField(field, value);
+			this.Target = target;
 		}
-
-		void IMappingContext.SetValue(object value)
-		{
-			this.SetValue((T)value);
-		}
-
-		#endregion
 	}
 
-	public enum MappingDirection
+	public class MappingContext<T> : MappingContext
 	{
-		Both,
-		Inbound,
-		Outbound
+		public new T Target { get { return (T)base.Target; } }
+
+		internal MappingContext(Query query, MappingDirection direction):base(query, direction)
+		{
+		}
+
+		internal override void SetTarget(object target)
+		{
+			if (!(target is T))
+				throw new MappingException(String.Format("The mapping context expects a target of type {0}.", typeof(T).FullName));
+
+			base.SetTarget(target);
+		}
 	}
 }

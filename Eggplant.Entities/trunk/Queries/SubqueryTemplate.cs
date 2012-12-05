@@ -15,7 +15,7 @@ namespace Eggplant.Entities.Queries
 
 		public bool IsStandalone { get; set; }
 		public QueryTemplate Template { get; internal set; }
-		public string ResultSetName { get; set; }
+		public string Name { get; set; }
 		public string CommandText { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
 		public Dictionary<SubqueryTemplate, SubqueryRelationship> Relationships { get; private set; }
@@ -73,7 +73,7 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public SubqueryTemplate RootRelationship(Action<SubqueryRelationship> relationshipInit)
+		public SubqueryTemplate Relationship(Action<SubqueryRelationship> relationshipInit)
 		{
 			return Relationship(null, relationshipInit);
 		}
@@ -82,7 +82,7 @@ namespace Eggplant.Entities.Queries
 		{
 			var relationship = new SubqueryRelationship();
 			relationshipInit(relationship);
-			this.Relationships.Add(this.Template.SubqueryTemplates.Find(subtpl => subtpl.ResultSetName == resultSetName), relationship);
+			this.Relationships.Add(this.Template.SubqueryTemplates.Find(subtpl => subtpl.Name == resultSetName), relationship);
 			return this;
 		}
 
@@ -96,23 +96,6 @@ namespace Eggplant.Entities.Queries
 		{
 			base.DbParam(name, valueFunc, dbType, size);
 			return this;
-		}
-
-		internal Subquery Start(Query q)
-		{
-			Subquery subquery = new Subquery()
-			{
-				ParentQuery = q,
-				Template = this
-			};
-
-			foreach (DbParameter parameter in this.DbParameters.Values)
-				subquery.DbParameters.Add(parameter.Name, parameter.Clone());
-
-			foreach (QueryParameter parameter in this.Parameters.Values)
-				subquery.Parameters.Add(parameter.Name, parameter.Clone());
-
-			return subquery;
 		}
 	}
 

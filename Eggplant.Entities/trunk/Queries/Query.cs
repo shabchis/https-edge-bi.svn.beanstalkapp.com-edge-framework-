@@ -31,16 +31,48 @@ namespace Eggplant.Entities.Queries
 		public QueryTemplate<T> Template { get; internal set; }
 
 		protected List<SqlCommand> PreparedCommands { get; private set; }
-		private List<SubqueryExecutionData> ExecutionData;
+		protected int MainCommandResultSetCount { get; private set; }
 		
-		internal Query()
+		internal Query(QueryTemplate<T> template)
 		{
+			this.Template = template;
+			this.EntitySpace = template.EntitySpace;
+
+			foreach (DbParameter parameter in template.DbParameters.Values)
+				this.DbParameters.Add(parameter.Name, parameter.Clone());
+
+			foreach (QueryParameter parameter in template.Parameters.Values)
+				this.Parameters.Add(parameter.Name, parameter.Clone());
+
+			// Find relevant subqueries
+			var subqueryNames = new List<string>();
+			Action<IMapping> findSubqueryNames = null; findSubqueryNames = m =>
+			{
+				foreach (IMapping subMapping in m.SubMappings)
+				{
+					if (subMapping is ISubqueryMapping)
+						subqueryNames.Add(((ISubqueryMapping)subMapping).SubqueryName);
+					else
+						findSubqueryNames(subMapping);
+				}
+			};
+			findSubqueryNames(template.InboundMapping);
+
+			// Create subquery objects from templates
+			foreach (SubqueryTemplate subquerytpl in template.SubqueryTemplates)
+			{
+				if (!subqueryNames.Contains(subquerytpl.Name))
+					continue;
+
+				var subquery = new Subquery(this, subquerytpl);
+				this.Subqueries.Add(subquery);
+			}
 		}
 
 		public new MappingContext<T> MappingContext
 		{
 			get { return (MappingContext<T>)base.MappingContext; }
-			internal set { base.MappingContext = value; }
+			protected set { base.MappingContext = value; }
 		}
 
 
@@ -69,38 +101,37 @@ namespace Eggplant.Entities.Queries
 
 		public void Prepare()
 		{
-			// Create execution list based on select list and active mappings
-			this.ExecutionData = new List<SubqueryExecutionData>();
-			PrepareExecutionData(this.MappingContext);
-
 			// ----------------------------------------
 			// Prepare SQL commands
 			var mainCommandText = new StringBuilder();
 			SqlCommand mainCommand = new SqlCommand();
 			this.PreparedCommands = new List<SqlCommand>();
 			
-			foreach (SubqueryExecutionData execdata in this.ExecutionData)
+			foreach (Subquery subquery in this.Subqueries)
 			{
-				if (!execdata.Subquery.IsPrepared)
-					execdata.Subquery.Prepare();
+				if (!subquery.IsPrepared)
+					subquery.Prepare();
 
 				// Apply subquery SQL to command object
-				if (execdata.Subquery.Template.IsStandalone && !execdata.Subquery.Template.IsRoot)
+				if (subquery.Template.IsStandalone && !subquery.Template.IsRoot)
 				{
-					execdata.TargetCommand = new SqlCommand(execdata.Subquery.PreparedCommandText);
-					this.PreparedCommands.Add(execdata.TargetCommand);
+					subquery.Command = new SqlCommand(subquery.PreparedCommandText);
+					this.PreparedCommands.Add(subquery.Command);
 				}
 				else
 				{
-					execdata.TargetCommand = mainCommand;
+					subquery.Command = mainCommand;
 
-					mainCommandText.Append(execdata.Subquery.PreparedCommandText);
-					if (!execdata.Subquery.PreparedCommandText.Trim().EndsWith(";"))
+					mainCommandText.Append(subquery.PreparedCommandText);
+					if (!subquery.PreparedCommandText.Trim().EndsWith(";"))
 						mainCommandText.Append(";");
+
+					this.MainCommandResultSetCount++;
+					subquery.ResultSetIndex = MainCommandResultSetCount;
 				}
 
 				// Add parameters to the command object
-				foreach (DbParameter param in execdata.Subquery.DbParameters.Values)
+				foreach (DbParameter param in subquery.DbParameters.Values)
 				{
 					var p = new SqlParameter() { ParameterName = param.Name };// param.ValueFunction != null ? param.ValueFunction(this) : param.Value
 
@@ -110,11 +141,12 @@ namespace Eggplant.Entities.Queries
 						p.DbType = param.DbType.Value;
 
 					// TODO: avoid exceptions on duplicate parameter names by prefixing them?
-					execdata.TargetCommand.Parameters.Add(p);
+					subquery.Command.Parameters.Add(p);
 				}
 
+				/*
 				// Add this subquery's relationships to its parent's 'Children' relation list for easy lookup during execution
-				foreach (var relationship in execdata.Subquery.Template.Relationships)
+				foreach (var relationship in subquery.Template.Relationships)
 				{
 					SubqueryExecutionData parent = this.ExecutionData.Find(s => s.Subquery.Template == relationship.Key);
 					if (parent.Children == null)
@@ -122,6 +154,7 @@ namespace Eggplant.Entities.Queries
 
 					parent.Children.Add(relationship.Value);
 				}
+				*/
 			}
 
 			// ----------------------------------------
@@ -130,31 +163,6 @@ namespace Eggplant.Entities.Queries
 			this.PreparedCommands.Insert(0, mainCommand);
 
 			this.IsPrepared = true;
-		}
-
-		// Recursive helper function
-		void PrepareExecutionData(IMappingContext context)
-		{
-			Subquery subquery = this.Subqueries.Find(s => s.Template.ResultSetName == context.ResultSetName);
-			SubqueryExecutionData pass = this.ExecutionData.Find(p => p.Subquery == subquery);
-			if (pass == null)
-			{
-				pass = new SubqueryExecutionData() { Subquery = subquery };
-				this.ExecutionData.Add(pass);
-			}
-
-			/*
-			if (property != null)
-			{
-				if (subquery.SelectList.Contains(property) && context.ResultSetName == subquery.Template.ResultSetName)
-					pass.Mappings.Add(context);
-			}
-			*/
-
-			// Current pass
-			foreach (IMappingContext sub in context.SubMappings)
-				if (sub.Property == null || subquery.SelectList.Contains(sub.Property))
-					PrepareExecutionData(sub);
 		}
 
 		public Query<T> Connect(PersistenceConnection connection = null)
@@ -185,20 +193,36 @@ namespace Eggplant.Entities.Queries
 
 			var conn = (SqlConnection)this.Connection.DbConnection;
 
-			foreach (SubqueryExecutionData execdata in this.ExecutionData)
+			foreach (SqlCommand command in this.PreparedCommands)
 			{
-				// Add parameters to the command object
-				foreach (DbParameter param in execdata.Subquery.DbParameters.Values)
-					execdata.TargetCommand.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+				// Find associated subqueries
+				Subquery[] subqueries = this.Subqueries.Where(s => s.Command == command).OrderBy(s => s.ResultSetIndex).ToArray();
+
+				// Add parameters to the command object from all subqueries
+				foreach(Subquery subquery in subqueries)
+					foreach (DbParameter param in subquery.DbParameters.Values)
+						command.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+
+				this.MappingContext = new MappingContext<T>(this, MappingDirection.Inbound);
 
 				// Execute the command
-				using (SqlDataReader reader = execdata.TargetCommand.ExecuteReader())
+				int resultSetIndex = -1;
+				using (SqlDataReader reader = command.ExecuteReader())
 				{
-					while (reader.Read())
+					// Iterate result set
+					while (reader.NextResult())
 					{
-						// Get target - instantiate property value
-						object target = execdata.Subquery.MappingContext.InstantiationFunction.Invoke(execdata.Subquery.MappingContext, null);
-						//execdata.Subquery.MappingContext.Apply(target);
+						resultSetIndex++;
+						Subquery subquery = subqueries[resultSetIndex];
+
+						// check relationships to get the right context and the parent cache
+
+						//subquery.MappingContext = new map
+
+						while (reader.Read())
+						{
+
+						}
 					}
 				}
 			}
