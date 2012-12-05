@@ -183,7 +183,8 @@ namespace Edge.Core.Services
 			if (profile != null)
 			{
 				config.Profile = profile;
-				config.ConfigurationLevel = ServiceConfigurationLevel.Profile;
+				// shirat changes - bug fix?
+				//config.ConfigurationLevel = ServiceConfigurationLevel.Profile;
 
 				// Deriving from a new profile, so merge parameters (if this.Profile is not null, parameters were already merged in a previous Derive())
 				if (this.Profile == null)
@@ -192,10 +193,10 @@ namespace Edge.Core.Services
 						config.Parameters[param.Key] = param.Value;
 				}
 			}
-			else
-			{
+			//else
+			//{
 				config.ConfigurationLevel = newLevel;
-			}
+			//}
 
 			// Get scheduling rules only if this one is empty
 			foreach (SchedulingRule rule in this.SchedulingRules)
@@ -358,7 +359,7 @@ namespace Edge.Core.Services
 			Deserialize(info, context);
 
 			//if (info.GetBoolean("IsLocked"))
-			    //((ILockable)this).Lock();
+				//((ILockable)this).Lock();
 		}
 	
 		protected virtual void Deserialize(SerializationInfo info, StreamingContext context)
@@ -395,26 +396,23 @@ namespace Edge.Core.Services
 		Lowest
 	}
 
-
 	[Serializable]
 	public class ServiceExecutionLimits:Lockable
 	{
-		int _maxConcurrentGlobal = 0;
+		int _maxConcurrentPerTemplate = 0;
 		int _maxConcurrentPerProfile = 0;
 		int _maxConcurrentPerHost = 0;
 		TimeSpan _maxExecutionTime;
-		public int MaxConcurrentGlobal { get { return _maxConcurrentGlobal; } set { EnsureUnlocked(); _maxConcurrentGlobal = value; } }
+		public int MaxConcurrentPerTemplate { get { return _maxConcurrentPerTemplate; } set { EnsureUnlocked(); _maxConcurrentPerTemplate = value; } }
 		public int MaxConcurrentPerProfile { get { return _maxConcurrentPerProfile; } set { EnsureUnlocked(); _maxConcurrentPerProfile = value; } }
 		public int MaxConcurrentPerHost { get { return _maxConcurrentPerHost; } set { EnsureUnlocked(); _maxConcurrentPerHost = value; } }
 		public TimeSpan MaxExecutionTime { get { return _maxExecutionTime; } set { EnsureUnlocked(); _maxExecutionTime = value; } }
 		public void CopyTo(ServiceExecutionLimits serviceExecutionLimits)
 		{
-			serviceExecutionLimits.MaxConcurrentGlobal = this._maxConcurrentGlobal;
-			serviceExecutionLimits.MaxConcurrentPerProfile = this._maxConcurrentGlobal;
-			serviceExecutionLimits.MaxConcurrentPerHost = this._maxConcurrentGlobal;
+			serviceExecutionLimits.MaxConcurrentPerTemplate = this._maxConcurrentPerTemplate;
+			serviceExecutionLimits.MaxConcurrentPerProfile = this._maxConcurrentPerProfile;
+			serviceExecutionLimits.MaxConcurrentPerHost = this._maxConcurrentPerHost;
 		}
-
-		
 	}
 
 	[Serializable]
