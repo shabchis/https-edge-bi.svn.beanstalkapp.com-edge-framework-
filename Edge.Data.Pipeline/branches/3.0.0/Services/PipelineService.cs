@@ -183,6 +183,12 @@ namespace Edge.Data.Pipeline.Services
 
 		}
 
+		protected override string GetLogContextInfo()
+		{
+			throw new NotImplementedException("Return AccountID={0} as log context info");
+			//return string.Format("AccountID: {0}, DeliveryID: {1}", this.Delivery.Account.ID);
+		}
+
 		// ==============================
 		#endregion
 
