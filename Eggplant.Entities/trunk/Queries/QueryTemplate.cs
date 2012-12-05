@@ -34,27 +34,7 @@ namespace Eggplant.Entities.Queries
 		/// <returns></returns>
 		public Query<T> Start()
 		{
-			var q = new Query<T>()
-			{
-				Template = this,
-				EntitySpace = this.EntitySpace
-			};
-			q.MappingContext = new MappingContext<T>(q, this.InboundMapping, MappingDirection.Inbound);
-
-			foreach (DbParameter parameter in this.DbParameters.Values)
-				q.DbParameters.Add(parameter.Name, parameter.Clone());
-
-			foreach (QueryParameter parameter in this.Parameters.Values)
-				q.Parameters.Add(parameter.Name, parameter.Clone());
-
-			// Possibly not needed because this is done by Select
-			foreach (SubqueryTemplate subquerytpl in this.SubqueryTemplates)
-			{
-				Subquery subquery = subquerytpl.Start(q);
-				q.Subqueries.Add(subquery);
-			}
-
-			return q;
+			return new Query<T>(this);
 		}
 
 
@@ -79,12 +59,12 @@ namespace Eggplant.Entities.Queries
 		{
 			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{
-				ResultSetName = resultSetName,
+				Name = resultSetName,
 				CommandText = commandText,
 				Template = this
 			};
 
-			if (this.SubqueryTemplates.Any(p => p.ResultSetName == resultSetName))
+			if (this.SubqueryTemplates.Any(p => p.Name == resultSetName))
 				throw new QueryTemplateException("Cannot add subquery template with a result set name that is already included.");
 
 			this.SubqueryTemplates.Add(subqueryTemplate);

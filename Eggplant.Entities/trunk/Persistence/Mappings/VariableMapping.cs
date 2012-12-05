@@ -1,0 +1,67 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Eggplant.Entities.Model;
+
+namespace Eggplant.Entities.Persistence
+{
+	public class VariableMapping<T> : Mapping<T>, IVariableMapping
+	{
+		public string Variable { get; internal set; }
+
+		internal VariableMapping(EntitySpace space) : base(space)
+		{
+		}
+
+		#region Sugar
+		// =========================
+		public new VariableMapping<T> Inherit(IMapping baseMapping)
+		{
+			return (VariableMapping<T>)base.Inherit(baseMapping);
+		}
+		public new VariableMapping<T> Set(Func<MappingContext<T>, T> function)
+		{
+			return (VariableMapping<T>)base.Set(function);
+		}
+		public new VariableMapping<T> Do(Action<MappingContext<T>> action)
+		{
+			return (VariableMapping<T>)base.Do(action);
+		}
+		public new VariableMapping<T> Map<V>(string variable, Action<VariableMapping<V>> init)
+		{
+			return (VariableMapping<T>)base.Map<V>(variable, init);
+		}
+		public new VariableMapping<T> Map<V>(string variable, string field)
+		{
+			return (VariableMapping<T>)base.Map<V>(variable, field);
+		}
+		public new VariableMapping<T> Map<V>(IEntityProperty<V> property, Action<PropertyMapping<V>> init)
+		{
+			return (VariableMapping<T>)base.Map<V>(property, init);
+		}
+		public new VariableMapping<T> Map<V>(IEntityProperty<V> property, string field)
+		{
+			return (VariableMapping<T>)base.Map<V>(property, field);
+		}
+		public new VariableMapping<T> MapSubquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
+		{
+			return (VariableMapping<T>)base.MapSubquery<V>(subqueryName, init);
+		}
+		public new VariableMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
+		{
+			return (VariableMapping<T>)base.MapSubquery(subqueryName, init);
+		}
+		public new VariableMapping<T> MapInline<V>(Action<InlineMapping<V>> init)
+		{
+			return (VariableMapping<T>)base.MapInline<V>(init);
+		}
+		public new VariableMapping<T> MapInline(Action<InlineMapping<object>> init)
+		{
+			return (VariableMapping<T>)base.MapInline(init);
+		}
+
+		// =========================
+		#endregion
+	}
+}
