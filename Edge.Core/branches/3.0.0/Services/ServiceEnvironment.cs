@@ -23,7 +23,6 @@ namespace Edge.Core.Services
 
 		public ServiceEnvironmentConfiguration EnvironmentConfiguration { get; private set; }
 
-		// TODO: remove the reference to proxy from here, this should be loaded from a list of hosts in the database
 		public ServiceEnvironment(ServiceEnvironmentConfiguration environmentConfig)
 		{
 			this.EnvironmentConfiguration = environmentConfig;
