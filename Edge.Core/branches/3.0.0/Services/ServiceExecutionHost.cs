@@ -157,12 +157,18 @@ namespace Edge.Core.Services
 				runtimeInfo.SchedulingInfo = schedulingInfo;
 				UpdateState(instanceID, new ServiceStateInfo() { State = ServiceState.Initializing });
 
+				var setup = new AppDomainSetup()
+				{
+					ApplicationBase = AppDomain.CurrentDomain.BaseDirectory
+				};
+
 				// Load the app domain, and attach to its events
 				AppDomain domain = AppDomain.CreateDomain(
-					String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID)
+					friendlyName: String.Format("Edge service - {0} ({1})", config.ServiceName, instanceID),
+                    securityInfo: null,
+                    info: setup
 				);
 				domain.DomainUnload += new EventHandler(DomainUnload);
-
 
 				// Instantiate the service type in the new domain
 				Service serviceRef;

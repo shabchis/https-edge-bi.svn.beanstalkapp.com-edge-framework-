@@ -113,7 +113,6 @@ namespace Edge.Core.Services
 			return new ServiceInstance(configuration, this, parent);
 		}
 
-
 		public ServiceInstance GetServiceInstance(Guid instanceID, bool stateInfoOnly = false)
 		{
 			var env = this.EnvironmentConfiguration;
@@ -158,7 +157,6 @@ namespace Edge.Core.Services
 			}
 		}
 
-
 		internal void SaveServiceInstance(
 			ServiceExecutionHost host,
 			Guid instanceID,
@@ -201,8 +199,8 @@ namespace Edge.Core.Services
 				command.Parameters.AddWithValue("@configuration", SqlUtility.SqlValue(serializedConfig));
 				command.Parameters.AddWithValue("@Scheduling_Status", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.SchedulingStatus));
 				command.Parameters.AddWithValue("@Scheduling_Scope", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.SchedulingScope));
-				command.Parameters.AddWithValue("@Scheduling_MaxDeviationBefore", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.MaxDeviationBefore));
-				command.Parameters.AddWithValue("@Scheduling_MaxDeviationAfter", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.MaxDeviationAfter));
+				command.Parameters.AddWithValue("@Scheduling_MaxDeviationBefore", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.MaxDeviationBefore.TotalSeconds));
+                command.Parameters.AddWithValue("@Scheduling_MaxDeviationAfter", SqlUtility.SqlValue(schedulingInfo, () => schedulingInfo.MaxDeviationAfter.TotalSeconds));
 				command.Parameters.AddWithValue("@Scheduling_RequestedTime", SqlUtility.SqlValue(schedulingInfo, () => SqlUtility.SqlValue(schedulingInfo.RequestedTime, DateTime.MinValue)));
 				command.Parameters.AddWithValue("@Scheduling_ExpectedStartTime", SqlUtility.SqlValue(schedulingInfo, () => SqlUtility.SqlValue(schedulingInfo.ExpectedStartTime, DateTime.MinValue)));
 				command.Parameters.AddWithValue("@Scheduling_ExpectedEndTime", SqlUtility.SqlValue(schedulingInfo, () => SqlUtility.SqlValue(schedulingInfo.ExpectedEndTime, DateTime.MinValue)));
@@ -315,6 +313,66 @@ namespace Edge.Core.Services
 			}
 		}
 
+        /// <summary>
+        /// Get statistics for execution time per each service from DB
+        /// </summary>
+        /// <returns>dictionary: key = service name and profile ID, value = execution time</returns>
+        public Dictionary<string, long> GetServiceExecutionStatistics(int percentile)
+        {
+            var statisticsDict = new Dictionary<string, long>();
+
+            var env = this.EnvironmentConfiguration;
+            using (var connection = new SqlConnection(env.ConnectionString))
+            {
+                var command = new SqlCommand(env.SP_ServicesExecutionStatistics, connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@Percentile", percentile);
+                connection.Open();
+                
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var configID = SqlUtility.ClrValue<string>(reader["ConfigID"]);
+                        var profileID = SqlUtility.ClrValue<string>(reader["ProfileID"]);
+                        var key = String.Format("ConfigID:{0},ProfileID:{1}", configID, profileID);
+                        if (!statisticsDict.ContainsKey(key))
+                        {
+                            statisticsDict.Add( key, long.Parse(reader["Value"].ToString()));
+                        }
+                    }
+                }
+            }
+            return statisticsDict;
+        }
+
+        /// <summary>
+        /// Get all service instances from the DB
+        /// </summary>
+        /// <returns></returns>
+        public List<ServiceInstance> GetServiceInstanceActiveList()
+        {
+            var instanceList = new List<ServiceInstance>();
+            using (var connection = new SqlConnection(EnvironmentConfiguration.ConnectionString))
+            {
+                var command = new SqlCommand(EnvironmentConfiguration.SP_InstanceActiveListGet, connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@timeframeStart", DateTime.Now);
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var instance = ServiceInstance.FromSqlData(reader, this, null, false);
+                        // all instances in DB are activated (scheduling status is not saved in DB)
+                        instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
+                        instanceList.Add(instance);
+                    }
+                }
+            }
+            return instanceList;
+        }
+
 		#region IDisposable Members
 
 		void IDisposable.Dispose()
@@ -358,9 +416,11 @@ namespace Edge.Core.Services
 		public string SP_HostUnregister;
 		public string SP_InstanceSave;
 		public string SP_InstanceReset;
-		public string SP_InstanceGet;
+        public string SP_InstanceGet;
+        public string SP_InstanceActiveListGet;
 		public string SP_EnvironmentEventRegister;
 		public string SP_EnvironmentEventList;
+        public string SP_ServicesExecutionStatistics;
 	}
 
 	[Serializable]

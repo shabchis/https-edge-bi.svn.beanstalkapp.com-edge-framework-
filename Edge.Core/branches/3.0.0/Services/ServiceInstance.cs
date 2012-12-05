@@ -338,20 +338,20 @@ namespace Edge.Core.Services
 
 			if (!stateInfoOnly)
 			{
-				instance.SchedulingInfo = record.IsDBNull("Scheduling_Status", "Scheduling_Scope", "Scheduling_MaxDeviationBefore", "Scheduling_MaxDeviationAfter", "Scheduling_RequestedTime", "Scheduling_ExpectedStartTime", "Scheduling_ExpectedEndTime") ? null : new SchedulingInfo()
+                instance.SchedulingInfo = record.IsDBNull("Scheduling_Status", "Scheduling_Scope", "Scheduling_MaxDeviationBefore", "Scheduling_MaxDeviationAfter", "Scheduling_RequestedTime", "Scheduling_ExpectedStartTime", "Scheduling_ExpectedEndTime") ? null : new SchedulingInfo()
 				{
 					SchedulingStatus = record.Get<SchedulingStatus>("Scheduling_Status"),
 					SchedulingScope = record.Get<SchedulingScope>("Scheduling_Scope"),
-					MaxDeviationBefore = record.Get<TimeSpan>("Scheduling_MaxDeviationBefore"),
-					MaxDeviationAfter = record.Get<TimeSpan>("Scheduling_MaxDeviationAfter"),
+					MaxDeviationBefore = new TimeSpan( 0, 0, (int)record.Get<long>("Scheduling_MaxDeviationBefore")),
+                    MaxDeviationAfter = new TimeSpan(0, 0, (int)record.Get<long>("Scheduling_MaxDeviationAfter")),
 					RequestedTime = record.Get<DateTime>("Scheduling_RequestedTime"),
 					ExpectedStartTime = record.Get<DateTime>("Scheduling_ExpectedStartTime"),
 					ExpectedEndTime = record.Get<DateTime>("Scheduling_ExpectedEndTime"),
 				};
 
-				var stringReader = new StringReader(record.Get<String>("Configuration"));
-				using (var xmlReader = new XmlTextReader(stringReader))
-					instance.Configuration = (ServiceConfiguration)new NetDataContractSerializer().ReadObject(xmlReader);
+                var stringReader = new StringReader(record.Get<String>("Configuration"));
+                using (var xmlReader = new XmlTextReader(stringReader))
+                    instance.Configuration = (ServiceConfiguration)new NetDataContractSerializer().ReadObject(xmlReader);
 			}
 
 			if (childInstance != null)
