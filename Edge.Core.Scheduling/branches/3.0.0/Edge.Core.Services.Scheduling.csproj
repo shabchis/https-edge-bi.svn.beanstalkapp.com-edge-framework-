@@ -49,7 +49,7 @@
     <Compile Include="ProfilesCollection.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scheduler.cs" />
-    <Compile Include="ServicePerProfileAvgExecutionTimeCash.cs" />
+    <Compile Include="SchedulerConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Edge.Core\branches\3.0.0\Edge.Core.csproj">
