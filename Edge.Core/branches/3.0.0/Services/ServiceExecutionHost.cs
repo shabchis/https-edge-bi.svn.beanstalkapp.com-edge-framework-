@@ -11,6 +11,7 @@ using System.ServiceModel.Dispatcher;
 using System.ServiceModel.Channels;
 using Edge.Core.Configuration;
 using System.ServiceModel.Description;
+using Edge.Core.Utilities;
 
 namespace Edge.Core.Services
 {
@@ -85,6 +86,9 @@ namespace Edge.Core.Services
 
 			// Open the listener
 			WcfHost.Open();
+
+			// Start the logger
+			Edge.Core.Utilities.Log.Start();
 
 			#region Code Access Security (disabled)
 			/*
@@ -282,9 +286,24 @@ namespace Edge.Core.Services
 		}
 
 
-		internal void Log(Guid instanceID, LogMessage message)
+		internal void InstanceLog(Guid instanceID, Guid profileID, string serviceName, string contextInfo, string message, Exception ex, LogMessageType messageType)
 		{
-			// TODO: do something with the log messages
+			// Get the runtime in the appdomain
+			ServiceRuntimeInfo runtimeInfo = Get(instanceID, throwex: false);
+
+			var entry = new LogMessage(
+				source: serviceName,
+				contextInfo: contextInfo,
+				message: message,
+				ex: ex,
+				messageType: messageType
+			)
+			{
+				ServiceInstanceID = instanceID,
+				ServiceProfileID = profileID
+			};
+
+			Log.Write(entry);
 		}
 
 		void DomainUnload(object sender, EventArgs e)
@@ -340,6 +359,8 @@ namespace Edge.Core.Services
 				else
 					WcfHost.Close();
 			}
+
+			Edge.Core.Utilities.Log.Stop();
 
 			Environment.UnregisterHost(this);
 		}

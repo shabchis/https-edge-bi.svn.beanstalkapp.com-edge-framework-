@@ -9,6 +9,7 @@ using System.Threading;
 using System.Runtime.Remoting.Contexts;
 using System.ServiceModel;
 using System.ServiceModel.Dispatcher;
+using Edge.Core.Utilities;
 
 namespace Edge.Core.Services
 {
@@ -96,6 +97,11 @@ namespace Edge.Core.Services
 		protected void Error(string message, Exception inner = null, bool fatal = false)
 		{
 			this.Error(new ServiceException(message, inner), fatal);
+		}
+
+		protected virtual string GetLogContextInfo()
+		{
+			return null;
 		}
 		
 		//======================
@@ -286,35 +292,24 @@ namespace Edge.Core.Services
 		#region Logging
 		//======================
 
-		
-		public void Log(LogMessage message)
-		{
-			if (message.Source != null)
-				throw new InvalidOperationException("The LogMessage.Source property must be null.");
-
-			message.Source = this.Configuration.ServiceName;
-
-			this.Host.Log(this.InstanceID, message);
-		}
-
 		public void Log(string message, Exception ex, LogMessageType messageType = LogMessageType.Error)
 		{
-			this.Log(new LogMessage()
-			{
-				Message = message,
-				MessageType = messageType,
-				Exception = ex
-			});
+			this.Host.InstanceLog(
+				instanceID: this.InstanceID,
+				profileID: this.Configuration.Profile != null ? this.Configuration.Profile.ProfileID : Guid.Empty,
+				serviceName: this.Configuration.ServiceName,
+				contextInfo: this.GetLogContextInfo(),
+				message: message,
+				ex: ex,
+				messageType: messageType
+			);
 		}
 
 		public void Log(string message, LogMessageType messageType)
 		{
-			this.Log(new LogMessage()
-			{
-				Message = message,
-				MessageType = messageType
-			});
+			this.Log(message, null, messageType);
 		}
+
 		
 		//======================
 		#endregion
