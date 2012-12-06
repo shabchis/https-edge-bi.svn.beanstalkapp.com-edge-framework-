@@ -16,14 +16,19 @@ using System.ServiceModel;
 
 namespace Edge.Core.Services
 {
-	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
-	public class ServiceEnvironment : IServiceEnvironmentEventListener, IDisposable
+	public class ServiceEnvironment
 	{
 		private Dictionary<string, ServiceExecutionHostInfo> _hosts;
 
 		public ServiceEnvironmentConfiguration EnvironmentConfiguration { get; private set; }
 
-		public ServiceEnvironment(ServiceEnvironmentConfiguration environmentConfig)
+	    public ServiceEnvironment FromConfiguration(ServiceEnvironmentConfiguration environmentConfig)
+	    {
+            // Sugar
+            return  new ServiceEnvironment(environmentConfig);
+	    }
+
+	    private ServiceEnvironment(ServiceEnvironmentConfiguration environmentConfig)
 		{
 			this.EnvironmentConfiguration = environmentConfig;
 			RefreshHosts();
@@ -212,10 +217,8 @@ namespace Edge.Core.Services
 		// .............................................................
 		// ENVIRONMENT EVENTS
 
-		public event EventHandler<ServiceScheduleRequestedEventArgs> ServiceScheduleRequested;
-
-		WcfHost _eventListener = null;
-		Dictionary<ServiceEnvironmentEventType, ServiceEnvironmentEventListenerInfo> _environmentListeners = null;
+        Dictionary<ServiceEnvironmentEventType, ServiceEnvironmentEventListenerInfo> _environmentListeners = null;
+	
 
 		public void RefreshEventListenersList()
 		{
@@ -250,22 +253,9 @@ namespace Edge.Core.Services
 			}
 		}
 
-		public void ListenForEvents(ServiceEnvironmentEventType eventType)
+		public ServiceEnvironmentEventListener ListenForEvents(params ServiceEnvironmentEventType[] eventTypes)
 		{
-			if (_eventListener == null)
-			{
-				_eventListener = new WcfHost(this, this);
-
-				ServiceEndpoint[] rawEndpoints = _eventListener.Description.Endpoints.ToArray();
-				_eventListener.Description.Endpoints.Clear();
-				foreach (ServiceEndpoint endpoint in rawEndpoints)
-				{
-					endpoint.Address = new EndpointAddress(new Uri(endpoint.Address.Uri.ToString().Replace("{guid}", Guid.NewGuid().ToString("N"))));
-					_eventListener.AddServiceEndpoint(endpoint);
-				}
-
-				_eventListener.Open();
-			}
+			ServiceEnvironmentEventListener listener = new ServiceEnvironmentEventListener(this, eventTypes);
 
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
@@ -281,11 +271,7 @@ namespace Edge.Core.Services
 			}
 		}
 
-		void IServiceEnvironmentEventListener.ServiceScheduleRequestedEvent(ServiceScheduleRequestedEventArgs args)
-		{
-			if (ServiceScheduleRequested != null)
-				ServiceScheduleRequested(this, args);
-		}
+		
 
 		public void ScheduleServiceInstance(ServiceInstance instance)
 		{
