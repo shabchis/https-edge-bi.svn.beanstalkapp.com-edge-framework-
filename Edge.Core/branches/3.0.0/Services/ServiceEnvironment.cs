@@ -22,16 +22,15 @@ namespace Edge.Core.Services
 
 		public ServiceEnvironmentConfiguration EnvironmentConfiguration { get; private set; }
 
-	    public ServiceEnvironment FromConfiguration(ServiceEnvironmentConfiguration environmentConfig)
-	    {
-            // Sugar
-            return  new ServiceEnvironment(environmentConfig);
-	    }
-
 	    private ServiceEnvironment(ServiceEnvironmentConfiguration environmentConfig)
 		{
 			this.EnvironmentConfiguration = environmentConfig;
 			RefreshHosts();
+		}
+
+		public static ServiceEnvironment Load(ServiceEnvironmentConfiguration environmentConfig)
+		{
+			return new ServiceEnvironment(environmentConfig);
 		}
 
 		public void RefreshHosts()
@@ -44,7 +43,7 @@ namespace Edge.Core.Services
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				var command = new SqlCommand(env.SP_HostList, connection);
+				var command = new SqlCommand(env.SP_HostListGet, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				connection.Open();
 				using (SqlDataReader reader = command.ExecuteReader())
@@ -217,20 +216,24 @@ namespace Edge.Core.Services
 		// .............................................................
 		// ENVIRONMENT EVENTS
 
-        Dictionary<ServiceEnvironmentEventType, ServiceEnvironmentEventListenerInfo> _environmentListeners = null;
+        Dictionary<ServiceEnvironmentEventType, List<ServiceEnvironmentEventListenerInfo>> _environmentListeners = null;
 	
-
 		public void RefreshEventListenersList()
 		{
 			if (_environmentListeners == null)
-				_environmentListeners = new Dictionary<ServiceEnvironmentEventType, ServiceEnvironmentEventListenerInfo>();
+			{
+				_environmentListeners = new Dictionary<ServiceEnvironmentEventType, List<ServiceEnvironmentEventListenerInfo>>();
+			}
 			else
-				_environmentListeners.Clear();
+			{
+				foreach (var list in _environmentListeners.Values)
+					list.Clear();
+			}
 
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				var command = new SqlCommand(env.SP_EnvironmentEventList, connection);
+				var command = new SqlCommand(env.SP_EnvironmentEventListenerListGet, connection);
 				command.CommandType = CommandType.StoredProcedure;
 				connection.Open();
 				using (SqlDataReader reader = command.ExecuteReader())
@@ -239,6 +242,11 @@ namespace Edge.Core.Services
 					{
 						var info = new ServiceEnvironmentEventListenerInfo()
 						{
+							ListenerID = SqlUtility.ClrValue<string, Guid>(
+								reader["ListenerID"],
+								guidRaw => Guid.Parse(guidRaw),
+								Guid.Empty
+							),
 							EventType = SqlUtility.ClrValue<string, ServiceEnvironmentEventType>(
 								reader["EventType"],
 								ev => (ServiceEnvironmentEventType) Enum.Parse(typeof(ServiceEnvironmentEventType), ev, false),
@@ -247,7 +255,11 @@ namespace Edge.Core.Services
 							EndpointName = SqlUtility.ClrValue<string>(reader["EndpointName"]),
 							EndpointAddress = SqlUtility.ClrValue<string>(reader["EndpointAddress"])
 						};
-						_environmentListeners.Add(info.EventType, info);
+						List<ServiceEnvironmentEventListenerInfo> list;
+						if (!_environmentListeners.TryGetValue(info.EventType, out list))
+							_environmentListeners.Add(info.EventType, list = new List<ServiceEnvironmentEventListenerInfo>());
+
+						list.Add(info);
 					}
 				}
 			}
@@ -256,45 +268,86 @@ namespace Edge.Core.Services
 		public ServiceEnvironmentEventListener ListenForEvents(params ServiceEnvironmentEventType[] eventTypes)
 		{
 			ServiceEnvironmentEventListener listener = new ServiceEnvironmentEventListener(this, eventTypes);
+			RegisterEventListener(listener);
+			return listener;
+		}
 
+		internal void RegisterEventListener(ServiceEnvironmentEventListener listener)
+		{
 			var env = this.EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
-				// FUTURE: in the future save all endpoints to DB
-				var command = new SqlCommand(env.SP_EnvironmentEventRegister, connection);
-				command.CommandType = CommandType.StoredProcedure;
-				command.Parameters.AddWithValue("@eventType", eventType.ToString());
-				command.Parameters.AddWithValue("@endpointName", _eventListener.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Name);
-				command.Parameters.AddWithValue("@endpointAddress", _eventListener.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Address.ToString());
 				connection.Open();
+				using (SqlTransaction transaction = connection.BeginTransaction())
+				{
+					try
+					{
+						var command = new SqlCommand(env.SP_EnvironmentEventListenerRegister, connection);
+						foreach (ServiceEnvironmentEventType eventType in listener.EventTypes)
+						{
+							command.CommandType = CommandType.StoredProcedure;
+							command.Parameters.AddWithValue("@listenerID", listener.ListenerID.ToString("N"));
+							command.Parameters.AddWithValue("@eventType", eventType.ToString());
+							command.Parameters.AddWithValue("@endpointName", listener.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Name);
+							command.Parameters.AddWithValue("@endpointAddress", listener.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Address.ToString());
+
+							command.ExecuteNonQuery();
+						}
+
+						transaction.Commit();
+					}
+					catch (Exception ex)
+					{
+						try { transaction.Rollback(); }
+						catch { }
+
+						listener.Close();
+
+						throw new Edge.Core.Services.ServiceEnvironmentException("Could not register listener in environment database. The listener has been closed. See inner exception for details.", ex);
+					}
+				}
+			}
+		}
+
+		internal void UnregisterEventListener(ServiceEnvironmentEventListener listener)
+		{
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				connection.Open();
+				var command = new SqlCommand(env.SP_EnvironmentEventListenerUnregister, connection);
+				command.Parameters.AddWithValue("@listenerID", listener.ListenerID.ToString("N"));
 				command.ExecuteNonQuery();
 			}
 		}
 
-		
-
 		public void ScheduleServiceInstance(ServiceInstance instance)
 		{
-			NotifyScheduleServiceRequest(new ServiceScheduleRequestedEventArgs() { ServiceInstance = instance });
+			NotifyEventListeners(ServiceEnvironmentEventType.ServiceScheduleRequested,
+				client=> client.Channel.ServiceScheduleRequestedEvent(new ServiceScheduleRequestedEventArgs() { ServiceInstance = instance })
+			);
 		}
 
-		private void NotifyScheduleServiceRequest(ServiceScheduleRequestedEventArgs args)
+		private void NotifyEventListeners(ServiceEnvironmentEventType eventType, Action<WcfClient<IServiceEnvironmentEventListener>> notifyFunction)
 		{
 			RefreshEventListenersList();
-			ServiceEnvironmentEventListenerInfo listenerInfo;
-			if (!_environmentListeners.TryGetValue(ServiceEnvironmentEventType.ServiceScheduleRequested, out listenerInfo))
-				throw new ServiceEnvironmentException("Could not find a registered listener for ServiceScheduleRequested events in the database.");
+			List<ServiceEnvironmentEventListenerInfo> listeners;
+			if (!_environmentListeners.TryGetValue(eventType, out listeners) || listeners.Count < 1)
+				throw new ServiceEnvironmentException(String.Format("Could not find any registered listeners for {0} event.", eventType));
 
-			try
+			foreach (var listenerInfo in listeners)
 			{
-				using (var listener = new WcfClient<IServiceEnvironmentEventListener>(this, listenerInfo.EndpointName, listenerInfo.EndpointAddress))
+				try
 				{
-					listener.Channel.ServiceScheduleRequestedEvent(args);
+					using (var client = new WcfClient<IServiceEnvironmentEventListener>(this, listenerInfo.EndpointName, listenerInfo.EndpointAddress))
+					{
+						notifyFunction(client);
+					}
 				}
-			}
-			catch (Exception ex)
-			{
-				throw new ServiceEnvironmentException(String.Format("Failed WCF call to the registered listener for ServiceScheduleRequested events ({0}).", listenerInfo.EndpointAddress), ex);
+				catch (Exception ex)
+				{
+					throw new ServiceEnvironmentException(String.Format("Failed WCF call to the registered listener for ServiceScheduleRequested events ({0}).", listenerInfo.EndpointAddress), ex);
+				}
 			}
 		}
 
@@ -357,22 +410,6 @@ namespace Edge.Core.Services
             }
             return instanceList;
         }
-
-		#region IDisposable Members
-
-		void IDisposable.Dispose()
-		{
-			// Close WCF host				
-			if (_eventListener != null)
-			{
-				if (_eventListener.State == CommunicationState.Faulted)
-					_eventListener.Abort();
-				else
-					_eventListener.Close();
-			}
-		}
-
-		#endregion
 	}
 
 	public class ServiceExecutionHostInfo
@@ -385,6 +422,7 @@ namespace Edge.Core.Services
 
 	public class ServiceEnvironmentEventListenerInfo
 	{
+		public Guid ListenerID;
 		public ServiceEnvironmentEventType EventType;
 		public string EndpointName;
 		public string EndpointAddress;
@@ -396,15 +434,16 @@ namespace Edge.Core.Services
 		public string ConnectionString;
 		public string DefaultHostName;
 
-		public string SP_HostList;
+		public string SP_HostListGet;
 		public string SP_HostRegister;
 		public string SP_HostUnregister;
 		public string SP_InstanceSave;
 		public string SP_InstanceReset;
         public string SP_InstanceGet;
         public string SP_InstanceActiveListGet;
-		public string SP_EnvironmentEventRegister;
-		public string SP_EnvironmentEventList;
+		public string SP_EnvironmentEventListenerRegister;
+		public string SP_EnvironmentEventListenerUnregister;
+		public string SP_EnvironmentEventListenerListGet;
         public string SP_ServicesExecutionStatistics;
 	}
 
