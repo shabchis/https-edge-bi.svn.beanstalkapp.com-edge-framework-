@@ -47,11 +47,11 @@ namespace Edge.Core.Services
 			private set;
 		}
 
-		public ServiceProfile Profile
+		public virtual ServiceProfile Profile
 		{
 			get;
 			internal set;
-		}
+	}
 
 		public ServiceExecutionLimits Limits
 		{
@@ -183,9 +183,6 @@ namespace Edge.Core.Services
 			if (profile != null)
 			{
 				config.Profile = profile;
-				// shirat changes - bug fix?
-				//config.ConfigurationLevel = ServiceConfigurationLevel.Profile;
-
 				// Deriving from a new profile, so merge parameters (if this.Profile is not null, parameters were already merged in a previous Derive())
 				if (this.Profile == null)
 				{
@@ -193,10 +190,7 @@ namespace Edge.Core.Services
 						config.Parameters[param.Key] = param.Value;
 				}
 			}
-			//else
-			//{
-				config.ConfigurationLevel = newLevel;
-			//}
+			config.ConfigurationLevel = newLevel;
 
 			// Get scheduling rules only if this one is empty
 			foreach (SchedulingRule rule in this.SchedulingRules)
@@ -399,9 +393,9 @@ namespace Edge.Core.Services
 	[Serializable]
 	public class ServiceExecutionLimits:Lockable
 	{
-		int _maxConcurrentPerTemplate = 0;
-		int _maxConcurrentPerProfile = 0;
-		int _maxConcurrentPerHost = 0;
+		int _maxConcurrentPerTemplate = 1;
+		int _maxConcurrentPerProfile = 1;
+		int _maxConcurrentPerHost = 1;
 		TimeSpan _maxExecutionTime;
 		public int MaxConcurrentPerTemplate { get { return _maxConcurrentPerTemplate; } set { EnsureUnlocked(); _maxConcurrentPerTemplate = value; } }
 		public int MaxConcurrentPerProfile { get { return _maxConcurrentPerProfile; } set { EnsureUnlocked(); _maxConcurrentPerProfile = value; } }

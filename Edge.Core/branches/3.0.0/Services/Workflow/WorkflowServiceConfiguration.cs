@@ -49,6 +49,27 @@ namespace Edge.Core.Services.Workflow
 			targetWorkflow._workflow = sourceWorkflow._workflow;
 			
 		}
+
+        public override ServiceProfile Profile
+        {
+            get { return base.Profile; }
+            internal set
+            {
+                base.Profile = value;
+                // set profile for all workflow childs
+                if (Workflow.Nodes != null)
+                {
+                    foreach (var node in Workflow.Nodes)
+                    {
+                        var step = node as WorkflowStep;
+                        if (step != null && step.ServiceConfiguration != null)
+                        {
+                            step.ServiceConfiguration.Profile = value;
+                        }
+                    }
+                }
+            }
+        }
 	}
 
 	[Serializable]
