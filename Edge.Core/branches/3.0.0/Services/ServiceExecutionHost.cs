@@ -58,6 +58,8 @@ namespace Edge.Core.Services
 		Dictionary<int, Guid> _serviceByAppDomain = new Dictionary<int, Guid>();
 		internal WcfHost WcfHost { get; private set; }
 
+		bool _disposed = false;
+
 		// ========================
 		#endregion
 
@@ -113,6 +115,8 @@ namespace Edge.Core.Services
 
 		void IServiceExecutionHost.Connect(Guid instanceID, Guid connectionGuid)
 		{
+			EnsureNotDisposed();
+
 			ServiceRuntimeInfo runtimeInfo;
 
 			// Check if instance ID exists
@@ -146,6 +150,8 @@ namespace Edge.Core.Services
 
 		void IServiceExecutionHost.InitializeService(ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID, Guid connectionGuid)
 		{
+			EnsureNotDisposed();
+
 			if (String.IsNullOrEmpty(config.ServiceClass))
 				throw new ServiceException("ServiceConfiguration.ServiceClass cannot be empty.");
 
@@ -206,22 +212,42 @@ namespace Edge.Core.Services
 				};
 
 				// Give the service ref its properties
-				serviceRef.Init(this, this.Environment.EnvironmentConfiguration, config, schedulingInfo, instanceID, parentInstanceID);
+				try { serviceRef.Init(this, this.Environment.EnvironmentConfiguration, config, schedulingInfo, instanceID, parentInstanceID); }
+				catch (AppDomainUnloadedException)
+				{
+					HostLog("Service was killed while trying to initialize.", null, LogMessageType.Warning);
+				}
 			}
 		}
 
 		void IServiceExecutionHost.StartService(Guid instanceID)
 		{
+			EnsureNotDisposed();
+
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
-				runtimeInfo.ServiceRef.Start();
+			{
+				try { runtimeInfo.ServiceRef.Start(); }
+				catch (AppDomainUnloadedException)
+				{
+					HostLog("Service was killed while trying to start.", null, LogMessageType.Warning);
+				}
+			}
 		}
 
 		void IServiceExecutionHost.ResumeService(Guid instanceID)
 		{
+			EnsureNotDisposed();
+
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
-				runtimeInfo.ServiceRef.Resume();
+			{
+				try { runtimeInfo.ServiceRef.Resume(); }
+				catch (AppDomainUnloadedException)
+				{
+					HostLog("Service was killed while trying to resume.", null, LogMessageType.Warning);
+				}
+			}
 		}
 
 		/// <summary>
@@ -230,9 +256,17 @@ namespace Edge.Core.Services
 		/// <param name="instanceID"></param>
 		void IServiceExecutionHost.AbortService(Guid instanceID)
 		{
+			EnsureNotDisposed();
+
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
-				runtimeInfo.ServiceRef.Abort();
+			{
+				try { runtimeInfo.ServiceRef.Abort(); }
+				catch (AppDomainUnloadedException)
+				{
+					HostLog("Service was killed while trying to abort.", null, LogMessageType.Warning);
+				}
+			}
 		}
 
 
@@ -325,6 +359,19 @@ namespace Edge.Core.Services
 				_services.Remove(instanceID);
 				_serviceByAppDomain.Remove(appDomain.Id);
 			}
+
+			// Dispose of open channels
+			lock (runtimeInfo.Connections)
+			{
+				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
+				{
+					try { connection.Dispose(); }
+					catch (Exception ex)
+					{
+						HostLog("Forcing the connection to close caused an exception.", ex, LogMessageType.Warning);
+					}
+				}
+			}
 		}
 
 
@@ -339,18 +386,36 @@ namespace Edge.Core.Services
 			return service;
 		}
 
-		internal ServiceInstance GetServiceInstance(Guid instanceID)
+		void HostLog(string message, Exception ex, LogMessageType messageType = LogMessageType.Error)
 		{
-			throw new NotImplementedException();
+			Log.Write(string.Format("Host: {0}", this.HostName), this.HostGuid.ToString(), message, ex, messageType);
 		}
 
 		// ========================
 		#endregion
 
-		#region IDisposable Members
+		#region Disposing
 		// ========================
+
+		void EnsureNotDisposed()
+		{
+			if (_disposed)
+				throw new ObjectDisposedException("The host has been disposed and cannot be used any more.");
+		}
+
 		void IDisposable.Dispose()
 		{
+			_disposed = true;
+			
+			foreach (ServiceRuntimeInfo runtimeInfo in _services.Values.ToArray())
+			{
+				if (runtimeInfo.ServiceRef != null)
+				{
+					try { runtimeInfo.ServiceRef.Kill(); }
+					catch (AppDomainUnloadedException) { }
+				}
+			}
+
 			// Close WCF host				
 			if (WcfHost != null)
 			{
@@ -364,6 +429,8 @@ namespace Edge.Core.Services
 
 			Environment.UnregisterHost(this);
 		}
+
+
 		// ========================
 		#endregion
 	}

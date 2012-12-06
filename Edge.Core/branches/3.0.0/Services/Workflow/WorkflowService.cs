@@ -63,7 +63,7 @@ namespace Edge.Core.Services.Workflow
 					nodeInstance.Instance.Connect();
 					try
 					{
-						Environment.ScheduleServiceInstance(nodeInstance.Instance);
+						Environment.AddToSchedule(nodeInstance.Instance);
 					}
 					catch (Exception ex)
 					{
