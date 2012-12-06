@@ -78,12 +78,23 @@ namespace Edge.Core.Services
 
 		void NotifyState()
 		{
-			Host.UpdateState(this.InstanceID, StateInfo);
+			try { Host.UpdateState(this.InstanceID, StateInfo); }
+			catch (Exception ex)
+			{
+				try { Log("Could not notify environment of service state, possibly because the host is being disposed.", ex, LogMessageType.Warning); }
+				catch { }
+			}
 		}
 
 		protected void GenerateOutput(object output)
 		{
-			Host.NotifyOutput(this.InstanceID, output);
+			try { Host.NotifyOutput(this.InstanceID, output); }
+			catch (Exception ex)
+			{
+				try { Log("Could not send output from service, possibly because the host is being disposed.", ex, LogMessageType.Warning); }
+				catch { }
+			}
+
 		}
 
 		protected void Error(Exception exception, bool fatal = false)
@@ -91,7 +102,9 @@ namespace Edge.Core.Services
 			if (fatal)
 				throw exception;
 			else
-				Host.NotifyOutput(this.InstanceID, exception);
+			{
+				GenerateOutput(exception);
+			}
 		}
 
 		protected void Error(string message, Exception inner = null, bool fatal = false)
@@ -242,6 +255,13 @@ namespace Edge.Core.Services
 			NotifyState();
 
 			// Unload app domain if Stop was called directly
+			AppDomain.Unload(AppDomain.CurrentDomain);
+		}
+
+		[System.Runtime.Remoting.Messaging.OneWay]
+		internal void Kill()
+		{
+			// Unload the AppDomain, start the stop process
 			AppDomain.Unload(AppDomain.CurrentDomain);
 		}
 

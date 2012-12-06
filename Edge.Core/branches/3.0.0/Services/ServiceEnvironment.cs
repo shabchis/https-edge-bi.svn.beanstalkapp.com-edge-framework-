@@ -16,7 +16,7 @@ using System.ServiceModel;
 
 namespace Edge.Core.Services
 {
-	public class ServiceEnvironment
+	public class ServiceEnvironment : IServiceEnvironmentEventSender
 	{
 		private Dictionary<string, ServiceExecutionHostInfo> _hosts;
 
@@ -148,6 +148,7 @@ namespace Edge.Core.Services
 			}
 		}
 
+
 		public void ResetUnendedServices()
 		{
 			var env = this.EnvironmentConfiguration;
@@ -159,6 +160,66 @@ namespace Edge.Core.Services
 				command.ExecuteNonQuery();
 			}
 		}
+		/// <summary>
+		/// Get statistics for execution time per each service from DB
+		/// </summary>
+		/// <returns>dictionary: key = service name and profile ID, value = execution time</returns>
+		public Dictionary<string, long> GetServiceExecutionStatistics(int percentile)
+		{
+			var statisticsDict = new Dictionary<string, long>();
+
+			var env = this.EnvironmentConfiguration;
+			using (var connection = new SqlConnection(env.ConnectionString))
+			{
+				var command = new SqlCommand(env.SP_ServicesExecutionStatistics, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				command.Parameters.AddWithValue("@Percentile", percentile);
+				connection.Open();
+
+				using (SqlDataReader reader = command.ExecuteReader())
+				{
+					while (reader.Read())
+					{
+						var configID = SqlUtility.ClrValue<string>(reader["ConfigID"]);
+						var profileID = SqlUtility.ClrValue<string>(reader["ProfileID"]);
+						var key = String.Format("ConfigID:{0},ProfileID:{1}", configID, profileID);
+						if (!statisticsDict.ContainsKey(key))
+						{
+							statisticsDict.Add(key, long.Parse(reader["Value"].ToString()));
+						}
+					}
+				}
+			}
+			return statisticsDict;
+		}
+
+		/// <summary>
+		/// Get all service instances from the DB
+		/// </summary>
+		/// <returns></returns>
+		public List<ServiceInstance> GetServiceInstanceActiveList()
+		{
+			var instanceList = new List<ServiceInstance>();
+			using (var connection = new SqlConnection(EnvironmentConfiguration.ConnectionString))
+			{
+				var command = new SqlCommand(EnvironmentConfiguration.SP_InstanceActiveListGet, connection);
+				command.CommandType = CommandType.StoredProcedure;
+				command.Parameters.AddWithValue("@timeframeStart", DateTime.Now);
+				connection.Open();
+				using (SqlDataReader reader = command.ExecuteReader())
+				{
+					while (reader.Read())
+					{
+						var instance = ServiceInstance.FromSqlData(reader, this, null, false);
+						// all instances in DB are activated (scheduling status is not saved in DB)
+						instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
+						instanceList.Add(instance);
+					}
+				}
+			}
+			return instanceList;
+		}
+
 
 		internal void SaveServiceInstance(
 			ServiceExecutionHost host,
@@ -272,6 +333,13 @@ namespace Edge.Core.Services
 			return listener;
 		}
 
+		public void AddToSchedule(ServiceInstance instance)
+		{
+			SendEnvironmentEvent(ServiceEnvironmentEventType.ServiceRequiresScheduling,
+				listener => listener.ServiceRequiresScheduling(new ServiceInstanceEventArgs() { ServiceInstance = instance })
+			);
+		}
+
 		internal void RegisterEventListener(ServiceEnvironmentEventListener listener)
 		{
 			var env = this.EnvironmentConfiguration;
@@ -282,14 +350,17 @@ namespace Edge.Core.Services
 				{
 					try
 					{
-						var command = new SqlCommand(env.SP_EnvironmentEventListenerRegister, connection);
+						var command = new SqlCommand(env.SP_EnvironmentEventListenerRegister, connection, transaction)
+						{
+							CommandType = CommandType.StoredProcedure
+						};
+
 						foreach (ServiceEnvironmentEventType eventType in listener.EventTypes)
 						{
-							command.CommandType = CommandType.StoredProcedure;
 							command.Parameters.AddWithValue("@listenerID", listener.ListenerID.ToString("N"));
 							command.Parameters.AddWithValue("@eventType", eventType.ToString());
-							command.Parameters.AddWithValue("@endpointName", listener.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Name);
-							command.Parameters.AddWithValue("@endpointAddress", listener.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironment).FullName).Address.ToString());
+							command.Parameters.AddWithValue("@endpointName", listener.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironmentEventListener).FullName).Name);
+							command.Parameters.AddWithValue("@endpointAddress", listener.WcfHost.Description.Endpoints.First(endpoint => endpoint.Name == typeof(ServiceEnvironmentEventListener).FullName).Address.ToString());
 
 							command.ExecuteNonQuery();
 						}
@@ -301,7 +372,7 @@ namespace Edge.Core.Services
 						try { transaction.Rollback(); }
 						catch { }
 
-						listener.Close();
+						listener.Close(false);
 
 						throw new Edge.Core.Services.ServiceEnvironmentException("Could not register listener in environment database. The listener has been closed. See inner exception for details.", ex);
 					}
@@ -315,21 +386,19 @@ namespace Edge.Core.Services
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				connection.Open();
-				var command = new SqlCommand(env.SP_EnvironmentEventListenerUnregister, connection);
+				var command = new SqlCommand(env.SP_EnvironmentEventListenerUnregister, connection)
+				{
+					CommandType = CommandType.StoredProcedure
+				};
 				command.Parameters.AddWithValue("@listenerID", listener.ListenerID.ToString("N"));
 				command.ExecuteNonQuery();
 			}
 		}
 
-		public void ScheduleServiceInstance(ServiceInstance instance)
+		void SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction)
 		{
-			NotifyEventListeners(ServiceEnvironmentEventType.ServiceScheduleRequested,
-				client=> client.Channel.ServiceScheduleRequestedEvent(new ServiceScheduleRequestedEventArgs() { ServiceInstance = instance })
-			);
-		}
+			// TODO: check process/appdomain permissions
 
-		private void NotifyEventListeners(ServiceEnvironmentEventType eventType, Action<WcfClient<IServiceEnvironmentEventListener>> notifyFunction)
-		{
 			RefreshEventListenersList();
 			List<ServiceEnvironmentEventListenerInfo> listeners;
 			if (!_environmentListeners.TryGetValue(eventType, out listeners) || listeners.Count < 1)
@@ -341,78 +410,29 @@ namespace Edge.Core.Services
 				{
 					using (var client = new WcfClient<IServiceEnvironmentEventListener>(this, listenerInfo.EndpointName, listenerInfo.EndpointAddress))
 					{
-						notifyFunction(client);
+						listenerAction(client.Channel);
 					}
 				}
 				catch (Exception ex)
 				{
-					throw new ServiceEnvironmentException(String.Format("Failed WCF call to the registered listener for ServiceScheduleRequested events ({0}).", listenerInfo.EndpointAddress), ex);
+					string message = String.Format("Failed to send environment event {0} to listener at {1}, it might be dead.", eventType, listenerInfo.EndpointAddress);
+					if (Service.Current != null)
+						Service.Current.Log(message, ex, LogMessageType.Information);
+					else
+						throw new ServiceEnvironmentException(message, ex);
 				}
 			}
 		}
+		
+		void IServiceEnvironmentEventSender.SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction)
+		{
+			this.SendEnvironmentEvent(eventType, listenerAction);	
+		}
 
-        /// <summary>
-        /// Get statistics for execution time per each service from DB
-        /// </summary>
-        /// <returns>dictionary: key = service name and profile ID, value = execution time</returns>
-        public Dictionary<string, long> GetServiceExecutionStatistics(int percentile)
-        {
-            var statisticsDict = new Dictionary<string, long>();
-
-            var env = this.EnvironmentConfiguration;
-            using (var connection = new SqlConnection(env.ConnectionString))
-            {
-                var command = new SqlCommand(env.SP_ServicesExecutionStatistics, connection);
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@Percentile", percentile);
-                connection.Open();
-                
-                using (SqlDataReader reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var configID = SqlUtility.ClrValue<string>(reader["ConfigID"]);
-                        var profileID = SqlUtility.ClrValue<string>(reader["ProfileID"]);
-                        var key = String.Format("ConfigID:{0},ProfileID:{1}", configID, profileID);
-                        if (!statisticsDict.ContainsKey(key))
-                        {
-                            statisticsDict.Add( key, long.Parse(reader["Value"].ToString()));
-                        }
-                    }
-                }
-            }
-            return statisticsDict;
-        }
-
-        /// <summary>
-        /// Get all service instances from the DB
-        /// </summary>
-        /// <returns></returns>
-        public List<ServiceInstance> GetServiceInstanceActiveList()
-        {
-            var instanceList = new List<ServiceInstance>();
-            using (var connection = new SqlConnection(EnvironmentConfiguration.ConnectionString))
-            {
-                var command = new SqlCommand(EnvironmentConfiguration.SP_InstanceActiveListGet, connection);
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@timeframeStart", DateTime.Now);
-                connection.Open();
-                using (SqlDataReader reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var instance = ServiceInstance.FromSqlData(reader, this, null, false);
-                        // all instances in DB are activated (scheduling status is not saved in DB)
-                        instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
-                        instanceList.Add(instance);
-                    }
-                }
-            }
-            return instanceList;
-        }
+ 
 	}
 
-	public class ServiceExecutionHostInfo
+	internal class ServiceExecutionHostInfo
 	{
 		public string HostName;
 		public Guid HostGuid;
@@ -420,7 +440,7 @@ namespace Edge.Core.Services
 		public string EndpointAddress;
 	}
 
-	public class ServiceEnvironmentEventListenerInfo
+	internal class ServiceEnvironmentEventListenerInfo
 	{
 		public Guid ListenerID;
 		public ServiceEnvironmentEventType EventType;
@@ -447,10 +467,9 @@ namespace Edge.Core.Services
         public string SP_ServicesExecutionStatistics;
 	}
 
-	[Serializable]
-	public class ServiceScheduleRequestedEventArgs : EventArgs
+	public interface IServiceEnvironmentEventSender
 	{
-		public ServiceInstance ServiceInstance { get; set; }
+		void SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction);
 	}
 }
 	

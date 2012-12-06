@@ -10,12 +10,17 @@ namespace Edge.Core.Services
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
     public class ServiceEnvironmentEventListener : IServiceEnvironmentEventListener, IDisposable
     {
-        public event EventHandler<ServiceScheduleRequestedEventArgs> ServiceScheduleRequested;
         public ServiceEnvironment Environment { get; private set; }
 		public ServiceEnvironmentEventType[] EventTypes { get; private set; }
 		public Guid ListenerID { get; private set; }
 
 		internal WcfHost WcfHost { get; private set; }
+
+		private event EventHandler<ServiceInstanceEventArgs> _serviceRequiresScheduling;
+		private event EventHandler<ScheduleUpdatedEventArgs> _scheduleUpdated;
+
+		#region WCF open/close
+		// ------------------------------
 
 		internal ServiceEnvironmentEventListener(ServiceEnvironment environment, ServiceEnvironmentEventType[] eventTypes)
         {
@@ -35,36 +40,81 @@ namespace Edge.Core.Services
             WcfHost.Open();
         }
 
-        void IServiceEnvironmentEventListener.ServiceScheduleRequestedEvent(ServiceScheduleRequestedEventArgs args)
-        {
-            if (ServiceScheduleRequested != null)
-                ServiceScheduleRequested(this, args);
-        }
-
 		public void Close()
 		{
-			((IDisposable)this).Dispose();
+			this.Close(true);
 		}
-
-		void IDisposable.Dispose()
+ 
+		internal void Close(bool unregister)
 		{
-			this.Environment.UnregisterEventListener(this);
+			if (unregister)
+				this.Environment.UnregisterEventListener(this);
 
 			// Close WCF host				
 			if (this.WcfHost != null)
 			{
-				if (this.WcfHost.State == CommunicationState.Faulted)
-					this.WcfHost.Abort();
-				else
+				if (this.WcfHost.State == CommunicationState.Opened)
 					this.WcfHost.Close();
+				else if (this.WcfHost.State != CommunicationState.Closed)
+					this.WcfHost.Abort();
 			}
 		}
+
+		void IDisposable.Dispose()
+		{
+			this.Close();
+		}
+
+		// ------------------------------
+		#endregion
+
+		#region Event wiring
+		// ------------------------------
+
+		void Ensure(ServiceEnvironmentEventType eventType)
+		{
+			if (!EventTypes.Contains(eventType))
+				throw new InvalidOperationException(String.Format("Cannot connect listener to event {0} because it is not registered to receive this event.", eventType));
+		}
+
+		public event EventHandler<ServiceInstanceEventArgs> ServiceRequiresScheduling
+		{
+			add { Ensure(ServiceEnvironmentEventType.ServiceRequiresScheduling); _serviceRequiresScheduling += value; }
+			remove { _serviceRequiresScheduling -= value; }
+		}
+
+		void IServiceEnvironmentEventListener.ServiceRequiresScheduling(ServiceInstanceEventArgs args)
+		{
+			if (_serviceRequiresScheduling != null)
+				_serviceRequiresScheduling(this, args);
+		}
+
+		public event EventHandler<ScheduleUpdatedEventArgs> ScheduleUpdated
+		{
+			add { Ensure(ServiceEnvironmentEventType.ScheduleUpdated); _scheduleUpdated += value; }
+			remove { _scheduleUpdated -= value; }
+		}
+
+		void IServiceEnvironmentEventListener.ScheduleUpdated(ScheduleUpdatedEventArgs args)
+		{
+			if (_scheduleUpdated != null)
+				_scheduleUpdated(this, args);
+		}
+
+		// ------------------------------
+		#endregion
 	}
 
+
     [ServiceContract(Name = "ServiceEnvironmentEventListener", Namespace = "http://www.edge.bi/contracts")]
-    internal interface IServiceEnvironmentEventListener
+    public interface IServiceEnvironmentEventListener
     {
         [OperationContract(IsOneWay = true)]
-        void ServiceScheduleRequestedEvent(ServiceScheduleRequestedEventArgs args);
+        void ServiceRequiresScheduling(ServiceInstanceEventArgs args);
+
+		[OperationContract(IsOneWay = true)]
+		void ScheduleUpdated(ScheduleUpdatedEventArgs args);
     }
+
+	
 }

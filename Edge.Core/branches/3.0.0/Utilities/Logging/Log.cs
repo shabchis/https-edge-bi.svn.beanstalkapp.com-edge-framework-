@@ -43,7 +43,7 @@ namespace Edge.Core.Utilities
 			try { _save.EndInvoke(_asyncResult); }
 			catch (Exception ex)
 			{
-				Submit(new LogMessage("Logger", null, "Exception discovered while stopping the logger.", ex, LogMessageType.Warning));
+				Submit(new LogMessage(typeof(Log).FullName, null, "Exception discovered while stopping the log queue pump.", ex, LogMessageType.Warning));
 			}
 		}
 
@@ -90,7 +90,7 @@ namespace Edge.Core.Utilities
 		// ======================================
 		#endregion
 
-		#region Thread methods
+		#region Heavy lifting
 		// ======================================
 
 		static void Pump()
@@ -122,8 +122,8 @@ namespace Edge.Core.Utilities
 			log4net.ThreadContext.Properties["@contextInfo"] = entry.ContextInfo;
 			log4net.ThreadContext.Properties["@messageType"] = (int)entry.MessageType;
 			log4net.ThreadContext.Properties["@message"] = entry.Message;
-			log4net.ThreadContext.Properties["@serviceInstanceID"] = entry.ServiceInstanceID;
-			log4net.ThreadContext.Properties["@serviceProfileID"] = entry.ServiceProfileID;
+			log4net.ThreadContext.Properties["@serviceInstanceID"] = entry.ServiceInstanceID.ToString("N");
+			log4net.ThreadContext.Properties["@serviceProfileID"] = entry.ServiceProfileID.ToString("N");
 			log4net.ThreadContext.Properties["@isException"] = entry.IsException;
 			log4net.ThreadContext.Properties["@exceptionDetails"] = entry.ExceptionDetails;
 

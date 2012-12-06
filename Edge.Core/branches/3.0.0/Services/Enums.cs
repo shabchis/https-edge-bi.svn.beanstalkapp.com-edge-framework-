@@ -5,11 +5,7 @@ using System.Text;
 
 namespace Edge.Core.Services
 {
-	public enum ServiceEnvironmentEventType
-	{
-		ServiceScheduleRequested
-	}
-
+	
 	public enum ServiceState
 	{
 		Uninitialized = 0,
@@ -60,14 +56,11 @@ namespace Edge.Core.Services
 		Killed = 9
 	}
 
-	[Serializable]
-	public class ServiceOutputEventArgs : EventArgs
+	public enum ServiceEnvironmentEventType
 	{
-		public object Output { get; set; }
-
-		public ServiceOutputEventArgs(object output)
-		{
-			this.Output = output;
-		}
+		ServiceRequiresScheduling,
+		ScheduleUpdated
 	}
+
+	
 }
