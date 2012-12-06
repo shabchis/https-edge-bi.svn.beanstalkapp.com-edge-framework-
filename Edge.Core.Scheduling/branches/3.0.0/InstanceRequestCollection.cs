@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Edge.Core.Services;
 using System.Diagnostics;
 
@@ -13,8 +13,9 @@ namespace Edge.Core.Scheduling
 	public class InstanceRequestCollection : ICollection<ServiceInstance>
 	{
 		#region Members
-		Dictionary<Guid, ServiceInstance> _requestsByGuid = new Dictionary<Guid, ServiceInstance>();
-		Dictionary<string, ServiceInstance> _requestsBySignature = new Dictionary<string, ServiceInstance>();
+
+		readonly Dictionary<Guid, ServiceInstance> _requestsByGuid = new Dictionary<Guid, ServiceInstance>();
+		readonly Dictionary<string, ServiceInstance> _requestsBySignature = new Dictionary<string, ServiceInstance>();
 		#endregion
 
 		#region Indexes
@@ -55,11 +56,11 @@ namespace Edge.Core.Scheduling
 		internal IEnumerable<ServiceInstance> RemoveNotActivated()
 		{
 			//_requestsBySignature.RemoveAll(k => k.Value.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated);
-		    foreach (var request in _requestsByGuid.RemoveAll(k => k.Value.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated))
-		    {
-		        _requestsBySignature.Remove(GetSignature(request.Value));
-		        yield return request.Value;
-		    }
+			foreach (var request in _requestsByGuid.RemoveAll(k => k.Value.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated))
+			{
+				_requestsBySignature.Remove(GetSignature(request.Value));
+				yield return request.Value;
+			}
 		}
 
 		internal IOrderedEnumerable<ServiceInstance> GetWithSameConfiguration(ServiceInstance currentRequest)
@@ -68,7 +69,9 @@ namespace Edge.Core.Scheduling
 							from s in _requestsByGuid.Values
 							where
 								s.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Template) == currentRequest.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Template) &&
-								s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated &&
+								// shirat - including Activated service (cannot be executed concurrently) but not Ended services
+								//s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated &&
+								s.State != ServiceState.Ended &&
 								s != currentRequest
 							orderby s.SchedulingInfo.ExpectedStartTime ascending
 							select s;
@@ -81,7 +84,9 @@ namespace Edge.Core.Scheduling
 							from s in _requestsByGuid.Values
 							where
 								s.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile) == currentRequest.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile) &&
-								s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated &&
+								// shirat - including Activated service (cannot be executed concurrently) but not Ended services
+								//s.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated &&
+								s.State != ServiceState.Ended &&
 								s != currentRequest
 							orderby s.SchedulingInfo.ExpectedStartTime ascending
 							select s;
@@ -94,22 +99,23 @@ namespace Edge.Core.Scheduling
 		/// </summary>
 		internal void RemoveEndedRequests()
 		{
-            var requestKeyList = new List<string>();
+			var requestKeyList = new List<string>();
 			foreach (var request in _requestsBySignature)
 			{
 				if (request.Value.State == ServiceState.Ended &&
 					request.Value.SchedulingInfo.RequestedTime.Add(request.Value.SchedulingInfo.MaxDeviationAfter) < DateTime.Now)
-                {
-                    Debug.WriteLine(DateTime.Now + String.Format(": Remove from scheduled request: {0}, max deviation after: {1}", request.Key, request.Value.SchedulingInfo.MaxDeviationAfter));
-                    requestKeyList.Add(request.Key);
+				{
+					Debug.WriteLine(DateTime.Now + String.Format(": Remove from scheduled request: '{0}', max deviation after: {1}", request.Key, request.Value.SchedulingInfo.MaxDeviationAfter));
+					requestKeyList.Add(request.Key);
 				}
 			}
-            foreach (var key in requestKeyList)
-            {
-                var request = _requestsBySignature[key];
-                _requestsBySignature.Remove(key);
-                _requestsByGuid.Remove(request.InstanceID);
-            }
+			foreach (var key in requestKeyList)
+			{
+				var request = _requestsBySignature[key];
+				_requestsBySignature.Remove(key);
+				_requestsByGuid.Remove(request.InstanceID);
+			}
+
 		}
 		#endregion
 
@@ -120,10 +126,11 @@ namespace Edge.Core.Scheduling
 			if (item.SchedulingInfo != null)
 			{
 				_requestsByGuid.Add(item.InstanceID, item);
-				if (item.SchedulingInfo.SchedulingScope != SchedulingScope.Unplanned)
-				{
+				// shirat - ? why unplanned are not inserted to dict by signature?
+				//if (item.SchedulingInfo.SchedulingScope != SchedulingScope.Unplanned)
+				//{
 					_requestsBySignature.Add(GetSignature(item), item);
-				}
+				//}
 			}
 		}
 
@@ -157,6 +164,7 @@ namespace Edge.Core.Scheduling
 		{
 			_requestsBySignature.Remove(GetSignature(item));
 			_requestsByGuid.Remove(item.InstanceID);
+
 			return true;
 		}
 
@@ -173,9 +181,9 @@ namespace Edge.Core.Scheduling
 
 		#region IEnumerable Members
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
-			return this.GetEnumerator();
+			return GetEnumerator();
 		}
 
 		#endregion

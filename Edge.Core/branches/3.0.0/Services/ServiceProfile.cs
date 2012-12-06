@@ -53,7 +53,7 @@ namespace Edge.Core.Services
 			if (configuration.ConfigurationLevel == ServiceConfigurationLevel.Profile && configuration.Profile != this)
 				throw new ServiceConfigurationException("Cannot derive from the configuration because it is associated with a different profile. Derive from configuration.TemplateConfiguration instead.");
 
-			return configuration.Derive(configuration.ConfigurationLevel, this);
+			return configuration.Derive(ServiceConfigurationLevel.Profile, this);
 		}
 
 		#region Locking

@@ -128,7 +128,7 @@ namespace Edge.Core.Services
 			try { this.Connection = Environment.AcquireHostConnection(this.Configuration.HostName, this.InstanceID); }
 			catch (Exception ex)
 			{
-				throw new ServiceException("Environment could not acquire a connection to the service {0:N} on host {1}.", ex);
+				throw new ServiceException(String.Format("Environment could not acquire a connection to the service {0:N} on host {1}.", InstanceID, Configuration.HostName), ex);
 			}
 
 			// Callback
