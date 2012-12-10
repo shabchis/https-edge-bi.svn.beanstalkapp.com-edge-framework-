@@ -336,7 +336,18 @@ namespace Edge.Core.Services
 		public void AddToSchedule(ServiceInstance instance)
 		{
 			SendEnvironmentEvent(ServiceEnvironmentEventType.ServiceRequiresScheduling,
-				listener => listener.ServiceRequiresScheduling(new ServiceInstanceEventArgs() { ServiceInstance = instance })
+				listener => listener.ServiceRequiresScheduling(new ServiceInstanceEventArgs { ServiceInstance = instance }), true
+			);
+		}
+
+		/// <summary>
+		/// UpdateScheduledServices - scheduler send update of scheduled services (for UI for example)
+		/// </summary>
+		/// <param name="instanceList"></param>
+		public void SendScheduledServicesUpdate(List<ServiceInstance> instanceList)
+		{
+			SendEnvironmentEvent(ServiceEnvironmentEventType.ScheduleUpdated,
+				listener => listener.ScheduleUpdated(new ScheduleUpdatedEventArgs { ServiceInstanceList = instanceList }), false
 			);
 		}
 
@@ -395,14 +406,21 @@ namespace Edge.Core.Services
 			}
 		}
 
-		void SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction)
+		void SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction, bool throwExIfNobodyListen = true)
 		{
 			// TODO: check process/appdomain permissions
 
 			RefreshEventListenersList();
 			List<ServiceEnvironmentEventListenerInfo> listeners;
 			if (!_environmentListeners.TryGetValue(eventType, out listeners) || listeners.Count < 1)
-				throw new ServiceEnvironmentException(String.Format("Could not find any registered listeners for {0} event.", eventType));
+			{
+				if (throwExIfNobodyListen)
+				{
+					throw new ServiceEnvironmentException(String.Format("Could not find any registered listeners for {0} event.", eventType));
+				}
+				Log.Write(this.ToString(), String.Format("There are no listeners to event {0}", eventType.ToString()), LogMessageType.Warning);
+				return;
+			}
 
 			foreach (var listenerInfo in listeners)
 			{
@@ -423,13 +441,11 @@ namespace Edge.Core.Services
 				}
 			}
 		}
-		
-		void IServiceEnvironmentEventSender.SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction)
-		{
-			this.SendEnvironmentEvent(eventType, listenerAction);	
-		}
 
- 
+		void IServiceEnvironmentEventSender.SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction, bool throwExIfNobodyListen)
+		{
+			this.SendEnvironmentEvent(eventType, listenerAction, throwExIfNobodyListen);	
+		}
 	}
 
 	internal class ServiceExecutionHostInfo
@@ -469,7 +485,7 @@ namespace Edge.Core.Services
 
 	public interface IServiceEnvironmentEventSender
 	{
-		void SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction);
+		void SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction, bool throwExIfNobodyListen);
 	}
 }
 	
