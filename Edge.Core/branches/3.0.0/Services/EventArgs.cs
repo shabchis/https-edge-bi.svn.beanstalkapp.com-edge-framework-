@@ -25,6 +25,6 @@ namespace Edge.Core.Services
 	[Serializable]
 	public class ScheduleUpdatedEventArgs : EventArgs
 	{
-		// TODO: add schedule updates data
+		public List<ServiceInstance> ServiceInstanceList { get; set; }
 	}
 }
