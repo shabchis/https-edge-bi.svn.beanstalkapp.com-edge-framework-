@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Diagnostics;
 using Edge.Core.Services;
 using System.Threading;
 
@@ -19,17 +16,22 @@ namespace Edge.Core.Utilities
 		private static IAsyncResult _asyncResult;
 		private static Action _save;
 		private static volatile bool _stopThread;
+		private static bool _isStarted;
 
 		#region Control methods
 		// ======================================
 
 		public static void Start()
 		{
-			if (_asyncResult != null)
-				throw new InvalidOperationException("Log is already started.");
-			
-			_save = new Action(Pump);
-			_asyncResult = _save.BeginInvoke(null, null);			
+			if (!_isStarted)
+			{
+				if (_asyncResult != null)
+					throw new InvalidOperationException("Log is already started.");
+
+				_save = Pump;
+				_asyncResult = _save.BeginInvoke(null, null);
+				_isStarted = true;
+			}
 		}
 
 		public static void Stop()
