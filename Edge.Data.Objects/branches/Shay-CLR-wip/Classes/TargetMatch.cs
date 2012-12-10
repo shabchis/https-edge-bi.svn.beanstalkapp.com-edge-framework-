@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	[TableInfo(Name = "TargetMatch")]
+	[TableInfo(Name = "AdTargetMatch")]
 	public partial class TargetMatch : EdgeObject
 	{
 		public Target Target;
