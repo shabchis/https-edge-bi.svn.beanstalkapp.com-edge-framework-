@@ -28,7 +28,7 @@ namespace Edge.Core.Services
 			RefreshHosts();
 		}
 
-		public static ServiceEnvironment Load(ServiceEnvironmentConfiguration environmentConfig)
+		public static ServiceEnvironment Open(ServiceEnvironmentConfiguration environmentConfig)
 		{
 			return new ServiceEnvironment(environmentConfig);
 		}

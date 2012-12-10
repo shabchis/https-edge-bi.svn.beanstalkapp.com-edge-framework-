@@ -50,7 +50,7 @@ namespace Edge.Core.Services
 		internal void Init(ServiceExecutionHost host, ServiceEnvironmentConfiguration envConfig, ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID)
 		{
 			Host = host;
-			this.Environment = ServiceEnvironment.Load(envConfig);
+			this.Environment = ServiceEnvironment.Open(envConfig);
 
 			this.InstanceID = instanceID;
 			this.Configuration = config;
