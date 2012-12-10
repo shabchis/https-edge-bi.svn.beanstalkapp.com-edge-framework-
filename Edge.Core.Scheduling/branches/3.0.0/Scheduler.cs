@@ -246,7 +246,7 @@ namespace Edge.Core.Services.Scheduling
 					_scheduledRequests.RemoveEndedRequests();
 
 					// Move pending uninitialized services to the unscheduled list so they can be rescheduled
-                    foreach (ServiceInstance request in _scheduledRequests.RemoveNotActivated())
+					foreach (ServiceInstance request in _scheduledRequests.RemoveNotActivated())
 					{
 						if (request.SchedulingInfo.RequestedTime + request.SchedulingInfo.MaxDeviationAfter > DateTime.Now)
 						{
