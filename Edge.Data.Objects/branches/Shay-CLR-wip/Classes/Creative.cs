@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 	}
 
-	[TableInfo(Name = "CompositeCreative")]
+	[TableInfo(Name = "CreativeComposite")]
 	public partial class CompositeCreative : Creative
 	{
 		public Dictionary<string, SingleCreative> ChildCreatives;
