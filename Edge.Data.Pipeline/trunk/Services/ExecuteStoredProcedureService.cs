@@ -129,15 +129,21 @@ namespace Edge.Data.Pipeline.Services
 			{
 				DataManager.Current.AssociateCommands(Cmd);
 				Log.Write(Cmd.ToString(), LogMessageType.Information);
-				
+
 				#region Sending email
 				/*============================================================================*/
 				if (SendResultByEmail)
 				{
-					string Topic = Instance.Configuration.GetOption("EmailTopic");
+					string topic = Instance.Configuration.GetOption("EmailTopic");
+					string returnMsg = string.Empty;
+
 					using (SqlDataReader reader = Cmd.ExecuteReader())
 					{
 						dataTable.Load(reader);
+						if (Cmd.Parameters.Contains("@returnMsg"))
+						{
+							returnMsg = Cmd.Parameters["@returnMsg"].Value.ToString();
+						}
 					}
 
 					if (!string.IsNullOrEmpty(Instance.Configuration.GetOption("EMailCC")) && Instance.Configuration.GetOption("EMailCC").Equals("GetUsersFromDB()"))
@@ -148,8 +154,8 @@ namespace Edge.Data.Pipeline.Services
 						Smtp.SetCc(Instance.Configuration.GetOption("EMailCC"));
 
 					Smtp.SetFromTo(Instance.Configuration.GetOption("EMailFrom"), Instance.Configuration.GetOption("EMailTo"));
-					string htmlBody = ConvertDataTableToHtml(dataTable);
-					Smtp.Send(Topic, htmlBody, highPriority: true, IsBodyHtml: true);
+					string htmlBody = ConvertDataTableToHtml(dataTable, returnMsg);
+					Smtp.Send(topic, htmlBody, highPriority: true, IsBodyHtml: true);
 
 				}
 				/*============================================================================*/
@@ -166,7 +172,7 @@ namespace Edge.Data.Pipeline.Services
 			throw new NotImplementedException();
 		}
 
-		public static string ConvertDataTableToHtml(DataTable targetTable)
+		public static string ConvertDataTableToHtml(DataTable targetTable, string appendBody)
 		{
 			string htmlString = "";
 
@@ -186,6 +192,10 @@ namespace Edge.Data.Pipeline.Services
 			//htmlBuilder.Append("</title>");
 			htmlBuilder.Append("</head>");
 			htmlBuilder.Append("<body>");
+			
+			if (!String.IsNullOrEmpty(appendBody))
+				htmlBuilder.Append(appendBody);
+
 			htmlBuilder.Append("<table border='1px' cellpadding='5' cellspacing='0' ");
 			htmlBuilder.Append("style='border: solid 1px Black; font-size: small;'>");
 
