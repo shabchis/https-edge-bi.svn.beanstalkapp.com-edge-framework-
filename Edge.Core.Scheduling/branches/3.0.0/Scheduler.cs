@@ -17,7 +17,7 @@ namespace Edge.Core.Services.Scheduling
 		private object _instanceLock = new object();
 
 		public ServiceEnvironment Environment { get; private set; }
-		public ServiceEnvironmentEventListener Listener { get; private set; }
+		private readonly ServiceEnvironmentEventListener _listener;
 		public SchedulerConfiguration Configuration { get; private set; }
 		
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
@@ -84,8 +84,8 @@ namespace Edge.Core.Services.Scheduling
 			
 			// set environment and register to env event for scheduling services (from workflow)
 			Environment = environment;
-			Listener = environment.ListenForEvents(ServiceEnvironmentEventType.ServiceRequiresScheduling);
-			Listener.ServiceRequiresScheduling += Listener_ServiceRequiresScheduling;
+			_listener = environment.ListenForEvents(ServiceEnvironmentEventType.ServiceRequiresScheduling);
+			_listener.ServiceRequiresScheduling += Listener_ServiceRequiresScheduling;
 			
 			// init base service dictionary
 			foreach (var serviceConfig in Configuration.ServiceConfigurationList)
@@ -231,167 +231,209 @@ namespace Edge.Core.Services.Scheduling
 		{
 			WriteLog(String.Format("Start scheduling: scheduled={0} (uninitialized={1}, ended={2}), unscheduled={3}",
 								_scheduledRequests.Count, _scheduledRequests.Count(s => s.State == ServiceState.Uninitialized),
-								_scheduledRequests.Count(s => s.State == ServiceState.Ended), _unscheduledRequests.Count)); 
-			
-			lock (_unscheduledRequests)
+								_scheduledRequests.Count(s => s.State == ServiceState.Ended), _unscheduledRequests.Count));
+			try
 			{
-				lock (_scheduledRequests)
+				lock (_unscheduledRequests)
 				{
-					// Set need reschedule to false in order to avoid more schedule from other threads
-					_needReschedule = false;
-
-					#region Manage history and find services to schedule
-					// ------------------------------------
-
-					// first of all remove old not relevant scheduled request
-					_scheduledRequests.RemoveEndedRequests();
-
-					// Move pending uninitialized services to the unscheduled list so they can be rescheduled
-					foreach (ServiceInstance request in _scheduledRequests.RemoveNotActivated())
+					lock (_scheduledRequests)
 					{
-						if (request.SchedulingInfo.RequestedTime + request.SchedulingInfo.MaxDeviationAfter > DateTime.Now)
+						// Set need reschedule to false in order to avoid more schedule from other threads
+						_needReschedule = false;
+
+						#region Manage history and find services to schedule
+
+						// ------------------------------------
+
+						// first of all remove old not relevant scheduled request
+						_scheduledRequests.RemoveEndedRequests();
+
+						// Move pending uninitialized services to the unscheduled list so they can be rescheduled
+						foreach (ServiceInstance request in _scheduledRequests.RemoveNotActivated())
 						{
-							WriteLog(String.Format("Move scheduled request to unscheduled list '{0}'", InstanceRequestCollection.GetSignature(request)));
+							if (request.SchedulingInfo.RequestedTime + request.SchedulingInfo.MaxDeviationAfter > DateTime.Now)
+							{
+								WriteLog(String.Format("Move scheduled request to unscheduled list '{0}'",
+								                       InstanceRequestCollection.GetSignature(request)));
+								_unscheduledRequests.Add(request);
+							}
+							else
+							{
+								AsLockable(request).Unlock(_instanceLock);
+								WriteLog(String.Format("Request request '{0}'can not be scheduled",
+								                       InstanceRequestCollection.GetSignature(request)));
+								request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
+								AsLockable(request).Lock(_instanceLock);
+							}
+						}
+
+						// Get Services for next timeframe
+						foreach (ServiceInstance request in GetServicesInTimeframe(reschedule))
+						{
+							WriteLog(String.Format("Add request to unscheduled list '{0}'", InstanceRequestCollection.GetSignature(request)));
 							_unscheduledRequests.Add(request);
 						}
-						else
+
+						// Copy unscheduled requests to an ordered list by request time + max deviation after
+						var servicesForNextTimeframe = new List<ServiceInstance>(_unscheduledRequests
+							                                                         .OrderBy(
+								                                                         schedulingData =>
+								                                                         schedulingData.SchedulingInfo.RequestedTime +
+								                                                         schedulingData.SchedulingInfo.MaxDeviationAfter));
+
+						// ------------------------------------
+
+						#endregion
+
+						#region Find Match services
+
+						// ------------------------------------
+
+						//Same services or same services with same profile
+						foreach (ServiceInstance serviceInstance in servicesForNextTimeframe)
 						{
-							AsLockable(request).Unlock(_instanceLock);
-							WriteLog(String.Format("Request request '{0}'can not be scheduled", InstanceRequestCollection.GetSignature(request)));
-							request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
-							AsLockable(request).Lock(_instanceLock);
-						}
-					}
+							//Get all services with same configurationID
+							var requestsWithSameConfiguration = _scheduledRequests.GetWithSameConfiguration(serviceInstance);
 
-					// Get Services for next timeframe
-					foreach (ServiceInstance request in GetServicesInTimeframe(reschedule))
-					{
-						WriteLog(String.Format("Add request to unscheduled list '{0}'", InstanceRequestCollection.GetSignature(request)));
-						_unscheduledRequests.Add(request);
-					}
+							//Get all services with same profileID
+							var requestsWithSameProfile = _scheduledRequests.GetWithSameProfile(serviceInstance);
 
-					// Copy unscheduled requests to an ordered list by request time + max deviation after
-					var servicesForNextTimeframe = new List<ServiceInstance>(_unscheduledRequests
-													.OrderBy(schedulingData => schedulingData.SchedulingInfo.RequestedTime + schedulingData.SchedulingInfo.MaxDeviationAfter));
+							//take execution time per service and profile (if profile does not exist try to take per service only)
+							TimeSpan avgExecutionTime = GetExecutionStatisticsForService(serviceInstance.Configuration.ServiceName,
+							                                                             serviceInstance.Configuration.Profile == null
+								                                                             ? String.Empty
+								                                                             : serviceInstance.Configuration.Profile.Parameters[
+									                                                             "AccountID"].ToString());
 
-					// ------------------------------------
-					#endregion
+							DateTime baseStartTime = (serviceInstance.SchedulingInfo.RequestedTime < DateTime.Now)
+								                         ? DateTime.Now
+								                         : serviceInstance.SchedulingInfo.RequestedTime;
+							DateTime baseEndTime = baseStartTime.Add(avgExecutionTime);
+							DateTime calculatedStartTime = baseStartTime;
+							DateTime calculatedEndTime = baseEndTime;
 
-					#region Find Match services
-					// ------------------------------------
-
-					//Same services or same services with same profile
-					foreach (ServiceInstance serviceInstance in servicesForNextTimeframe)
-					{
-						//Get all services with same configurationID
-						var requestsWithSameConfiguration = _scheduledRequests.GetWithSameConfiguration(serviceInstance);
-
-						//Get all services with same profileID
-						var requestsWithSameProfile = _scheduledRequests.GetWithSameProfile(serviceInstance);
-
-						//take execution time per service and profile (if profile does not exist try to take per service only)
-						TimeSpan avgExecutionTime = GetExecutionStatisticsForService(serviceInstance.Configuration.ServiceName,
-													serviceInstance.Configuration.Profile == null ? String.Empty : 
-													serviceInstance.Configuration.Profile.Parameters["AccountID"].ToString());
-
-						DateTime baseStartTime = (serviceInstance.SchedulingInfo.RequestedTime < DateTime.Now) ? DateTime.Now : serviceInstance.SchedulingInfo.RequestedTime;
-						DateTime baseEndTime = baseStartTime.Add(avgExecutionTime);
-						DateTime calculatedStartTime = baseStartTime;
-						DateTime calculatedEndTime = baseEndTime;
-
-						bool found = false;
-						while (!found)
-						{
-							IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
-
-							int countedPerConfiguration = requestsWithSameConfiguration.Count(s => (calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime && calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) || (calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime && calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
-							if (countedPerConfiguration < serviceInstance.Configuration.Limits.MaxConcurrentPerTemplate)
+							bool found = false;
+							while (!found)
 							{
-								int countedPerProfile = requestsWithSameProfile.Count(s => (calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime && calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) || (calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime && calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
-								if (countedPerProfile < serviceInstance.Configuration.Limits.MaxConcurrentPerProfile)
-								{
-									AsLockable(serviceInstance).Unlock(_instanceLock);
-									serviceInstance.SchedulingInfo.ExpectedStartTime = calculatedStartTime;
-									serviceInstance.SchedulingInfo.ExpectedEndTime = calculatedEndTime;
-									serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
-									AsLockable(serviceInstance).Lock(_instanceLock);
+								IOrderedEnumerable<ServiceInstance> whereToLookNext = null;
 
-									WriteLog(String.Format("Schedule service '{0}'. Expected start time={1}, expected end time={2}",
-													InstanceRequestCollection.GetSignature(serviceInstance), 
-													serviceInstance.SchedulingInfo.ExpectedStartTime, 
-													serviceInstance.SchedulingInfo.ExpectedEndTime));
-									found = true;
+								int countedPerConfiguration =
+									requestsWithSameConfiguration.Count(
+										s =>
+										(calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime &&
+										 calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) ||
+										(calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime &&
+										 calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
+								if (countedPerConfiguration < serviceInstance.Configuration.Limits.MaxConcurrentPerTemplate)
+								{
+									int countedPerProfile =
+										requestsWithSameProfile.Count(
+											s =>
+											(calculatedStartTime >= s.SchedulingInfo.ExpectedStartTime &&
+											 calculatedStartTime <= s.SchedulingInfo.ExpectedEndTime) ||
+											(calculatedEndTime >= s.SchedulingInfo.ExpectedStartTime &&
+											 calculatedEndTime <= s.SchedulingInfo.ExpectedEndTime));
+									if (countedPerProfile < serviceInstance.Configuration.Limits.MaxConcurrentPerProfile)
+									{
+										AsLockable(serviceInstance).Unlock(_instanceLock);
+										serviceInstance.SchedulingInfo.ExpectedStartTime = calculatedStartTime;
+										serviceInstance.SchedulingInfo.ExpectedEndTime = calculatedEndTime;
+										serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
+										AsLockable(serviceInstance).Lock(_instanceLock);
+
+										WriteLog(String.Format("Schedule service '{0}'. Expected start time={1}, expected end time={2}",
+										                       InstanceRequestCollection.GetSignature(serviceInstance),
+										                       serviceInstance.SchedulingInfo.ExpectedStartTime,
+										                       serviceInstance.SchedulingInfo.ExpectedEndTime));
+										found = true;
+									}
+									else
+									{
+										whereToLookNext = requestsWithSameProfile;
+									}
 								}
 								else
 								{
-									whereToLookNext = requestsWithSameProfile;
+									whereToLookNext = requestsWithSameConfiguration;
 								}
-							}
-							else
-							{
-								whereToLookNext = requestsWithSameConfiguration;
-							}
 
-							if (!found)
-							{
-								if (whereToLookNext == null)
-									throw new Exception("This should not have happened.");
-
-								calculatedStartTime = whereToLookNext.Count() > 0 ? 
-													  whereToLookNext.Where(s => s.SchedulingInfo.ExpectedEndTime >= calculatedStartTime).Min(s => s.SchedulingInfo.ExpectedEndTime) :
-													  calculatedStartTime;
-
-								if (calculatedStartTime < DateTime.Now)
-									calculatedStartTime = DateTime.Now;
-
-								//Get end time
-								calculatedEndTime = calculatedStartTime.Add(avgExecutionTime);
-
-								//remove unfree time from servicePerConfiguration and servicePerProfile							
-								if (calculatedStartTime <= _timeframeTo)
+								if (!found)
 								{
-									requestsWithSameConfiguration = from s in requestsWithSameConfiguration
-																	where s.SchedulingInfo.ExpectedEndTime > calculatedStartTime
-																	orderby s.SchedulingInfo.ExpectedStartTime
-																	select s;
+									if (whereToLookNext == null)
+										throw new Exception("This should not have happened.");
 
-									requestsWithSameProfile = from s in requestsWithSameProfile
-															  where s.SchedulingInfo.ExpectedEndTime > calculatedStartTime
-															  orderby s.SchedulingInfo.ExpectedStartTime
-															  select s;
+									calculatedStartTime = whereToLookNext.Count() > 0
+										                      ? whereToLookNext.Where(s => s.SchedulingInfo.ExpectedEndTime >= calculatedStartTime)
+										                                       .Min(s => s.SchedulingInfo.ExpectedEndTime)
+										                      : calculatedStartTime;
+
+									if (calculatedStartTime < DateTime.Now)
+										calculatedStartTime = DateTime.Now;
+
+									//Get end time
+									calculatedEndTime = calculatedStartTime.Add(avgExecutionTime);
+
+									//remove unfree time from servicePerConfiguration and servicePerProfile							
+									if (calculatedStartTime <= _timeframeTo)
+									{
+										requestsWithSameConfiguration = from s in requestsWithSameConfiguration
+										                                where s.SchedulingInfo.ExpectedEndTime > calculatedStartTime
+										                                orderby s.SchedulingInfo.ExpectedStartTime
+										                                select s;
+
+										requestsWithSameProfile = from s in requestsWithSameProfile
+										                          where s.SchedulingInfo.ExpectedEndTime > calculatedStartTime
+										                          orderby s.SchedulingInfo.ExpectedStartTime
+										                          select s;
+									}
+								}
+							}
+
+							if (serviceInstance.SchedulingInfo.ExpectedDeviation <= serviceInstance.SchedulingInfo.MaxDeviationAfter ||
+							    serviceInstance.SchedulingInfo.MaxDeviationAfter == TimeSpan.Zero)
+							{
+								AsLockable(serviceInstance).Unlock(_instanceLock);
+								serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
+								serviceInstance.StateChanged += Instance_StateChanged;
+								AsLockable(serviceInstance).Lock(_instanceLock);
+
+								// set service instance max execution time
+								TimeSpan maxExecutionTime =
+									TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds*Configuration.MaxExecutionTimeFactor);
+								serviceInstance.Configuration.Limits.MaxExecutionTime = maxExecutionTime;
+
+								if (!_scheduledRequests.ContainsSignature(serviceInstance))
+								{
+									WriteLog(String.Format("Move unscheduled request to scheduled list '{0}'",
+									                       InstanceRequestCollection.GetSignature(serviceInstance)));
+									_scheduledRequests.Add(serviceInstance);
+									_unscheduledRequests.Remove(serviceInstance);
+								}
+								else
+								{
+									WriteLog(String.Format("Warning! Request '{0}' already exists in scheduled list",
+									                       InstanceRequestCollection.GetSignature(serviceInstance)));
 								}
 							}
 						}
 
-						if (serviceInstance.SchedulingInfo.ExpectedDeviation <= serviceInstance.SchedulingInfo.MaxDeviationAfter || serviceInstance.SchedulingInfo.MaxDeviationAfter == TimeSpan.Zero)
-						{
-							AsLockable(serviceInstance).Unlock(_instanceLock);
-							serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
-							serviceInstance.StateChanged += Instance_StateChanged;
-							AsLockable(serviceInstance).Lock(_instanceLock);
-
-							// set service instance max execution time
-							TimeSpan maxExecutionTime = TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds * Configuration.MaxExecutionTimeFactor);
-							serviceInstance.Configuration.Limits.MaxExecutionTime = maxExecutionTime;
-
-							if (!_scheduledRequests.ContainsSignature(serviceInstance))
-							{
-								WriteLog(String.Format("Move unscheduled request to scheduled list '{0}'", InstanceRequestCollection.GetSignature(serviceInstance)));
-								_scheduledRequests.Add(serviceInstance);
-								_unscheduledRequests.Remove(serviceInstance);
-							}
-							else
-							{
-								WriteLog(String.Format("Warning! Request '{0}' already exists in scheduled list", InstanceRequestCollection.GetSignature(serviceInstance)));
-							}
-						}
+						#endregion
 					}
-					#endregion
+					WriteLog(String.Format("Finish scheduling: scheduled={0} (uninitialized={1}, ended={2}), unscheduled={3}",
+					                       _scheduledRequests.Count,
+					                       _scheduledRequests.Count(s => s.State == ServiceState.Uninitialized),
+					                       _scheduledRequests.Count(s => s.State == ServiceState.Ended), _unscheduledRequests.Count));
+
+					// send the current list of scheduled services 
+					Environment.SendScheduledServicesUpdate(_scheduledRequests.ToList());
+
+					// run shcheduled services
+					ExecuteScheduledRequests();
 				}
-				WriteLog(String.Format("Finish scheduling: scheduled={0} (uninitialized={1}, ended={2}), unscheduled={3}", 
-								_scheduledRequests.Count, _scheduledRequests.Count(s=> s.State == ServiceState.Uninitialized), 
-								_scheduledRequests.Count(s=> s.State == ServiceState.Ended), _unscheduledRequests.Count));
-				ExecuteScheduledRequests();
+			}
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed in Schedule(), ex: {0}", ex.Message), LogMessageType.Error);
 			}
 		}
 
@@ -498,30 +540,36 @@ namespace Edge.Core.Services.Scheduling
 		/// </summary>
 		private void ExecuteScheduledRequests()
 		{
-			//WriteLog("ExecuteScheduledRequests");
-			lock (_scheduledRequests)
+			try
 			{
-				foreach (var request in _scheduledRequests.OrderBy(s => s.SchedulingInfo.ExpectedStartTime))
+				lock (_scheduledRequests)
 				{
-					// check if it is time to execute request
-					if ( request.SchedulingInfo.ExpectedStartTime <= DateTime.Now &&
-						(request.SchedulingInfo.MaxDeviationAfter == TimeSpan.Zero || request.SchedulingInfo.RequestedTime.Add(request.SchedulingInfo.MaxDeviationAfter) >= DateTime.Now) &&
-						 request.SchedulingInfo.SchedulingStatus == SchedulingStatus.Scheduled)
+					foreach (var request in _scheduledRequests.OrderBy(s => s.SchedulingInfo.ExpectedStartTime))
 					{
-						// additional check for concurent services per template and profile wchich are scheduled for now or past
-						int countedServicesWithSameConfiguration = _scheduledRequests.GetWithSameConfiguration(request).Count(s => s.SchedulingInfo.ExpectedStartTime <= DateTime.Now);
-						if (countedServicesWithSameConfiguration >= request.Configuration.Limits.MaxConcurrentPerTemplate)
-							continue;
+						// check if it is time to execute request
+						if ( request.SchedulingInfo.ExpectedStartTime <= DateTime.Now &&
+							(request.SchedulingInfo.MaxDeviationAfter == TimeSpan.Zero || request.SchedulingInfo.RequestedTime.Add(request.SchedulingInfo.MaxDeviationAfter) >= DateTime.Now) &&
+							 request.SchedulingInfo.SchedulingStatus == SchedulingStatus.Scheduled)
+						{
+							// additional check for concurent services per template and profile wchich are scheduled for now or past
+							int countedServicesWithSameConfiguration = _scheduledRequests.GetWithSameConfiguration(request).Count(s => s.SchedulingInfo.ExpectedStartTime <= DateTime.Now);
+							if (countedServicesWithSameConfiguration >= request.Configuration.Limits.MaxConcurrentPerTemplate)
+								continue;
 
-						int countedServicesWithSameProfile = _scheduledRequests.GetWithSameProfile(request).Count(s => s.SchedulingInfo.ExpectedStartTime <= DateTime.Now);
-						if (countedServicesWithSameProfile >= request.Configuration.Limits.MaxConcurrentPerProfile)
-							continue;
+							int countedServicesWithSameProfile = _scheduledRequests.GetWithSameProfile(request).Count(s => s.SchedulingInfo.ExpectedStartTime <= DateTime.Now);
+							if (countedServicesWithSameProfile >= request.Configuration.Limits.MaxConcurrentPerProfile)
+								continue;
 
-						// start service instance
-						WriteLog(String.Format("Start service '{0}'", InstanceRequestCollection.GetSignature(request)));
-						request.Start();
+							// start service instance
+							WriteLog(String.Format("Start service '{0}'", InstanceRequestCollection.GetSignature(request)));
+							request.Start();
+						}
 					}
 				}
+			}
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed in ExecuteScheduledRequests(), ex: {0}", ex.Message), LogMessageType.Error);
 			}
 		}
 
@@ -637,9 +685,10 @@ namespace Edge.Core.Services.Scheduling
 			
 		}
 
-		private void WriteLog(string message)
+		private void WriteLog(string message, LogMessageType logType = LogMessageType.Debug)
 		{
 			Debug.WriteLine("{0}: {1}", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"), message);
+			Log.Write(ToString(), message, logType);
 		}
 		#endregion
 
@@ -671,16 +720,16 @@ namespace Edge.Core.Services.Scheduling
 			instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
 			AsLockable(instance).Lock(_instanceLock);
 
-			WriteLog(String.Format("Service '{0}' is {1}", InstanceRequestCollection.GetSignature(instance), instance.State.ToString()));
+			//WriteLog(String.Format("Service '{0}' is {1}", InstanceRequestCollection.GetSignature(instance), instance.State.ToString()));
 		}
 		#endregion
 
 		#region IDisposable
 		public void Dispose()
 		{
-			if (Listener != null)
+			if (_listener != null)
 			{
-				(Listener as IDisposable).Dispose();
+				(_listener as IDisposable).Dispose();
 			}
 		} 
 		#endregion
