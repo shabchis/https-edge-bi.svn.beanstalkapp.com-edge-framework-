@@ -10,13 +10,14 @@ using System.Diagnostics;
 namespace Edge.Core.Services.Scheduling
 {
 	[ServiceBehavior(InstanceContextMode = InstanceContextMode.Single)]
-	public class Scheduler
+	public class Scheduler : IDisposable
 	{
 		#region Data Members
 
 		private object _instanceLock = new object();
 
 		public ServiceEnvironment Environment { get; private set; }
+		public ServiceEnvironmentEventListener Listener { get; private set; }
 		public SchedulerConfiguration Configuration { get; private set; }
 		
 		private Dictionary<string, ServiceConfiguration> _serviceBaseConfigurations = new Dictionary<string, ServiceConfiguration>();
@@ -83,9 +84,9 @@ namespace Edge.Core.Services.Scheduling
 			
 			// set environment and register to env event for scheduling services (from workflow)
 			Environment = environment;
-			environment.ListenForEvents(ServiceEnvironmentEventType.ServiceScheduleRequested);
-			environment.ServiceScheduleRequested += environment_ServiceScheduleRequested;
-
+			Listener = environment.ListenForEvents(ServiceEnvironmentEventType.ServiceRequiresScheduling);
+			Listener.ServiceRequiresScheduling += Listener_ServiceRequiresScheduling;
+			
 			// init base service dictionary
 			foreach (var serviceConfig in Configuration.ServiceConfigurationList)
 			{
@@ -131,7 +132,7 @@ namespace Edge.Core.Services.Scheduling
 				}
 				catch (Exception ex)
 				{
-					Log.Write(this.ToString(), ex.Message, ex, LogMessageType.Error);
+					Log.Write(ToString(), ex.Message, ex);
 				}
 			}, null);
 
@@ -146,7 +147,7 @@ namespace Edge.Core.Services.Scheduling
 				catch (Exception ex)
 				{
 
-					Log.Write(this.ToString(), ex.Message, ex, LogMessageType.Error);
+					Log.Write(ToString(), ex.Message, ex);
 				}
 			}, null);
 
@@ -161,7 +162,7 @@ namespace Edge.Core.Services.Scheduling
 				catch (Exception ex)
 				{
 
-					Log.Write(this.ToString(), ex.Message, ex, LogMessageType.Error);
+					Log.Write(ToString(), ex.Message, ex);
 				}
 			}, null);
 		}
@@ -648,7 +649,7 @@ namespace Edge.Core.Services.Scheduling
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void environment_ServiceScheduleRequested(object sender, ServiceScheduleRequestedEventArgs e)
+		private void Listener_ServiceRequiresScheduling(object sender, ServiceInstanceEventArgs e)
 		{
 			if (e.ServiceInstance != null)
 			{
@@ -672,6 +673,16 @@ namespace Edge.Core.Services.Scheduling
 
 			WriteLog(String.Format("Service '{0}' is {1}", InstanceRequestCollection.GetSignature(instance), instance.State.ToString()));
 		}
+		#endregion
+
+		#region IDisposable
+		public void Dispose()
+		{
+			if (Listener != null)
+			{
+				(Listener as IDisposable).Dispose();
+			}
+		} 
 		#endregion
 	}
 
