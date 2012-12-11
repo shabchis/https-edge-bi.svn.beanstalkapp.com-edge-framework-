@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace Edge.Core.Services.Workflow
@@ -11,12 +9,12 @@ namespace Edge.Core.Services.Workflow
 	public class WorkflowServiceConfiguration: ServiceConfiguration
 	{
 		public const string Self = "SELF";
-		WorkflowNodeGroup _workflow = new WorkflowNodeGroup() { Name = Self, Mode = WorkflowNodeGroupMode.Linear };
+		WorkflowNodeGroup _workflow = new WorkflowNodeGroup { Name = Self, Mode = WorkflowNodeGroupMode.Linear };
 		public WorkflowNodeGroup Workflow { get { return _workflow; } set { EnsureUnlocked(); _workflow = value; } }
 
 		public WorkflowServiceConfiguration()
 		{
-			this.ServiceClass = typeof(WorkflowService).FullName;
+			ServiceClass = typeof(WorkflowService).FullName;
 		}
 
 		protected override void Serialize(SerializationInfo info, StreamingContext context)
@@ -37,7 +35,7 @@ namespace Edge.Core.Services.Workflow
 		protected override IEnumerable<ILockable> GetLockables()
 		{
 			base.GetLockables();
-			yield return this.Workflow;
+			yield return Workflow;
 		}
 
 		protected override void CopyConfigurationData(ServiceConfiguration sourceConfig, ServiceConfiguration targetConfig)
@@ -46,30 +44,56 @@ namespace Edge.Core.Services.Workflow
 
 			var sourceWorkflow = (WorkflowServiceConfiguration)sourceConfig;
 			var targetWorkflow = (WorkflowServiceConfiguration)targetConfig;
-			targetWorkflow._workflow = sourceWorkflow._workflow;
-			
+
+			// copy workflow definitions mode and steps (clone steps according to source and derive configuration)
+			targetWorkflow.Workflow.Mode = sourceWorkflow.Workflow.Mode;
+			targetWorkflow.Workflow.Nodes = new LockableList<WorkflowNode>();
+
+			foreach (var workflowStep in sourceWorkflow.Workflow.Nodes.Cast<WorkflowStep>().Where(workflowStep => workflowStep != null))
+			{
+				targetWorkflow.Workflow.Nodes.Add(new WorkflowStep
+					{
+						Name = workflowStep.Name,
+						ServiceConfiguration = workflowStep.ServiceConfiguration.Derive(ServiceConfigurationLevel.Template, workflowStep.ServiceConfiguration)
+					});
+			}
+
+			//targetWorkflow._workflow = sourceWorkflow._workflow;
 		}
 
-        public override ServiceProfile Profile
-        {
-            get { return base.Profile; }
-            internal set
-            {
-                base.Profile = value;
-                // set profile for all workflow childs
-                if (Workflow.Nodes != null)
-                {
-                    foreach (var node in Workflow.Nodes)
-                    {
-                        var step = node as WorkflowStep;
-                        if (step != null && step.ServiceConfiguration != null)
-                        {
-                            step.ServiceConfiguration.Profile = value;
-                        }
-                    }
-                }
-            }
-        }
+		public override ServiceProfile Profile
+		{
+			get { return base.Profile; }
+			internal set
+			{
+				base.Profile = value;
+				// set profile for all workflow childs
+				if (Workflow.Nodes != null)
+				{
+					foreach (var step in Workflow.Nodes.Select(node => node as WorkflowStep).Where(step => step != null && step.ServiceConfiguration != null))
+					{
+						step.ServiceConfiguration.Profile = value;
+					}
+				}
+			}
+		}
+
+		//public override ServiceConfigurationLevel ConfigurationLevel
+		//{
+		//	get { return base.ConfigurationLevel; }
+		//	internal set
+		//	{
+		//		base.ConfigurationLevel = value;
+		//		// set profile for all workflow childs
+		//		if (Workflow.Nodes != null)
+		//		{
+		//			foreach (var step in Workflow.Nodes.Select(node => node as WorkflowStep).Where(step => step != null && step.ServiceConfiguration != null))
+		//			{
+		//				step.ServiceConfiguration.ConfigurationLevel = value;
+		//			}
+		//		}
+		//	}
+		//}
 	}
 
 	[Serializable]
@@ -113,7 +137,7 @@ namespace Edge.Core.Services.Workflow
 		protected override IEnumerable<ILockable> GetLockables()
 		{
 			base.GetLockables();
-			yield return (ILockable)this.Nodes;
+			yield return Nodes;
 		}
 
 		//=================
@@ -132,7 +156,7 @@ namespace Edge.Core.Services.Workflow
 		protected override IEnumerable<ILockable> GetLockables()
 		{
 			base.GetLockables();
-			yield return (ILockable)this.ServiceConfiguration;
+			yield return ServiceConfiguration;
 		}
 
 		//=================
