@@ -14,7 +14,7 @@ namespace Edge.Core.Services
 		DateTime _requestedTime;
 		DateTime _expectedStartTime;
 		DateTime _expectedEndTime;
-		TimeSpan _maxDeviationAfter;
+		TimeSpan _maxDeviationAfter = TimeSpan.FromHours(3);
 		TimeSpan _maxDeviationBefore;
 		SchedulingStatus _schedulingStatus;
 		SchedulingScope _schedulingScope;
