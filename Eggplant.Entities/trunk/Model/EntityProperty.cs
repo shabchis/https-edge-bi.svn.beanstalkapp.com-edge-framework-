@@ -29,7 +29,7 @@ namespace Eggplant.Entities.Model
 	public interface IEntityProperty<ValueT> : IEntityProperty
 	{
 		new ValueT GetValue(object target);
-		new void SetValue(object target, ValueT value); 
+		void SetValue(object target, ValueT value); 
 	}
 
 	// ==============================

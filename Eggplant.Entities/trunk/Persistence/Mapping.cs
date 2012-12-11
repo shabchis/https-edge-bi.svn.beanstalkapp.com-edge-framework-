@@ -130,25 +130,6 @@ namespace Eggplant.Entities.Persistence
 			throw new NotImplementedException();
 		}
 
-		/*
-		protected virtual MappingContext<T> CreateContext(MappingContext parentContext)
-		{
-			return new MappingContext<T>()
-			{
-				ActiveSubquery = parentContext.ActivateSubquery,
-				ActiveMapping = this
-			};
-		}
-
-		internal void Activate(MappingContext parentContext)
-		{
-			MappingContext<T> context = CreateContext(parentContext);
-			context.Value = this.SetFunction(context);
-			foreach (IMapping submapping in this.SubMappings)
-				submapping.Activate(context);
-		}
-		*/
-
 		MappingContext IMapping.CreateContext(MappingContext baseContext)
 		{
 			return new MappingContext<T>(baseContext);

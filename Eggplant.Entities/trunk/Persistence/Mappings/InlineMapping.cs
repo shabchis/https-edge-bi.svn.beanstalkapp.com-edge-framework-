@@ -8,25 +8,25 @@ namespace Eggplant.Entities.Persistence
 {
 	public class InlineMapping<T>: Mapping<T>, IInlineMapping
 	{
-		public Func<MappingContext<T>, bool> IsRelevantFunction { get; set; }
+		public Func<MappingContext<T>, bool> MatchFunction { get; set; }
 
 		internal InlineMapping(EntitySpace space): base(space)
 		{
 		}
 
-		bool IInlineMapping.IsRelevant(MappingContext context)
+		bool IInlineMapping.IsMatch(MappingContext context)
 		{
-			return this.IsRelevantFunction((MappingContext<T>)context);
+			return this.MatchFunction((MappingContext<T>)context);
 		}
 
-		public InlineMapping<T> While(params string[] fields)
+		public InlineMapping<T> Match(params string[] fields)
 		{
-			return While(context => fields.All(field => Object.Equals(context.GetField(field), context.GetVariable("__inline__" + field))));
+			return Match(context => fields.All(field => Object.Equals(context.GetField(field), context.GetVariable("__inline__" + field))));
 		}
 
-		public InlineMapping<T> While(Func<MappingContext<T>, bool> isRelevant)
+		public InlineMapping<T> Match(Func<MappingContext<T>, bool> matchFunction)
 		{
-			this.IsRelevantFunction = isRelevant;
+			this.MatchFunction = matchFunction;
 			return this;
 		}
 
@@ -65,7 +65,7 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (InlineMapping<T>)base.MapSubquery<V>(subqueryName, init);
 		}
-		public new InlineMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<T>> init)
+		public new InlineMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
 			return (InlineMapping<T>)base.MapSubquery(subqueryName, init);
 		}

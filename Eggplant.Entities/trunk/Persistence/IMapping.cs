@@ -12,7 +12,7 @@ namespace Eggplant.Entities.Persistence
 	public interface IMapping
 	{
 		EntitySpace EntitySpace { get; }
-		List<IMapping> SubMappings { get; }
+		IList<IMapping> SubMappings { get; }
 
 		MappingContext CreateContext(MappingContext baseContext);
 	}
@@ -35,11 +35,12 @@ namespace Eggplant.Entities.Persistence
 	public interface ISubqueryMapping : IMapping
 	{
 		string SubqueryName { get; }
+		bool IsMatch(MappingContext context);
 	}
 
 	public interface IInlineMapping : IMapping
 	{
-		bool IsRelevant(MappingContext context);
+		bool IsMatch(MappingContext context);
 	}
 
 

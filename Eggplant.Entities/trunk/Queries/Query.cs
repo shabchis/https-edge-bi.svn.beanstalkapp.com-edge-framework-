@@ -143,18 +143,6 @@ namespace Eggplant.Entities.Queries
 					// TODO: avoid exceptions on duplicate parameter names by prefixing them?
 					subquery.Command.Parameters.Add(p);
 				}
-
-				/*
-				// Add this subquery's relationships to its parent's 'Children' relation list for easy lookup during execution
-				foreach (var relationship in subquery.Template.Relationships)
-				{
-					SubqueryExecutionData parent = this.ExecutionData.Find(s => s.Subquery.Template == relationship.Key);
-					if (parent.Children == null)
-						parent.Children = new List<SubqueryRelationship>();
-
-					parent.Children.Add(relationship.Value);
-				}
-				*/
 			}
 
 			// ----------------------------------------
@@ -232,15 +220,5 @@ namespace Eggplant.Entities.Queries
 		}
 
 		
-	}
-
-	internal class SubqueryExecutionData
-	{
-		public Subquery Subquery;
-		//public List<IMappingContext> Mappings = new List<IMappingContext>();
-		public List<SubqueryRelationship> Children;
-		public SqlCommand TargetCommand;
-
-		//public Dictionary<Subquery, Dictionary<Identity, object>> ResultsCache; // for mappings with child relationships
 	}
 }
