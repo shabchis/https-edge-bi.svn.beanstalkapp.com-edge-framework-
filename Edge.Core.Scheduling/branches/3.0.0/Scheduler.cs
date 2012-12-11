@@ -186,7 +186,7 @@ namespace Edge.Core.Services.Scheduling
 
 			while (_started)
 			{
-				Thread.Sleep(TimeSpan.FromSeconds(2));
+				Thread.Sleep(TimeSpan.FromSeconds(5));
 
 				if (_needReschedule || calcTimeInterval <= TimeSpan.Zero)
 				{
@@ -195,7 +195,7 @@ namespace Edge.Core.Services.Scheduling
 				}
 				else
 				{
-					calcTimeInterval = calcTimeInterval.Subtract(TimeSpan.FromSeconds(2));
+					calcTimeInterval = calcTimeInterval.Subtract(TimeSpan.FromSeconds(5));
 				}
 			}
 		}
@@ -261,7 +261,7 @@ namespace Edge.Core.Services.Scheduling
 							{
 								AsLockable(request).Unlock(_instanceLock);
 								WriteLog(String.Format("Request request '{0}'can not be scheduled",
-								                       InstanceRequestCollection.GetSignature(request)));
+														InstanceRequestCollection.GetSignature(request)), LogMessageType.Warning);
 								request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
 								AsLockable(request).Lock(_instanceLock);
 							}
@@ -578,10 +578,15 @@ namespace Edge.Core.Services.Scheduling
 		/// </summary>
 		private void LoadServiceExecutionStatistics()
 		{
-			if (Environment != null)
+			if (Environment == null) return;
+			try
 			{
 				_servicesExecutionStatisticsDict = Environment.GetServiceExecutionStatistics(Configuration.Percentile);
-				WriteLog(String.Format("Loaded execution statistics for percentile {0}: {1} records loaded", Configuration.Percentile, ServicesExecutionStatisticsDict.Count));
+				WriteLog(String.Format("Loaded execution statistics for percentile {0}: {1} records loaded",Configuration.Percentile, ServicesExecutionStatisticsDict.Count));
+			}
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed in LoadServiceExecutionStatistics(), ex: {0}", ex.Message), LogMessageType.Error);
 			}
 		}
 
@@ -593,7 +598,7 @@ namespace Edge.Core.Services.Scheduling
 		/// <returns></returns>
 		private TimeSpan GetExecutionStatisticsForService(string serviceConfigID, string profileID)
 		{
-			long statisticsTime = 60;
+			long statisticsTime = 180;
 			var key = String.Format("ConfigID:{0},ProfileID:{1}", serviceConfigID, profileID);
 
 			if (_servicesExecutionStatisticsDict.ContainsKey(key))
@@ -613,13 +618,18 @@ namespace Edge.Core.Services.Scheduling
 		/// </summary>
 		private void LoadRecovery()
 		{
-			if (Environment != null)
+			if (Environment == null) return;
+			try
 			{
 				var instanceList = Environment.GetServiceInstanceActiveList();
 				foreach (var instance in instanceList)
 				{
 					_scheduledRequests.Add(instance);
 				}
+			}
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed in LoadRecovery(), ex: {0}", ex.Message), LogMessageType.Error);
 			}
 		}
 
@@ -674,7 +684,7 @@ namespace Edge.Core.Services.Scheduling
 				var profile = service.GetProfileConfiguration() == null ? null : service.GetProfileConfiguration().Profile;
 				foreach (var rule in service.SchedulingRules)
 				{
-					WriteLog(String.Format("Init: Service {0}, profile {1}, rule: scope={2}, time={3}, day={4}, max deviation after={5}, max deviation before={6}",
+					WriteLog(String.Format("Init: Profile {1}, Service {0}, Rule: scope={2}, time={3}, day={4}, max deviation after={5}, max deviation before={6}",
 									service.ServiceName, profile != null ? profile.Name : String.Empty, rule.Scope, rule.Times[0], rule.Days[0],
 									rule.MaxDeviationAfter, rule.MaxDeviationBefore));
 
@@ -682,7 +692,6 @@ namespace Edge.Core.Services.Scheduling
 			}
 
 			WriteLog(String.Format("Init: Service instances from recovery count={0}", _scheduledRequests.Count));
-			
 		}
 
 		private void WriteLog(string message, LogMessageType logType = LogMessageType.Debug)
