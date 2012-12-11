@@ -24,7 +24,11 @@ namespace Edge.Data.Pipeline
 		public Stream Stream { get; internal set; }
 		public WebRequest Request { get; internal set; }
 		public WebResponse Response { get; internal set; }
+
 		public string RequestBody { get; set; }
+
+		public bool ErrorAsString { get; set; }
+		public string ErrorBody { get; internal set; }
 
 		internal string TargetPath { get; set; }
 
@@ -45,6 +49,7 @@ namespace Edge.Data.Pipeline
 		{
 			TotalBytes = -1;
 			DownloadedBytes = 0;
+			ErrorAsString = false;
 		}
 
 		protected void SetTargetLocation(string targetLocation)
