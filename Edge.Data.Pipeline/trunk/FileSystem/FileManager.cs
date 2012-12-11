@@ -108,12 +108,15 @@ namespace Edge.Data.Pipeline
 					}
 
 					// Update the file info with physical file info
-					System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
-					operation.FileInfo.TotalBytes = f.Length;
-					operation.FileInfo.FileCreated = f.CreationTime;
+					if (outputStream is FileStream)
+					{
+						System.IO.FileInfo f = new System.IO.FileInfo(operation.TargetPath);
+						operation.FileInfo.TotalBytes = f.Length;
+						operation.FileInfo.FileCreated = f.CreationTime;
 
-					if (f.Length < MinValidFileSize)
-						throw new FileDownloadException(String.Format("Downloaded file ({0}) was 0 bytes.", operation.FileInfo.Location)); 
+						if (operation.Exception == null && f.Length < MinValidFileSize)
+							throw new FileDownloadException(String.Format("Downloaded file ({0}) was 0 bytes.", operation.FileInfo.Location));
+					}
 
 					// Notify that we have succeeded
 					if (operation.Exception == null)
