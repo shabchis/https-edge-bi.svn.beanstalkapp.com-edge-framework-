@@ -86,11 +86,7 @@ namespace Edge.Data.Pipeline
 				operation.RaiseProgress();
 			}
 
-			Stream outputStream = operation.Exception != null && operation.ErrorAsString ?
-				(Stream) new MemoryStream() :
-				(Stream) File.Create(operation.TargetPath);
-
-			using (outputStream)
+			using (FileStream outputStream = File.Create(operation.TargetPath))
 			{
 				using (operation.Stream)
 				{
@@ -106,6 +102,7 @@ namespace Edge.Data.Pipeline
 						operation.DownloadedBytes = totalBytesRead;
 						operation.RaiseProgress();
 					}
+					outputStream.Close();
 
 					// Update the file info with physical file info
 					if (outputStream is FileStream)
@@ -120,15 +117,7 @@ namespace Edge.Data.Pipeline
 
 					// Notify that we have succeeded
 					if (operation.Exception == null)
-					{
 						operation.Success = true;
-					}
-					else if (operation.ErrorAsString)
-					{
-						var errorStream = (MemoryStream)outputStream;
-						errorStream.Position = 0;
-						operation.ErrorBody = new StreamReader(errorStream).ReadToEnd();
-					}
 				}
 			}
 		}
