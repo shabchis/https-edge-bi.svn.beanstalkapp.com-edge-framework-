@@ -9,9 +9,26 @@ namespace Eggplant.Entities.Persistence
 	public class SubqueryMapping<T>:Mapping<T>, ISubqueryMapping
 	{
 		public string SubqueryName { get; set; }
+		public Func<MappingContext<T>, bool> MatchFunction { get; set; }
 
 		internal SubqueryMapping(EntitySpace space): base(space)
 		{
+		}
+
+		bool ISubqueryMapping.IsMatch(MappingContext context)
+		{
+			return this.MatchFunction((MappingContext<T>)context);
+		}
+
+		public SubqueryMapping<T> Match(params string[] fields)
+		{
+			return Match(context => fields.All(field => Object.Equals(context.GetField(field), context.GetVariable("__inline__" + field))));
+		}
+
+		public InlineMapping<T> Match(Func<MappingContext<T>, bool> matchFunction)
+		{
+			this.MatchFunction = matchFunction;
+			return this;
 		}
 
 		#region Sugar
@@ -48,7 +65,7 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (SubqueryMapping<T>)base.MapSubquery<V>(subqueryName, init);
 		}
-		public new SubqueryMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<T>> init)
+		public new SubqueryMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
 			return (SubqueryMapping<T>)base.MapSubquery(subqueryName, init);
 		}

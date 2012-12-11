@@ -71,6 +71,10 @@ namespace Eggplant.Entities.Persistence
 		{
 		}
 
+		internal MappingContext(MappingContext baseContext): this(baseContext.Query, baseContext.Direction)
+		{
+		}
+
 		internal override void SetTarget(object target)
 		{
 			if (!(target is T))

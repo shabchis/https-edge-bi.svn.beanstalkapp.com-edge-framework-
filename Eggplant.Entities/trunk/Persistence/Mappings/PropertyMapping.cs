@@ -14,6 +14,11 @@ namespace Eggplant.Entities.Persistence
 		{
 		}
 
+		IEntityProperty IPropertyMapping.Property
+		{
+			get { return this.Property; }
+		}
+
 		#region Sugar
 		// =========================
 		public new PropertyMapping<T> Inherit(IMapping baseMapping)

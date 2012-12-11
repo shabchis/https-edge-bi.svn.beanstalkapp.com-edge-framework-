@@ -15,8 +15,8 @@ namespace Eggplant.Entities.Queries
 		public SubqueryTemplate Template { get; private set; }
 		public string PreparedCommandText { get; protected set; }
 		
-		internal SqlCommand Command { get; internal set; }
-		internal int ResultSetIndex { get; internal set; }
+		internal SqlCommand Command { get; set; }
+		internal int ResultSetIndex { get; set; }
 
 		internal Subquery(Query parent, SubqueryTemplate template)
 		{

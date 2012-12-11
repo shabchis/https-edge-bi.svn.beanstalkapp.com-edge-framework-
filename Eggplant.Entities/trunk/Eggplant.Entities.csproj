@@ -73,6 +73,7 @@
     <Compile Include="Persistence\IMapping.cs" />
     <Compile Include="Persistence\Mapping.cs" />
     <Compile Include="Persistence\MappingContext.cs" />
+    <Compile Include="Persistence\Mappings\MatchMapping.cs" />
     <Compile Include="Persistence\Mappings\InlineMapping.cs" />
     <Compile Include="Persistence\PersistenceConnection.cs" />
     <Compile Include="Persistence\PersistenceStore.cs" />

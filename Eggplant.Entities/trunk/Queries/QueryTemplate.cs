@@ -42,9 +42,6 @@ namespace Eggplant.Entities.Queries
 		public QueryTemplate<T> RootSubquery(string commandText, Action<SubqueryTemplate> inner = null)
 		{
 			SubqueryTemplate root = SubqueryInit(null, commandText, inner);
-			if (root.Relationships.Count > 0)
-				throw new QueryTemplateException("Root subquery cannot have any relationships.");
-
 			this.RootSubqueryTemplate = root;
 			return this;
 		}

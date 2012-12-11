@@ -18,12 +18,10 @@ namespace Eggplant.Entities.Queries
 		public string Name { get; set; }
 		public string CommandText { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
-		public Dictionary<SubqueryTemplate, SubqueryRelationship> Relationships { get; private set; }
 
 		public SubqueryTemplate(EntitySpace space): base(space)
 		{
 			this.ConditionalColumns = new Dictionary<string, SubqueryConditionalColumn>();
-			this.Relationships = new Dictionary<SubqueryTemplate, SubqueryRelationship>();
 		}
 
 		public bool IsRoot
@@ -70,19 +68,6 @@ namespace Eggplant.Entities.Queries
 				MappedProperty = null
 			};
 
-			return this;
-		}
-
-		public SubqueryTemplate Relationship(Action<SubqueryRelationship> relationshipInit)
-		{
-			return Relationship(null, relationshipInit);
-		}
-
-		public SubqueryTemplate Relationship(string resultSetName, Action<SubqueryRelationship> relationshipInit)
-		{
-			var relationship = new SubqueryRelationship();
-			relationshipInit(relationship);
-			this.Relationships.Add(this.Template.SubqueryTemplates.Find(subtpl => subtpl.Name == resultSetName), relationship);
 			return this;
 		}
 

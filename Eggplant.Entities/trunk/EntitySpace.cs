@@ -21,12 +21,6 @@ namespace Eggplant.Entities
 			this.Definitions = new Dictionary<Type,IEntityDefinition>();
 		}
 
-		public Mapping<T> CreateMapping<T>()
-		{
-			return new Mapping<T>(this);
-		}
-
-
 		public EntityDefinition<T> GetDefinition<T>()
 		{
 			Type entityType = typeof(T);
