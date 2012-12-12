@@ -10,6 +10,7 @@ namespace Edge.Data.Objects
 		public Channel Channel;
 		public string OriginalID;
 		public ObjectStatus Status;
+		public string Name;
 	}
 
 	public enum ObjectStatus
