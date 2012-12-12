@@ -8,12 +8,14 @@ namespace Edge.Data.Objects
 	[TableInfo(Name = "Creative")]
 	public abstract partial class Creative : EdgeObject
 	{
+
 	}
 
 	[TableInfo(Name = "CreativeComposite")]
 	public partial class CompositeCreative : Creative
 	{
 		public Dictionary<string, SingleCreative> ChildCreatives;
+		public string CompositeCreativeName;
 
 		public override IEnumerable<EdgeObject> GetChildObjects()
 		{

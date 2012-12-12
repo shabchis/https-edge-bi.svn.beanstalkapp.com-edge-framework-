@@ -8,7 +8,6 @@ namespace Edge.Data.Objects
 	public abstract partial class EdgeObject : EdgeObjectBase
 	{
 		public long GK;
-		public string Name;
 
 		public Account Account;
 
