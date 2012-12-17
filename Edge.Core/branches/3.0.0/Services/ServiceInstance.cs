@@ -134,7 +134,13 @@ namespace Edge.Core.Services
 			// Callback
 			this.Connection.StateChangedCallback = OnStateChanged;
 			this.Connection.OutputGeneratedCallback = OnOutputGenerated;
-			this.Connection.RefreshState();
+
+			try { this.Connection.RefreshState(); }
+			catch (Exception ex)
+			{
+				throw new ServiceException(String.Format("Instance {0:N} failed to communicte with host {1}.", InstanceID, Configuration.HostName), ex);
+			}
+			
 		}
 
 		public void Disconnect()
