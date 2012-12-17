@@ -253,15 +253,13 @@ namespace Edge.Core.Services.Scheduling
 						{
 							if (request.SchedulingInfo.RequestedTime + request.SchedulingInfo.MaxDeviationAfter > DateTime.Now)
 							{
-								WriteLog(String.Format("Move scheduled request to unscheduled list '{0}'",
-								                       InstanceRequestCollection.GetSignature(request)));
+								WriteLog(String.Format("Move scheduled request to unscheduled list '{0}'", request.DebugInfo()));
 								_unscheduledRequests.Add(request);
 							}
 							else
 							{
 								AsLockable(request).Unlock(_instanceLock);
-								WriteLog(String.Format("Request request '{0}'can not be scheduled",
-														InstanceRequestCollection.GetSignature(request)), LogMessageType.Warning);
+								WriteLog(String.Format("Request request '{0}' cannot be scheduled", request.DebugInfo()), LogMessageType.Warning);
 								request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
 								AsLockable(request).Lock(_instanceLock);
 							}
@@ -270,7 +268,7 @@ namespace Edge.Core.Services.Scheduling
 						// Get Services for next timeframe
 						foreach (ServiceInstance request in GetServicesInTimeframe(reschedule))
 						{
-							WriteLog(String.Format("Add request to unscheduled list '{0}'", InstanceRequestCollection.GetSignature(request)));
+							WriteLog(String.Format("Add request to unscheduled list '{0}'", request.DebugInfo()));
 							_unscheduledRequests.Add(request);
 						}
 
@@ -342,7 +340,7 @@ namespace Edge.Core.Services.Scheduling
 										AsLockable(serviceInstance).Lock(_instanceLock);
 
 										WriteLog(String.Format("Schedule service '{0}'. Expected start time={1}, expected end time={2}",
-										                       InstanceRequestCollection.GetSignature(serviceInstance),
+										                       serviceInstance.DebugInfo(),
 										                       serviceInstance.SchedulingInfo.ExpectedStartTime,
 										                       serviceInstance.SchedulingInfo.ExpectedEndTime));
 										found = true;
@@ -405,14 +403,14 @@ namespace Edge.Core.Services.Scheduling
 								if (!_scheduledRequests.ContainsSignature(serviceInstance))
 								{
 									WriteLog(String.Format("Move unscheduled request to scheduled list '{0}'",
-									                       InstanceRequestCollection.GetSignature(serviceInstance)));
+									                       serviceInstance.DebugInfo()));
 									_scheduledRequests.Add(serviceInstance);
 									_unscheduledRequests.Remove(serviceInstance);
 								}
 								else
 								{
 									WriteLog(String.Format("Warning! Request '{0}' already exists in scheduled list",
-									                       InstanceRequestCollection.GetSignature(serviceInstance)));
+									                       serviceInstance.DebugInfo()));
 								}
 							}
 						}
@@ -561,8 +559,15 @@ namespace Edge.Core.Services.Scheduling
 								continue;
 
 							// start service instance
-							WriteLog(String.Format("Start service '{0}'", InstanceRequestCollection.GetSignature(request)));
-							request.Start();
+							try
+							{
+								request.Start();
+								WriteLog(String.Format("Started service '{0}'", request.DebugInfo()));
+							}
+							catch (Exception ex)
+							{
+								WriteLog(String.Format("Failed to start service '{0}', ex: {1}", request.DebugInfo(), ex.Message), LogMessageType.Error);
+							}
 						}
 					}
 				}
@@ -648,7 +653,7 @@ namespace Edge.Core.Services.Scheduling
 				AsLockable(request).Lock(_instanceLock);
 			}
 
-			WriteLog(String.Format("Add request to unscheduled list '{0}'", InstanceRequestCollection.GetSignature(request)));
+			WriteLog(String.Format("Add request to unscheduled list '{0}'", request.DebugInfo()));
 			lock (_unscheduledRequests)
 			{
 				_unscheduledRequests.Add(request);
@@ -756,6 +761,20 @@ namespace Edge.Core.Services.Scheduling
 		{
 			return new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, 0);
 		}
+	}
+
+	public static class SerivceInstanceExtenstions
+	{
+		public static string DebugInfo(this ServiceInstance instance)
+		{
+			if (instance == null || instance.Configuration == null) return String.Empty;
+
+			return String.Format("Service={0}, profile={1}, singnature={2}", 
+								  instance.Configuration.ServiceName, 
+								  instance.Configuration.Profile != null ? instance.Configuration.Profile.Name : String.Empty, 
+							      InstanceRequestCollection.GetSignature(instance));
+		}
+
 	}
 	#endregion
 }
