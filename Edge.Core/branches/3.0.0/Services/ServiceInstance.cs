@@ -159,6 +159,9 @@ namespace Edge.Core.Services
 
 			if (_autostart && info.State == ServiceState.Ready)
 				this.Start();
+
+			if (info.State == ServiceState.Ended && this.Connection != null)
+				this.Connection.Dispose();
 		}
 
 		private void OnOutputGenerated(object output)
@@ -241,15 +244,12 @@ namespace Edge.Core.Services
 				Connect();
 	
 			// Simple aborting of service without connection
-			if (State == ServiceState.Uninitialized)
+			if (State == ServiceState.Ending || State == ServiceState.Ended)
 			{
-				OnStateChanged(new ServiceStateInfo() { State = ServiceState.Ended, Outcome = ServiceOutcome.Canceled });
+				throw new InvalidOperationException("Service cannot be aborted because it is ending or has ended.");
 			}
 			else
 			{
-				if (State != ServiceState.Running && State != ServiceState.Paused)
-					throw new InvalidOperationException("Service can only be aborted when it is in the Running or Waiting state.");
-
 				this.Connection.HostChannel.Channel.AbortService(this.InstanceID);
 			}
 		}

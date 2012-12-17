@@ -36,7 +36,7 @@ namespace Edge.Core.Services
 	/// <summary>
 	/// Objects that listens for service events and pushes them to the instance object.
 	/// </summary>
-	internal interface IServiceConnection : IDisposable
+	internal interface IServiceConnection// : IDisposable
 	{
 		Guid Guid { get; }
 		Guid ServiceInstanceID { get; }

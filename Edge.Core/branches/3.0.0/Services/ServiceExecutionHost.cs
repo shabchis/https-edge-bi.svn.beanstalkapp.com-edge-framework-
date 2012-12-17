@@ -129,7 +129,8 @@ namespace Edge.Core.Services
 				}
 			}
 
-			runtimeInfo.Connections.Add(connectionGuid, OperationContext.Current.GetCallbackChannel<IServiceConnection>());
+			lock(runtimeInfo.Connections)
+				runtimeInfo.Connections.Add(connectionGuid, OperationContext.Current.GetCallbackChannel<IServiceConnection>());
 			
 		}
 
@@ -144,6 +145,16 @@ namespace Edge.Core.Services
 				lock (runtimeInfo.Connections)
 				{
 					runtimeInfo.Connections.Remove(connectionGuid);
+				}
+
+				// When no more connections exist to an uninitialized service, clear the runtime info since it doesn't retain useful information
+				if (runtimeInfo.StateInfo == null && runtimeInfo.Connections.Count == 0)
+				{
+					lock (_services)
+					{
+						_services.Remove(instanceID);
+					}
+
 				}
 			}
 		}
@@ -261,10 +272,30 @@ namespace Edge.Core.Services
 			ServiceRuntimeInfo runtimeInfo = Get(instanceID);
 			lock (runtimeInfo.ExecutionSync)
 			{
-				try { runtimeInfo.ServiceRef.Abort(); }
-				catch (AppDomainUnloadedException)
+				if (runtimeInfo.StateInfo == null)
 				{
-					HostLog("Service was killed while trying to abort.", null, LogMessageType.Warning);
+					// Special case to notify connections (ServiceInstance objects) that a service has been canceled and will never run
+					lock (runtimeInfo.Connections)
+					{
+						foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
+							connection.ReceiveState(new ServiceStateInfo() {State = ServiceState.Ended, Outcome = ServiceOutcome.Canceled});
+
+						// candidate for DeadLock
+						lock (_services)
+							_services.Remove(instanceID);
+					}
+				}
+				else
+				{
+					// Abort a running service
+					try
+					{
+						runtimeInfo.ServiceRef.Abort();
+					}
+					catch (AppDomainUnloadedException)
+					{
+						HostLog("Service was killed while trying to abort.", null, LogMessageType.Warning);
+					}
 				}
 			}
 		}
@@ -360,7 +391,11 @@ namespace Edge.Core.Services
 				_serviceByAppDomain.Remove(appDomain.Id);
 			}
 
+			#region Probably not necessary - TBD 
+			// http://stackoverflow.com/questions/8165398/do-i-need-to-close-and-or-dispose-callback-channels-acquired-through-operationco
+			
 			// Dispose of open channels
+			/*
 			lock (runtimeInfo.Connections)
 			{
 				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
@@ -372,6 +407,8 @@ namespace Edge.Core.Services
 					}
 				}
 			}
+			*/
+			#endregion
 		}
 
 
