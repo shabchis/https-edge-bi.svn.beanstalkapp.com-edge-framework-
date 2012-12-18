@@ -182,20 +182,20 @@ namespace Edge.Core.Services.Scheduling
 		{
 			WriteLog("Init: StartSchedulerTimer");
 			Schedule();
-			TimeSpan calcTimeInterval = Configuration.SamplingInterval;
+			TimeSpan calcTimeInterval = Configuration.RescheduleInterval;
 
 			while (_started)
 			{
-				Thread.Sleep(TimeSpan.FromSeconds(5));
+				Thread.Sleep(Configuration.CheckUnplannedServicesInterval);
 
 				if (_needReschedule || calcTimeInterval <= TimeSpan.Zero)
 				{
 					Schedule();
-					calcTimeInterval = Configuration.SamplingInterval;
+					calcTimeInterval = Configuration.RescheduleInterval;
 				}
 				else
 				{
-					calcTimeInterval = calcTimeInterval.Subtract(TimeSpan.FromSeconds(5));
+					calcTimeInterval = calcTimeInterval.Subtract(Configuration.CheckUnplannedServicesInterval);
 				}
 			}
 		}
@@ -205,7 +205,7 @@ namespace Edge.Core.Services.Scheduling
 			WriteLog("Init: StartRequiredServicesTimer");
 			while (_started)
 			{
-				Thread.Sleep(Configuration.ResheduleInterval);
+				Thread.Sleep(Configuration.ExecuteInterval);
 				ExecuteScheduledRequests();
 			}
 		}
@@ -246,7 +246,7 @@ namespace Edge.Core.Services.Scheduling
 						// ------------------------------------
 
 						// first of all remove old not relevant scheduled request
-						_scheduledRequests.RemoveEndedRequests();
+						_scheduledRequests.RemoveNotRelevantRequests();
 
 						// Move pending uninitialized services to the unscheduled list so they can be rescheduled
 						foreach (ServiceInstance request in _scheduledRequests.RemoveNotActivated())
@@ -259,8 +259,12 @@ namespace Edge.Core.Services.Scheduling
 							else
 							{
 								AsLockable(request).Unlock(_instanceLock);
-								WriteLog(String.Format("Request request '{0}' cannot be scheduled", request.DebugInfo()), LogMessageType.Warning);
+								WriteLog(String.Format("Request '{0}' cannot be scheduled and its instance is aborted", request.DebugInfo()),
+								         LogMessageType.Warning);
 								request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
+								request.Abort();
+								// add to update UI with requests that cannot be scheduled, this request will be removed on the next Schedule() by RemoveNotRelevantRequests()
+								_scheduledRequests.Add(request);
 								AsLockable(request).Lock(_instanceLock);
 							}
 						}
@@ -339,10 +343,10 @@ namespace Edge.Core.Services.Scheduling
 										serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Scheduled;
 										AsLockable(serviceInstance).Lock(_instanceLock);
 
-										WriteLog(String.Format("Schedule service '{0}'. Expected start time={1}, expected end time={2}",
-										                       serviceInstance.DebugInfo(),
-										                       serviceInstance.SchedulingInfo.ExpectedStartTime,
-										                       serviceInstance.SchedulingInfo.ExpectedEndTime));
+										//WriteLog(String.Format("Schedule service '{0}'. Expected start time={1}, expected end time={2}",
+										//					   serviceInstance.DebugInfo(),
+										//					   serviceInstance.SchedulingInfo.ExpectedStartTime,
+										//					   serviceInstance.SchedulingInfo.ExpectedEndTime));
 										found = true;
 									}
 									else
@@ -396,9 +400,9 @@ namespace Edge.Core.Services.Scheduling
 								AsLockable(serviceInstance).Lock(_instanceLock);
 
 								// set service instance max execution time
-								TimeSpan maxExecutionTime =
+								serviceInstance.Configuration.Limits.MaxExecutionTime =
 									TimeSpan.FromMilliseconds(avgExecutionTime.TotalMilliseconds*Configuration.MaxExecutionTimeFactor);
-								serviceInstance.Configuration.Limits.MaxExecutionTime = maxExecutionTime;
+								;
 
 								if (!_scheduledRequests.ContainsSignature(serviceInstance))
 								{
@@ -409,25 +413,34 @@ namespace Edge.Core.Services.Scheduling
 								}
 								else
 								{
-									WriteLog(String.Format("Warning! Request '{0}' already exists in scheduled list",
-									                       serviceInstance.DebugInfo()));
+									WriteLog(
+										String.Format("Warning! Request '{0}' already exists in scheduled list", serviceInstance.DebugInfo()),
+										LogMessageType.Warning);
 								}
+							}
+							else
+							{
+								// remove from unscheduled list because Expected Start Time - Requested Time > Max Deviation
+								WriteLog(String.Format("Request '{0}' cannot be scheduled ", serviceInstance.DebugInfo()),
+								         LogMessageType.Warning);
+								_unscheduledRequests.Remove(serviceInstance);
 							}
 						}
 
 						#endregion
+
+						WriteLog(String.Format("Finish scheduling: scheduled={0} (uninitialized={1}, ended={2}), unscheduled={3}",
+						                       _scheduledRequests.Count,
+						                       _scheduledRequests.Count(s => s.State == ServiceState.Uninitialized),
+						                       _scheduledRequests.Count(s => s.State == ServiceState.Ended), _unscheduledRequests.Count));
+
+						// send the current list of scheduled services 
+						Environment.SendScheduledServicesUpdate(_scheduledRequests.ToList());
 					}
-					WriteLog(String.Format("Finish scheduling: scheduled={0} (uninitialized={1}, ended={2}), unscheduled={3}",
-					                       _scheduledRequests.Count,
-					                       _scheduledRequests.Count(s => s.State == ServiceState.Uninitialized),
-					                       _scheduledRequests.Count(s => s.State == ServiceState.Ended), _unscheduledRequests.Count));
-
-					// send the current list of scheduled services 
-					Environment.SendScheduledServicesUpdate(_scheduledRequests.ToList());
-
-					// run shcheduled services
-					ExecuteScheduledRequests();
 				}
+
+				// run shcheduled services
+				ExecuteScheduledRequests();
 			}
 			catch (Exception ex)
 			{
@@ -468,14 +481,15 @@ namespace Edge.Core.Services.Scheduling
 								{
 									// create service instance, check if it already exists and return it
 									ServiceInstance request = CreateServiceInstance(configuration, schedulingRule, requestedTime);
-									lock (_scheduledRequests)
-									{
-										lock (_unscheduledRequests)
-										{
+									// Dead lock!!! - lock is not requered 'cos Schedule() already locks these collections
+									//lock (_scheduledRequests)
+									//{
+									//	lock (_unscheduledRequests)
+									//	{
 											if (!_unscheduledRequests.ContainsSignature(request) && !_scheduledRequests.ContainsSignature(request))
 												yield return request;
-										}
-									}
+									//	}
+									//}
 								}
 								requestedTime = requestedTime.AddDays(1);
 							}
@@ -603,14 +617,9 @@ namespace Edge.Core.Services.Scheduling
 		/// <returns></returns>
 		private TimeSpan GetExecutionStatisticsForService(string serviceConfigID, string profileID)
 		{
-			long statisticsTime = 180;
 			var key = String.Format("ConfigID:{0},ProfileID:{1}", serviceConfigID, profileID);
 
-			if (_servicesExecutionStatisticsDict.ContainsKey(key))
-			{
-				statisticsTime = _servicesExecutionStatisticsDict[key];
-			}
-			return TimeSpan.FromSeconds(statisticsTime);
+			return _servicesExecutionStatisticsDict.ContainsKey(key) ? TimeSpan.FromSeconds(_servicesExecutionStatisticsDict[key]) : Configuration.DefaultExecutionTime;
 		}
 
 		#endregion
@@ -653,7 +662,7 @@ namespace Edge.Core.Services.Scheduling
 				AsLockable(request).Lock(_instanceLock);
 			}
 
-			WriteLog(String.Format("Add request to unscheduled list '{0}'", request.DebugInfo()));
+			WriteLog(String.Format("Add unplanned request to unscheduled list '{0}'", request.DebugInfo()));
 			lock (_unscheduledRequests)
 			{
 				_unscheduledRequests.Add(request);
@@ -730,10 +739,12 @@ namespace Edge.Core.Services.Scheduling
 		private void Instance_StateChanged(object sender, EventArgs e)
 		{
 			var instance = (ServiceInstance)sender;
-			AsLockable(instance).Unlock(_instanceLock);
-			instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
-			AsLockable(instance).Lock(_instanceLock);
-
+			if (instance.Outcome != ServiceOutcome.Canceled)	// more options?
+			{
+				AsLockable(instance).Unlock(_instanceLock);
+				instance.SchedulingInfo.SchedulingStatus = SchedulingStatus.Activated;
+				AsLockable(instance).Lock(_instanceLock);
+			}
 			//WriteLog(String.Format("Service '{0}' is {1}", InstanceRequestCollection.GetSignature(instance), instance.State.ToString()));
 		}
 		#endregion
