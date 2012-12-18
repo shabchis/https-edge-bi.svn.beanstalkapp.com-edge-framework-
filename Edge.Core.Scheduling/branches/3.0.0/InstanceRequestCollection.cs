@@ -55,7 +55,6 @@ namespace Edge.Core.Scheduling
 
 		internal IEnumerable<ServiceInstance> RemoveNotActivated()
 		{
-			//_requestsBySignature.RemoveAll(k => k.Value.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated);
 			foreach (var request in _requestsByGuid.RemoveAll(k => k.Value.SchedulingInfo.SchedulingStatus != SchedulingStatus.Activated))
 			{
 				_requestsBySignature.Remove(GetSignature(request.Value));
@@ -96,14 +95,16 @@ namespace Edge.Core.Scheduling
 
 		/// <summary>
 		/// Remove all service instances which are ended and should not be scheduled
+		/// or request which cannot be scheduled
 		/// </summary>
-		internal void RemoveEndedRequests()
+		internal void RemoveNotRelevantRequests()
 		{
 			var requestKeyList = new List<string>();
 			foreach (var request in _requestsBySignature)
 			{
-				if (request.Value.State == ServiceState.Ended &&
-					request.Value.SchedulingInfo.RequestedTime.Add(request.Value.SchedulingInfo.MaxDeviationAfter) < DateTime.Now)
+				if ((request.Value.State == ServiceState.Ended &&
+					request.Value.SchedulingInfo.RequestedTime.Add(request.Value.SchedulingInfo.MaxDeviationAfter) < DateTime.Now) ||
+					request.Value.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled)
 				{
 					Debug.WriteLine(DateTime.Now + String.Format(": Remove from scheduled request: '{0}', max deviation after: {1}", request.Key, request.Value.SchedulingInfo.MaxDeviationAfter));
 					requestKeyList.Add(request.Key);

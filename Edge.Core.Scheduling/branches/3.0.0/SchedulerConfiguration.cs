@@ -21,13 +21,19 @@ namespace Edge.Core.Services.Scheduling
         public TimeSpan Timeframe { get; set; }
 
         // interval to check for new scheduled services (every X time check for services in timeframe)
-        public TimeSpan SamplingInterval { get; set; }
+        public TimeSpan RescheduleInterval { get; set; }
 
-        // interval for service rescheduling (every X time recalculate services scheduling)
-        public TimeSpan ResheduleInterval { get; set; }
+        // interval for execute scheduled services (every X time check what scheduled service are on time to be executed)
+        public TimeSpan ExecuteInterval { get; set; }
 
-        // interval for refreshing service executign statistics
-        public TimeSpan ExecutionStatisticsRefreshInterval { get; set; }
+        // interval for checking if there are unplanned services and should reschedule
+        public TimeSpan CheckUnplannedServicesInterval { get; set; }
+
+		// interval for refreshing service executing statistics
+		public TimeSpan ExecutionStatisticsRefreshInterval { get; set; }
+
+		// default value for execution statistics time
+		public TimeSpan DefaultExecutionTime { get; set; }
 
         // profiles configuration
         public ProfilesCollection Profiles { get; set; }
