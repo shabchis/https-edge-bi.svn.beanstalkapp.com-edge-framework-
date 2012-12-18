@@ -54,5 +54,13 @@ namespace Eggplant.Entities
 				InboundMapping = inboundMapping
 			};
 		}
+
+		public Mapping<T> CreateMapping<T>(Action<Mapping<T>> initFunction = null)
+		{
+			SubqueryMapping<T> mapping = new SubqueryMapping<T>(null, this);
+			if (initFunction != null)
+				initFunction(mapping);
+			return mapping;
+		}
 	}
 }

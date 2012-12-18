@@ -9,26 +9,9 @@ namespace Eggplant.Entities.Persistence
 	public class SubqueryMapping<T>:Mapping<T>, ISubqueryMapping
 	{
 		public string SubqueryName { get; set; }
-		public Func<MappingContext<T>, bool> MatchFunction { get; set; }
 
-		internal SubqueryMapping(EntitySpace space): base(space)
+		internal SubqueryMapping(IMapping parent, EntitySpace space = null): base(parent, space)
 		{
-		}
-
-		bool ISubqueryMapping.IsMatch(MappingContext context)
-		{
-			return this.MatchFunction((MappingContext<T>)context);
-		}
-
-		public SubqueryMapping<T> Match(params string[] fields)
-		{
-			return Match(context => fields.All(field => Object.Equals(context.GetField(field), context.GetVariable("__inline__" + field))));
-		}
-
-		public InlineMapping<T> Match(Func<MappingContext<T>, bool> matchFunction)
-		{
-			this.MatchFunction = matchFunction;
-			return this;
 		}
 
 		#region Sugar
@@ -61,21 +44,21 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (SubqueryMapping<T>)base.Map<V>(property, field);
 		}
-		public new SubqueryMapping<T> MapSubquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
+		public new SubqueryMapping<T> Subquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
 		{
-			return (SubqueryMapping<T>)base.MapSubquery<V>(subqueryName, init);
+			return (SubqueryMapping<T>)base.Subquery<V>(subqueryName, init);
 		}
-		public new SubqueryMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
+		public new SubqueryMapping<T> Subquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
-			return (SubqueryMapping<T>)base.MapSubquery(subqueryName, init);
+			return (SubqueryMapping<T>)base.Subquery(subqueryName, init);
 		}
-		public new SubqueryMapping<T> MapInline<V>(Action<InlineMapping<V>> init)
+		public new SubqueryMapping<T> Inline<V>(Action<InlineMapping<V>> init)
 		{
-			return (SubqueryMapping<T>)base.MapInline<V>(init);
+			return (SubqueryMapping<T>)base.Inline<V>(init);
 		}
-		public new SubqueryMapping<T> MapInline(Action<InlineMapping<object>> init)
+		public new SubqueryMapping<T> Inline(Action<InlineMapping<object>> init)
 		{
-			return (SubqueryMapping<T>)base.MapInline(init);
+			return (SubqueryMapping<T>)base.Inline(init);
 		}
 
 		// =========================

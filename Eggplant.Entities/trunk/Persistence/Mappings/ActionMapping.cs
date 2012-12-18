@@ -9,7 +9,8 @@ namespace Eggplant.Entities.Persistence
 	{
 		public Action<MappingContext<T>> Action { get; set; }
 
-		internal ActionMapping(EntitySpace space) : base(space)
+		internal ActionMapping(IMapping parentMapping, EntitySpace space = null)
+			: base(parentMapping, space)
 		{
 		}
 
