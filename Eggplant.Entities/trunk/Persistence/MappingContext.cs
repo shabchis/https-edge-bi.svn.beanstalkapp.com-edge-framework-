@@ -16,6 +16,7 @@ namespace Eggplant.Entities.Persistence
 
 		public Subquery ActivateSubquery { get; internal set; }
 		public IMapping ActiveMapping { get; internal set; }
+		public MappingContext ParentContext { get; private set; }
 		public object Target { get; internal set; }
 		
 		internal MappingContext(Query query, MappingDirection direction)

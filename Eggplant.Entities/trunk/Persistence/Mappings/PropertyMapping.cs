@@ -10,7 +10,7 @@ namespace Eggplant.Entities.Persistence
 	{
 		public IEntityProperty<T> Property { get; internal set; }
 
-		internal PropertyMapping(EntitySpace space) : base(space)
+		internal PropertyMapping(IMapping parentMapping, EntitySpace space = null): base(parentMapping, space)
 		{
 		}
 
@@ -49,21 +49,21 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (PropertyMapping<T>)base.Map<V>(property, field);
 		}
-		public new PropertyMapping<T> MapSubquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
+		public new PropertyMapping<T> Subquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
 		{
-			return (PropertyMapping<T>)base.MapSubquery<V>(subqueryName, init);
+			return (PropertyMapping<T>)base.Subquery<V>(subqueryName, init);
 		}
-		public new PropertyMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
+		public new PropertyMapping<T> Subquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
-			return (PropertyMapping<T>)base.MapSubquery(subqueryName, init);
+			return (PropertyMapping<T>)base.Subquery(subqueryName, init);
 		}
-		public new PropertyMapping<T> MapInline<V>(Action<InlineMapping<V>> init)
+		public new PropertyMapping<T> Inline<V>(Action<InlineMapping<V>> init)
 		{
-			return (PropertyMapping<T>)base.MapInline<V>(init);
+			return (PropertyMapping<T>)base.Inline<V>(init);
 		}
-		public new PropertyMapping<T> MapInline(Action<InlineMapping<object>> init)
+		public new PropertyMapping<T> Inline(Action<InlineMapping<object>> init)
 		{
-			return (PropertyMapping<T>)base.MapInline(init);
+			return (PropertyMapping<T>)base.Inline(init);
 		}
 
 

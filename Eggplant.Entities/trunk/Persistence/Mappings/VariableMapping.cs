@@ -10,7 +10,8 @@ namespace Eggplant.Entities.Persistence
 	{
 		public string Variable { get; internal set; }
 
-		internal VariableMapping(EntitySpace space) : base(space)
+		internal VariableMapping(IMapping parentMapping, EntitySpace space = null)
+			: base(parentMapping, space)
 		{
 		}
 
@@ -44,21 +45,21 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (VariableMapping<T>)base.Map<V>(property, field);
 		}
-		public new VariableMapping<T> MapSubquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
+		public new VariableMapping<T> Subquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
 		{
-			return (VariableMapping<T>)base.MapSubquery<V>(subqueryName, init);
+			return (VariableMapping<T>)base.Subquery<V>(subqueryName, init);
 		}
-		public new VariableMapping<T> MapSubquery(string subqueryName, Action<SubqueryMapping<object>> init)
+		public new VariableMapping<T> Subquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
-			return (VariableMapping<T>)base.MapSubquery(subqueryName, init);
+			return (VariableMapping<T>)base.Subquery(subqueryName, init);
 		}
-		public new VariableMapping<T> MapInline<V>(Action<InlineMapping<V>> init)
+		public new VariableMapping<T> Inline<V>(Action<InlineMapping<V>> init)
 		{
-			return (VariableMapping<T>)base.MapInline<V>(init);
+			return (VariableMapping<T>)base.Inline<V>(init);
 		}
-		public new VariableMapping<T> MapInline(Action<InlineMapping<object>> init)
+		public new VariableMapping<T> Inline(Action<InlineMapping<object>> init)
 		{
-			return (VariableMapping<T>)base.MapInline(init);
+			return (VariableMapping<T>)base.Inline(init);
 		}
 
 		// =========================
