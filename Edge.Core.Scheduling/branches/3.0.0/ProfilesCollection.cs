@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Edge.Core.Services;
 
-namespace Edge.Core.Scheduling
+namespace Edge.Core.Services.Scheduling
 {
 	public class ProfilesCollection : ICollection<ServiceProfile>
 	{
 		private List<ServiceProfile> _profiles = new List<ServiceProfile>();
 		private Dictionary<int, ServiceProfile> _profileByAccountId = new Dictionary<int, ServiceProfile>();
 		private Dictionary<Guid, ServiceProfile> _profileByProfileID = new Dictionary<Guid, ServiceProfile>();
-
-		
 
 		#region ICollection<Profile> Members
 
