@@ -13,29 +13,22 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<Measure> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Measure>()
-				.Instantiate(context => new Measure())
+				.Set(context => new Measure())
 				.Map<int>(Measure.Properties.ID, "ID")
 				.Map<string>(Measure.Properties.Name, "Name")
 				.Map<string>(Measure.Properties.DisplayName, "DisplayName")
 				.Map<Account>(Measure.Properties.Account, account => account
-					.Instantiate(context => new Account())
 					.Map<int>(Account.Properties.ID, "AccountID")
 					)
 				.Map<Channel>(Measure.Properties.Channel, channel => channel
-					.Instantiate(context => new Channel())
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 					)
 				.Map<Measure>(Measure.Properties.BaseMeasure, measure => measure
-					.Instantiate(context => new Measure())
 					.Map<int>(Measure.Properties.ID, "BaseMeasureID")
 					)
 				.Map<string>(Measure.Properties.StringFormat, "StringFormat")
 				.Map<MeasureDataType>(Measure.Properties.DataType, "DataType")
 				.Map<MeasureOptions>(Measure.Properties.Options, "Options")
-				.Collection<ConnectionDefinition>(Measure.Properties.TEMPConnections, "Connections", collection => collection
-					//.Instantiate(context => new ConnectionDefinition())
-					.Scalar<int>(ConnectionDefinition.Properties.ID, "ConnectionID")
-				)
 			;
 		}
 
@@ -58,13 +51,6 @@ namespace Edge.Data.Objects
 						.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
 						.ParseEdgeTemplate()
 					)
-				.Subquery("Connections",
-					"select * from connections where AccountID = @accountID",
-					subquery => subquery
-						.RootRelationship(relationship => relationship
-							.Field("MeasureID", "Measure")
-						)
-					)
 				.Param<Account>("account", required: false)
 				.Param<Channel>("channel", required: false)
 			;
@@ -75,8 +61,7 @@ namespace Edge.Data.Objects
 			return Measure.Queries.Get.Start()
 				.Select(
 					Measure.Properties.Name,
-					Measure.Properties.DisplayName,
-					Measure.Properties.TEMPConnections
+					Measure.Properties.DisplayName
 					)
 				.Param<Account>("account", account)
 				.Param<Channel>("channel", channel)
