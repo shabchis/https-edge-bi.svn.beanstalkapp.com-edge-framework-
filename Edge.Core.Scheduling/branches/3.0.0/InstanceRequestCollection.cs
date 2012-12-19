@@ -2,10 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Edge.Core.Services;
-using System.Diagnostics;
+using Edge.Core.Utilities;
 
-namespace Edge.Core.Scheduling
+namespace Edge.Core.Services.Scheduling
 {
 	/// <summary>
 	/// Help class for storing shceduling requests by GUID and by request signature
@@ -34,6 +33,11 @@ namespace Edge.Core.Scheduling
 				return _requestsByGuid.Values.ToList()[index];
 			}
 		} 
+		#endregion
+
+		#region Properties
+		// for debug use only to know what kind of collection
+		public string CollectionType { get; set; } 
 		#endregion
 
 		#region Internal Functions
@@ -93,21 +97,16 @@ namespace Edge.Core.Scheduling
 		}
 
 		/// <summary>
-		/// Remove all service instances which are ended and should not be scheduled
-		/// or request which cannot be scheduled
+		/// Remove requests from collection by specified predicate
 		/// </summary>
-		internal void RemoveNotRelevantRequests()
+		/// <param name="removeCondition"></param>
+		internal void RemoveByPredicate(Predicate<ServiceInstance> removeCondition)
 		{
 			var requestKeyList = new List<string>();
-			foreach (var request in _requestsBySignature)
+			foreach (var request in _requestsBySignature.Where(request => removeCondition(request.Value)))
 			{
-				if ((request.Value.State == ServiceState.Ended &&
-					request.Value.SchedulingInfo.RequestedTime.Add(request.Value.SchedulingInfo.MaxDeviationAfter) < DateTime.Now) ||
-					request.Value.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled)
-				{
-					Debug.WriteLine(DateTime.Now + String.Format(": Remove from scheduled request: '{0}', max deviation after: {1}", request.Key, request.Value.SchedulingInfo.MaxDeviationAfter));
-					requestKeyList.Add(request.Key);
-				}
+				Log.Write(ToString(), String.Format("Remove from {0} collection request '{1}'", CollectionType, request.Value.DebugInfo()), LogMessageType.Debug);
+				requestKeyList.Add(request.Key);
 			}
 			foreach (var key in requestKeyList)
 			{
@@ -115,7 +114,6 @@ namespace Edge.Core.Scheduling
 				_requestsBySignature.Remove(key);
 				_requestsByGuid.Remove(request.InstanceID);
 			}
-
 		}
 		#endregion
 

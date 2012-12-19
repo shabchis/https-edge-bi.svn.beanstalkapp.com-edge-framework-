@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.ServiceModel;
-using Edge.Core.Services;
 
-namespace Edge.Core.Scheduling
+namespace Edge.Core.Services.Scheduling
 {
 	[ServiceContract(SessionMode = SessionMode.Required, CallbackContract = typeof(ISchedulingHostSubscriber))]
 	public interface ISchedulingHost
@@ -34,10 +31,8 @@ namespace Edge.Core.Scheduling
 
 	public interface ISchedulingHostSubscriber
 	{
-
-
 		[OperationContract(IsOneWay = true)]
 		[NetDataContract]
-		void InstancesEvents(List<Edge.Core.Services.ServiceInstance> ServiceInstances);
+		void InstancesEvents(List<ServiceInstance> serviceInstances);
 	}
 }

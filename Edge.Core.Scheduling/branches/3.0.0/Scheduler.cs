@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Edge.Core.Utilities;
-using Edge.Core.Scheduling;
 using System.ServiceModel;
 using System.Diagnostics;
 
@@ -26,10 +25,10 @@ namespace Edge.Core.Services.Scheduling
 		private List<ServiceConfiguration> _serviceConfigurationsToSchedule = new List<ServiceConfiguration>();
 
 		// Unscheduled requests waiting to be scheduled
-		private InstanceRequestCollection _unscheduledRequests = new InstanceRequestCollection();
+		private InstanceRequestCollection _unscheduledRequests = new InstanceRequestCollection {CollectionType = "Unscheduled"};
 
 		// Scheduled instances that are added by the 'Schedule' method
-		private InstanceRequestCollection _scheduledRequests = new InstanceRequestCollection();
+		private InstanceRequestCollection _scheduledRequests = new InstanceRequestCollection {CollectionType = "Scheduled"};
 
 		// Dictionary of execution statistics times per service and profile config
 		// according to the table in DB which is updated every X time and reloaded into dictionary every X time by configuration
@@ -242,8 +241,7 @@ namespace Edge.Core.Services.Scheduling
 						#region Manage history and find services to schedule
 						// ------------------------------------
 
-						// first of all remove old not relevant scheduled request
-						_scheduledRequests.RemoveNotRelevantRequests();
+						RemoveNotRelevantRequests();
 
 						// Move pending uninitialized services to the unscheduled list so they can be rescheduled
 						foreach (ServiceInstance request in _scheduledRequests.RemoveNotActivated())
@@ -268,8 +266,7 @@ namespace Edge.Core.Services.Scheduling
 						}
 
 						// Copy unscheduled requests to an ordered list by request time + max deviation after
-						var servicesForNextTimeframe = new List<ServiceInstance>(_unscheduledRequests
-							                                                         .OrderBy(
+						var servicesForNextTimeframe = new List<ServiceInstance>(_unscheduledRequests.OrderBy(
 								                                                         schedulingData =>
 								                                                         schedulingData.SchedulingInfo.RequestedTime +
 								                                                         schedulingData.SchedulingInfo.MaxDeviationAfter));
@@ -343,6 +340,7 @@ namespace Edge.Core.Services.Scheduling
 									AsLockable(serviceInstance).Unlock(_instanceLock);
 									serviceInstance.SchedulingInfo.ExpectedStartTime = calculatedStartTime;
 									serviceInstance.SchedulingInfo.ExpectedEndTime = calculatedEndTime;
+									serviceInstance.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
 									AsLockable(serviceInstance).Lock(_instanceLock);
 									break;
 								}
@@ -353,12 +351,6 @@ namespace Edge.Core.Services.Scheduling
 							{
 								ScheduleServiceInstance(serviceInstance, avgExecutionTime);
 							}
-							else
-							{
-								ServiceCannotBeScheduled(serviceInstance);
-							}
-							// remove from unscheduled list: or scheduled or cannot be scheduled
-							_unscheduledRequests.Remove(serviceInstance);
 						}
 						//------------------------------
 						#endregion
@@ -489,6 +481,7 @@ namespace Edge.Core.Services.Scheduling
 			{
 				lock (_scheduledRequests)
 				{
+					//WriteLog("Start ExecuteScheduledRequests()");
 					foreach (var request in _scheduledRequests.OrderBy(s => s.SchedulingInfo.ExpectedStartTime))
 					{
 						// check if it is time to execute request
@@ -573,6 +566,19 @@ namespace Edge.Core.Services.Scheduling
 					orderby s.SchedulingInfo.ExpectedStartTime
 					select s;
 		}
+
+		private void RemoveNotRelevantRequests()
+		{
+			// remove old not relevant scheduled request ended and could not be scheduled
+			_scheduledRequests.RemoveByPredicate(request => (request.State == ServiceState.Ended &&
+			                                                 request.SchedulingInfo.RequestedTime.Add(request.SchedulingInfo.MaxDeviationAfter) < DateTime.Now) ||
+			                                                 request.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled);
+
+			// remove from unscheduled request all requests which could not be scheduled and are out of timeframe by max deviation
+			_unscheduledRequests.RemoveByPredicate(request => request.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled &&
+												   request.SchedulingInfo.RequestedTime.Add(request.SchedulingInfo.MaxDeviationAfter) < DateTime.Now);
+		}
+
 		#endregion
 
 		#region Private Methods
