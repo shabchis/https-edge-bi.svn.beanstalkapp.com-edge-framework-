@@ -39,8 +39,7 @@ namespace Edge.Core.Scheduling
 		#region Internal Functions
 		internal static string GetSignature(ServiceInstance instance)
 		{
-			return String.Format("BaseConfigurationID:{0},scope:{1},time:{2}", instance.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile).ConfigurationID, instance.SchedulingInfo.SchedulingScope, instance.SchedulingInfo.RequestedTime);
-
+			return String.Format("BaseConfigurationID:{0},scope:{1},time:{2}", instance.Configuration.GetBaseConfiguration(ServiceConfigurationLevel.Profile).ConfigurationID, instance.SchedulingInfo.SchedulingScope, instance.SchedulingInfo.RequestedTime.ToString("dd/MM/yyyy HH:mm:ss"));
 		}
 		
 		internal bool ContainsSignature(ServiceInstance requestToCheck)
@@ -62,7 +61,7 @@ namespace Edge.Core.Scheduling
 			}
 		}
 
-		internal IOrderedEnumerable<ServiceInstance> GetWithSameConfiguration(ServiceInstance currentRequest)
+		internal IOrderedEnumerable<ServiceInstance> GetWithSameTemplate(ServiceInstance currentRequest)
 		{
 			var servicesWithSameConfiguration =
 							from s in _requestsByGuid.Values
