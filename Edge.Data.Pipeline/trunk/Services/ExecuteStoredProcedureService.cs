@@ -154,7 +154,8 @@ namespace Edge.Data.Pipeline.Services
 						Smtp.SetCc(Instance.Configuration.GetOption("EMailCC"));
 
 					Smtp.SetFromTo(Instance.Configuration.GetOption("EMailFrom"), Instance.Configuration.GetOption("EMailTo"));
-					string htmlBody = ConvertDataTableToHtml(dataTable, returnMsg);
+					string htmlBody = CreateHtmlFromTemplate(dataTable, returnMsg);
+						
 					Smtp.Send(topic, htmlBody, highPriority: true, IsBodyHtml: true);
 
 				}
@@ -167,12 +168,27 @@ namespace Edge.Data.Pipeline.Services
 			return ServiceOutcome.Success;
 		}
 
+		private string CreateHtmlFromTemplate(DataTable dataTable, string returnMsg)
+		{
+			try
+			{
+				string template = System.IO.File.ReadAllText(@"C:\Users\shayb\Desktop\3333.htm");
+				template = template.Replace("{DataTable_PlaceHolder}", ConvertDataTableToHtmlTable(dataTable, returnMsg));
+				return template;
+			}
+			catch(Exception ex)
+			{
+				throw new Exception("Cannot create Html from template", ex);
+			}
+		
+		}
+
 		private string GetUsersFromDB()
 		{
 			throw new NotImplementedException();
 		}
 
-		public static string ConvertDataTableToHtml(DataTable targetTable, string appendBody)
+		public static string ConvertDataTableToHtmlTable(DataTable targetTable, string appendBody)
 		{
 			string htmlString = "";
 
@@ -183,16 +199,6 @@ namespace Edge.Data.Pipeline.Services
 
 			StringBuilder htmlBuilder = new StringBuilder();
 
-			//Create Top Portion of HTML Document
-			htmlBuilder.Append("<html>");
-			htmlBuilder.Append("<head>");
-			//htmlBuilder.Append("<title>");
-			//htmlBuilder.Append("Page-");
-			//htmlBuilder.Append(Guid.NewGuid().ToString());
-			//htmlBuilder.Append("</title>");
-			htmlBuilder.Append("</head>");
-			htmlBuilder.Append("<body>");
-			
 			if (!String.IsNullOrEmpty(appendBody))
 				htmlBuilder.Append(appendBody);
 
@@ -225,11 +231,6 @@ namespace Edge.Data.Pipeline.Services
 
 				htmlBuilder.Append("</tr>");
 			}
-
-			//Create Bottom Portion of HTML Document
-			htmlBuilder.Append("</table>");
-			htmlBuilder.Append("</body>");
-			htmlBuilder.Append("</html>");
 
 			//Create String to be Returned
 			htmlString = htmlBuilder.ToString();
