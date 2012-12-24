@@ -12,20 +12,37 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<EdgeObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeObject>(edgeObject => edgeObject
+
+				// GK
 				.Map<long>(EdgeObject.Properties.GK, "GK")
+
+				// EdgeType
+				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
+					.Map<int>(EdgeType.Properties.TypeID, "TypeID")
+				)
+
+				// Account
+				.Map<Account>(EdgeObject.Properties.Account, account => account
+					.Do(context => Account.Mappings.ResolveReference("AccountID", context))
+					.Map<int>(Account.Properties.ID, "AccountID")
+				)
+
+				// Connections
 				.Map<Dictionary<ConnectionDefinition, EdgeObject>>(EdgeObject.Properties.Connections, connections => connections
-					.Set(context => new Dictionary<ConnectionDefinition, EdgeObject>())
 					.Subquery("Connections", subquery => subquery
 						.Map<EdgeObject>("parent", parent => parent
-							.Map<long>(EdgeObject.Properties.GK, "FromObjectGK")//,
-						//resolve: IdentityResolve.ExistingOnly
+							.Map<long>(EdgeObject.Properties.GK, "FromGK")
+							//resolve: IdentityResolve.ExistingOnly
 						)
 						.Map<ConnectionDefinition>("key", key => key
-							.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionID")
+							.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionDefID")
 						)
 						.Map<EdgeObject>("value", value => value
-							.Set(context => (EdgeObject)Activator.CreateInstance(Type.GetType(context.GetField<string>("ToObjectType"))))
-							.Map<long>(EdgeObject.Properties.GK, "ToObjectGK")
+							.Set(context => (EdgeObject)Activator.CreateInstance(Type.GetType(context.GetField<string>("ToClrType"))))
+							.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
+								.Map<int>(EdgeType.Properties.TypeID, "ToTypeID")
+							)
+							.Map<long>(EdgeObject.Properties.GK, "ToGK")
 						)
 						.Do(context => EdgeObject.Properties.Connections.GetValue(context.GetVariable<EdgeObject>("parent")).Add(
 								context.GetVariable<ConnectionDefinition>("key"),
