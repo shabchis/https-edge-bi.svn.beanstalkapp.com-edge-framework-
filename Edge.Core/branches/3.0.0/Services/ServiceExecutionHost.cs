@@ -39,6 +39,7 @@ namespace Edge.Core.Services
 		private class ServiceConnectionInfo
 		{
 			public Guid ConnectionGuid;
+			public Guid InstanceId;
 			public string UsageName;
 			public IServiceConnection Callback;
 		}
@@ -133,6 +134,7 @@ namespace Edge.Core.Services
 				runtimeInfo.Connections.Add(connectionGuid, new ServiceConnectionInfo()
 				{
 					ConnectionGuid = connectionGuid,
+					InstanceId = instanceID,
 					UsageName = usageName,
 					Callback = OperationContext.Current.GetCallbackChannel<IServiceConnection>()
 				});
@@ -331,7 +333,7 @@ namespace Edge.Core.Services
 					try { connection.Callback.ReceiveState(runtimeInfo.StateInfo.Value);}
 					catch (Exception ex)
 					{
-						HostLog(String.Format("Host failed to notify connection '{0}' of the service state. ({1})", connection.UsageName, ex.GetType().Name), ex);
+						HostLog(String.Format("Host failed to notify connection '{0}' of the service state, instance ID={2}. ({1})", connection.UsageName, ex.GetType().Name, connection.InstanceId), ex);
 					}
 				}
 			}
