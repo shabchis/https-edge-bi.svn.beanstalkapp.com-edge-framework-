@@ -5,21 +5,14 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public partial class ConnectionDefinition
+	public partial class EdgeType
 	{
-		public int ID;
+		public int TypeID;
 		public string Name;
+		public Type ClrType;
+		public string TableName;
+
 		public Account Account;
 		public Channel Channel;
-		public EdgeType EdgeType;
-		public ConnectionOptions Options;
 	}
-
-	[Flags]
-	public enum ConnectionOptions
-	{
-		None = 0x0,
-		All = 0xff
-	}
-
 }

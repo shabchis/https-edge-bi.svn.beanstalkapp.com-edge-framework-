@@ -8,11 +8,9 @@ namespace Edge.Data.Objects
 	public abstract partial class EdgeObject : EdgeObjectBase
 	{
 		public long GK;
-		public string Name;
-
 		public Account Account;
-
-		public Dictionary<ConnectionDefinition, object> Connections;
+		public EdgeType EdgeType;
+		public Dictionary<ConnectionDefinition, EdgeObject> Connections;
 	}
 	
 	public abstract class EdgeObjectBase

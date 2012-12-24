@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	[TableInfo(Name = "TargetAge")]
 	public partial class AgeTarget : Target
 	{
 		public int FromAge;

@@ -5,8 +5,6 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-
-	[TableInfo(Name = "Channel")]
 	public partial class Channel
 	{
 		public int ID;

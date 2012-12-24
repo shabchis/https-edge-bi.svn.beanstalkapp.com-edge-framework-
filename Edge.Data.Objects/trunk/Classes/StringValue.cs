@@ -5,11 +5,8 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	[TableInfo(Name = "Segment")]
-	public partial class Segment : ChannelSpecificObject
+	public partial class StringValue : ChannelSpecificObject
 	{
-		public ConnectionDefinition ConnectionDefinition;
 		public string Value;
-
 	}
 }

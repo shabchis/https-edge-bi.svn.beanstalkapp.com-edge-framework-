@@ -13,7 +13,6 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<Measure> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Measure>()
-				.Set(context => new Measure())
 				.Map<int>(Measure.Properties.ID, "ID")
 				.Map<string>(Measure.Properties.Name, "Name")
 				.Map<string>(Measure.Properties.DisplayName, "DisplayName")
