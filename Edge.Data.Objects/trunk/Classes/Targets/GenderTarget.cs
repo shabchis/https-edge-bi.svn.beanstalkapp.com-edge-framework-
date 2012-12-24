@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	[TableInfo(Name = "TargetGender")]
 	public partial class GenderTarget : Target
 	{
 		public Gender Gender;
