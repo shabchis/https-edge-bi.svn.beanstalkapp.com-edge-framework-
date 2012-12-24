@@ -364,9 +364,8 @@ namespace Edge.Core.Services.Scheduling
 						SendScheduledServicesUpdate();
 					}
 				}
-
-				// run shcheduled services
-				ExecuteScheduledRequests();
+				// no need to run shcheduled services - another thread is doing this
+				//ExecuteScheduledRequests();
 			}
 			catch (Exception ex)
 			{
