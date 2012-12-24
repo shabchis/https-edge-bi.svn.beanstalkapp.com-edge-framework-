@@ -14,6 +14,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<Account, int> ID = new EntityProperty<Account, int>("ID");
 			public static EntityProperty<Account, string> Name = new EntityProperty<Account, string>("Name");
 			public static EntityProperty<Account, Account> ParentAccount = new EntityProperty<Account, Account>("ParentAccount");
+			public static EntityProperty<Account, AccountStatus> Status = new EntityProperty<Account, AccountStatus>("Status");
 		}
 	}
 }

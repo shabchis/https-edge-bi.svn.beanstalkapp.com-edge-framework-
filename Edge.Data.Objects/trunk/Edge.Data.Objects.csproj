@@ -48,14 +48,16 @@
   <ItemGroup>
     <Compile Include="Classes\Account.cs" />
     <Compile Include="Classes\Ad.cs" />
-    <Compile Include="Classes\Base\ChannelSpecificObject.cs" />
-    <Compile Include="Classes\Base\EdgeObject.cs" />
-    <Compile Include="Classes\Base\EdgeType.cs" />
+    <Compile Include="Classes\ChannelSpecificObject.cs" />
+    <Compile Include="Classes\CompositeCreative.cs" />
+    <Compile Include="Classes\EdgeObject.cs" />
+    <Compile Include="Classes\EdgeType.cs" />
     <Compile Include="Classes\Campaign.cs" />
     <Compile Include="Classes\Channel.cs" />
     <Compile Include="Classes\Creative.cs" />
-    <Compile Include="Classes\Creatives\ImageCreative.cs" />
-    <Compile Include="Classes\Creatives\TextCreative.cs" />
+    <Compile Include="Classes\ImageCreative.cs" />
+    <Compile Include="Classes\SingleCreative.cs" />
+    <Compile Include="Classes\TextCreative.cs" />
     <Compile Include="Classes\Currency.cs" />
     <Compile Include="Classes\LandingPage.cs" />
     <Compile Include="Classes\Measure.cs" />
@@ -64,11 +66,19 @@
     <Compile Include="Classes\StringValue.cs" />
     <Compile Include="Classes\Target.cs" />
     <Compile Include="Classes\TargetMatch.cs" />
-    <Compile Include="Classes\Targets\AgeTarget.cs" />
-    <Compile Include="Classes\Targets\GenderTarget.cs" />
-    <Compile Include="Classes\Targets\KeywordTarget.cs" />
-    <Compile Include="Classes\Targets\PlacementTarget.cs" />
+    <Compile Include="Classes\AgeTarget.cs" />
+    <Compile Include="Classes\GenderTarget.cs" />
+    <Compile Include="Classes\KeywordTarget.cs" />
+    <Compile Include="Classes\PlacementTarget.cs" />
     <Compile Include="EdgeObjectsUtility.cs" />
+    <Compile Include="Mappings\Account.cs" />
+    <Compile Include="Mappings\Ad.cs" />
+    <Compile Include="Mappings\Channel.cs" />
+    <Compile Include="Mappings\ChannelSpecificObject.cs" />
+    <Compile Include="Mappings\CompositeCreative.cs" />
+    <Compile Include="Mappings\SingleCreative.cs" />
+    <Compile Include="Mappings\Creative.cs" />
+    <Compile Include="Mappings\EdgeType.cs" />
     <Compile Include="Model\Account.cs" />
     <Compile Include="Model\Ad.cs" />
     <Compile Include="Model\AgeTarget.cs" />
@@ -77,7 +87,6 @@
     <Compile Include="Model\ChannelSpecificObject.cs" />
     <Compile Include="Model\CompositeCreative.cs" />
     <Compile Include="Model\ConnectionDefinition.cs" />
-    <Compile Include="Model\Creative.cs" />
     <Compile Include="Model\Currency.cs" />
     <Compile Include="Model\CurrencyRate.cs" />
     <Compile Include="Model\EdgeObject.cs" />
@@ -88,15 +97,14 @@
     <Compile Include="Model\LandingPage.cs" />
     <Compile Include="Model\Measure.cs" />
     <Compile Include="Model\PlacementTarget.cs" />
-    <Compile Include="Model\SingleCreative.cs" />
     <Compile Include="Model\StringValue.cs" />
     <Compile Include="Model\Target.cs" />
     <Compile Include="Model\TargetMatch.cs" />
     <Compile Include="Model\TextCreative.cs" />
-    <Compile Include="Queries\EdgeObject.cs">
+    <Compile Include="Mappings\EdgeObject.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Queries\Measure.cs">
+    <Compile Include="Mappings\Measure.cs">
       <SubType>Code</SubType>
     </Compile>
     <None Include="Edge.Data.Objects.snk" />
@@ -108,10 +116,14 @@
       <Name>Eggplant.Entities</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <Content Include="Queries\EdgeObject.sql" />
-    <Content Include="Queries\Measure.sql" />
+    <Folder Include="Classes\Base\" />
+    <Folder Include="Classes\Creatives\" />
+    <Folder Include="Classes\Targets\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Mappings\EdgeObject.sql" />
+    <Content Include="Mappings\Measure.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
