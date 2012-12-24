@@ -27,7 +27,7 @@ namespace Edge.Core.Services
 		void NotifyState(Guid instanceID);
 
 		[OperationContract]
-		void Connect(Guid instanceID, Guid connectionGuid);
+		void Connect(Guid instanceID, Guid connectionGuid, string usageName);
 
 		[OperationContract(IsOneWay = true)]
 		void Disconnect(Guid instanceID, Guid connectionGuid);
@@ -36,11 +36,8 @@ namespace Edge.Core.Services
 	/// <summary>
 	/// Objects that listens for service events and pushes them to the instance object.
 	/// </summary>
-	internal interface IServiceConnection// : IDisposable
+	internal interface IServiceConnection
 	{
-		Guid Guid { get; }
-		Guid ServiceInstanceID { get; }
-
 		[OperationContract(IsOneWay = true)]
 		void ReceiveState(ServiceStateInfo stateInfo);
 
@@ -48,5 +45,5 @@ namespace Edge.Core.Services
 		void ReceiveOutput(object output);
 	}
 
-	
+
 }

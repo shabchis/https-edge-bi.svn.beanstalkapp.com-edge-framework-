@@ -1,14 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Diagnostics;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
-using System.Runtime.Remoting.Contexts;
-using System.ServiceModel;
-using System.ServiceModel.Dispatcher;
 using Edge.Core.Utilities;
 
 namespace Edge.Core.Services
@@ -30,7 +22,7 @@ namespace Edge.Core.Services
 		internal ServiceStateInfo StateInfo;
 		internal ServiceExecutionHost Host;
 		internal bool IsStopped = false;
-		Thread _doWork = null;
+		Thread _doWork;
 
 		public Guid InstanceID { get; private set; }
 		public ServiceConfiguration Configuration { get; private set; }
@@ -50,7 +42,7 @@ namespace Edge.Core.Services
 		internal void Init(ServiceExecutionHost host, ServiceEnvironmentConfiguration envConfig, ServiceConfiguration config, SchedulingInfo schedulingInfo, Guid instanceID, Guid parentInstanceID)
 		{
 			Host = host;
-			this.Environment = ServiceEnvironment.Open(envConfig);
+			this.Environment = ServiceEnvironment.Open("Service", envConfig);
 
 			this.InstanceID = instanceID;
 			this.Configuration = config;
@@ -78,33 +70,20 @@ namespace Edge.Core.Services
 
 		void NotifyState()
 		{
-			try { Host.UpdateState(this.InstanceID, StateInfo); }
-			catch (Exception ex)
-			{
-				try { Log("Could not notify environment of service state, possibly because the host is being disposed.", ex, LogMessageType.Warning); }
-				catch { }
-			}
+			Host.UpdateState(this.InstanceID, StateInfo);
 		}
 
 		protected void GenerateOutput(object output)
 		{
-			try { Host.NotifyOutput(this.InstanceID, output); }
-			catch (Exception ex)
-			{
-				try { Log("Could not send output from service, possibly because the host is being disposed.", ex, LogMessageType.Warning); }
-				catch { }
-			}
-
+			Host.NotifyOutput(this.InstanceID, output);
 		}
 
 		protected void Error(Exception exception, bool fatal = false)
 		{
 			if (fatal)
 				throw exception;
-			else
-			{
-				GenerateOutput(exception);
-			}
+
+			GenerateOutput(exception);
 		}
 
 		protected void Error(string message, Exception inner = null, bool fatal = false)
@@ -160,7 +139,7 @@ namespace Edge.Core.Services
 			_doWork = new Thread(() =>
 			{
 				// Suppress thread abort because these are expected
-				try { outcome = this.DoWork(); }
+				try { outcome = DoWork(); }
 				catch (ThreadAbortException) { }
 				catch (Exception ex)
 				{
@@ -232,7 +211,7 @@ namespace Edge.Core.Services
 			Thread onEndedThread = new Thread(() =>
 			{
 				// Suppress thread abort because these are expected
-				try { this.Cleanup(); }
+				try { Cleanup(); }
 				catch (ThreadAbortException) { }
 				catch (Exception ex)
 				{

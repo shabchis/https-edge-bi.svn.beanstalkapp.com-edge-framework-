@@ -1,15 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Security;
-using System.Security.Permissions;
-using System.Text;
 using System.ServiceModel;
-using System.ServiceModel.Dispatcher;
-using System.ServiceModel.Channels;
-using Edge.Core.Configuration;
 using System.ServiceModel.Description;
 using Edge.Core.Utilities;
 
@@ -28,7 +20,7 @@ namespace Edge.Core.Services
 			public readonly object DbSaveSync;
 			public Service ServiceRef;
 			public AppDomain AppDomain;
-			public Dictionary<Guid, IServiceConnection> Connections;
+			public Dictionary<Guid, ServiceConnectionInfo> Connections;
 
 			public Guid ParentInstanceID;
 			public ServiceStateInfo? StateInfo;
@@ -40,8 +32,15 @@ namespace Edge.Core.Services
 				InstanceID = instanceID;
 				ExecutionSync = new object();
 				DbSaveSync = new object();
-				Connections = new Dictionary<Guid, IServiceConnection>();
+				Connections = new Dictionary<Guid, ServiceConnectionInfo>();
 			}
+		}
+
+		private class ServiceConnectionInfo
+		{
+			public Guid ConnectionGuid;
+			public string UsageName;
+			public IServiceConnection Callback;
 		}
 
 		// ========================
@@ -113,7 +112,7 @@ namespace Edge.Core.Services
 			#endregion
 		}
 
-		void IServiceExecutionHost.Connect(Guid instanceID, Guid connectionGuid)
+		void IServiceExecutionHost.Connect(Guid instanceID, Guid connectionGuid, string usageName)
 		{
 			EnsureNotDisposed();
 
@@ -129,9 +128,16 @@ namespace Edge.Core.Services
 				}
 			}
 
-			lock(runtimeInfo.Connections)
-				runtimeInfo.Connections.Add(connectionGuid, OperationContext.Current.GetCallbackChannel<IServiceConnection>());
-			
+			lock (runtimeInfo.Connections)
+			{
+				runtimeInfo.Connections.Add(connectionGuid, new ServiceConnectionInfo()
+				{
+					ConnectionGuid = connectionGuid,
+					UsageName = usageName,
+					Callback = OperationContext.Current.GetCallbackChannel<IServiceConnection>()
+				});
+			}
+
 		}
 
 		/// <summary>
@@ -320,22 +326,35 @@ namespace Edge.Core.Services
 
 			lock (runtimeInfo.Connections)
 			{
-				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
-					connection.ReceiveState(runtimeInfo.StateInfo.Value);
+				foreach (ServiceConnectionInfo connection in runtimeInfo.Connections.Values)
+				{
+					try { connection.Callback.ReceiveState(runtimeInfo.StateInfo.Value);}
+					catch (Exception ex)
+					{
+						HostLog(String.Format("Host failed to notify connection '{0}' of the service state. ({1})", connection.UsageName, ex.GetType().Name), ex);
+					}
+				}
 			}
 
 			if (save)
 			{
 				lock (runtimeInfo.DbSaveSync)
 				{
-					Environment.SaveServiceInstance(
-						this,
-						runtimeInfo.InstanceID,
-						runtimeInfo.ParentInstanceID,
-						runtimeInfo.Configuration,
-						runtimeInfo.StateInfo.Value,
-						runtimeInfo.SchedulingInfo
-					);
+					try
+					{
+						Environment.SaveServiceInstance(
+							this,
+							runtimeInfo.InstanceID,
+							runtimeInfo.ParentInstanceID,
+							runtimeInfo.Configuration,
+							runtimeInfo.StateInfo.Value,
+							runtimeInfo.SchedulingInfo
+							);
+					}
+					catch (Exception ex)
+					{
+						HostLog(String.Format("Host failed to save service state to database. ({0})", ex.GetType().Name), ex);
+					}
 				}
 			}
 		}
@@ -345,8 +364,14 @@ namespace Edge.Core.Services
 			var runtimeInfo = Get(instanceID, true);
 			lock (runtimeInfo.Connections)
 			{
-				foreach (IServiceConnection connection in runtimeInfo.Connections.Values)
-					connection.ReceiveOutput(output);
+				foreach (ServiceConnectionInfo connection in runtimeInfo.Connections.Values)
+				{
+					try { connection.Callback.ReceiveOutput(output);}
+					catch (Exception ex)
+					{
+						HostLog(String.Format("Host failed to notify connection '{0}', of a service output. ({1})", connection.UsageName, ex.GetType().Name), ex, LogMessageType.Error);
+					}
+				}
 			}
 		}
 

@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Runtime.Remoting;
 using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Utilities;
 using System.IO;
 using System.Xml;
-using System.Xml.Serialization;
-using Newtonsoft.Json;
 using System.Runtime.Serialization;
-using System.ServiceModel.Description;
-using System.ServiceModel;
 
 namespace Edge.Core.Services
 {
@@ -21,16 +15,18 @@ namespace Edge.Core.Services
 		private Dictionary<string, ServiceExecutionHostInfo> _hosts;
 
 		public ServiceEnvironmentConfiguration EnvironmentConfiguration { get; private set; }
+		public string UsageName { get; private set; }
 
-	    private ServiceEnvironment(ServiceEnvironmentConfiguration environmentConfig)
+		private ServiceEnvironment(string usageName, ServiceEnvironmentConfiguration environmentConfig)
 		{
-			this.EnvironmentConfiguration = environmentConfig;
+			UsageName = usageName;
+			EnvironmentConfiguration = environmentConfig;
 			RefreshHosts();
 		}
 
-		public static ServiceEnvironment Open(ServiceEnvironmentConfiguration environmentConfig)
+		public static ServiceEnvironment Open(string usageName, ServiceEnvironmentConfiguration environmentConfig)
 		{
-			return new ServiceEnvironment(environmentConfig);
+			return new ServiceEnvironment(usageName, environmentConfig);
 		}
 
 		public void RefreshHosts()
@@ -40,7 +36,7 @@ namespace Edge.Core.Services
 			else
 				_hosts.Clear();
 
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_HostListGet, connection);
@@ -50,8 +46,8 @@ namespace Edge.Core.Services
 				{
 					while (reader.Read())
 					{
-						var info = new ServiceExecutionHostInfo()
-						{
+						var info = new ServiceExecutionHostInfo
+							{
 							HostName = SqlUtility.ClrValue<string>(reader["HostName"]),
 							HostGuid = SqlUtility.ClrValue<string, Guid>(reader["HostGuid"], rawGuid => Guid.Parse(rawGuid), Guid.Empty),
 							EndpointName = SqlUtility.ClrValue<string>(reader["EndpointName"]),
@@ -65,7 +61,7 @@ namespace Edge.Core.Services
 
 		internal void RegisterHost(ServiceExecutionHost host)
 		{
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				// FUTURE: in the future save all endpoints to DB
@@ -82,7 +78,7 @@ namespace Edge.Core.Services
 
 		internal void UnregisterHost(ServiceExecutionHost host)
 		{
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_HostUnregister, connection);
@@ -118,7 +114,7 @@ namespace Edge.Core.Services
 
 		public ServiceInstance GetServiceInstance(Guid instanceID, bool stateInfoOnly = false)
 		{
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_InstanceGet, connection);
@@ -151,7 +147,7 @@ namespace Edge.Core.Services
 
 		public void ResetUnendedServices()
 		{
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_InstanceReset, connection);
@@ -168,7 +164,7 @@ namespace Edge.Core.Services
 		{
 			var statisticsDict = new Dictionary<string, long>();
 
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_ServicesExecutionStatistics, connection);
@@ -240,7 +236,7 @@ namespace Edge.Core.Services
 				serializedConfig = stringWriter.ToString();
 			}
 
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_InstanceSave, connection);
@@ -277,7 +273,7 @@ namespace Edge.Core.Services
 		// .............................................................
 		// ENVIRONMENT EVENTS
 
-        Dictionary<ServiceEnvironmentEventType, List<ServiceEnvironmentEventListenerInfo>> _environmentListeners = null;
+        Dictionary<ServiceEnvironmentEventType, List<ServiceEnvironmentEventListenerInfo>> _environmentListeners;
 	
 		public void RefreshEventListenersList()
 		{
@@ -291,7 +287,7 @@ namespace Edge.Core.Services
 					list.Clear();
 			}
 
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				var command = new SqlCommand(env.SP_EnvironmentEventListenerListGet, connection);
@@ -301,8 +297,8 @@ namespace Edge.Core.Services
 				{
 					while (reader.Read())
 					{
-						var info = new ServiceEnvironmentEventListenerInfo()
-						{
+						var info = new ServiceEnvironmentEventListenerInfo
+							{
 							ListenerID = SqlUtility.ClrValue<string, Guid>(
 								reader["ListenerID"],
 								guidRaw => Guid.Parse(guidRaw),
@@ -336,7 +332,7 @@ namespace Edge.Core.Services
 		public void AddToSchedule(ServiceInstance instance)
 		{
 			SendEnvironmentEvent(ServiceEnvironmentEventType.ServiceRequiresScheduling,
-				listener => listener.ServiceRequiresScheduling(new ServiceInstanceEventArgs { ServiceInstance = instance }), true
+				listener => listener.ServiceRequiresScheduling(new ServiceInstanceEventArgs { ServiceInstance = instance })
 			);
 		}
 
@@ -353,7 +349,7 @@ namespace Edge.Core.Services
 
 		internal void RegisterEventListener(ServiceEnvironmentEventListener listener)
 		{
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				connection.Open();
@@ -385,7 +381,7 @@ namespace Edge.Core.Services
 
 						listener.Close(false);
 
-						throw new Edge.Core.Services.ServiceEnvironmentException("Could not register listener in environment database. The listener has been closed. See inner exception for details.", ex);
+						throw new ServiceEnvironmentException("Could not register listener in environment database. The listener has been closed. See inner exception for details.", ex);
 					}
 				}
 			}
@@ -393,7 +389,7 @@ namespace Edge.Core.Services
 
 		internal void UnregisterEventListener(ServiceEnvironmentEventListener listener)
 		{
-			var env = this.EnvironmentConfiguration;
+			var env = EnvironmentConfiguration;
 			using (var connection = new SqlConnection(env.ConnectionString))
 			{
 				connection.Open();
@@ -444,7 +440,7 @@ namespace Edge.Core.Services
 
 		void IServiceEnvironmentEventSender.SendEnvironmentEvent(ServiceEnvironmentEventType eventType, Action<IServiceEnvironmentEventListener> listenerAction, bool throwExIfNobodyListen)
 		{
-			this.SendEnvironmentEvent(eventType, listenerAction, throwExIfNobodyListen);	
+			SendEnvironmentEvent(eventType, listenerAction, throwExIfNobodyListen);	
 		}
 	}
 
