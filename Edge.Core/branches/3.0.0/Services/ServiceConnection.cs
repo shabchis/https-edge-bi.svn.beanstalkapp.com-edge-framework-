@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Runtime.Remoting.Lifetime;
-using System.Runtime.Remoting.Messaging;
-using System.Runtime.Serialization;
 using System.ServiceModel;
 
 namespace Edge.Core.Services
@@ -20,20 +14,22 @@ namespace Edge.Core.Services
 		public WcfDuplexClient<IServiceExecutionHost> HostChannel { get; private set; }
 		public Guid Guid { get; private set; }
 		public Guid ServiceInstanceID { get; private set; }
+		public string EnvironmentUsageName { get; private set; }
 
 		internal ServiceConnection(ServiceEnvironment environment, Guid serviceInstanceID, string endpointName, string endpointAddress)
 		{
-			this.Guid = Guid.NewGuid();
-			this.ServiceInstanceID = serviceInstanceID;
-			this.HostChannel = new WcfDuplexClient<IServiceExecutionHost>(environment, this, endpointName, endpointAddress);
+			Guid = Guid.NewGuid();
+			ServiceInstanceID = serviceInstanceID;
+			EnvironmentUsageName = environment.UsageName;
+			HostChannel = new WcfDuplexClient<IServiceExecutionHost>(environment, this, endpointName, endpointAddress);
 			//TODO: add environment to StreamingContext
-			this.HostChannel.Open();
-			this.HostChannel.Channel.Connect(this.ServiceInstanceID, this.Guid);
+			HostChannel.Open();
+			HostChannel.Channel.Connect(ServiceInstanceID, Guid, EnvironmentUsageName);
 		}
 
 		internal void RefreshState()
 		{
-			this.HostChannel.Channel.NotifyState(this.ServiceInstanceID);
+			HostChannel.Channel.NotifyState(ServiceInstanceID);
 		}
 
 		void IServiceConnection.ReceiveState(ServiceStateInfo stateInfo)
@@ -55,7 +51,7 @@ namespace Edge.Core.Services
 			{
 				if (HostChannel.State == CommunicationState.Opened)
 				{
-					HostChannel.Channel.Disconnect(this.ServiceInstanceID, this.Guid);
+					HostChannel.Channel.Disconnect(ServiceInstanceID, Guid);
 					HostChannel.Close();
 				}
 				else if (HostChannel.State != CommunicationState.Closed)
