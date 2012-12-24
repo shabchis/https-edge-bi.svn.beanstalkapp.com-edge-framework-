@@ -391,10 +391,8 @@ namespace Edge.Core.Services.Scheduling
 
 			lock (_serviceConfigurationsToSchedule)
 			{
-				for (int i = 0; i < _serviceConfigurationsToSchedule.Count; i++)
+				foreach (ServiceConfiguration configuration in _serviceConfigurationsToSchedule)
 				{
-					ServiceConfiguration configuration = _serviceConfigurationsToSchedule[i];
-
 					foreach (SchedulingRule schedulingRule in configuration.SchedulingRules)
 					{
 						foreach (TimeSpan time in schedulingRule.Times)
@@ -405,17 +403,13 @@ namespace Edge.Core.Services.Scheduling
 							{
 								if (IsRuleInTimeframe(schedulingRule, requestedTime))
 								{
-									// create service instance, check if it already exists and return it
+									// create service instance, check if it already exists, if not return it
 									ServiceInstance request = CreateServiceInstance(configuration, schedulingRule, requestedTime);
-									// Dead lock!!! - lock is not requered 'cos Schedule() already locks these collections
-									//lock (_scheduledRequests)
-									//{
-									//	lock (_unscheduledRequests)
-									//	{
-											if (!_unscheduledRequests.ContainsSignature(request) && !_scheduledRequests.ContainsSignature(request))
-												yield return request;
-									//	}
-									//}
+									if (request != null)
+									{
+										if (!_unscheduledRequests.ContainsSignature(request) && !_scheduledRequests.ContainsSignature(request))
+											yield return request;
+									}
 								}
 								requestedTime = requestedTime.AddDays(1);
 							}
@@ -448,28 +442,36 @@ namespace Edge.Core.Services.Scheduling
 			}
 
 			isRuleInTimeframe = (isRuleInTimeframe) &&
-								(requestedTime >= _timeframeFrom && requestedTime <= _timeframeTo) ||
+								((requestedTime >= _timeframeFrom && requestedTime <= _timeframeTo) ||
 								(requestedTime <= _timeframeFrom && 
-								(requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now));
+								(requestedTime.Add(schedulingRule.MaxDeviationAfter) >= DateTime.Now)));
 
 			return isRuleInTimeframe;
 		}
 
 		private ServiceInstance CreateServiceInstance(ServiceConfiguration config, SchedulingRule rule, DateTime requestedTime)
 		{
-			ServiceInstance request = Environment.NewServiceInstance(config);
+			try
+			{
+				ServiceInstance request = Environment.NewServiceInstance(config);
 			
-			request.SchedulingInfo = new SchedulingInfo
-				{
-				SchedulingStatus = SchedulingStatus.New,
-				SchedulingScope = rule.Scope,
-				RequestedTime = requestedTime,
-				MaxDeviationBefore = rule.MaxDeviationBefore,
-				MaxDeviationAfter = rule.MaxDeviationAfter,
-			};
-			AsLockable(request).Lock(_instanceLock);
+				request.SchedulingInfo = new SchedulingInfo
+					{
+					SchedulingStatus = SchedulingStatus.New,
+					SchedulingScope = rule.Scope,
+					RequestedTime = requestedTime,
+					MaxDeviationBefore = rule.MaxDeviationBefore,
+					MaxDeviationAfter = rule.MaxDeviationAfter,
+				};
+				AsLockable(request).Lock(_instanceLock);
 
-			return request;
+				return request;
+			}
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed create instance for service '{0}' rule '{1}', ex: {2}", config.DebugInfo(), rule.DebugInfo(), ex.Message), ex);
+			}
+			return null;
 		}
 		
 		/// <summary>
@@ -606,25 +608,32 @@ namespace Edge.Core.Services.Scheduling
 
 		private void AddRequestToSchedule(ServiceInstance request)
 		{
-			// add scheduling info if not exists
-			if (request.SchedulingInfo == null)
+			try
 			{
-				AsLockable(request).Unlock(_instanceLock);
-				request.SchedulingInfo = new SchedulingInfo
-					{
-						SchedulingStatus = SchedulingStatus.New,
-						RequestedTime = DateTime.Now,
-						SchedulingScope = SchedulingScope.Unplanned
-					};
-				AsLockable(request).Lock(_instanceLock);
-			}
+				// add scheduling info if not exists
+				if (request.SchedulingInfo == null)
+				{
+					AsLockable(request).Unlock(_instanceLock);
+					request.SchedulingInfo = new SchedulingInfo
+						{
+							SchedulingStatus = SchedulingStatus.New,
+							RequestedTime = DateTime.Now,
+							SchedulingScope = SchedulingScope.Unplanned
+						};
+					AsLockable(request).Lock(_instanceLock);
+				}
 
-			WriteLog(String.Format("Add unplanned request to unscheduled list '{0}'", request.DebugInfo()));
-			lock (_unscheduledRequests)
-			{
-				_unscheduledRequests.Add(request);
+				WriteLog(String.Format("Add unplanned request to unscheduled list '{0}'", request.DebugInfo()));
+				lock (_unscheduledRequests)
+				{
+					_unscheduledRequests.Add(request);
+				}
+				_needReschedule = true;
 			}
-			_needReschedule = true;
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed add unplanned request {0} to scheduler, ex: {1}", request.InstanceID, ex.Message), ex);
+			}
 		}
 
 		private void AddUnplannedServiceToSchedule(ServiceInstance instance)
@@ -650,16 +659,25 @@ namespace Edge.Core.Services.Scheduling
 
 		private void ServiceCannotBeScheduled(ServiceInstance request)
 		{
-			AsLockable(request).Unlock(_instanceLock);
-			
-			WriteLog(String.Format("Request '{0}' cannot be scheduled and its instance is aborted", request.DebugInfo()), LogMessageType.Warning);
-			request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
-			request.Abort();
-			
-			// add to update UI with requests that cannot be scheduled, this request will be removed on the next Schedule() by RemoveNotRelevantRequests()
-			_scheduledRequests.Add(request);
-			
-			AsLockable(request).Lock(_instanceLock);
+			try
+			{
+				AsLockable(request).Unlock(_instanceLock);
+
+				WriteLog(String.Format("Request '{0}' cannot be scheduled and its instance is aborted", request.DebugInfo()),
+				         LogMessageType.Warning);
+				request.SchedulingInfo.SchedulingStatus = SchedulingStatus.CouldNotBeScheduled;
+				request.Abort();
+			}
+			catch (Exception ex)
+			{
+				WriteLog(String.Format("Failed to set service as unscheduled, ex: {0}", ex.Message), ex);
+			}
+			finally
+			{
+				// add to update UI with requests that cannot be scheduled, this request will be removed on the next Schedule() by RemoveNotRelevantRequests()
+				_scheduledRequests.Add(request);
+				AsLockable(request).Lock(_instanceLock);
+			}
 		}
 
 		private void ScheduleServiceInstance(ServiceInstance serviceInstance, TimeSpan avgExecutionTime)
@@ -804,6 +822,28 @@ namespace Edge.Core.Services.Scheduling
 							      InstanceRequestCollection.GetSignature(instance));
 		}
 
+	}
+
+	public static class ServiceConfigurationExtenstions
+	{
+		public static string DebugInfo(this ServiceConfiguration serviceConfig)
+		{
+			if (serviceConfig == null) return String.Empty;
+
+			var profile = serviceConfig.GetProfileConfiguration() == null ? null : serviceConfig.GetProfileConfiguration().Profile;
+			return String.Format("Service={0}, profile={1}", serviceConfig.ServiceName, profile != null ? profile.Name : String.Empty);
+		}
+	}
+
+	public static class SchedulingRuleExtenstions
+	{
+		public static string DebugInfo(this SchedulingRule rule)
+		{
+			if (rule == null) return String.Empty;
+
+			return String.Format("Requested time={0}, scope={1}, max deviation after={2}",
+								  rule.Scope, rule.Times.Length > 0 ? rule.Times[0].ToString(@"hh\:mm\:ss") : String.Empty, rule.MaxDeviationAfter.ToString(@"hh\:mm\:ss"));
+		}
 	}
 	#endregion
 }
