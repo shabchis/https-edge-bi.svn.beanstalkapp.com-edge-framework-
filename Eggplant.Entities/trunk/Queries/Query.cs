@@ -203,10 +203,6 @@ namespace Eggplant.Entities.Queries
 						resultSetIndex++;
 						Subquery subquery = subqueries[resultSetIndex];
 
-						// check relationships to get the right context and the parent cache
-
-						//subquery.MappingContext = new map
-
 						while (reader.Read())
 						{
 

@@ -62,6 +62,14 @@ namespace Eggplant.Entities.Persistence
 		{
 			this.Target = target;
 		}
+
+		/// <summary>
+		/// Stops the mapping operation and returns to the parent
+		/// </summary>
+		public void Break()
+		{
+			throw new NotImplementedException();
+		}
 	}
 
 	public class MappingContext<T> : MappingContext
@@ -83,5 +91,7 @@ namespace Eggplant.Entities.Persistence
 
 			base.SetTarget(target);
 		}
+
+		
 	}
 }

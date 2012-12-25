@@ -127,11 +127,52 @@ namespace Eggplant.Entities.Persistence
 			return this.Inline<object>(init);
 		}
 
-		//// Finds the nearest parent context
-		//public MappingContext<T> FromContext(MappingContext context)
-		//{
-		//    throw new NotImplementedException();
-		//}
+		// Exxxtra sugar
+		/*
+		public Mapping<T> MapSubquery<K, V>(EntityProperty<T, Dictionary<K, V>> property, string subqueryName, Action<SubqueryDictionaryMapping<object>> init)
+		{
+			var mapping = this.Map<Dictionary<K, V>>(property, dictionary => dictionary
+					.Set(context => new Dictionary<K,V>())
+					.Subquery(subqueryName, subquery => subquery
+						.Map<T>("parent", parent => parent
+							.Map<long>(EdgeObject.Properties.GK, "GK")//,
+							//resolve: IdentityResolve.ExistingOnly
+						)
+						.Map<ConnectionDefinition>("key", key => key
+							.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionID")
+						)
+						.Map<object>("value", value => value
+							.Set(context => ConnectionDefinition.DeserializeValue<object>(
+								context.GetField<string>("Value"),
+								Type.GetType(context.GetField<string>("ActualValueType")))
+							)
+						)
+						.Do(context => EdgeObject.Properties.Connections.GetValue(context.GetVar<EdgeObject>("parent")).Add(
+								context.GetVar<ConnectionDefinition>("key"),
+								context.GetVar<object>("value")
+							)
+						)
+					)
+				)
+		}
+		*/
+
+		// ===================================
+		// Other
+
+		// Finds the nearest parent context
+		public MappingContext<T> FromContext(MappingContext context)
+		{
+			while (context.ParentContext != null)
+			{
+				if (context.ParentContext.ActiveMapping == this)
+					return (MappingContext<T>)context.ParentContext;
+				else
+					context = context.ParentContext;
+			}
+
+			throw new MappingException("Could not find the requested mapping target from the context specified.");
+		}
 
 		MappingContext IMapping.CreateContext(MappingContext baseContext)
 		{
