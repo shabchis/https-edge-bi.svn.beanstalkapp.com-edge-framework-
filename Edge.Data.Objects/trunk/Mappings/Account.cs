@@ -18,12 +18,6 @@ namespace Edge.Data.Objects
 					.Map<int>(Account.Properties.ID, "ParentAccountID")
 				)
 			);
-
-			public static void ResolveReference(string field, MappingContext<Account> context)
-			{
-				if (context.GetField<int>(field) < 0)
-					context.Break();
-			}
 		}
 	}
 }

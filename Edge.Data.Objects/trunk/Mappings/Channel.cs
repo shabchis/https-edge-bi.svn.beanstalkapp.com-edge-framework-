@@ -15,12 +15,6 @@ namespace Edge.Data.Objects
 				.Map<string>(Channel.Properties.Name, "Name")
 				.Map<ChannelType>(Channel.Properties.ChannelType, "ChannelType")
 			);
-
-			public static void ResolveReference(string field, MappingContext<Channel> context)
-			{
-				if (context.GetField<int>(field) < 0)
-					context.Break();
-			}
 		}
 	}
 }

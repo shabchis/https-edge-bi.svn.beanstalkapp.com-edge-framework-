@@ -11,22 +11,18 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<EdgeObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeObject>(edgeObject => edgeObject
+			public static Mapping<EdgeObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeObject>()
 
-				// GK
 				.Map<long>(EdgeObject.Properties.GK, "GK")
-
-				// EdgeType
 				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
 					.Map<int>(EdgeType.Properties.TypeID, "TypeID")
 				)
-
-				// Account
 				.Map<Account>(EdgeObject.Properties.Account, account => account
-					.Do(context => Account.Mappings.ResolveReference("AccountID", context))
+					.Do(context => context.BreakIfNegative("AccountID"))
 					.Map<int>(Account.Properties.ID, "AccountID")
 				)
 
+				/*
 				// Connections
 				.Map<Dictionary<ConnectionDefinition, EdgeObject>>(EdgeObject.Properties.Connections, connections => connections
 					.Subquery("Connections", subquery => subquery
@@ -51,7 +47,20 @@ namespace Edge.Data.Objects
 						)
 					)
 				)
-			);
+				*/
+
+				.MapDictionaryFromSubquery<EdgeObject, ConnectionDefinition, EdgeObject>(EdgeObject.Properties.Connections, "Connections",
+					parent => parent
+						.DynamicEdgeObject("FromGK", "FromTypeID", "FromClrType"),
+					key => key
+						.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionDefID"),
+					value => value
+						.DynamicEdgeObject("ToGK", "ToTypeID", "ToClrType")
+				)
+
+			;
+
+			
 		}
 
 		public static class Queries

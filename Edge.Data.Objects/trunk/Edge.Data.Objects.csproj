@@ -50,6 +50,7 @@
     <Compile Include="Classes\Ad.cs" />
     <Compile Include="Classes\ChannelSpecificObject.cs" />
     <Compile Include="Classes\CompositeCreative.cs" />
+    <Compile Include="Classes\TargetDefinition.cs" />
     <Compile Include="Classes\EdgeObject.cs" />
     <Compile Include="Classes\EdgeType.cs" />
     <Compile Include="Classes\Campaign.cs" />
@@ -76,9 +77,19 @@
     <Compile Include="Mappings\Channel.cs" />
     <Compile Include="Mappings\ChannelSpecificObject.cs" />
     <Compile Include="Mappings\CompositeCreative.cs" />
+    <Compile Include="Mappings\ConnectionDefinition.cs" />
+    <Compile Include="Mappings\PlacementTarget.cs" />
+    <Compile Include="Mappings\GenderTarget.cs" />
+    <Compile Include="Mappings\ImageCreative.cs" />
+    <Compile Include="Mappings\KeywordTarget.cs" />
     <Compile Include="Mappings\SingleCreative.cs" />
     <Compile Include="Mappings\Creative.cs" />
     <Compile Include="Mappings\EdgeType.cs" />
+    <Compile Include="Mappings\StringValue.cs" />
+    <Compile Include="Mappings\Target.cs" />
+    <Compile Include="Mappings\TargetDefinition.cs" />
+    <Compile Include="Mappings\TargetMatch.cs" />
+    <Compile Include="Mappings\TextCreative.cs" />
     <Compile Include="Model\Account.cs" />
     <Compile Include="Model\Ad.cs" />
     <Compile Include="Model\AgeTarget.cs" />
@@ -87,6 +98,7 @@
     <Compile Include="Model\ChannelSpecificObject.cs" />
     <Compile Include="Model\CompositeCreative.cs" />
     <Compile Include="Model\ConnectionDefinition.cs" />
+    <Compile Include="Model\TargetDefinition.cs" />
     <Compile Include="Model\Currency.cs" />
     <Compile Include="Model\CurrencyRate.cs" />
     <Compile Include="Model\EdgeObject.cs" />
@@ -116,11 +128,7 @@
       <Name>Eggplant.Entities</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Classes\Base\" />
-    <Folder Include="Classes\Creatives\" />
-    <Folder Include="Classes\Targets\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Content Include="Mappings\EdgeObject.sql" />
     <Content Include="Mappings\Measure.sql" />

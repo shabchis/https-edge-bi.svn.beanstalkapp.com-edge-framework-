@@ -10,16 +10,37 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			/*
 			public static Mapping<CompositeCreative> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<CompositeCreative>(creative => creative
 				.Inherit(Creative.Mappings.Default)
 
-				.Map<Dictionary<string, SingleCreative>>(CompositeCreative.Properties.ChildCreatives, childCreatives => childCreatives
-					.Subquery("ChildCreatives", subquery=>subquery
+				/*
+				.Map<Dictionary<string, SingleCreative>>(CompositeCreative.Properties.Parts, parts => parts
+					.Subquery("Parts", subquery=>subquery
 						.Map<CompositeCreative>("parent", parent => parent
-							.Map<long>(
+							.Map<long>(EdgeObject.Properties.GK, "CompositeGK")
+						)
+						.Map<string>("key", "PartRole")
+						.Map<SingleCreative>("value", value => value
+							.MapEdgeObject("PartGK", "PartTypeID", "PartClrType")
+						)
+						.Do(context => CompositeCreative.Properties.Parts.GetValue(context.GetVariable<CompositeCreative>("parent")).Add(
+								context.GetVariable<string>("key"),
+								context.GetVariable<SingleCreative>("value")
+							)
+						)
+					)
+				)
+				*/
+
+				.MapDictionaryFromSubquery<CompositeCreative, string, SingleCreative>(CompositeCreative.Properties.Parts, "Parts",
+					parent => parent
+						.Map<long>(EdgeObject.Properties.GK, "CompositeGK"),
+					key => key
+						.Set(context => context.GetField<string>("PartRole")),
+					value => value
+						.DynamicEdgeObject("PartGK", "PartTypeID", "PartClrType")
+				)
 			);
-			*/
 		}
 	}
 }

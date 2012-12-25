@@ -6,13 +6,14 @@ using Eggplant.Entities.Persistence;
 
 namespace Edge.Data.Objects
 {
-	public partial class Creative
+	public partial class Target
 	{
 		public new static class Mappings
 		{
-			public static Mapping<Creative> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Creative>()
+			public static Mapping<Target> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Target>()
 				.Inherit(EdgeObject.Mappings.Default)
 			;
 		}
 	}
+
 }

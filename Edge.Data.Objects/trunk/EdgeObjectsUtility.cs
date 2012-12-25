@@ -7,6 +7,8 @@ using System.Reflection;
 using System.IO;
 using System.Text.RegularExpressions;
 using Eggplant.Entities.Queries;
+using Eggplant.Entities.Persistence;
+using Eggplant.Entities.Model;
 
 namespace Edge.Data.Objects
 {
@@ -158,6 +160,59 @@ namespace Edge.Data.Objects
 
 		// ===========================
 		#endregion
+
+		/// <summary>
+		/// Shortcut for mapping an EdgeObject reference from fields.
+		/// </summary>
+		public static void DynamicEdgeObject<T>(this Mapping<T> mapping, string fieldGK, string fieldTypeID, string fieldClrType)
+			where T: EdgeObject
+		{
+			mapping
+				.Set(context => (T)Activator.CreateInstance(Type.GetType(context.GetField<string>(fieldClrType))))
+				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
+					.Map<int>(EdgeType.Properties.TypeID, fieldTypeID)
+				)
+				.Map<long>(EdgeObject.Properties.GK, fieldGK)
+			;
+		}
+
+		/// <summary>
+		/// Shortcut for ensuring ID is not -1.
+		/// </summary>
+		public static void BreakIfNegative(this MappingContext context, string idField)
+		{
+			if (context.GetField<int>(idField) < 0)
+				context.Break();
+		}
+
+		/// <summary>
+		/// Shortcut for mapping a dictionary from a subquery.
+		/// </summary>
+		public static Mapping<ParentT> MapDictionaryFromSubquery<ParentT, KeyT, ValueT>(
+			this Mapping<ParentT> mapping,
+			EntityProperty<ParentT, Dictionary<KeyT, ValueT>> dictionaryProperty,
+			string subqueryName,
+			Action<Mapping<ParentT>> parentMappingFunction,
+			Action<Mapping<KeyT>> keyMappingFunction,
+			Action<Mapping<ValueT>> valueMappingFunction
+		)
+		{
+
+			mapping.Map<Dictionary<KeyT, ValueT>>(dictionaryProperty, dictionary => dictionary
+				.Subquery(subqueryName, subquery => subquery
+					.Map<ParentT>("parent", parentMappingFunction)
+					.Map<KeyT>("key", keyMappingFunction)
+					.Map<ValueT>("value", valueMappingFunction)
+					.Do(context => dictionaryProperty.GetValue(context.GetVariable<ParentT>("parent")).Add(
+							context.GetVariable<KeyT>("key"),
+							context.GetVariable<ValueT>("value")
+						)
+					)
+				)
+			);
+
+			return mapping;
+		}
 	}
 
 	[Serializable]
