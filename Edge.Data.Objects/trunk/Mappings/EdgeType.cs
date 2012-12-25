@@ -18,11 +18,11 @@ namespace Edge.Data.Objects
 				)
 				.Map<string>(EdgeType.Properties.TableName, "TableName")
 				.Map<Account>(EdgeType.Properties.Account, account => account
-					.Do(context => Account.Mappings.ResolveReference("AccountID", context))
+					.Do(context => context.BreakIfNegative("AccountID"))
 					.Map<int>(Account.Properties.ID, "AccountID")
 				)
 				.Map<Channel>(EdgeType.Properties.Channel, channel => channel
-					.Do(context => Channel.Mappings.ResolveReference("ChannelID", context))
+					.Do(context => context.BreakIfNegative("ChannelID"))
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 				)
 			);

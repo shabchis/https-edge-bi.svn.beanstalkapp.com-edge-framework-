@@ -15,11 +15,7 @@ namespace Edge.Data.Objects
 
 				.Map<string>(Ad.Properties.DestinationUrl, "DestinationUrl")
 				.Map<Creative>(Ad.Properties.Creative, creative => creative
-					.Set(context => (Creative)Activator.CreateInstance(Type.GetType(context.GetField<string>("CreativeClrType"))))
-					.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
-						.Map<int>(EdgeType.Properties.TypeID, "CreativeTypeID")
-					)
-					.Map<long>(EdgeObject.Properties.GK, "CreativeGK")
+					.DynamicEdgeObject("CreativeGK", "CreativeTypeID", "CreativeClrType")
 				)
 			);
 		}

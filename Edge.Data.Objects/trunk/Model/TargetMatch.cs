@@ -12,6 +12,7 @@ namespace Edge.Data.Objects
 		public static class Properties
 		{
 			public static EntityProperty<TargetMatch, Target> Target = new EntityProperty<TargetMatch, Target>("Target");
+			public static EntityProperty<TargetMatch, TargetDefinition> TargetDefinition = new EntityProperty<TargetMatch, TargetDefinition>("TargetDefinition");
 			public static EntityProperty<TargetMatch, string> DestinationUrl = new EntityProperty<TargetMatch, string>("DestinationUrl");
 		}
 	}
