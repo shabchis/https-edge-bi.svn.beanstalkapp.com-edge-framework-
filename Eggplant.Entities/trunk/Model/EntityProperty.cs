@@ -35,7 +35,7 @@ namespace Eggplant.Entities.Model
 	// ==============================
 	#endregion
 
-	public abstract class EntityProperty<EntityT, ValueT> : IEntityProperty<ValueT>
+	public class EntityProperty<EntityT, ValueT> : IEntityProperty<ValueT>
 	{
 		public string Name { get; private set; }
 		public AccessMode AccessMode { get; set; }
@@ -139,30 +139,6 @@ namespace Eggplant.Entities.Model
 		}
 
 		#endregion
-	}
-
-	public abstract class ScalarProperty<EntityT, ValueT> : EntityProperty<EntityT, ValueT>
-	{
-		public ScalarProperty(string name):base(name)
-		{
-		}
-	}
-
-	public class ValueProperty<EntityT, ValueT> : ScalarProperty<EntityT, ValueT>
-	{
-		public ValueT DefaultValue;
-		public ValueT EmptyValue;
-
-		public ValueProperty(string name) : base(name)
-		{
-		}
-	}
-
-	public class ReferenceProperty<EntityT, ValueT> : ScalarProperty<EntityT, ValueT>
-	{
-		public ReferenceProperty(string name) : base(name)
-		{
-		}
 	}
 
 	public enum AccessMode
