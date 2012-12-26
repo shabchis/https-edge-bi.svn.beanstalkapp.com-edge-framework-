@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Edge.Data.Objects;
 using System.Net;
 using System.IO;
-using System.Text.RegularExpressions;
 using Edge.Core.Services;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
@@ -15,8 +12,7 @@ namespace Edge.Data.Pipeline.Services
 {
 	class FtpImporterPreInitializerService : Service
 	{
-
-		protected override Core.Services.ServiceOutcome DoWork()
+		protected override ServiceOutcome DoWork()
 		{
 			// FTP configuration
 			string fileConflictBehavior = this.Configuration.Parameters.Get<string>("FileConflictBehavior", emptyIsError: false, defaultValue: "Abort");			
@@ -38,8 +34,8 @@ namespace Edge.Data.Pipeline.Services
 				request.Credentials = new NetworkCredential(UserId, Password);
 				request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
 
-				FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-				StreamReader reader = new StreamReader(response.GetResponseStream());
+				var response = (FtpWebResponse)request.GetResponse();
+				var reader = new StreamReader(response.GetResponseStream());
 				string fileInfoAsString = reader.ReadLine();
 
 				while (fileInfoAsString != null)
@@ -47,27 +43,24 @@ namespace Edge.Data.Pipeline.Services
 					//Checking AllowedExtensions
 					Dictionary<string, string> fileInfo = GetFileInfo(fileInfoAsString);
 					
-
 					if (fileConflictBehavior == "Ignore"||!CheckFileConflict(fileInfo))
 					{
 						//Get files with allowed extensions only.
 
 						if (AllowedExtensions.Contains(Path.GetExtension(fileInfo["Name"]), StringComparer.OrdinalIgnoreCase))
 						{
-							string SourceUrl = FtpServer + "/" + fileInfo["Name"];
+							string sourceUrl = FtpServer + "/" + fileInfo["Name"];
 
-							PipelineServiceConfiguration config = new PipelineServiceConfiguration();
-
-							config.Parameters[Const.DeliveryServiceConfigurationOptions.SourceUrl] = SourceUrl;
+							var config = new PipelineServiceConfiguration();
+							config.Parameters[Const.DeliveryServiceConfigurationOptions.SourceUrl] = sourceUrl;
 							config.Parameters["FileSize"] = fileInfo["Size"];
 							config.Parameters["DeliveryFileName"] = fileInfo["Name"];
 							config.Parameters["FileModifyDate"] = fileInfo["ModifyDate"];
-							
-							Environment.ScheduleServiceByName(
-								this.Configuration.Parameters.Get<string>("FtpService"),
-								this.Configuration.Profile.ProfileID,
-								config
-								);
+
+							// TODO shriat add to scheduler 
+							//Environment.ScheduleServiceByName(this.Configuration.Parameters.Get<string>("FtpService"),Configuration.Profile.ProfileID,config);
+							var serviceInstance = Environment.NewServiceInstance(Configuration);
+							Environment.AddToSchedule(serviceInstance);
 						}
 
 					}
@@ -80,37 +73,30 @@ namespace Edge.Data.Pipeline.Services
 
 				if (filesCounter == 0)
 				{
-					Core.Utilities.Log.Write("No files in FTP directory for account id " + this.Configuration.Profile.Parameters["AccountID"].ToString(),LogMessageType.Information);
+					Log("No files in FTP directory for account id " + Configuration.Profile.Parameters["AccountID"], LogMessageType.Information);
 				}
 
 			}
 			catch (Exception e)
 			{
-				Core.Utilities.Log.Write(
-					string.Format("Cannot connect FTP server for account ID:{0}  Exception: {1}",
-					this.Configuration.Profile.Parameters["AccountID"].ToString(), e.Message),
-					LogMessageType.Information);
-				return Edge.Core.Services.ServiceOutcome.Failure;
+				Log(string.Format("Cannot connect FTP server for account ID:{0}  Exception: {1}", Configuration.Profile.Parameters["AccountID"], e.Message),LogMessageType.Information);
+				return ServiceOutcome.Failure;
 			}
 
-			return Core.Services.ServiceOutcome.Success;
+			return ServiceOutcome.Success;
 		}
 
 		private bool CheckFileConflict(Dictionary<string, string> fileInfo)
 		{
-			string fileSignature = string.Format("{0}-{1}-{2}", fileInfo["Name"], fileInfo["ModifyDate"], fileInfo["Size"]);
-
-			SqlConnection connection;
-
-			
+			var fileSignature = string.Format("{0}-{1}-{2}", fileInfo["Name"], fileInfo["ModifyDate"], fileInfo["Size"]);
 
 			try
 			{
-				connection = new SqlConnection(AppSettings.GetConnectionString(typeof(FtpImporterPreInitializerService), "DeliveryDB"));
+				var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(FtpImporterPreInitializerService), "DeliveryDB"));
 				using (connection)
 				{
 					SqlCommand cmd = SqlUtility.CreateCommand(@"DeliveryFile_GetBySignature()", System.Data.CommandType.StoredProcedure);
-					SqlParameter fileSig = new SqlParameter("signature", fileSignature);
+					var fileSig = new SqlParameter("signature", fileSignature);
 					cmd.Parameters.Add(fileSig);
 					cmd.Connection = connection;
 					connection.Open();
@@ -118,10 +104,9 @@ namespace Edge.Data.Pipeline.Services
 					{
 						if (reader.Read())
 						{
-							Core.Utilities.Log.Write(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature), LogMessageType.Warning);
+							Log(string.Format("File with same signature already exists in DB,File Signature: {0}", fileSignature), LogMessageType.Warning);
 							return true;
 						}
-
 					}
 				}
 			}
@@ -129,16 +114,14 @@ namespace Edge.Data.Pipeline.Services
 			{
 				throw new Exception("Error while trying to get files signature from DB", ex);
 			}
-
 			return false;
-
 		}
 
 		private Dictionary<string, string> GetFileInfo(string fileInfoAsString)
 		{
-			Dictionary<string, string> fileInfo = new Dictionary<string, string>();
+			var fileInfo = new Dictionary<string, string>();
 
-			string[] fileInfoAsArray = fileInfoAsString.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+			string[] fileInfoAsArray = fileInfoAsString.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
 
 			fileInfo.Add("Name", fileInfoAsArray.Last());
 			string month = fileInfoAsArray[5];

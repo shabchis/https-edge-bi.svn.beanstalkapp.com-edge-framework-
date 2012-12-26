@@ -123,6 +123,9 @@
     <Compile Include="Services\Const.cs" />
     <Compile Include="Services\FtpImporterPreInitializerService.cs" />
     <Compile Include="Services\GenericRetrieverService.cs" />
+    <Compile Include="Services\RerunService.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Services\UrlInitializerService.cs" />
     <Compile Include="Services\UrlRetrieverService.cs" />
     <Compile Include="Services\ValidationService.cs" />
@@ -135,7 +138,6 @@
     <Compile Include="Readers\CsvDynamicReader.cs" />
     <Compile Include="Readers\CsvObjectReader.cs" />
     <Compile Include="Readers\XmlDynamicReader.cs" />
-    <Compile Include="Services\RerunService.cs" />
     <Compile Include="Services\PipelineService.cs" />
     <Compile Include="DateTimeRange.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

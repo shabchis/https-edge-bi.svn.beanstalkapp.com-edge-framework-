@@ -292,7 +292,7 @@ namespace Edge.Data.Pipeline.Mapping
 							throw new MappingException(String.Format("Failed to get the output of the map command for {0}.{1}. See inner exception for details.", this.TargetType.Name, this.TargetMember.Name), ex);
 						else
 						{
-							Log.Write(String.Format("Failed to get the output of the map command for {0}.{1}.", this.TargetType.Name, this.TargetMember.Name), ex);
+							Log.Write(this.ToString(), String.Format("Failed to get the output of the map command for {0}.{1}.", this.TargetType.Name, this.TargetMember.Name), ex);
 							return;
 						}
 					}
