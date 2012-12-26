@@ -230,7 +230,7 @@ namespace Edge.Data.Pipeline
 				if (exception == null)
 					exception = ex;
 				else
-					Log.Write("Failed to end delivery operation - probably because of another exception. See next log message.", ex);
+					Log.Write(this.ToString(), "Failed to end delivery operation - probably because of another exception. See next log message.", ex);
 			}
 			finally
 			{

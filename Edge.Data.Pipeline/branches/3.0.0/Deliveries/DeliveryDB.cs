@@ -457,7 +457,8 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID.ToString("N");
 						cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 						cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
-						cmd.Parameters["@accountOriginalID"].Value = output.Account != null ? output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value : (object)DBNull.Value;
+						// TODO shirat - Original ID
+						//cmd.Parameters["@accountOriginalID"].Value = output.Account != null ? output.Account.OriginalID != null ? output.Account.OriginalID : (object)DBNull.Value : (object)DBNull.Value;
 						cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
 						cmd.Parameters["@signature"].Value = output.Signature;
 						cmd.Parameters["@status"].Value = output.Status;
@@ -880,7 +881,7 @@ namespace Edge.Data.Pipeline
 					// WARNING: this will just ignore the param value. If the delivery is saved later, this param value will be deleted from the database.
 					// This is okay usually because this happens during rollback, and after rollback - nobody cares anymore about these old values.
 
-					Log.Write("Error while deserializing delivery parameter JSON.", ex);
+					Log.Write("DeliveryDB", "Error while deserializing delivery parameter JSON.", ex);
 					toReturn = null;
 				}
 			}

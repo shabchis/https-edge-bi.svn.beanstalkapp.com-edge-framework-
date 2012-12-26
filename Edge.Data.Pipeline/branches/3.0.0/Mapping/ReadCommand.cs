@@ -120,7 +120,7 @@ namespace Edge.Data.Pipeline.Mapping
 						throw new MappingException(String.Format("Failed to read field '{0}'. See inner exception for details.", this.Field), ex);
 					else
 					{
-						Log.Write(String.Format("Failed to read field '{0}'.", this.Field), ex);
+						Log.Write(ToString(), String.Format("Failed to read field '{0}'.", Field), ex);
 						return;
 					}
 				}
