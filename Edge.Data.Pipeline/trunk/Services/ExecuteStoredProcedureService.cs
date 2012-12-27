@@ -47,7 +47,10 @@ namespace Edge.Data.Pipeline.Services
 				string name = param.ParameterName.Remove(0, 1); //fix by alon on 20/1/2001 remove the '@'
 				string configVal;
 				if (!Instance.Configuration.Options.TryGetValue("param." + name, out configVal)) // remove the s from params
+				{
+					param.Value = DBNull.Value;
 					continue;
+				}
 
 				// Apply the configuration value, before we check if we need to parse it
 				object value = configVal;
@@ -129,7 +132,7 @@ namespace Edge.Data.Pipeline.Services
 			{
 				DataManager.Current.AssociateCommands(Cmd);
 				Log.Write(Cmd.ToString(), LogMessageType.Information);
-
+				
 				#region Sending email
 				/*============================================================================*/
 				if (SendResultByEmail)
@@ -146,18 +149,20 @@ namespace Edge.Data.Pipeline.Services
 						}
 					}
 
-					if (!string.IsNullOrEmpty(Instance.Configuration.GetOption("EMailCC")) && Instance.Configuration.GetOption("EMailCC").Equals("GetUsersFromDB()"))
+					if (dataTable.Rows.Count > 0) // only if getting results -> send email.
 					{
-						Smtp.SetCc(GetUsersFromDB());
+						if (!string.IsNullOrEmpty(Instance.Configuration.GetOption("EMailCC")) && Instance.Configuration.GetOption("EMailCC").Equals("GetUsersFromDB()"))
+						{
+							Smtp.SetCc(GetUsersFromDB());
+						}
+						else
+							Smtp.SetCc(Instance.Configuration.GetOption("EMailCC"));
+
+						Smtp.SetFromTo(Instance.Configuration.GetOption("EMailFrom"), Instance.Configuration.GetOption("EMailTo"));
+						string htmlBody = CreateHtmlFromTemplate(dataTable, returnMsg);
+
+						Smtp.Send(topic, htmlBody, highPriority: true, IsBodyHtml: true);
 					}
-					else
-						Smtp.SetCc(Instance.Configuration.GetOption("EMailCC"));
-
-					Smtp.SetFromTo(Instance.Configuration.GetOption("EMailFrom"), Instance.Configuration.GetOption("EMailTo"));
-					string htmlBody = CreateHtmlFromTemplate(dataTable, returnMsg);
-						
-					Smtp.Send(topic, htmlBody, highPriority: true, IsBodyHtml: true);
-
 				}
 				/*============================================================================*/
 				#endregion
@@ -172,15 +177,27 @@ namespace Edge.Data.Pipeline.Services
 		{
 			try
 			{
-				string template = System.IO.File.ReadAllText(@"C:\Users\shayb\Desktop\3333.htm");
-				template = template.Replace("{DataTable_PlaceHolder}", ConvertDataTableToHtmlTable(dataTable, returnMsg));
-				return template;
+				string template = System.IO.File.ReadAllText(Instance.Configuration.GetOption("HtmlTemplatePath"));
+
+				if (!string.IsNullOrEmpty(returnMsg))
+					template = template.Replace("{Result_PlaceHolder}", returnMsg);
+				else
+					template = template.Replace("{Result_PlaceHolder}", string.Empty);
+
+				string htmlTable =  ConvertDataTableToHtmlTable(dataTable);
+				
+				if (!string.IsNullOrEmpty(htmlTable))
+					template = template.Replace("{DataTable_PlaceHolder}", htmlTable);
+				else
+					template = template.Replace("{DataTable_PlaceHolder}", string.Empty);
+
+					return template;
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				throw new Exception("Cannot create Html from template", ex);
 			}
-		
+
 		}
 
 		private string GetUsersFromDB()
@@ -188,7 +205,7 @@ namespace Edge.Data.Pipeline.Services
 			throw new NotImplementedException();
 		}
 
-		public static string ConvertDataTableToHtmlTable(DataTable targetTable, string appendBody)
+		public static string ConvertDataTableToHtmlTable(DataTable targetTable)
 		{
 			string htmlString = "";
 
@@ -198,21 +215,16 @@ namespace Edge.Data.Pipeline.Services
 			}
 
 			StringBuilder htmlBuilder = new StringBuilder();
-
-			if (!String.IsNullOrEmpty(appendBody))
-				htmlBuilder.Append(appendBody);
-
-			htmlBuilder.Append("<table border='1px' cellpadding='5' cellspacing='0' ");
-			htmlBuilder.Append("style='border: solid 1px Black; font-size: small;'>");
+			htmlBuilder.Append("<table cellpadding='2' cellspacing='2' border=0 class='dataTable'> ");
 
 			//Create Header Row
-			htmlBuilder.Append("<tr align='left' valign='top'>");
+			htmlBuilder.Append("<tr>");
 
 			foreach (DataColumn targetColumn in targetTable.Columns)
 			{
-				htmlBuilder.Append("<td align='left' valign='top'>");
+				htmlBuilder.Append("<th class='first'>");
 				htmlBuilder.Append(targetColumn.ColumnName);
-				htmlBuilder.Append("</td>");
+				htmlBuilder.Append("</th>");
 			}
 
 			htmlBuilder.Append("</tr>");
