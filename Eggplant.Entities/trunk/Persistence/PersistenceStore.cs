@@ -44,16 +44,4 @@ namespace Eggplant.Entities.Persistence
 			return LoadXml(new XmlTextReader(new StringReader(xml)), true);
 		}
 	}
-
-	public class SqlServerPersistenceStore : PersistenceStore
-	{
-
-		public override PersistenceConnection Connect()
-		{
-			var innerConnection = new System.Data.SqlClient.SqlConnection(this.ConnectionString);
-			innerConnection.Open();
-			return new PersistenceConnection(innerConnection);
-			//return new PersistenceConnection(null);
-		}
-	}
 }
