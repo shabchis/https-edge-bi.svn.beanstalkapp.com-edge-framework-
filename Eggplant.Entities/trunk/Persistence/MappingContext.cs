@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Eggplant.Entities.Cache;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Queries;
 
@@ -15,21 +16,23 @@ namespace Eggplant.Entities.Persistence
 		//public MappingDirection Direction { get; internal set; }
 
 		//public Subquery ActivateSubquery { get; internal set; }
-		public PersistenceChannel Stream { get; private set; }
+		public PersistenceChannel IO { get; private set; }
 		public IMapping ActiveMapping { get; internal set; }
 		public MappingContext ParentContext { get; private set; }
 		public object Target { get; internal set; }
 		public EntitySpace EntitySpace { get; private set; }
+		public EntityCacheManager Cache { get; private set; }
 
 		internal bool DoBreak { get; private set; }
 
 		Dictionary<string, object> _vars;
 
-		internal MappingContext(Query query, EntitySpace space, PersistenceChannel stream,  MappingContext baseContext = null)
+		internal MappingContext(Query query, EntitySpace space, PersistenceChannel io, EntityCacheManager cache, MappingContext baseContext = null)
 		{
-			this.Stream = stream;
+			this.IO = io;
 			this.EntitySpace = space;
 			this.Query = query;
+			this.Cache = cache;
 			this.DoBreak = false;
 
 			// Inherit vars from base
@@ -38,20 +41,20 @@ namespace Eggplant.Entities.Persistence
 
 		public object GetField(string field)
 		{
-			return this.Stream.GetField(field);
+			return this.IO.GetField(field);
 		}
 
 		public V GetField<V>(string field, Func<object, V> convert = null)
 		{
 			if (convert == null)
-				return (V)this.Stream.GetField(field);
+				return (V)this.IO.GetField(field);
 			else
-				return convert(this.Stream.GetField(field));
+				return convert(this.IO.GetField(field));
 		}
 
 		public void SetField(string field, object value)
 		{
-			this.Stream.SetField(field, value);
+			this.IO.SetField(field, value);
 		}
 
 		public void SetVariable(string variable, object value)
@@ -90,11 +93,11 @@ namespace Eggplant.Entities.Persistence
 	{
 		public new T Target { get { return (T)base.Target; } }
 
-		internal MappingContext(Query query, EntitySpace space, PersistenceChannel stream):base(query, space, stream)
+		public MappingContext(Query query, EntitySpace space, PersistenceChannel io, EntityCacheManager cache):base(query, space, io, cache)
 		{
 		}
 
-		internal MappingContext(MappingContext baseContext): base(baseContext.Query, baseContext.EntitySpace, baseContext.Stream, baseContext)
+		internal MappingContext(MappingContext baseContext): base(baseContext.Query, baseContext.EntitySpace, baseContext.IO, baseContext.Cache, baseContext)
 		{
 		}
 
