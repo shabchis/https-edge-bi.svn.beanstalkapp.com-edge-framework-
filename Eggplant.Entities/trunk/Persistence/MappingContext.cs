@@ -15,7 +15,7 @@ namespace Eggplant.Entities.Persistence
 		//public MappingDirection Direction { get; internal set; }
 
 		//public Subquery ActivateSubquery { get; internal set; }
-		public PersistenceIoChannel Stream { get; private set; }
+		public PersistenceChannel Stream { get; private set; }
 		public IMapping ActiveMapping { get; internal set; }
 		public MappingContext ParentContext { get; private set; }
 		public object Target { get; internal set; }
@@ -25,7 +25,7 @@ namespace Eggplant.Entities.Persistence
 
 		Dictionary<string, object> _vars;
 
-		internal MappingContext(Query query, EntitySpace space, PersistenceIoChannel stream,  MappingContext baseContext = null)
+		internal MappingContext(Query query, EntitySpace space, PersistenceChannel stream,  MappingContext baseContext = null)
 		{
 			this.Stream = stream;
 			this.EntitySpace = space;
@@ -90,7 +90,7 @@ namespace Eggplant.Entities.Persistence
 	{
 		public new T Target { get { return (T)base.Target; } }
 
-		internal MappingContext(Query query, EntitySpace space, PersistenceIoChannel stream):base(query, space, stream)
+		internal MappingContext(Query query, EntitySpace space, PersistenceChannel stream):base(query, space, stream)
 		{
 		}
 

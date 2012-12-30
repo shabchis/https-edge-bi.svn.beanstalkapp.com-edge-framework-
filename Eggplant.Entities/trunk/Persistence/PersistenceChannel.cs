@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Eggplant.Entities.Persistence
 {
-	public abstract class PersistenceIoChannel: IDisposable
+	public abstract class PersistenceChannel: IDisposable
 	{
 		public abstract object GetField(string field);
 		public abstract void SetField(string field, object value);
