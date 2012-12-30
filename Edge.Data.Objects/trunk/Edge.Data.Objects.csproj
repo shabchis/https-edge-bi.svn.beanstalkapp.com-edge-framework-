@@ -50,6 +50,7 @@
     <Compile Include="Classes\Ad.cs" />
     <Compile Include="Classes\ChannelSpecificObject.cs" />
     <Compile Include="Classes\CompositeCreative.cs" />
+    <Compile Include="Classes\EdgeField.cs" />
     <Compile Include="Classes\TargetDefinition.cs" />
     <Compile Include="Classes\EdgeObject.cs" />
     <Compile Include="Classes\EdgeType.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Mappings\ChannelSpecificObject.cs" />
     <Compile Include="Mappings\CompositeCreative.cs" />
     <Compile Include="Mappings\ConnectionDefinition.cs" />
+    <Compile Include="Mappings\EdgeField.cs" />
     <Compile Include="Mappings\PlacementTarget.cs" />
     <Compile Include="Mappings\GenderTarget.cs" />
     <Compile Include="Mappings\ImageCreative.cs" />
@@ -98,6 +100,7 @@
     <Compile Include="Model\ChannelSpecificObject.cs" />
     <Compile Include="Model\CompositeCreative.cs" />
     <Compile Include="Model\ConnectionDefinition.cs" />
+    <Compile Include="Model\EdgeField.cs" />
     <Compile Include="Model\TargetDefinition.cs" />
     <Compile Include="Model\Currency.cs" />
     <Compile Include="Model\CurrencyRate.cs" />

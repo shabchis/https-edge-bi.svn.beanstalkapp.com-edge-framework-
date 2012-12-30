@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Queries;
+using Eggplant;
 
 namespace Edge.Data.Objects
 {
@@ -11,7 +12,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<EdgeObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeObject>()
+			public static Mapping<EdgeObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeObject>(edgeObject => edgeObject
 
 				.Map<long>(EdgeObject.Properties.GK, "GK")
 				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
@@ -49,16 +50,62 @@ namespace Edge.Data.Objects
 				)
 				*/
 
+				.Map<Dictionary<EdgeField, object>>(EdgeObject.Properties.ExtraFields, extraFields => extraFields
+					.Do(context => {
+						EdgeObject current = edgeObject.FromContext(context).Target;
+						Type currentType = current.GetType();
+						foreach (EdgeField field in context.Cache.Get<EdgeField>())
+						{
+							if (field.IsSystem)
+								continue;
+
+							// Ignore unrelated fields
+							if (!field.ObjectEdgeType.ClrType.IsAssignableFrom(currentType))
+								continue;
+
+							object value;
+							if (field.FieldEdgeType != null)
+							{
+								// EdgeType value (with GK)
+								//int valueTypeID = context.GetField<int>(string.Format("{0}_t_Field{1}", field.ColumnPrefix, field.ColumnIndex));
+								//EdgeType valueEdgeType = context.Cache.Get<EdgeType>(EdgeType.Identities.Default, valueTypeID);
+								//valueEdgeType.ClrType
+								throw new NotImplementedException("Fields of type GK not yet implemented");
+							}
+							else
+							{
+								// Regular value
+								string columnName = string.Format("{0}_Field{1}", field.ColumnPrefix, field.ColumnIndex);
+								value = context.GetField(columnName);
+								if (!field.FieldClrType.IsAssignableFrom(value.GetType()))
+								{
+									throw new MappingException(String.Format("Value for extra field '{0}' cannot be mapped from {1}.{2} because it is not of type {3}.",
+										field.Name,
+										field.ObjectEdgeType.TableName,
+										columnName,
+										field.FieldClrType.Name
+									));
+								}
+
+							}
+
+							// Add the value
+							current.ExtraFields.Add(field, value);
+						}
+					})
+				)
+
+
 				.MapDictionaryFromSubquery<EdgeObject, ConnectionDefinition, EdgeObject>(EdgeObject.Properties.Connections, "Connections",
 					parent => parent
-						.DynamicEdgeObject("FromGK", "FromTypeID", "FromClrType"),
+						.MapEdgeObject("FromGK", "FromTypeID", "FromClrType"),
 					key => key
 						.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionDefID"),
 					value => value
-						.DynamicEdgeObject("ToGK", "ToTypeID", "ToClrType")
+						.MapEdgeObject("ToGK", "ToTypeID", "ToClrType")
 				)
 
-			;
+			);
 
 			
 		}

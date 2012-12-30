@@ -15,6 +15,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<EdgeObject, Account> Account = new EntityProperty<EdgeObject, Account>("Account");
 			public static EntityProperty<EdgeObject, EdgeType> EdgeType = new EntityProperty<EdgeObject, EdgeType>("EdgeType");
 			public static EntityProperty<EdgeObject, Dictionary<ConnectionDefinition, EdgeObject>> Connections = new EntityProperty<EdgeObject, Dictionary<Edge.Data.Objects.ConnectionDefinition, Edge.Data.Objects.EdgeObject>>("Connections");
+			public static EntityProperty<EdgeObject, Dictionary<EdgeField, object>> ExtraFields = new EntityProperty<EdgeObject, Dictionary<EdgeField, object>>("ExtraFields");
 		}
 	}
 }

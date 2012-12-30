@@ -15,7 +15,7 @@ namespace Edge.Data.Objects
 
 				.Map<string>(Ad.Properties.DestinationUrl, "DestinationUrl")
 				.Map<Creative>(Ad.Properties.Creative, creative => creative
-					.DynamicEdgeObject("CreativeGK", "CreativeTypeID", "CreativeClrType")
+					.MapEdgeObject("CreativeGK", "CreativeTypeID", "CreativeClrType")
 				)
 			);
 		}

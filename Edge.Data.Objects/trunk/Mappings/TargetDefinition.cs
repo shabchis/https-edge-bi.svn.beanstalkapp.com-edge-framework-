@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 			public static Mapping<TargetDefinition> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<TargetDefinition>()
 				.Inherit(EdgeObject.Mappings.Default)
 				.Map<Target>(TargetDefinition.Properties.Target, target => target
-					.DynamicEdgeObject("TargetGK", "TargetTypeID", "TargetClrType")
+					.MapEdgeObject("TargetGK", "TargetTypeID", "TargetClrType")
 				)
 			;
 		}
