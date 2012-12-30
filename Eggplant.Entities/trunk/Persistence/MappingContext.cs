@@ -12,50 +12,64 @@ namespace Eggplant.Entities.Persistence
 	public abstract class MappingContext
 	{
 		public Query Query { get; internal set; }
-		public MappingDirection Direction { get; internal set; }
+		//public MappingDirection Direction { get; internal set; }
 
-		public Subquery ActivateSubquery { get; internal set; }
+		//public Subquery ActivateSubquery { get; internal set; }
+		public PersistenceIoChannel Stream { get; private set; }
 		public IMapping ActiveMapping { get; internal set; }
 		public MappingContext ParentContext { get; private set; }
 		public object Target { get; internal set; }
-		
-		internal MappingContext(Query query, MappingDirection direction)
+		public EntitySpace EntitySpace { get; private set; }
+
+		internal bool DoBreak { get; private set; }
+
+		Dictionary<string, object> _vars;
+
+		internal MappingContext(Query query, EntitySpace space, PersistenceIoChannel stream,  MappingContext baseContext = null)
 		{
+			this.Stream = stream;
+			this.EntitySpace = space;
 			this.Query = query;
-			this.Direction = direction;
+			this.DoBreak = false;
+
+			// Inherit vars from base
+			_vars = baseContext != null ? new Dictionary<string, object>(baseContext._vars) : new Dictionary<string, object>();
 		}
 
 		public object GetField(string field)
 		{
-			return GetField<object>(field);
+			return this.Stream.GetField(field);
 		}
 
 		public V GetField<V>(string field, Func<object, V> convert = null)
 		{
-			throw new NotImplementedException();
+			if (convert == null)
+				return (V)this.Stream.GetField(field);
+			else
+				return convert(this.Stream.GetField(field));
 		}
 
 		public void SetField(string field, object value)
 		{
-			if (this.Direction != MappingDirection.Outbound)
-				throw new InvalidOperationException("Cannot set data set fields during an inbound mapping operation.");
-
-			throw new NotImplementedException();
+			this.Stream.SetField(field, value);
 		}
 
 		public void SetVariable(string variable, object value)
 		{
-			throw new NotImplementedException();
+			_vars[variable] = value;
 		}
 
 		public object GetVariable(string variable)
 		{
-			return GetVariable<object>(variable);
+			return _vars[variable];
 		}
 
 		public V GetVariable<V>(string variable, Func<object, V> convert = null)
 		{
-			throw new NotImplementedException();
+			if (convert == null)
+				return (V)_vars[variable];
+			else
+				return convert(_vars[variable]);
 		}
 
 		internal virtual void SetTarget(object target)
@@ -68,7 +82,7 @@ namespace Eggplant.Entities.Persistence
 		/// </summary>
 		public void Break()
 		{
-			throw new NotImplementedException();
+			this.DoBreak = true;
 		}
 	}
 
@@ -76,11 +90,11 @@ namespace Eggplant.Entities.Persistence
 	{
 		public new T Target { get { return (T)base.Target; } }
 
-		internal MappingContext(Query query, MappingDirection direction):base(query, direction)
+		internal MappingContext(Query query, EntitySpace space, PersistenceIoChannel stream):base(query, space, stream)
 		{
 		}
 
-		internal MappingContext(MappingContext baseContext): this(baseContext.Query, baseContext.Direction)
+		internal MappingContext(MappingContext baseContext): base(baseContext.Query, baseContext.EntitySpace, baseContext.Stream, baseContext)
 		{
 		}
 

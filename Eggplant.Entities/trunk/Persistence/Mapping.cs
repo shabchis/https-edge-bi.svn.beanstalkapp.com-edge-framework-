@@ -47,9 +47,8 @@ namespace Eggplant.Entities.Persistence
 		{
 			return this.Do(new Action<MappingContext<T>>(context =>
 			{
-
-				if (context.Direction == MappingDirection.Outbound)
-					throw new MappingException("Cannot perform a Set() mapping in an outbound mapping.");
+				//if (context.Stream.Options & PersistenceStreamOptions.OutboundFields > 0)
+				//	throw new MappingException("Current stream does not support outbound fields.");
 
 				context.SetTarget(function(context));
 			}));
@@ -73,10 +72,10 @@ namespace Eggplant.Entities.Persistence
 		public Mapping<T> Map<V>(string variable, string field)
 		{
 			return this.Map<V>(variable, mapping => mapping
-				.Set(context =>
-					context.Direction == MappingDirection.Inbound ?
-						context.GetField<V>(field) :
-						context.GetVariable<V>(variable)
+				.Set(context => context.GetField<V>(field)
+					//context.Direction == MappingDirection.Inbound ?
+					//	context.GetField<V>(field) :
+					//	context.GetVariable<V>(variable)
 				)
 			);
 		}
@@ -92,10 +91,10 @@ namespace Eggplant.Entities.Persistence
 		public Mapping<T> Map<V>(IEntityProperty<V> property, string field)
 		{
 			return this.Map<V>(property, mapping => mapping
-				.Set(context =>
-					context.Direction == MappingDirection.Inbound ?
-						context.GetField<V>(field) :
-						mapping.Property.GetValue(context.Target)
+				.Set(context => context.GetField<V>(field)
+					//context.Direction == MappingDirection.Inbound ?
+					//	context.GetField<V>(field) :
+					//	mapping.Property.GetValue(context.Target)
 				)
 			);
 		}
@@ -159,6 +158,8 @@ namespace Eggplant.Entities.Persistence
 
 		// ===================================
 		// Other
+
+
 
 		// Finds the nearest parent context
 		public MappingContext<T> FromContext(MappingContext context)

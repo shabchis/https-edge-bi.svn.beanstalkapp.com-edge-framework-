@@ -79,6 +79,9 @@
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Persistence\Mappings\PropertyMapping.cs" />
     <Compile Include="Persistence\Mappings\VariableMapping.cs" />
+    <Compile Include="Persistence\PersistenceIoChannel.cs" />
+    <Compile Include="Persistence\SqlServer\SqlServerDataReaderChannel.cs" />
+    <Compile Include="Persistence\SqlServer\SqlServerPersistenceStore.cs" />
     <Compile Include="Queries\Enums.cs" />
     <Compile Include="Queries\Exceptions.cs" />
     <Compile Include="Queries\Query.cs" />
@@ -89,9 +92,7 @@
     <Compile Include="Queries\Subquery.cs" />
     <Compile Include="Queries\SubqueryTemplate.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Cache\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
   <Target Name="BeforeCompile">

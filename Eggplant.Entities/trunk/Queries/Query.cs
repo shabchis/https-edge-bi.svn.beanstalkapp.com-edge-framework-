@@ -191,7 +191,7 @@ namespace Eggplant.Entities.Queries
 					foreach (DbParameter param in subquery.DbParameters.Values)
 						command.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
 
-				this.MappingContext = new MappingContext<T>(this, MappingDirection.Inbound);
+				//this.MappingContext = new MappingContext<T>(this, MappingDirection.Inbound);
 
 				// Execute the command
 				int resultSetIndex = -1;
