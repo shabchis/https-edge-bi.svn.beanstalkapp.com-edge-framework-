@@ -164,7 +164,7 @@ namespace Edge.Data.Objects
 		/// <summary>
 		/// Shortcut for mapping an EdgeObject reference from fields.
 		/// </summary>
-		public static void DynamicEdgeObject<T>(this Mapping<T> mapping, string fieldGK, string fieldTypeID, string fieldClrType)
+		public static void MapEdgeObject<T>(this Mapping<T> mapping, string fieldGK, string fieldTypeID, string fieldClrType)
 			where T: EdgeObject
 		{
 			mapping
@@ -174,6 +174,19 @@ namespace Edge.Data.Objects
 				)
 				.Map<long>(EdgeObject.Properties.GK, fieldGK)
 			;
+		}
+
+		public static Mapping<T> MapEdgeField<T, V>(this Mapping<T> mapping, EntityProperty<T, V> property)
+			where T : EdgeObject
+		{
+			return mapping
+				.Map<V>(property, prop => prop
+					.Set(context =>
+					{
+						EdgeField field = context.Cache.Get<EdgeField>(EdgeField.Identities.Default, property.Name);
+						return context.GetField<V>(String.Format("{0}_Field{1}", field.ColumnPrefix, field.ColumnIndex));
+					})
+				);
 		}
 
 		/// <summary>

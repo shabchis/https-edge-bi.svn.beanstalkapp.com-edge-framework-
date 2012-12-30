@@ -38,7 +38,7 @@ namespace Edge.Data.Objects
 					key => key
 						.Set(context => context.GetField<string>("PartRole")),
 					value => value
-						.DynamicEdgeObject("PartGK", "PartTypeID", "PartClrType")
+						.MapEdgeObject("PartGK", "PartTypeID", "PartClrType")
 				)
 			);
 		}
