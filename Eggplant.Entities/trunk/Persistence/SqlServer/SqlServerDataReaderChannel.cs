@@ -7,7 +7,7 @@ using System.Data.Sql;
 
 namespace Eggplant.Entities.Persistence.SqlServer
 {
-	public class SqlServerDataReaderChannel: PersistenceIoChannel
+	public class SqlServerDataReaderChannel: PersistenceChannel
 	{
 		SqlDataReader _reader;
 

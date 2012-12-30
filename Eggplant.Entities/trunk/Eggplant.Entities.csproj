@@ -79,7 +79,7 @@
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Persistence\Mappings\PropertyMapping.cs" />
     <Compile Include="Persistence\Mappings\VariableMapping.cs" />
-    <Compile Include="Persistence\PersistenceIoChannel.cs" />
+    <Compile Include="Persistence\PersistenceChannel.cs" />
     <Compile Include="Persistence\SqlServer\SqlServerDataReaderChannel.cs" />
     <Compile Include="Persistence\SqlServer\SqlServerPersistenceStore.cs" />
     <Compile Include="Queries\Enums.cs" />
