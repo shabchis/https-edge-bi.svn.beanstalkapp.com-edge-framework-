@@ -10,6 +10,7 @@ using Edge.Core.Services;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline;
+using Edge.Data.Pipeline.Metrics.Base;
 
 
 namespace Edge.Data.Pipeline.Metrics.AdMetrics

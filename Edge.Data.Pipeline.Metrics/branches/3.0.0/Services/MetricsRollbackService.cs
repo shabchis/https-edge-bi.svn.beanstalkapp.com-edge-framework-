@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Edge.Data.Pipeline.Metrics.Base;
 using Edge.Data.Pipeline.Services;
 using Edge.Data.Pipeline;
 using Edge.Core.Utilities;

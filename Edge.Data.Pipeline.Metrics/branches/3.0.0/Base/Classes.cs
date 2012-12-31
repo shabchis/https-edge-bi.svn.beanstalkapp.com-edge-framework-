@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
 using System.Reflection;
-using Edge.Core.Configuration;
 using Edge.Data.Objects;
 using Edge.Core.Utilities;
 
-namespace Edge.Data.Pipeline.Metrics
+namespace Edge.Data.Pipeline.Metrics.Base
 {
 	public enum OptionsMatching
 	{
@@ -29,13 +27,13 @@ namespace Edge.Data.Pipeline.Metrics
 		public double ChecksumThreshold { get; set; }
 		public MeasureOptions MeasureOptions { get; set; }
 		public OptionsMatching MeasureOptionsMatch { get; set; }
-		public MetaPropertyOptions MetaPropertyOptions { get; set; }
+		//public MetaPropertyOptions MetaPropertyOptions { get; set; }
 		public OptionsMatching MetaPropertyOptionsMatch { get; set; }
 	}
 
 	public static class TableDef
 	{
-		static Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type, ColumnDef[]>();
+		static readonly Dictionary<Type, ColumnDef[]> _columns = new Dictionary<Type, ColumnDef[]>();
 		public static ColumnDef[] GetColumns<T>(bool expandCopies = true)
 		{
 			return GetColumns(typeof(T), expandCopies);
@@ -90,7 +88,6 @@ namespace Edge.Data.Pipeline.Metrics
 		public int Copies;
 		public string DefaultValue;
 
-
 		public ColumnDef(string name, int size = 0, SqlDbType type = SqlDbType.NVarChar, bool nullable = true, int copies = 1, string defaultValue = "")
 		{
 			this.Name = name;
@@ -107,20 +104,15 @@ namespace Edge.Data.Pipeline.Metrics
 		}
 
 		public ColumnDef(ColumnDef copySource, int index)
-			: this(
-				name: String.Format(copySource.Name, index),
+			: this(name: String.Format(copySource.Name, index),
 				size: copySource.Size,
 				type: copySource.Type,
 				nullable: copySource.Nullable,
-				copies: 1
-				)
-		{
-		}
+				copies: 1) {}
 	}
 
 	public class BulkObjects : IDisposable
 	{
-
 		public SqlConnection Connection;
 		public List<ColumnDef> Columns;
 		public DataTable Table;
@@ -151,6 +143,7 @@ namespace Edge.Data.Pipeline.Metrics
 			foreach (ColumnDef col in this.Columns)
 				this.BulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(col.Name, col.Name));
 		}
+
 		public void AddColumn(ColumnDef columnDef)
 		{
 			this.Columns.Add(columnDef);
@@ -215,5 +208,4 @@ namespace Edge.Data.Pipeline.Metrics
 			this.BulkCopy.Close();
 		}
 	}
-
 }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Edge.Data.Pipeline.Metrics
+﻿namespace Edge.Data.Pipeline.Metrics.Base
 {
 	public static class Consts
 	{

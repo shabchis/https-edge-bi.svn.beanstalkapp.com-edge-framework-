@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Edge.Core.Services;
-using Edge.Data.Pipeline;
-using Edge.Data.Pipeline.Common.Importing;
+using Edge.Data.Pipeline.Metrics.Base;
 using Edge.Data.Pipeline.Services;
 using Edge.Core.Utilities;
 
@@ -17,26 +13,26 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// ----------------
 			// SETUP
 
-			string checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
+			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
 			
-			MetricsDeliveryManagerOptions options = new MetricsDeliveryManagerOptions()
-			{
+			var options = new MetricsDeliveryManagerOptions
+				{
 				SqlTransformCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlTransformCommand),
 				SqlStageCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlStageCommand),
 				SqlRollbackCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlRollbackCommand),
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
 
-			Type importManagerType = Configuration.Parameters.Get<Type>(Consts.ConfigurationOptions.ImportManagerType, convertFunction: raw => Type.GetType((string)raw));
+			Type importManagerType = Configuration.Parameters.Get(Consts.ConfigurationOptions.ImportManagerType, convertFunction: raw => Type.GetType((string)raw));
 
-			var importManager = (MetricsDeliveryManager) Activator.CreateInstance(importManagerType, this.InstanceID, options);
+			var importManager = (MetricsDeliveryManager) Activator.CreateInstance(importManagerType, InstanceID, options);
 			Progress = 0.1;
 
 			// ----------------
 			// TICKETS
 
 			// Only check tickets, don't check conflicts
-			this.HandleConflicts(importManager, DeliveryConflictBehavior.Ignore, getBehaviorFromConfiguration: false);
+			HandleConflicts(importManager, DeliveryConflictBehavior.Ignore, getBehaviorFromConfiguration: false);
 			Progress = 0.2;
 
 			// ----------------
@@ -44,12 +40,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			try
 			{
 				Log("Transform: start", LogMessageType.Information);
-				importManager.Transform(new Delivery[] { this.Delivery });
+				importManager.Transform(new[] { Delivery });
 				Log("Transform: end", LogMessageType.Information);
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Delivery {0} failed during Transform.", this.Delivery.DeliveryID), ex);
+				throw new Exception(String.Format("Delivery {0} failed during Transform.", Delivery.DeliveryID), ex);
 			}
 
 			Progress = 0.6;
@@ -62,7 +58,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				try
 				{
 					Log("Staging: start", LogMessageType.Information);
-					importManager.Stage(new Delivery[] { this.Delivery });
+					importManager.Stage(new[] { Delivery });
 					Log("Staging: end", LogMessageType.Information);
 					success = true;
 				}
@@ -74,7 +70,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				}
 				catch (Exception ex)
 				{
-					throw new Exception(String.Format("Delivery {0} failed during staging.", this.Delivery.DeliveryID), ex);
+					throw new Exception(String.Format("Delivery {0} failed during staging.", Delivery.DeliveryID), ex);
 				}
 			}
 			while (!success);
