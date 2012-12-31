@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Edge.Core.Data;
+using Edge.Core.Utilities;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline;
+using Edge.Data.Pipeline.Metrics.Base;
 using Edge.Data.Pipeline.Services;
 using Edge.Data.Pipeline.Mapping;
-using Edge.Data.Pipeline.Common.Importing;
-using System.IO;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
-using Edge.Core.Services;
 using Edge.Data.Pipeline.Metrics.AdMetrics;
 
 namespace Edge.Data.Pipeline.Metrics.Services
@@ -46,7 +41,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		protected virtual void OnInitMappings()
 		{
 		}
-	
 
 		#region Scriptable methods
 		// ==============================================
@@ -132,7 +126,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 		private Dictionary<string, Account> GetAccountsFromDB(int currentAccountId)
 		{
-
 			Dictionary<string, Account> accounts = new Dictionary<string, Account>();
 			SqlConnection connection;
 			connection = new SqlConnection(AppSettings.GetConnectionString(typeof(AdMetricsImportManager), "StagingDatabase"));
@@ -199,11 +192,5 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 			return channels;
 		}
-
-		
 	}
-
-	
-
-	
 }

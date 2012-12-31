@@ -12,6 +12,7 @@ using Edge.Data.Objects;
 using Edge.Data.Pipeline;
 using Edge.Data.Pipeline.Common.Importing;
 using Edge.Data.Objects.Reflection;
+using Edge.Data.Pipeline.Metrics.Base;
 
 namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 {

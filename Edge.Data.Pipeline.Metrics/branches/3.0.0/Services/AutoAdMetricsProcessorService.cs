@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline;
-using Edge.Data.Pipeline.Services;
+using Edge.Data.Pipeline.Metrics.AdMetrics;
+using Edge.Data.Pipeline.Metrics.Base;
 using Edge.Data.Pipeline.Mapping;
-using Edge.Data.Pipeline.Common.Importing;
-using System.IO;
-using System.Xml;
-using Edge.Data.Pipeline.Metrics.Services;
 
-namespace Edge.Data.Pipeline.Metrics.AdMetrics
+namespace Edge.Data.Pipeline.Metrics.Services
 {
 	/// <summary>
 	/// Base class for ad metrics processors.
@@ -24,7 +17,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 		public new AdMetricsImportManager ImportManager
 		{
-			get { return (AdMetricsImportManager)base.ImportManager; }
+			get { return base.ImportManager as AdMetricsImportManager; }
 		}
 
 		protected override MetricsDeliveryManager CreateImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options)
@@ -34,57 +27,53 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 
 		protected override void LoadConfiguration()
 		{
-			if (!this.Mappings.Objects.TryGetValue(typeof(Ad), out _adMappings))
+			if (!Mappings.Objects.TryGetValue(typeof(Ad), out _adMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Ad.", "Object");
 
-			if (!this.Mappings.Objects.TryGetValue(typeof(AdMetricsUnit), out _metricsMappings))
+			if (!Mappings.Objects.TryGetValue(typeof(AdMetricsUnit), out _metricsMappings))
 				throw new MappingConfigurationException("Missing mapping definition for AdMetricsUnit.", "Object");
 
-			if (!this.Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
+			if (!Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
 
-		
 		protected override void OnRead()
 		{
 			var ad = new Ad();
 			_adMappings.Apply(ad);
-			this.ImportManager.ImportAd(ad);
+			ImportManager.ImportAd(ad);
 
-			var metrics = new AdMetricsUnit();
-			metrics.Ad = ad;
+			var metrics = new AdMetricsUnit {Ad = ad};
 			_metricsMappings.Apply(metrics);
 
 			var signature = new Signature();
 			_signatureMappings.Apply(signature);
 
 			//checking if signature is already exists in delivery outputs
-			var outputs = from output in this.Delivery.Outputs
+			var outputs = from output in Delivery.Outputs
 						  where output.Signature.Equals(signature.ToString())
 						  select output;
 
-			DeliveryOutput op = outputs.FirstOrDefault<DeliveryOutput>();
+			DeliveryOutput op = outputs.FirstOrDefault();
 			if (op != null)
 				//Attaching output to Metrics
-				(metrics as AdMetricsUnit).Output = op;
+				metrics.Output = op;
 			else
 			{
-				DeliveryOutput deliveryOutput = new DeliveryOutput() 
-				{ 
+				var deliveryOutput = new DeliveryOutput
+					{ 
 					Signature = signature.Value, 
 					TimePeriodStart =metrics.TimePeriodStart,
 					TimePeriodEnd = metrics.TimePeriodEnd,
 					Account = metrics.Ad.Account,
 					Channel = metrics.Ad.Channel
 				};
-				this.Delivery.Outputs.Add(deliveryOutput);
+				Delivery.Outputs.Add(deliveryOutput);
 				//Attaching output to Metrics
-				(metrics as AdMetricsUnit).Output = deliveryOutput;
+				metrics.Output = deliveryOutput;
 			}
 
-			this.ImportManager.ImportMetrics(metrics);
-
-		
+			ImportManager.ImportMetrics(metrics);
 		}
 	}
 }

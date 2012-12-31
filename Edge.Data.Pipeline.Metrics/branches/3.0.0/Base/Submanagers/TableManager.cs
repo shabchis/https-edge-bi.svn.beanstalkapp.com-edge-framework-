@@ -2,25 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Reflection;
 using System.Data;
-using Edge.Data.Pipeline.Metrics;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
+using Edge.Data.Objects;
 
-
-namespace Edge.Data.Objects
+namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 {
+	/// <summary>
+	/// Table manager class is used to create Delivery metrics table and find matching table for staging
+	/// </summary>
 	internal class TableManager
 	{
-		string _tablePrefix;
-		SqlConnection _sqlConnection;
-		string _edgeobjectsSuffix = "Usid";
-		public TableManager(SqlConnection connection)
-		{
-			_sqlConnection = connection;
-		}
+		#region Column class
 		public class Column
 		{
 			public string Name { get; set; }
@@ -29,19 +24,34 @@ namespace Edge.Data.Objects
 			public object Value { get; set; }
 			public bool Nullable { get; set; }
 			public string DefaultValue { get; set; }
-		}
+		} 
+		#endregion
 
-		Dictionary<string, Column> _cols = new Dictionary<string, Column>();
-		EdgeObjectsManager _objectsManger = new EdgeObjectsManager();
+		#region Data Members
+		string _tablePrefix;
+		readonly SqlConnection _sqlConnection;
+		private const string EGDE_OBJECTS_SUFFIX = "Usid";
+		readonly Dictionary<string, Column> _columns = new Dictionary<string, Column>();
+		readonly EdgeObjectsManager _objectsManger = new EdgeObjectsManager(); 
+		#endregion
+
+		#region Ctor
+		public TableManager(SqlConnection connection)
+		{
+			_sqlConnection = connection;
+		} 
+		#endregion
+
+		#region Delivery Metrics
 		public string CreateDeliveryMetricsTable(string tablePerifx, MetricsUnit metricsUnit)
 		{
 			_tablePrefix = tablePerifx;
-			string tableName;
-			#region looping object in predetermined order-
+
+			#region looping object in predetermined order
 			int pass = 0;
 			if (metricsUnit is AdMetricsUnit)
 			{
-				AdMetricsUnit adMetricsUnit = (AdMetricsUnit)metricsUnit;				
+				var adMetricsUnit = metricsUnit as AdMetricsUnit;
 				_objectsManger.Add(adMetricsUnit.Ad, pass);
 				_objectsManger.Add(adMetricsUnit.Ad.Creative, pass);
 			}
@@ -49,7 +59,6 @@ namespace Edge.Data.Objects
 			{
 				_objectsManger.Add(target, pass);
 			}
-
 
 			while (_objectsManger.ContainsKey(pass) && _objectsManger[pass] != null && _objectsManger[pass].Count > 0)
 			{
@@ -96,12 +105,12 @@ namespace Edge.Data.Objects
 			}
 			#endregion
 
-			#region createMetricsTable
+			#region Create Metrics Table
 
-			StringBuilder builder = new StringBuilder();
-			tableName = string.Format("{0}_Metrics", this._tablePrefix);
+			var builder = new StringBuilder();
+			var tableName = string.Format("{0}_Metrics", _tablePrefix);
 			builder.AppendFormat("create table [dbo].{0}(\n", tableName);
-			foreach (Column col in _cols.Values)
+			foreach (Column col in _columns.Values)
 			{
 
 				builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}, \n",
@@ -114,27 +123,24 @@ namespace Edge.Data.Objects
 			}
 			builder.Remove(builder.Length - 1, 1);
 			builder.Append(");");
-			using (SqlCommand command = new SqlCommand(builder.ToString(), _sqlConnection))
+			using (var command = new SqlCommand(builder.ToString(), _sqlConnection))
 			{
 				command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
 				command.ExecuteNonQuery();
-
 			}
 
 			#endregion
+
 			return tableName;
 		}
 		private void AddColumn(object obj)
 		{
-			string typeName = obj.GetType().Name;
-
-			string colName;
 			if (obj is EdgeObject)
 			{
-				colName = obj.GetType().Name;
-				if (!_cols.ContainsKey(colName))
+				string colName = obj.GetType().Name;
+				if (!_columns.ContainsKey(colName))
 				{
-					_cols.Add(colName, new Column() { Name = colName, Value = ((EdgeObject)obj).GK });
+					_columns.Add(colName, new Column { Name = colName, Value = ((EdgeObject)obj).GK });
 					if (!((EdgeObject)obj).HasChildsObjects)
 						return;
 					foreach (var child in ((EdgeObject)obj).GetChildObjects())
@@ -147,34 +153,30 @@ namespace Edge.Data.Objects
 			{
 				Type t = obj.GetType();
 
-				if (t == typeof(KeyValuePair<MetaProperty, object>))
+				if (t == typeof(KeyValuePair<ConnectionDefinition, object>))
 				{
-					KeyValuePair<MetaProperty, object> metaProperty = (KeyValuePair<MetaProperty, object>)obj;
-					if (!_cols.ContainsKey(metaProperty.Key.PropertyName))
+					var connection = (KeyValuePair<ConnectionDefinition, object>)obj;
+					if (!_columns.ContainsKey(connection.Key.Name))
 					{
-						_cols.Add(metaProperty.Key.PropertyName, new Column() { Name = metaProperty.Key.PropertyName });
+						_columns.Add(connection.Key.Name, new Column { Name = connection.Key.Name });
 					}
-
 				}
 				else if (t == typeof(KeyValuePair<Measure, double>))
 				{
-					KeyValuePair<Measure, double> measure = (KeyValuePair<Measure, double>)obj;
+					var measure = (KeyValuePair<Measure, double>)obj;
 					string name = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
-					if (!_cols.ContainsKey(name))
+					if (!_columns.ContainsKey(name))
 					{
-						_cols.Add(name, new Column() { Name = name, Value = measure.Value });
+						_columns.Add(name, new Column { Name = name, Value = measure.Value });
 					}
-
 				}
 			}
 		}
 		private void AddObjects(EdgeObject obj)
 		{
-
-
-			if (obj.MetaProperties != null)
+			if (obj.Connections != null)
 			{
-				foreach (KeyValuePair<MetaProperty, object> metaProperty in obj.MetaProperties)
+				foreach (KeyValuePair<ConnectionDefinition, EdgeObject> metaProperty in obj.Connections)
 				{
 					if (metaProperty.Value.GetType() != typeof(EdgeObject))
 					{
@@ -182,149 +184,81 @@ namespace Edge.Data.Objects
 					}
 					else
 					{
-						if (!_objectsManger.ContainsKey((EdgeObject)metaProperty.Value))
-							_objectsManger.Add((EdgeObject)metaProperty.Value);
+						if (!_objectsManger.ContainsKey(metaProperty.Value))
+							_objectsManger.Add(metaProperty.Value);
 					}
 				}
-
 			}
+		} 
+		#endregion
 
-
-		}
+		#region Staging
 		public string FindStagingTable(string metricsTableName)
 		{
 			string stagingTableName;
 			using (SqlCommand command = SqlUtility.CreateCommand(AppSettings.Get(this, "SP_FindStagingTable"), CommandType.StoredProcedure))
 			{
 				command.Parameters["@templateTable"].Value = metricsTableName;
-				command.Parameters["@templateDB"].Value = "";//TODO: FROM WHERE DO i TAKE THIS TABLE?
-				command.Parameters["@searchDB"].Value = "";//TODO: FROM WHERE DO i TAKE THIS TABLE?
+				command.Parameters["@templateDB"].Value = ""; //TODO: FROM WHERE DO i TAKE THIS TABLE?
+				command.Parameters["@searchDB"].Value = ""; //TODO: FROM WHERE DO i TAKE THIS TABLE?
 				using (SqlDataReader reader = command.ExecuteReader())
 				{
 					if (!reader.Read())
 						throw new Exception("No staging table   Found");
-					else
-						stagingTableName = reader["TABLE_NAME"].ToString();
-
+					
+					stagingTableName = reader["TABLE_NAME"].ToString();
 				}
-
-
 			}
 			return stagingTableName;
 		}
 
 		internal void Staging(string deliveryTable, string stagingTable)
 		{
-			List<Column> cols=_cols.Values.ToList();
-			StringBuilder builder = new StringBuilder();
+			List<Column> cols = _columns.Values.ToList();
+			var builder = new StringBuilder();
 			builder.AppendFormat("INSERT INTO {0}\n(", stagingTable);
 			for (int i = 0; i < cols.Count; i++)
 			{
-				if (i != cols.Count - 1)
-					builder.AppendFormat("\t{0},\n", cols[i].Name);
-				else
-					builder.AppendFormat("\t{0})\n",cols[i].Name);
+				builder.AppendFormat(i != cols.Count - 1 ? "\t{0},\n" : "\t{0})\n", cols[i].Name);
 			}
 			builder.Append("\tVALUES (SELECT\n");
 			for (int i = 0; i < cols.Count; i++)
 			{
-				string colName;
-				if (cols[i].Name.Contains(_edgeobjectsSuffix))
-					colName = "GKS.GK";
-				else
-					colName =string.Format("{0}.{1}","Metrics", cols[i].Name);
+				string colName = cols[i].Name.Contains(EGDE_OBJECTS_SUFFIX) ? "GKS.GK" : string.Format("{0}.{1}", "Metrics", cols[i].Name);
 
-				if (i != cols.Count - 1)
-					builder.AppendFormat("\t{0},\n", colName);
-				else
-					builder.AppendFormat("\t{0})\n", colName);
-
+				builder.AppendFormat(i != cols.Count - 1 ? "\t{0},\n" : "\t{0})\n", colName);
 			}
+
 			builder.Append("\tWHERE (\n");
-			bool firstFilter=true;
+			bool firstFilter = true;
 			for (int i = 0; i < cols.Count; i++)
 			{
-				string filter=string.Empty;
-				if (cols[i].Name.Contains(_edgeobjectsSuffix))
+				string filter = string.Empty;
+				if (cols[i].Name.Contains(EGDE_OBJECTS_SUFFIX))
 				{
 					if (firstFilter)
 					{
-					filter = string.Format("Metrics.{0}=GKS.Usid\n");
-						firstFilter=false;
+						filter = string.Format("Metrics.{0}=GKS.Usid\n");
+						firstFilter = false;
 					}
-					else					
-					filter = string.Format("AND Metrics.{0}=GKS.Usid\n");			
-				}				
-
+					else
+						filter = string.Format("AND Metrics.{0}=GKS.Usid\n");
+				}
 
 				if (i != cols.Count - 1)
 				{
-					if (string.IsNullOrEmpty(filter))
-						filter = "\t)";
-					else
-						filter = string.Format("\t{0})\n", filter);
+					filter = string.IsNullOrEmpty(filter) ? "\t)" : string.Format("\t{0})\n", filter);
 				}
 
 				if (!string.IsNullOrEmpty(filter))
 					builder.Append(filter);
 
 			}
-			using (SqlCommand command=new SqlCommand(builder.ToString(), _sqlConnection))
+			using (var command = new SqlCommand(builder.ToString(), _sqlConnection))
 			{
 				command.ExecuteNonQuery();
 			}
-
-
-			
-
-
-		}
-	}
-	internal class EdgeObjectsManager
-	{
-		Dictionary<EdgeObject, EdgeObject> _allObjects = new Dictionary<EdgeObject, EdgeObject>();
-		Dictionary<int, List<EdgeObject>> _objectsByPass = new Dictionary<int, List<EdgeObject>>();
-		Dictionary<EdgeObject, EdgeObject> _otherObjects = new Dictionary<EdgeObject, EdgeObject>();
-		public List<EdgeObject> this[int index]
-		{
-			get
-			{
-				return _objectsByPass[index];
-			}
-
-		}
-		public void Add(EdgeObject obj, int pass)
-		{
-
-
-			if (!_objectsByPass.ContainsKey(pass))
-				_objectsByPass.Add(pass, new List<EdgeObject>());
-			_objectsByPass[pass].Add(obj);
-
-		}
-		public void Add(EdgeObject obj)
-		{
-			if (_allObjects.ContainsKey(obj))
-				throw new System.ArgumentException(string.Format("element {0} of type {1}  already exists in _allObjects dictionary", obj.Name, obj.GetType().Name));
-			_otherObjects.Add(obj, obj);
-			_allObjects.Add(obj, obj);
-		}
-		public bool ContainsKey(EdgeObject obj)
-		{
-			return _allObjects.ContainsKey(obj) ? true : false;
-		}
-		public bool ContainsKey(int pass)
-		{
-			return _objectsByPass.ContainsKey(pass) ? true : false;
-		}
-		public Dictionary<int, List<EdgeObject>>.ValueCollection ObjectsByPassValues()
-		{
-			return _objectsByPass.Values;
-		}
-
-		public Dictionary<EdgeObject, EdgeObject>.ValueCollection GetOtherObjects()
-		{
-			return _otherObjects.Values;
-		}
+		} 
+		#endregion
 	}
 }

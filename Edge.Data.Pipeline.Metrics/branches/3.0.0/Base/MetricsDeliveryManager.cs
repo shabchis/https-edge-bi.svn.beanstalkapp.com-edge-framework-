@@ -2,30 +2,24 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Text;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
-using Edge.Core.Services;
+using Edge.Data.Pipeline.Metrics.Base.Submanagers;
 
-namespace Edge.Data.Pipeline.Metrics
+namespace Edge.Data.Pipeline.Metrics.Base
 {
 	/// <summary>
 	/// Base class for metrics import managers.
 	/// </summary>
 	public abstract class MetricsDeliveryManager : DeliveryManager
 	{
-		#region Fields
-		/*=========================*/
-
+		#region Data Members
 		private SqlConnection _sqlConnection;
 
 		public Dictionary<string, Measure> Measures { get; private set; }
 		public Dictionary<string, MetaProperty> MetaProperties { get; private set; }
 		public MetricsDeliveryManagerOptions Options { get; private set; }
-
-		/*=========================*/
 		#endregion
 
 		#region Constructors
@@ -42,7 +36,7 @@ namespace Edge.Data.Pipeline.Metrics
 			options.SqlCommitCommand = options.SqlStageCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlCommitCommand, throwException: false);
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
 
-			this.Options = options;
+			Options = options;
 		}
 
 		/*=========================*/
@@ -104,8 +98,8 @@ namespace Edge.Data.Pipeline.Metrics
 			if (this.State != DeliveryManagerState.Importing)
 				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
 		}
-
 		/*=========================*/
+
 		#endregion
 
 		#region Prepare
@@ -303,8 +297,6 @@ namespace Edge.Data.Pipeline.Metrics
 
 		/*=========================*/
 		#endregion
-
-
 	}
 
 	/// <summary>

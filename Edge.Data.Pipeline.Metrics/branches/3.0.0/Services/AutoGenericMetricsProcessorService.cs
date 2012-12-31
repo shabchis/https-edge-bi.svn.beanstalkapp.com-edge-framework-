@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Edge.Core.Data;
+﻿using System.Linq;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline;
-using Edge.Data.Pipeline.Services;
+using Edge.Data.Pipeline.Metrics.Base;
 using Edge.Data.Pipeline.Mapping;
-using Edge.Data.Pipeline.Common.Importing;
-using System.IO;
-using System.Xml;
-using Edge.Data.Pipeline.Metrics.Services;
+using Edge.Data.Pipeline.Metrics.GenericMetrics;
 
-namespace Edge.Data.Pipeline.Metrics.GenericMetrics
+namespace Edge.Data.Pipeline.Metrics.Services
 {
 	/// <summary>
 	/// Base class for ad metrics processors.
@@ -34,10 +26,10 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 
 		protected override void LoadConfiguration()
 		{
-			if (!this.Mappings.Objects.TryGetValue(typeof(GenericMetricsUnit), out _metricsMappings))
+			if (!Mappings.Objects.TryGetValue(typeof(GenericMetricsUnit), out _metricsMappings))
 				throw new MappingConfigurationException("Missing mapping definition for GenericMetricsUnit.", "Object");
 			
-			if (!this.Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
+			if (!Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
 
@@ -56,30 +48,30 @@ namespace Edge.Data.Pipeline.Metrics.GenericMetrics
 			_signatureMappings.Apply(signature);
 
 			//checking if signature is already exists in delivery outputs
-			var outputs = from output in this.Delivery.Outputs
+			var outputs = from output in Delivery.Outputs
 						  where output.Signature.Equals(signature.ToString())
 						  select output;
 
-			DeliveryOutput op = outputs.FirstOrDefault<DeliveryOutput>();
+			var op = outputs.FirstOrDefault();
 			if (op != null)
 				//Attaching output to Metrics
-				(metrics as GenericMetricsUnit).Output = op;
+				metrics.Output = op;
 			else
 			{
-				DeliveryOutput deliveryOutput = new DeliveryOutput()
-				{
+				var deliveryOutput = new DeliveryOutput
+					{
 					Signature = signature.Value,
 					TimePeriodStart = metrics.TimePeriodStart,
 					TimePeriodEnd = metrics.TimePeriodEnd,
 					Account = metrics.Account,
 					Channel = metrics.Channel
 				};
-				this.Delivery.Outputs.Add(deliveryOutput);
+				Delivery.Outputs.Add(deliveryOutput);
 				//Attaching output to Metrics
-				(metrics as GenericMetricsUnit).Output = deliveryOutput;
+				metrics.Output = deliveryOutput;
 			}
 
-			this.ImportManager.ImportMetrics(metrics);
+			ImportManager.ImportMetrics(metrics);
 		}
 	}
 }
