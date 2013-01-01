@@ -22,6 +22,13 @@ namespace Edge.Data.Pipeline.Metrics.Services.Configuration
 		public string ReaderAdapterType { get { return _readerAdapterType; } set { EnsureUnlocked(); _readerAdapterType = value; } }
 		#endregion
 
+		#region Ctors
+		public AutoMetricsProcessorServiceConfiguration() {}
+
+		protected AutoMetricsProcessorServiceConfiguration(SerializationInfo info, StreamingContext context)
+			: base(info, context){} 
+		#endregion
+
 		#region Override Methods
 		protected override void Serialize(SerializationInfo info, StreamingContext context)
 		{
