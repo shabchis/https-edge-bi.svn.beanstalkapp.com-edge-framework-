@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using Edge.Core.Services;
 using Edge.Data.Pipeline.Metrics.Base;
+using Edge.Data.Pipeline.Metrics.Services.Configuration;
 using Edge.Data.Pipeline.Services;
-using Edge.Data.Pipeline;
 using Edge.Core.Utilities;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
@@ -13,70 +11,65 @@ namespace Edge.Data.Pipeline.Metrics.Services
 {
 	public class MetricsRollbackService : PipelineService
 	{
-		protected override Core.Services.ServiceOutcome DoPipelineWork()
+		#region Properties
+		public new MetricsRollbackServiceconfiguration Configuration
 		{
-			string[] deliveriesIds=null;
-			string[] ouputsIds=null;
-			if (Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackDeliveries))
-				deliveriesIds = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackDeliveries).Split(',');
-			else if (Configuration.Options.ContainsKey(Consts.ConfigurationOptions.RollbackOutputs))
-				ouputsIds = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackOutputs).Split(',');
-			else
+			get { return (MetricsRollbackServiceconfiguration)base.Configuration; }
+		} 
+		#endregion
+
+		#region Override DoWork
+		protected override ServiceOutcome DoPipelineWork()
+		{
+			// takes deliveries or outputs to rollback from Config
+			var deliveriesIds = Configuration.Deliveries.Split(',');
+			var ouputsIds = Configuration.Deliveries.Split(',');
+
+			if (deliveriesIds.Length == 0 && ouputsIds.Length == 0)
 				throw new Exception("Option RollbackDeliveries or RollbackOutputs must be defined");
-			string spRolebackbyDeliveries = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByDeliverisStoredProc);
-			string spRolebackbyOutputs = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackByOutputsStoredProc);
-			string tableName = this.Configuration.GetOption(Consts.ConfigurationOptions.RollbackTableName);
 
-
-
-
-			using (SqlConnection conn = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Staging)))
+			// start Rollback
+			using (var conn = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Staging)))
 			{
-				SqlTransaction tran = null;
-				SqlCommand cmd = null;
 				conn.Open();
-				if (deliveriesIds != null && deliveriesIds.Length > 0)
+				var tran = conn.BeginTransaction();
+
+				// rollback deliveries
+				if (deliveriesIds.Length > 0)
 				{
-					tran = conn.BeginTransaction();
-					cmd = SqlUtility.CreateCommand(spRolebackbyDeliveries, System.Data.CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand(Configuration.RollbackDeliveriesStoredProc, System.Data.CommandType.StoredProcedure);
 					cmd.Connection = conn;
 					cmd.Transaction = tran;
 
-					foreach (string deliveryID in deliveriesIds)
+					foreach (var deliveryID in deliveriesIds)
 					{
-
 						cmd.Parameters["@DeliveryID"].Value = deliveryID;
-						cmd.Parameters["@TableName"].Value = tableName;
+						cmd.Parameters["@TableName"].Value = Configuration.TableName;
 						cmd.ExecuteNonQuery();
 					}
 				}
-				if (ouputsIds != null && ouputsIds.Length > 0)
+				// rollback outputs
+				if (ouputsIds.Length > 0)
 				{
-
-					cmd = SqlUtility.CreateCommand(spRolebackbyOutputs, System.Data.CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand(Configuration.RollbackOutputsStoredProc, System.Data.CommandType.StoredProcedure);
 					cmd.Connection = conn;
 					cmd.Transaction = tran;
 
-					foreach (string outputID in ouputsIds)
+					foreach (var outputID in ouputsIds)
 					{
-
 						cmd.Parameters["@DeliveryOutputID"].Value = outputID;
-						cmd.Parameters["@TableName"].Value = tableName;
+						cmd.Parameters["@TableName"].Value = Configuration.TableName;
 						cmd.ExecuteNonQuery();
 					}
 				}
 
-				if (tran != null)
-					tran.Commit();
-
-
+				// commit transaction
+				tran.Commit();
 			}
 
+			return ServiceOutcome.Success;
 
-			return Core.Services.ServiceOutcome.Success;
-
-			///for new db
-			////*
+			//for new db
 
 			/*
 			string checksumThreshold = Configuration.Parameters.Get<T>(Consts.ConfigurationOptions.ChecksumTheshold];
@@ -124,8 +117,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				importManager.RollbackOutputs(outputs.ToArray());
 			}
 			return Core.Services.ServiceOutcome.Success; */
-		}
-
-
+		} 
+		#endregion
 	}
 }

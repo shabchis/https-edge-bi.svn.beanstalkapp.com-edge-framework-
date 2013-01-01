@@ -8,35 +8,37 @@ namespace Edge.Data.Pipeline.Metrics.Services
 {
 	public class MetricsStagingService : PipelineService
 	{
+		#region Override DoWork
 		protected override ServiceOutcome DoPipelineWork()
 		{
 			// ----------------
 			// SETUP
-
+			// ----------------
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
-			
+
 			var options = new MetricsDeliveryManagerOptions
 				{
-				SqlTransformCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlTransformCommand),
-				SqlStageCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlStageCommand),
-				SqlRollbackCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlRollbackCommand),
-				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
-			};
+					SqlTransformCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlTransformCommand),
+					SqlStageCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlStageCommand),
+					SqlRollbackCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlRollbackCommand),
+					ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
+				};
 
 			Type importManagerType = Configuration.Parameters.Get(Consts.ConfigurationOptions.ImportManagerType, convertFunction: raw => Type.GetType((string)raw));
 
-			var importManager = (MetricsDeliveryManager) Activator.CreateInstance(importManagerType, InstanceID, options);
+			var importManager = (MetricsDeliveryManager)Activator.CreateInstance(importManagerType, InstanceID, options);
 			Progress = 0.1;
 
 			// ----------------
 			// TICKETS
-
+			// ----------------
 			// Only check tickets, don't check conflicts
 			HandleConflicts(importManager, DeliveryConflictBehavior.Ignore, getBehaviorFromConfiguration: false);
 			Progress = 0.2;
 
 			// ----------------
 			// TRANSFORM
+			// ----------------
 			try
 			{
 				Log("Transform: start", LogMessageType.Information);
@@ -52,6 +54,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			// ----------------
 			// COMMIT
+			// ----------------
 			bool success = false;
 			do
 			{
@@ -76,6 +79,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			while (!success);
 
 			return ServiceOutcome.Success;
-		}
+		} 
+		#endregion
 	}
 }
