@@ -123,5 +123,11 @@ namespace Edge.Core.Utilities
 
 			return command;
 		}
+
+		// TODO shirat - implement?
+		public static object Normalize(object p)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
