@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 		public string Name;
 		public Account Account;
 		public Channel Channel;
-		public EdgeType EdgeType;
+		public EdgeType ToEdgeType;
 		//public ConnectionOptions Options;
 	}
 

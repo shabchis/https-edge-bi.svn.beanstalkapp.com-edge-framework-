@@ -64,7 +64,6 @@
     <Compile Include="Classes\LandingPage.cs" />
     <Compile Include="Classes\Measure.cs" />
     <Compile Include="Classes\ConnectionDefinition.cs" />
-    <Compile Include="Classes\MetricsUnit.cs" />
     <Compile Include="Classes\StringValue.cs" />
     <Compile Include="Classes\Target.cs" />
     <Compile Include="Classes\TargetMatch.cs" />
