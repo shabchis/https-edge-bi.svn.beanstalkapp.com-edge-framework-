@@ -7,11 +7,12 @@ using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
+using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 {
 	/// <summary>
-	/// Table manager class is used to create Delivery metrics table and find matching table for staging
+	/// Table manager class is used to create Delivery metrics table and find matching table for Staging
 	/// </summary>
 	internal class TableManager
 	{

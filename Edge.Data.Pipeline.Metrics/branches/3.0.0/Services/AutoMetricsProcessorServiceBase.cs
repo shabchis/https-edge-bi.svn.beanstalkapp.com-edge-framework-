@@ -1,87 +1,110 @@
 ﻿using System;
 using System.Configuration;
+using Edge.Core.Services;
+using Edge.Data.Objects;
+using Edge.Data.Pipeline.Mapping;
 using Edge.Data.Pipeline.Metrics.Base;
-using Edge.Data.Pipeline.Services;
+using Edge.Data.Pipeline.Metrics.Services.Configuration;
+using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
+	/// <summary>
+	/// Base class for automatic data processing
+	/// </summary>
 	public abstract class AutoMetricsProcessorServiceBase: MetricsProcessorServiceBase
 	{
+		#region Data Members
+		private MetricsDeliveryManagerOptions _importManagerOptions;
+		private FileCompression _compression;
+		private DeliveryFile _deliveryFile;
+
+		protected MappingContainer MetricsMappings;
+		protected MappingContainer SignatureMappings;
+
+		#endregion
+
+		#region Properties
 		public ReaderAdapter ReaderAdapter { get; private set; }
-
-		protected override Core.Services.ServiceOutcome DoPipelineWork()
+		public new AutoMetricsProcessorServiceConfiguration Configuration
 		{
-			// Setup/defaults/configuration/etc.
-			// ------------------------------------------
+			get { return (AutoMetricsProcessorServiceConfiguration)base.Configuration; }
+		}
 
-			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold);
-			var importManagerOptions = new MetricsDeliveryManagerOptions
+		#endregion
+
+		#region Override DoWork
+		protected override ServiceOutcome DoPipelineWork()
+		{
+			LoadConfiguration();
+			
+			// Import data
+			using (var stream = _deliveryFile.OpenContents(compression: _compression))
+			{
+				using (ReaderAdapter)
 				{
+					ReaderAdapter.Init(stream, Configuration);
+
+					using (ImportManager = CreateImportManager(InstanceID, _importManagerOptions))
+					{
+						ImportManager.BeginImport(Delivery);
+						var readSuccess = false;
+						while (ReaderAdapter.Reader.Read())
+						{
+							readSuccess = true;
+							OnRead();
+						}
+
+						if (!readSuccess)
+							Log("Could Not read data from file!, check file mapping and configuration", Core.Utilities.LogMessageType.Warning);
+
+						ImportManager.EndImport();
+					}
+				}
+			}
+			return ServiceOutcome.Success;
+		} 
+		#endregion
+
+		#region Configuration
+		protected virtual void LoadConfiguration()
+		{
+			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold);
+			_importManagerOptions = new MetricsDeliveryManagerOptions
+			{
 				SqlTransformCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlTransformCommand),
 				SqlStageCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlStageCommand),
 				SqlRollbackCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlRollbackCommand),
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
 
-			string fileName;
-			if (!Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.DeliveryFileName, out fileName))
-				throw new ConfigurationErrorsException(String.Format("{0} is missing in the service configuration options.", Const.DeliveryServiceConfigurationOptions.DeliveryFileName));
-
-			DeliveryFile file = Delivery.Files[fileName];
-			if (file == null)
+			var fileName = Configuration.DeliveryFileName;
+			_deliveryFile = Delivery.Files[fileName];
+			if (_deliveryFile == null)
 				throw new Exception(String.Format("Could not find delivery file '{0}' in the delivery.", fileName));
 
-			FileCompression compression;
-			string compressionOption;
-			if (this.Configuration.Options.TryGetValue(Const.DeliveryServiceConfigurationOptions.Compression, out compressionOption))
-			{
-				if (!Enum.TryParse(compressionOption, out compression))
-					throw new ConfigurationErrorsException(String.Format("Invalid compression type '{0}'.", compressionOption));
-			}
-			else
-				compression = FileCompression.None;
+			var compressionOption = Configuration.Compression;
+			if (!Enum.TryParse(compressionOption, out _compression))
+				throw new ConfigurationErrorsException(String.Format("Invalid compression type '{0}'.", compressionOption));
 
 			// Create format processor from configuration
-			string adapterTypeName = Configuration.GetOption(Consts.ConfigurationOptions.ReaderAdapterType);
-			Type readerAdapterType = Type.GetType(adapterTypeName, true);
+			var adapterTypeName = Configuration.ReaderAdapterType;
+			var readerAdapterType = Type.GetType(adapterTypeName, true);
 			ReaderAdapter = (ReaderAdapter)Activator.CreateInstance(readerAdapterType);
 
 			Mappings.OnFieldRequired = ReaderAdapter.GetField;
 
-			LoadConfiguration();
+			if (!Mappings.Objects.TryGetValue(typeof(GenericMetricsUnit), out MetricsMappings))
+				throw new MappingConfigurationException("Missing mapping definition for GenericMetricsUnit.", "Object");
 
-			// ------------------------------------------
+			if (!Mappings.Objects.TryGetValue(typeof(Signature), out SignatureMappings))
+				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
+		} 
+		#endregion
 
-			using (var stream = file.OpenContents(compression: compression))
-			{
-				using (ReaderAdapter)
-				{
-					ReaderAdapter.Init(stream, Configuration);
-
-					using (ImportManager = CreateImportManager(InstanceID, importManagerOptions))
-					{
-						ImportManager.BeginImport(Delivery);
-                        bool readSuccess = false;
-                        while (ReaderAdapter.Reader.Read())
-                        {
-                            readSuccess = true;
-                            OnRead();
-                        }
-
-                        if (!readSuccess)
-                            Log("Could Not read data from file!, check file mapping and configuration", Core.Utilities.LogMessageType.Warning);
-							
-						ImportManager.EndImport();
-					}
-				}
-			}
-
-			return Core.Services.ServiceOutcome.Success;
-		}
-
-		protected virtual void LoadConfiguration() { }
+		#region Abstract Methods
 		protected abstract MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options);
-		protected abstract void OnRead();
-
+		protected abstract void OnRead(); 
+		#endregion
 	}
 }

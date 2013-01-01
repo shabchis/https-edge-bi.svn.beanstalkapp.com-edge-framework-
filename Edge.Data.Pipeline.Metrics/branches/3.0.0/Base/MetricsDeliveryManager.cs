@@ -6,6 +6,7 @@ using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Base.Submanagers;
+using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Base
 {
@@ -18,14 +19,14 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		private SqlConnection _sqlConnection;
 
 		public Dictionary<string, Measure> Measures { get; private set; }
-		public Dictionary<string, MetaProperty> MetaProperties { get; private set; }
+		public Dictionary<string, ConnectionDefinition> Connections { get; private set; }
 		public MetricsDeliveryManagerOptions Options { get; private set; }
 		#endregion
 
 		#region Constructors
 		/*=========================*/
 
-		public MetricsDeliveryManager(long serviceInstanceID, MetricsDeliveryManagerOptions options = null)
+		protected MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
@@ -50,10 +51,10 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		protected override void OnBeginImport()
 		{
-			this._tablePrefix = string.Format("{0}_{1}_{2}_{3}", this.CurrentDelivery.Account.ID, this.CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
-			this.CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, this._tablePrefix);
+			_tablePrefix = string.Format("{0}_{1}_{2}_{3}", CurrentDelivery.Account.ID, CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), CurrentDelivery.DeliveryID.ToString("N").ToLower());
+			CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, _tablePrefix);
 
-			int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
+			//int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
 
 			// MAPPER: load measures and properties using account/channel and options
 			// this.Measures = 
@@ -70,22 +71,22 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			// TABLEMANAGER: run SP to create metrics table
 			var exampleUnit = new AdMetricsUnit();
 			_tableManager = new TableManager(_sqlConnection);
-			string tableName = _tableManager.CreateDeliveryMetricsTable(this._tablePrefix,exampleUnit);
-			this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
+			string tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix,exampleUnit);
+			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
 
 			// CHECKSUMMANAGER: setup
 
 			// MAPPER: setup bulks for objects and metrics
 		}
 
-		public void ImportMetrics(DeliveryOutput targetOutput, MetricsUnit metrics)
+		public virtual void ImportMetrics(DeliveryOutput targetOutput, MetricsUnit metrics)
 		{
 			EnsureBeginImport();
 
-			foreach (EdgeObject obj in metrics.GetObjectDimensions())
-			{
+			//foreach (EdgeObject obj in metrics.GetObjectDimensions())
+			//{
 
-			}
+			//}
 		}
 
 		protected override void OnEndImport()
@@ -95,7 +96,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		protected void EnsureBeginImport()
 		{
-			if (this.State != DeliveryManagerState.Importing)
+			if (State != DeliveryManagerState.Importing)
 				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
 		}
 		/*=========================*/
@@ -105,11 +106,11 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#region Prepare
 		/*=========================*/
 
-		SqlCommand _transformCommand = null;
-		SqlCommand _validateCommand = null;
-		const int TransformPass_Identity = 0;
-		const int TransformPass_Checksum = 1;
-		const int TransformPass_Currency = 2;
+		//SqlCommand _transformCommand = null;
+		//SqlCommand _validateCommand = null;
+		const int TRANSFORM_PASS_IDENTITY = 0;
+		const int TRANSFORM_PASS_CHECKSUM = 1;
+		const int TRANSFORM_PASS_CURRENCY = 2;
 
 		protected override int TransformPassCount
 		{
@@ -118,7 +119,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		protected override void OnBeginTransform()
 		{
-			if (String.IsNullOrWhiteSpace(this.Options.SqlTransformCommand))
+			if (String.IsNullOrWhiteSpace(Options.SqlTransformCommand))
 				throw new DeliveryManagerException("Options.SqlTransformCommand is empty.");
 
 			_sqlConnection = NewDeliveryDbConnection();
@@ -127,17 +128,17 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			string tablePerfix = (string)delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
+			//string tablePerfix = (string)delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
 
-			if (pass == TransformPass_Identity)
+			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
 				// OBJECTMANAGER: call identity SP - setup GK cache and assign existing GKs to object tables
 			}
-			else if (pass == TransformPass_Checksum)
+			else if (pass == TRANSFORM_PASS_CHECKSUM)
 			{
 				// CHECKSUMMANAGER: perform checksum validation
 			}
-			else if (pass == TransformPass_Currency)
+			else if (pass == TRANSFORM_PASS_CURRENCY)
 			{
 				// CURRENCYMANAGER: call currency converter SP on metrics table
 			}
@@ -149,10 +150,10 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#region Staging
 		/*=========================*/
 
-		SqlTransaction _stageTransaction = null;
-		SqlCommand _stageCommand = null;
-		const int StagingPass_Objects = 0;
-		const int StagingPass_Metrics = 1;
+		SqlTransaction _stageTransaction;
+		//SqlCommand _stageCommand = null;
+		const int STAGING_PASS_OBJECTS = 0;
+		const int STAGING_PASS_METRICS = 1;
 
 		protected override int StagePassCount
 		{
@@ -161,7 +162,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		protected override void OnBeginStage()
 		{
-			if (String.IsNullOrWhiteSpace(this.Options.SqlStageCommand))
+			if (String.IsNullOrWhiteSpace(Options.SqlStageCommand))
 				throw new DeliveryManagerException("Options.SqlStageCommand is empty.");
 
 			_sqlConnection = NewDeliveryDbConnection();
@@ -172,22 +173,22 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		protected override void OnStage(Delivery delivery, int pass)
 		{
-			string tablePerfix = (string)delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
-			string deliveryId = delivery.DeliveryID.ToString("N");
+			//string tablePerfix = (string)delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
+			//string deliveryId = delivery.DeliveryID.ToString("N");
 
-			if (pass == StagingPass_Objects)
+			if (pass == STAGING_PASS_OBJECTS)
 			{
 				// OBJECTMANAGER: call object insert SP with identity manager GK creation
 			}
-			else if (pass == StagingPass_Metrics)
+			else if (pass == STAGING_PASS_METRICS)
 			{
 				// TABLEMANAGER: find matching staging table and save to delivery parameter
-				string stagingMetricsTableName=_tableManager.FindStagingTable(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
-				this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
+				string stagingMetricsTableName=_tableManager.FindStagingTable(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
 				
 				// TABLEMANAGER: call metrics insert SP with identity manager USID --> GK translation
-				_tableManager.Staging(this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
-					this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				_tableManager.Staging(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
+					CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
 			}
 		}
 
@@ -214,8 +215,8 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#region Rollback
 		/*=========================*/
 
-		SqlCommand _rollbackCommand = null;
-		SqlTransaction _rollbackTransaction = null;
+		SqlCommand _rollbackCommand;
+		SqlTransaction _rollbackTransaction;
 
 		protected override void OnBeginRollback()
 		{
@@ -228,12 +229,12 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		{
 			string guid = delivery.DeliveryID.ToString("N");
 
-			_rollbackCommand = _rollbackCommand ?? SqlUtility.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
+			_rollbackCommand = _rollbackCommand ?? SqlUtility.CreateCommand(Options.SqlRollbackCommand, CommandType.StoredProcedure);
 			_rollbackCommand.Connection = _sqlConnection;
 			_rollbackCommand.Transaction = _rollbackTransaction;
 
 			_rollbackCommand.Parameters["@DeliveryID"].Value = guid;
-			_rollbackCommand.Parameters["@StagingTable"].Value = this.CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName];
+			_rollbackCommand.Parameters["@StagingTable"].Value = CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName];
 
 			_rollbackCommand.ExecuteNonQuery();
 
@@ -247,7 +248,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			string guid = output.OutputID.ToString("N");
 			if (output.Status == DeliveryOutputStatus.Staged)
 			{
-				_rollbackCommand = _rollbackCommand ?? SqlUtility.CreateCommand(this.Options.SqlRollbackCommand, CommandType.StoredProcedure);
+				_rollbackCommand = _rollbackCommand ?? SqlUtility.CreateCommand(Options.SqlRollbackCommand, CommandType.StoredProcedure);
 				_rollbackCommand.Connection = _sqlConnection;
 				_rollbackCommand.Transaction = _rollbackTransaction;
 
@@ -300,21 +301,21 @@ namespace Edge.Data.Pipeline.Metrics.Base
 	}
 
 	/// <summary>
-	/// A type-safe base class for metrics import managers.
+	/// A type-safe base class for metrics import managers
 	/// </summary>
-	/// <typeparam name="MetricsUnitT"></typeparam>
-	public abstract class MetricsDeliveryManager<MetricsUnitT> : MetricsDeliveryManager where MetricsUnitT : MetricsUnit
+	/// <typeparam name="TMetricsUnit"></typeparam>
+	public abstract class MetricsDeliveryManager<TMetricsUnit> : MetricsDeliveryManager where TMetricsUnit : MetricsUnit
 	{
-		public MetricsDeliveryManager(long serviceInstanceID, MetricsDeliveryManagerOptions options = null)
+		protected MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID, options)
 		{
 		}
 
-		public override void ImportMetrics(MetricsUnit metrics)
+		public override void ImportMetrics(DeliveryOutput targetOutput, MetricsUnit metrics)
 		{
-			this.ImportMetrics((MetricsUnitT)metrics);
+			ImportMetrics((TMetricsUnit)metrics);
 		}
 
-		public abstract void ImportMetrics(MetricsUnitT metrics);
+		public abstract void ImportMetrics(TMetricsUnit metrics);
 	}
 }

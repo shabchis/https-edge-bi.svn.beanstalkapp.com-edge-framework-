@@ -1,51 +1,43 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Base;
-using Edge.Data.Pipeline.Mapping;
-using Edge.Data.Pipeline.Metrics.GenericMetrics;
+using Edge.Data.Pipeline.Metrics.Implementation;
+using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
 	/// <summary>
-	/// Base class for ad metrics processors.
+	/// Automatic generic data processing service
 	/// </summary>
 	public class AutoGenericMetricsProcessorService : AutoMetricsProcessorServiceBase
 	{
-		MappingContainer _metricsMappings;
-		MappingContainer _signatureMappings;
-
+		#region Properties
 		public new GenericMetricsImportManager ImportManager
 		{
 			get { return (GenericMetricsImportManager)base.ImportManager; }
-		}
+		} 
+		#endregion
 
-		protected override MetricsDeliveryManager CreateImportManager(long serviceInstanceID, MetricsDeliveryManagerOptions options)
+		#region Override Methods
+		protected override MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options)
 		{
 			return new GenericMetricsImportManager(serviceInstanceID, options);
-		}
-
-		protected override void LoadConfiguration()
-		{
-			if (!Mappings.Objects.TryGetValue(typeof(GenericMetricsUnit), out _metricsMappings))
-				throw new MappingConfigurationException("Missing mapping definition for GenericMetricsUnit.", "Object");
-			
-			if (!Mappings.Objects.TryGetValue(typeof(Signature), out _signatureMappings))
-				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
 
 		protected override void OnRead()
 		{
 			var metrics = new GenericMetricsUnit();
-			_metricsMappings.Apply(metrics);
+			MetricsMappings.Apply(metrics);
 
-            //Writing to Log 
-            //if (metrics.Output.Checksum.Count() == 0)
-            //{
-            //    Edge.Core.Utilities.Log("Output checksum is empty",Core.Utilities.LogMessageType.Information);
-            //}
+			//Writing to Log 
+			//if (metrics.Output.Checksum.Count() == 0)
+			//{
+			//    Edge.Core.Utilities.Log("Output checksum is empty",Core.Utilities.LogMessageType.Information);
+			//}
 
 			var signature = new Signature();
-			_signatureMappings.Apply(signature);
+			SignatureMappings.Apply(signature);
 
 			//checking if signature is already exists in delivery outputs
 			var outputs = from output in Delivery.Outputs
@@ -60,18 +52,19 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				var deliveryOutput = new DeliveryOutput
 					{
-					Signature = signature.Value,
-					TimePeriodStart = metrics.TimePeriodStart,
-					TimePeriodEnd = metrics.TimePeriodEnd,
-					Account = metrics.Account,
-					Channel = metrics.Channel
-				};
+						Signature = signature.Value,
+						TimePeriodStart = metrics.TimePeriodStart,
+						TimePeriodEnd = metrics.TimePeriodEnd,
+						Account = metrics.Account,
+						Channel = metrics.Channel
+					};
 				Delivery.Outputs.Add(deliveryOutput);
 				//Attaching output to Metrics
 				metrics.Output = deliveryOutput;
 			}
 
 			ImportManager.ImportMetrics(metrics);
-		}
+		} 
+		#endregion
 	}
 }
