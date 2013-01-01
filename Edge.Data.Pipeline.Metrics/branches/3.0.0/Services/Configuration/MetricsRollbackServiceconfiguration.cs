@@ -28,6 +28,13 @@ namespace Edge.Data.Pipeline.Metrics.Services.Configuration
 		public string RollbackOutputsStoredProc { get { return _spRollbackOutputs; } set { EnsureUnlocked(); _spRollbackOutputs = value; } }
 		#endregion
 
+		#region Ctors
+		public MetricsRollbackServiceconfiguration() {}
+
+		protected MetricsRollbackServiceconfiguration(SerializationInfo info, StreamingContext context)
+			: base(info, context){} 
+		#endregion
+
 		#region Override Methods
 		protected override void Serialize(SerializationInfo info, StreamingContext context)
 		{
