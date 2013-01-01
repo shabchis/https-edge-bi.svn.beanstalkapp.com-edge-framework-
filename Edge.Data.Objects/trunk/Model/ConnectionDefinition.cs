@@ -15,7 +15,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<ConnectionDefinition, string> Name = new EntityProperty<ConnectionDefinition, string>("Name");
 			public static EntityProperty<ConnectionDefinition, Account> Account = new EntityProperty<ConnectionDefinition, Account>("Account");
 			public static EntityProperty<ConnectionDefinition, Channel> Channel = new EntityProperty<ConnectionDefinition, Channel>("Channel");
-			public static EntityProperty<ConnectionDefinition, EdgeType> EdgeType = new EntityProperty<ConnectionDefinition, EdgeType>("EdgeType");
+			public static EntityProperty<ConnectionDefinition, EdgeType> ToEdgeType = new EntityProperty<ConnectionDefinition, EdgeType>("ToEdgeType");
 			//public static EntityProperty<ConnectionDefinition, ConnectionOptions> Options = new EntityProperty<ConnectionDefinition, ConnectionOptions>("Options");
 		}
 	}

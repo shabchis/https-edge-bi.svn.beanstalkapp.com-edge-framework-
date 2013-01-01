@@ -21,8 +21,8 @@ namespace Edge.Data.Objects
 					.Do(context => context.BreakIfNegative("ChannelID"))
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 				)
-				.Map<EdgeType>(ConnectionDefinition.Properties.EdgeType, edgeType => edgeType
-					.Map<int>(Account.Properties.ID, "TypeID")
+				.Map<EdgeType>(ConnectionDefinition.Properties.ToEdgeType, edgeType => edgeType
+					.Map<int>(Account.Properties.ID, "ToTypeID")
 				)
 			);
 		}
