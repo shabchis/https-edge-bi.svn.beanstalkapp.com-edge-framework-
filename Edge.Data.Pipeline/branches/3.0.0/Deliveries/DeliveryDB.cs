@@ -1,38 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
-using Edge.Core;
-using System.Diagnostics;
-using System.IO;
-using System.Data.Common;
 using System.Data.SqlClient;
 using Edge.Core.Services;
 using Edge.Data.Objects;
-using System.Xml.Serialization;
-using System.Xml;
-using System.Data.SqlTypes;
-using System.Runtime.Serialization;
-using System.Collections;
 using Newtonsoft.Json;
-using System.Data;
-
-
-
 
 namespace Edge.Data.Pipeline
 {
 	internal class DeliveryDB
 	{
+		#region DeliveryDBClient
+		internal static class DeliveryDBClient
+		{
+			public static SqlConnection Connect()
+			{
+				var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), "DB"));
+				connection.Open();
+				return connection;
+			}
+		} 
+		#endregion
+
+		#region CONSTS
 		internal class Const
 		{
-			public const string SP_DeliveryGet = "SP.DeliveryGet";
-			public const string SP_DeliveryDelete = "SP.DeliveryDelete";
-			public const string SP_OutputDelete = "SP.OutputDelete";
-		}
+			public const string SP_DELIVERY_GET = "SP.DeliveryGet";
+			public const string SP_DELIVERY_DELETE = "SP.DeliveryDelete";
+			public const string SP_OUTPUT_DELETE = "SP.OutputDelete";
+		} 
+		#endregion
 
+		#region Public Methods
 		internal static Delivery GetDelivery(Guid deliveryID, bool deep = true, SqlConnection connection = null)
 		{
 			Delivery delivery = null;
@@ -43,7 +44,7 @@ namespace Edge.Data.Pipeline
 
 			try
 			{
-				SqlCommand cmd = SqlUtility.CreateCommand(String.Format("{0}(@deliveryID:Char, @deep:bit)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryGet)), System.Data.CommandType.StoredProcedure);
+				var cmd = SqlUtility.CreateCommand(String.Format("{0}(@deliveryID:Char, @deep:bit)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DELIVERY_GET)), System.Data.CommandType.StoredProcedure);
 				cmd.Connection = connection;
 				cmd.Parameters["@deliveryID"].Value = deliveryID.ToString("N");
 				cmd.Parameters["@deep"].Value = deep;
@@ -56,11 +57,11 @@ namespace Edge.Data.Pipeline
 						#region Delivery
 						// ..................
 
-						delivery = new Delivery(reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)))
+						delivery = new Delivery(reader.Convert<string, Guid>("DeliveryID", Guid.Parse))
 						{
 							FullyLoaded = deep,
-							Account = reader.Convert<int?, Account>("Account_ID", id => id.HasValue ? new Account() { ID = id.Value } : null),
-							Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
+							Account = reader.Convert<int?, Account>("Account_ID", id => id.HasValue ? new Account { ID = id.Value } : null),
+							Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel { ID = id.Value } : null),
 							DateCreated = reader.Get<DateTime>("DateCreated"),
 							DateModified = reader.Get<DateTime>("DateModified"),
 							Description = reader.Get<string>("Description"),
@@ -99,17 +100,18 @@ namespace Edge.Data.Pipeline
 							{
 								while (reader.Read())
 								{
-									DeliveryFile deliveryFile = new DeliveryFile();
-									deliveryFile.FileID = reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s));
-									deliveryFile.FileCompression = reader.Get<FileCompression>("FileCompression");
-									deliveryFile.SourceUrl = reader.Get<string>("SourceUrl");
-									deliveryFile.Name = reader.Get<string>("Name");
-									deliveryFile.Location = reader.Get<string>("Location");
-									deliveryFile.Status = reader.Get<DeliveryFileStatus>("Status");
-									deliveryFile.FileSignature = reader.Get<string>("FileSignature");
+									var deliveryFile = new DeliveryFile
+										{
+											FileID = reader.Convert<string, Guid>("DeliveryID", Guid.Parse),
+											FileCompression = reader.Get<FileCompression>("FileCompression"),
+											SourceUrl = reader.Get<string>("SourceUrl"),
+											Name = reader.Get<string>("Name"),
+											Location = reader.Get<string>("Location"),
+											Status = reader.Get<DeliveryFileStatus>("Status"),
+											FileSignature = reader.Get<string>("FileSignature")
+										};
 									delivery.Files.Add(deliveryFile);
 								}
-
 							}
 							// ..................
 							#endregion
@@ -137,12 +139,11 @@ namespace Edge.Data.Pipeline
 							{
 								while (reader.Read())
 								{
-									var deliveryOutput = new DeliveryOutput()
+									var deliveryOutput = new DeliveryOutput
 									{
-
-										OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
-										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() {  ID = id.Value } : null),
-										Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
+										OutputID = reader.Convert<string, Guid>("OutputID", Guid.Parse),
+										Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account { ID = id.Value } : null),
+										Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel { ID = id.Value } : null),
 										Signature = reader.Get<string>("Signature"),
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
 										TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
@@ -192,12 +193,7 @@ namespace Edge.Data.Pipeline
 							}
 							// ..................
 							#endregion
-
-
 						}
-
-
-
 					}
 				}
 
@@ -228,7 +224,7 @@ namespace Edge.Data.Pipeline
 					#region [Delete]
 					// ..................
 
-					SqlCommand cmd = SqlUtility.CreateCommand((String.Format("{0}(@deliveryID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryDelete))), System.Data.CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand((String.Format("{0}(@deliveryID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_DELIVERY_DELETE))), System.Data.CommandType.StoredProcedure);
 
 					cmd.Connection = client;
 					cmd.Transaction = transaction;
@@ -279,10 +275,12 @@ namespace Edge.Data.Pipeline
 
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.Parameters["@account_ID"].Value = delivery.Account != null ? delivery.Account.ID : -1;
+					// TODO shirat - where to get from original Id?
+					cmd.Parameters["@account_OriginalID"].Value = -1;
 					cmd.Parameters["@channelID"].Value = delivery.Channel != null ? delivery.Channel.ID : -1; ;
 					cmd.Parameters["@dateCreated"].Value = delivery.DateCreated;
 					cmd.Parameters["@dateModified"].Value = delivery.DateModified;
-					cmd.Parameters["@description"].Value = delivery.Description == null ? (object)DBNull.Value : delivery.Description;
+					cmd.Parameters["@description"].Value = delivery.Description ?? (object)DBNull.Value;
 					cmd.Parameters["@fileDirectory"].Value = delivery.FileDirectory;
 					cmd.Parameters["@timePeriodDefinition"].Value = delivery.TimePeriodDefinition.ToString();
 					cmd.Parameters["@timePeriodStart"].Value = delivery.TimePeriodStart;
@@ -295,9 +293,8 @@ namespace Edge.Data.Pipeline
 					#region DeliveryParameters
 					// ..................
 
-					foreach (KeyValuePair<string, object> param in delivery.Parameters)
+					foreach (var param in delivery.Parameters)
 					{
-
 						cmd = SqlUtility.CreateCommand(@"
 							INSERT INTO [DeliveryParameters](
 								[DeliveryID],
@@ -324,7 +321,7 @@ namespace Edge.Data.Pipeline
 					#region DeliveryFile
 					// ..................
 
-					foreach (DeliveryFile file in delivery.Files)
+					foreach (var file in delivery.Files)
 					{
 						if (file.FileID == Guid.Empty)
 							file.FileID = Guid.NewGuid();
@@ -366,10 +363,10 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@dateCreated"].Value = file.DateCreated;
 						cmd.Parameters["@dateModified"].Value = file.DateModified;
 						cmd.Parameters["@fileCompression"].Value = file.FileCompression;
-						cmd.Parameters["@sourceUrl"].Value = file.SourceUrl == null ? (object)DBNull.Value : file.SourceUrl;
-						cmd.Parameters["@location"].Value = file.Location == null ? (object)DBNull.Value : file.Location;
+						cmd.Parameters["@sourceUrl"].Value = file.SourceUrl ?? (object)DBNull.Value;
+						cmd.Parameters["@location"].Value = file.Location ?? (object)DBNull.Value;
 						cmd.Parameters["@status"].Value = file.Status;
-                        cmd.Parameters["@fileSignature"].Value = file.FileSignature==null ? (object)DBNull.Value : file.FileSignature;
+						cmd.Parameters["@fileSignature"].Value = file.FileSignature ?? (object)DBNull.Value;
 
 						cmd.ExecuteNonQuery();
 					}
@@ -544,8 +541,6 @@ namespace Edge.Data.Pipeline
 					}
 					#endregion
 
-
-
 					transaction.Commit();
 
 				}
@@ -572,7 +567,7 @@ namespace Edge.Data.Pipeline
 					#region [Delete]
 					// ..................
 
-					SqlCommand cmd = SqlUtility.CreateCommand((String.Format("{0}(@outputID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_OutputDelete))), System.Data.CommandType.StoredProcedure);
+					SqlCommand cmd = SqlUtility.CreateCommand((String.Format("{0}(@outputID:Char)", AppSettings.Get(typeof(DeliveryDB), Const.SP_OUTPUT_DELETE))), System.Data.CommandType.StoredProcedure);
 
 					cmd.Connection = client;
 					cmd.Transaction = transaction;
@@ -582,14 +577,6 @@ namespace Edge.Data.Pipeline
 
 					// ..................
 					#endregion
-
-
-
-
-
-
-
-
 
 					#region DeliveryOutput
 					// ..................
@@ -633,7 +620,7 @@ namespace Edge.Data.Pipeline
 					cmd.Connection = client;
 					cmd.Transaction = transaction;
 
-					 cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID;
+					cmd.Parameters["@deliveryID"].Value = output.Delivery.DeliveryID;
 					cmd.Parameters["@outputID"].Value = output.OutputID.ToString("N");
 					cmd.Parameters["@accountID"].Value = output.Account != null ? output.Account.ID : -1;
 					cmd.Parameters["@channelID"].Value = output.Channel != null ? output.Channel.ID : -1;
@@ -719,40 +706,34 @@ namespace Edge.Data.Pipeline
 
 					#endregion
 
-
-
 					transaction.Commit();
-
 				}
 				else
 				{
 					throw new NotSupportedException("In Pipeline 2.9, you cannot save a Delivery without first giving it a GUID.");
 				}
 			}
-
 			return guid;
-
 		}
 
 		internal static void Delete(Delivery delivery)
 		{
 			using (SqlConnection connection = DeliveryDBClient.Connect())
 			{
-				using (SqlCommand cmd = new SqlCommand(AppSettings.Get(typeof(DeliveryDB), Const.SP_DeliveryDelete)))
+				using (var cmd = new SqlCommand(AppSettings.Get(typeof(DeliveryDB), Const.SP_DELIVERY_DELETE)))
 				{
 					cmd.Connection = connection;
 					cmd.CommandType = System.Data.CommandType.StoredProcedure;
 					cmd.Parameters.Add("@deliveryID", System.Data.SqlDbType.Char);
 					cmd.Parameters["@deliveryID"].Value = delivery.DeliveryID.ToString("N");
 					cmd.ExecuteNonQuery();
-
 				}
 			}
 		}
 
 		internal static Delivery[] GetDeliveriesBySignature(string signature, Guid exclude)
 		{
-			List<Delivery> deliveries = new List<Delivery>();
+			var deliveries = new List<Delivery>();
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
@@ -769,15 +750,6 @@ namespace Edge.Data.Pipeline
 				}
 			}
 			return deliveries.ToArray();
-		}
-
-		private static string GetGuidStringArray(Guid[] exclude)
-		{
-			StringBuilder guidArray = new StringBuilder();
-			foreach (Guid guid in exclude)
-				guidArray.AppendFormat(guidArray.Length == 0 ? "'{0}'" : ",'{0}'", guid.ToString("N"));
-
-			return guidArray.ToString();
 		}
 
 		public static Delivery[] GetDeliveriesByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end, bool exact)
@@ -809,13 +781,12 @@ namespace Edge.Data.Pipeline
 				}
 				return deliveries.ToArray();
 			}
-
-
 		}
+
 		public static DeliveryOutput[] GetOutputsByTargetPeriod(int channelID, int accountID, DateTime start, DateTime end)
 		{
-			List<DeliveryOutput> outputs = new List<DeliveryOutput>();
-			List<string> outputsIds = new List<string>();
+			var outputs = new List<DeliveryOutput>();
+			var outputsIds = new List<string>();
 
 			using (var client = DeliveryDBClient.Connect())
 			{
@@ -834,24 +805,18 @@ namespace Edge.Data.Pipeline
 							outputsIds.Add(reader.GetString(0));
 					}
 				}
-				foreach (string id in outputsIds)
-				{
-					outputs.Add(GetOutput(Guid.Parse(id)));
-				}
+				outputs.AddRange(outputsIds.Select(id => GetOutput(Guid.Parse(id))));
 				return outputs.ToArray();
 			}
-
-
 		}
 
-		static bool? _ignoreJsonErrors = null;
+		static bool? _ignoreJsonErrors;
 		public static bool IgnoreJsonErrors
 		{
 			get
 			{
-				if (_ignoreJsonErrors == null || !_ignoreJsonErrors.HasValue)
+				if (_ignoreJsonErrors == null)
 				{
-					
 					if (Service.Current != null && Service.Current.Configuration.Parameters.Get<bool>("IgnoreDeliveryJsonErrors", false))
 						_ignoreJsonErrors = true;
 					else
@@ -861,58 +826,9 @@ namespace Edge.Data.Pipeline
 			}
 		}
 
-		private static object DeserializeJson(string json)
-		{
-			object toReturn = null;
-			JsonSerializerSettings s = new JsonSerializerSettings();
-			s.TypeNameHandling = TypeNameHandling.All;
-			s.TypeNameAssemblyFormat = System.Runtime.Serialization.Formatters.FormatterAssemblyStyle.Full;
-
-
-			if (!IgnoreJsonErrors)
-			{
-				toReturn = JsonConvert.DeserializeObject(json, s);
-			}
-			else
-			{
-				try { toReturn = JsonConvert.DeserializeObject(json, s); }
-				catch (Exception ex)
-				{
-					// WARNING: this will just ignore the param value. If the delivery is saved later, this param value will be deleted from the database.
-					// This is okay usually because this happens during rollback, and after rollback - nobody cares anymore about these old values.
-
-					Log.Write("DeliveryDB", "Error while deserializing delivery parameter JSON.", ex);
-					toReturn = null;
-				}
-			}
-
-			return toReturn;
-
-
-		}
-		private static string Serialize(object param)
-		{
-			JsonSerializerSettings s = new JsonSerializerSettings();
-			s.TypeNameHandling = TypeNameHandling.All;
-			s.TypeNameAssemblyFormat = System.Runtime.Serialization.Formatters.FormatterAssemblyStyle.Full;
-
-			return JsonConvert.SerializeObject(param, Newtonsoft.Json.Formatting.None, s);
-		}
-
-		internal static class DeliveryDBClient
-		{
-			public static SqlConnection Connect()
-			{
-				SqlConnection connection = new SqlConnection(AppSettings.GetConnectionString(typeof(Delivery), "DB"));
-				connection.Open();
-				return connection;
-			}
-		}
-
-
 		internal static DeliveryOutput[] GetOutputsBySignature(string signature, Guid exclude)
 		{
-			List<DeliveryOutput> outputs = new List<DeliveryOutput>();
+			var outputs = new List<DeliveryOutput>();
 			using (var client = DeliveryDBClient.Connect())
 			{
 				// Select deliveries that match a signature but none of the guids in 'exclude'
@@ -939,28 +855,26 @@ namespace Edge.Data.Pipeline
 				// Select deliveries that match a signature but none of the guids in 'exclude'
 				using (SqlCommand cmd = SqlUtility.CreateCommand("OutPut_Get(@outputID:Char)", System.Data.CommandType.StoredProcedure))
 				{
-
 					cmd.Connection = client;
 					cmd.Parameters["@outputID"].Value = guid.ToString("N");
 
 					using (SqlDataReader reader = cmd.ExecuteReader())
 					{
-
 						while (reader.Read())
 						{
 							#region DeliveryOutput
-							output = new DeliveryOutput()
-							{
-								DeliveryID=reader.Convert<string, Guid>("DeliveryID", s => Guid.Parse(s)),
-								OutputID = reader.Convert<string, Guid>("OutputID", s => Guid.Parse(s)),
-								Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account() { ID = id.Value } : null),
-								Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel() { ID = id.Value } : null),
-								Signature = reader.Get<string>("Signature"),
-								Status = reader.Get<DeliveryOutputStatus>("Status"),
-								TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
-								TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
-								PipelineInstanceID = reader.Get<Guid?>("PipelineInstanceID")
-							};
+							output = new DeliveryOutput
+								{
+									DeliveryID = reader.Convert<string, Guid>("DeliveryID", Guid.Parse),
+									OutputID = reader.Convert<string, Guid>("OutputID", Guid.Parse),
+									Account = reader.Convert<int?, Account>("AccountID", id => id.HasValue ? new Account { ID = id.Value } : null),
+									Channel = reader.Convert<int?, Channel>("ChannelID", id => id.HasValue ? new Channel { ID = id.Value } : null),
+									Signature = reader.Get<string>("Signature"),
+									Status = reader.Get<DeliveryOutputStatus>("Status"),
+									TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
+									TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
+									PipelineInstanceID = reader.Get<Guid?>("PipelineInstanceID")
+								};
 
 							#endregion
 
@@ -1000,17 +914,54 @@ namespace Edge.Data.Pipeline
 							}
 							// ..................
 							#endregion
-
-
 						}
-
 					}
 				}
 			}
 			return output;
+		} 
+		#endregion
 
+		#region Json serialization
+		private static object DeserializeJson(string json)
+		{
+			object toReturn;
+			var s = new JsonSerializerSettings
+			{
+				TypeNameHandling = TypeNameHandling.All,
+				TypeNameAssemblyFormat = System.Runtime.Serialization.Formatters.FormatterAssemblyStyle.Full
+			};
 
+			if (!IgnoreJsonErrors)
+			{
+				toReturn = JsonConvert.DeserializeObject(json, s);
+			}
+			else
+			{
+				try { toReturn = JsonConvert.DeserializeObject(json, s); }
+				catch (Exception ex)
+				{
+					// WARNING: this will just ignore the param value. If the delivery is saved later, this param value will be deleted from the database.
+					// This is okay usually because this happens during rollback, and after rollback - nobody cares anymore about these old values.
+
+					Log.Write("DeliveryDB", "Error while deserializing delivery parameter JSON.", ex);
+					toReturn = null;
+				}
+			}
+			return toReturn;
 		}
+
+		private static string Serialize(object param)
+		{
+			var s = new JsonSerializerSettings
+			{
+				TypeNameHandling = TypeNameHandling.All,
+				TypeNameAssemblyFormat = System.Runtime.Serialization.Formatters.FormatterAssemblyStyle.Full
+			};
+
+			return JsonConvert.SerializeObject(param, Formatting.None, s);
+		} 
+		#endregion
 	}
 }
 
