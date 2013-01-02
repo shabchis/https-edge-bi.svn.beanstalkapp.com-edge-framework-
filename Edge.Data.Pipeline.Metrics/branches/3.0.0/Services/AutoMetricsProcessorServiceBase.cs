@@ -69,6 +69,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Configuration
 		protected virtual void LoadConfiguration()
 		{
+			// TODO shirat - may be to add all these parameters to AutoMetricsProcessorServiceConfiguration?
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold);
 			_importManagerOptions = new MetricsDeliveryManagerOptions
 			{
@@ -78,18 +79,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 			};
 
-			var fileName = Configuration.DeliveryFileName;
-			_deliveryFile = Delivery.Files[fileName];
+			_deliveryFile = Delivery.Files[Configuration.DeliveryFileName];
 			if (_deliveryFile == null)
-				throw new Exception(String.Format("Could not find delivery file '{0}' in the delivery.", fileName));
+				throw new Exception(String.Format("Could not find delivery file '{0}' in the delivery.", Configuration.DeliveryFileName));
 
-			var compressionOption = Configuration.Compression;
-			if (!Enum.TryParse(compressionOption, out _compression))
-				throw new ConfigurationErrorsException(String.Format("Invalid compression type '{0}'.", compressionOption));
+			if (!Enum.TryParse(Configuration.Compression, out _compression))
+				throw new ConfigurationErrorsException(String.Format("Invalid compression type '{0}'.", Configuration.Compression));
 
 			// Create format processor from configuration
-			var adapterTypeName = Configuration.ReaderAdapterType;
-			var readerAdapterType = Type.GetType(adapterTypeName, true);
+			var readerAdapterType = Type.GetType(Configuration.ReaderAdapterType, true);
 			ReaderAdapter = (ReaderAdapter)Activator.CreateInstance(readerAdapterType);
 
 			Mappings.OnFieldRequired = ReaderAdapter.GetField;
@@ -99,7 +97,13 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			if (!Mappings.Objects.TryGetValue(typeof(Signature), out SignatureMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
-		} 
+		}
+
+		protected override void LoadMappings()
+		{
+			Mappings.Load(Configuration.MappingConfigPath);
+		}
+
 		#endregion
 
 		#region Abstract Methods
