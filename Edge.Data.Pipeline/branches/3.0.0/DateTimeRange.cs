@@ -12,6 +12,7 @@ using System.ComponentModel;
 
 namespace Edge.Data.Pipeline
 {
+	[Serializable]
 	[JsonObject(MemberSerialization.OptIn)]
 	public struct DateTimeRange
 	{
@@ -180,6 +181,7 @@ namespace Edge.Data.Pipeline
 		End
 	}
 
+	[Serializable]
 	[JsonObject(MemberSerialization.OptIn)]
 	public struct DateTimeSpecification
 	{
@@ -360,6 +362,7 @@ namespace Edge.Data.Pipeline
 		Upper
 	}
 
+	[Serializable]
 	[JsonConverter(typeof(DateTimeTransformation.Converter))]
 	public struct DateTimeTransformation
 	{

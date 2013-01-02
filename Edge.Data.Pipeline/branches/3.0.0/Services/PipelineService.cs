@@ -1,16 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Edge.Core.Services;
-using Edge.Data.Pipeline;
-using System.Text.RegularExpressions;
 using System.Configuration;
-using Edge.Core.Configuration;
-using System.Threading;
-using System.Data.SqlClient;
+using Edge.Core.Services;
 using Edge.Data.Pipeline.Mapping;
-using Edge.Core.Utilities;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -38,48 +30,7 @@ namespace Edge.Data.Pipeline.Services
 			get { return (PipelineServiceConfiguration)base.Configuration; }
 		}
 
-		/*
-		DateTimeRange? _range = null;
-		public DateTimeRange TimePeriod
-		{
-			get
-			{
-				if (_range == null)
-				{
-					if (Instance.Configuration.Options.ContainsKey(ConfigurationOptionNames.TimePeriod))
-					{
-						_range = DateTimeRange.Parse(Instance.Configuration.Options[ConfigurationOptionNames.TimePeriod]);
-					}
-					else
-					{
-						_range = DateTimeRange.AllOfYesterday;
-					}
-
-					// enforce limitation
-					if (this.TimePeriodLimitation != DateTimeRangeLimitation.None)
-					{
-						DateTime start = this.TimePeriod.Start.ToDateTime();
-						DateTime end = this.TimePeriod.End.ToDateTime();
-						switch (this.TimePeriodLimitation)
-						{
-							case DateTimeRangeLimitation.SameDay:
-								if (end.Date != start.Date)
-									throw new Exception("The specified range must be within the same day.");
-								break;
-							case DateTimeRangeLimitation.SameMonth:
-								if (end.Month != start.Month || end.Year != start.Year)
-									throw new Exception("The specified range must be within the same month.");
-								break;
-						}
-					}
-				}
-
-				return _range.Value;
-			}
-		}
-		*/
-
-		Delivery _delivery = null;
+		Delivery _delivery;
 		public Delivery Delivery
 		{
 			get
@@ -87,14 +38,14 @@ namespace Edge.Data.Pipeline.Services
 				if (_delivery != null)
 					return _delivery;
 
-				if (this.Configuration.DeliveryID != null)
-					_delivery = DeliveryDB.GetDelivery(this.Configuration.DeliveryID.Value);
+				if (Configuration.DeliveryID != null)
+					_delivery = DeliveryDB.GetDelivery(Configuration.DeliveryID.Value);
 
 				return _delivery;
 			}
 			set
 			{
-				if (this.Delivery != null)
+				if (Delivery != null)
 					throw new InvalidOperationException("Cannot apply a delivery because a delivery is already applied.");
 
 				_delivery = value;
@@ -103,50 +54,52 @@ namespace Edge.Data.Pipeline.Services
 
 		public Delivery NewDelivery()
 		{
-			var d = new Delivery(this.Configuration.DeliveryID.Value);
-			d.TimePeriodDefinition = this.Configuration.TimePeriod.Value;
+			if (Configuration.DeliveryID == null)
+				throw new ConfigurationErrorsException("Delivery ID cannot be null");
 
-			return d;
+			if (Configuration.TimePeriod == null)
+				throw new ConfigurationErrorsException(String.Format("Time period is not set for delivery '{0}'", Delivery.DeliveryID));
+
+			return new Delivery(Configuration.DeliveryID.Value) {TimePeriodDefinition = Configuration.TimePeriod.Value};
 		}
 
 		/// <summary>
 		/// 
 		/// </summary>
-		/// <param name="delivery"></param>
-		/// <param name="conflictBehavior">Indicates how conflicting deliveries will be handled.</param>
 		/// <param name="importManager">The import manager that will be used to handle conflicting deliveries.</param>
+		/// <param name="defaultConflictBehavior"></param>
+		/// <param name="getBehaviorFromConfiguration"></param>
 		public void HandleConflicts(DeliveryManager importManager, DeliveryConflictBehavior defaultConflictBehavior, bool getBehaviorFromConfiguration = true)
 		{
-			if (this.Delivery.Outputs.Count < 1)
+			if (Delivery.Outputs.Count < 1)
 				return;
 
-			ServiceInstance parent = this.AsServiceInstance();
+			ServiceInstance parent = AsServiceInstance();
 			while (parent.ParentInstance != null)			
 				parent = parent.ParentInstance;
 
-
-			foreach (DeliveryOutput output in this.Delivery.Outputs)
+			foreach (DeliveryOutput output in Delivery.Outputs)
 			{
 				if (!output.PipelineInstanceID.HasValue)
 					output.PipelineInstanceID = parent.InstanceID;
 			}
 
-			this.Delivery.Save();
+			Delivery.Save();
 
 			// ================================
 			// Conflict behavior
 
-			DeliveryConflictBehavior behavior = this.Configuration.ConflictBehavior != null ?
-				this.Configuration.ConflictBehavior.Value :
-				defaultConflictBehavior;
+			DeliveryConflictBehavior behavior = Configuration.ConflictBehavior != null ?
+												Configuration.ConflictBehavior.Value :
+												defaultConflictBehavior;
 
 			var processing = new List<DeliveryOutput>();
 			var committed = new List<DeliveryOutput>();
-			foreach (DeliveryOutput output in this.Delivery.Outputs)
+			foreach (DeliveryOutput output in Delivery.Outputs)
 			{
 				DeliveryOutput[] conflicts = output.GetConflicting();
 
-				foreach (DeliveryOutput conflict in conflicts)
+				foreach (var conflict in conflicts)
 				{
 					if (conflict.PipelineInstanceID != null)
 					{
@@ -164,7 +117,7 @@ namespace Edge.Data.Pipeline.Services
 				foreach (var output in Delivery.Outputs)
 					output.Status = DeliveryOutputStatus.Canceled;
 
-				this.Delivery.Save();
+				Delivery.Save();
 				throw new DeliveryConflictException("There are outputs with the same signatures currently being processed:") { ConflictingOutputs = processing.ToArray() }; // add list of output ids
 			}
 
@@ -176,17 +129,14 @@ namespace Edge.Data.Pipeline.Services
 				foreach (var output in Delivery.Outputs)
 					output.Status = DeliveryOutputStatus.Canceled;
 
-
-				this.Delivery.Save();
+				Delivery.Save();
 				throw new DeliveryConflictException("There are outputs with the same signatures are already committed\\staged:") { ConflictingOutputs = committed.ToArray() }; // add list of output ids
 			}
-
 		}
 
 		protected override string GetLogContextInfo()
 		{
-			throw new NotImplementedException("Return AccountID={0} as log context info");
-			//return string.Format("AccountID: {0}, DeliveryID: {1}", this.Delivery.Account.ID);
+			return string.Format("AccountID: {0}, DeliveryID: {1}", Delivery.Account.ID, Delivery.DeliveryID);
 		}
 
 		// ==============================
@@ -194,8 +144,7 @@ namespace Edge.Data.Pipeline.Services
 
 		#region Mapping
 		// ==============================
-
-		MappingConfiguration _mapping = null;
+		MappingConfiguration _mapping;
 
 		public MappingConfiguration Mappings
 		{
@@ -206,17 +155,19 @@ namespace Edge.Data.Pipeline.Services
 					_mapping = new MappingConfiguration();
 					_mapping.Usings.Add("System.{0}, mscorlib");
 					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Objects");
-					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Pipeline");
+					_mapping.Usings.Add("Edge.Data.Pipeline.Objects.{0}, Edge.Data.Pipeline");
 
-					MappingConfigurationElement extension = this.Configuration.Parameters.Get<MappingConfigurationElement>("MappingConfigurationElement", false);
-					if (extension != null)
-						extension.LoadInto(_mapping);
+					// TODO shirat - remove obsolute configuration, load mapping configuration from file, may be to move mappings to Processor
+					//var extension = Configuration.Parameters.Get<MappingConfigurationElement>("MappingConfigurationElement", false);
+					//if (extension != null)
+					//	extension.LoadInto(_mapping);
+					LoadMappings();
 				}
-
 				return _mapping;
 			}
 		}
 
+		protected virtual void LoadMappings() {}
 		// ==============================
 		#endregion
 	}

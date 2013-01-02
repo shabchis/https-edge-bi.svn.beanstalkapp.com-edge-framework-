@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using Edge.Data.Pipeline;
 
 namespace Edge.Data.Pipeline
 {
@@ -11,10 +9,9 @@ namespace Edge.Data.Pipeline
 		Delivery Delivery { get; set;  }
 	}
 
-
 	public class DeliveryChildList<TChild> : ICollection<TChild> where TChild : class, IDeliveryChild
 	{
-		Delivery _parentDelivery;
+		readonly Delivery _parentDelivery;
 		Dictionary<string, TChild> _dict;
 
 		internal DeliveryChildList(Delivery parentDelivery)
@@ -38,7 +35,8 @@ namespace Edge.Data.Pipeline
 				throw new InvalidOperationException("Delivery child already belongs to another delivery.");
 
 			child.Delivery = _parentDelivery;
-			Internal.Add(child.Key, child);
+			if (!Internal.ContainsKey(child.Key))
+				Internal.Add(child.Key, child);
 		}
 
 		public bool Remove(TChild child)
