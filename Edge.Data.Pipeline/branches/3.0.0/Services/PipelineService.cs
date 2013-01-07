@@ -161,13 +161,12 @@ namespace Edge.Data.Pipeline.Services
 					//var extension = Configuration.Parameters.Get<MappingConfigurationElement>("MappingConfigurationElement", false);
 					//if (extension != null)
 					//	extension.LoadInto(_mapping);
-					LoadMappings();
+					Mappings.Load(Configuration.MappingConfigPath);
 				}
 				return _mapping;
 			}
 		}
 
-		protected virtual void LoadMappings() {}
 		// ==============================
 		#endregion
 	}

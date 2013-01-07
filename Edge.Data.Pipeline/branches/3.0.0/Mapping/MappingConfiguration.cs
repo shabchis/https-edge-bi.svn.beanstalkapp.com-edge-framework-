@@ -112,6 +112,7 @@ namespace Edge.Data.Pipeline.Mapping
 
 			// Compile the evaluator
 			this.Eval.ReferencedAssemblies.Add("Edge.Core.dll");
+			this.Eval.ReferencedAssemblies.Add("Edge.Data.Objects.dll");
 			this.Eval.ReferencedAssemblies.Add("Edge.Data.Pipeline.dll");
 			this.Eval.Compile();
 		}
