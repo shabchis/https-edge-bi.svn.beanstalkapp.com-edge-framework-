@@ -5,9 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public partial class ImageCreative : SingleCreative
+	public abstract partial class SingleCreativeDefinition : CreativeDefinition
 	{
-		public string Image;
 	}
-
 }

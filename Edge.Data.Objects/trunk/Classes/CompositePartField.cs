@@ -5,9 +5,8 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public partial class ImageCreative : SingleCreative
+	public partial class CompositePartField: EdgeField
 	{
-		public string Image;
+		public Channel Channel;
 	}
-
 }

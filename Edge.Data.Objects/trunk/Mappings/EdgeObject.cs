@@ -24,39 +24,13 @@ namespace Edge.Data.Objects
 				)
 
 				/*
-				// Connections
-				.Map<Dictionary<ConnectionDefinition, EdgeObject>>(EdgeObject.Properties.Connections, connections => connections
-					.Subquery("Connections", subquery => subquery
-						.Map<EdgeObject>("parent", parent => parent
-							.Map<long>(EdgeObject.Properties.GK, "FromGK")
-							//resolve: IdentityResolve.ExistingOnly
-						)
-						.Map<ConnectionDefinition>("key", key => key
-							.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionDefID")
-						)
-						.Map<EdgeObject>("value", value => value
-							.Set(context => (EdgeObject)Activator.CreateInstance(Type.GetType(context.GetField<string>("ToClrType"))))
-							.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
-								.Map<int>(EdgeType.Properties.TypeID, "ToTypeID")
-							)
-							.Map<long>(EdgeObject.Properties.GK, "ToGK")
-						)
-						.Do(context => EdgeObject.Properties.Connections.GetValue(context.GetVariable<EdgeObject>("parent")).Add(
-								context.GetVariable<ConnectionDefinition>("key"),
-								context.GetVariable<EdgeObject>("value")
-							)
-						)
-					)
-				)
-				*/
-
 				.Map<Dictionary<EdgeField, object>>(EdgeObject.Properties.ExtraFields, extraFields => extraFields
 					.Do(context => {
-						EdgeObject current = edgeObject.FromContext(context).Target;
+						EdgeObject current = edgeObject.FromContext(context);
 						Type currentType = current.GetType();
 						foreach (EdgeField field in context.Cache.Get<EdgeField>())
 						{
-							if (field.IsSystem)
+							if (field.FieldUse)
 								continue;
 
 							// Ignore unrelated fields
@@ -94,8 +68,36 @@ namespace Edge.Data.Objects
 						}
 					})
 				)
+				*/
 
-
+			#region Obsolete
+				/*
+				// Connections FULL
+				.Map<Dictionary<ConnectionDefinition, EdgeObject>>(EdgeObject.Properties.Connections, connections => connections
+					.Subquery("Connections", subquery => subquery
+						.Map<EdgeObject>("parent", parent => parent
+							.Map<long>(EdgeObject.Properties.GK, "FromGK")
+							//resolve: IdentityResolve.ExistingOnly
+						)
+						.Map<ConnectionDefinition>("key", key => key
+							.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionDefID")
+						)
+						.Map<EdgeObject>("value", value => value
+							.Set(context => (EdgeObject)Activator.CreateInstance(Type.GetType(context.GetField<string>("ToClrType"))))
+							.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
+								.Map<int>(EdgeType.Properties.TypeID, "ToTypeID")
+							)
+							.Map<long>(EdgeObject.Properties.GK, "ToGK")
+						)
+						.Do(context => EdgeObject.Properties.Connections.GetValue(context.GetVariable<EdgeObject>("parent")).Add(
+								context.GetVariable<ConnectionDefinition>("key"),
+								context.GetVariable<EdgeObject>("value")
+							)
+						)
+					)
+				)
+				
+				// Connections SHORTCUT
 				.MapDictionaryFromSubquery<EdgeObject, ConnectionDefinition, EdgeObject>(EdgeObject.Properties.Connections, "Connections",
 					parent => parent
 						.MapEdgeObject("FromGK", "FromTypeID", "FromClrType"),
@@ -103,7 +105,12 @@ namespace Edge.Data.Objects
 						.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionDefID"),
 					value => value
 						.MapEdgeObject("ToGK", "ToTypeID", "ToClrType")
-				)
+				) 
+				*/
+			#endregion
+
+
+
 
 			);
 

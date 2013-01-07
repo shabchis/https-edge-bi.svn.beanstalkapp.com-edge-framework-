@@ -5,22 +5,20 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public partial class EdgeField
+	public abstract partial class EdgeField
 	{
 		public int FieldID;
-		public bool IsSystem;
-		public Account Account;
-		public Channel Channel;
+		public EdgeType ParentEdgeType;
 
 		public string Name;
 		public string DisplayName;
-	
-		public EdgeType ObjectEdgeType;
 
-		public EdgeType FieldEdgeType;
-		public Type FieldClrType;
-	
-		public string ColumnPrefix;
+		public bool IsConnection;
+		public EdgeType ConnectionEdgeType;
+		public Type ConnectionClrType;
+
+		public string ColumnType;
 		public int ColumnIndex;
 	}
+
 }

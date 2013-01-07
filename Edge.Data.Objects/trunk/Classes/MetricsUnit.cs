@@ -12,39 +12,32 @@ namespace Edge.Data.Objects
 
 		public Currency Currency;
 
-		public List<TargetMatch> TargetDimensions;
+		public CreativeMatch CreativeMatch;
+		public List<TargetMatch> TargetMatches;
+		public Dictionary<ExtraField, EdgeObject> ExtraDimensions; // Not sure about this yet
+		
 		public Dictionary<Measure, double> MeasureValues;
 
-		public abstract IEnumerable<EdgeObject> GetObjectDimensions();
+		public virtual IEnumerable<EdgeObject> GetDimensions()
+		{
+			throw new NotImplementedException();
+			//foreach (TargetMatch match in this.TargetMatches)
+			//    yield return match;
+
+			//yield return CreativeMatch;
+			//foreach (TargetMatch match in this.TargetMatches)
+			//    yield return match;
+		}
 	}
 
 	public partial class AdMetricsUnit: MetricsUnit
 	{
 		public Ad Ad;
-
-		public override IEnumerable<EdgeObject> GetObjectDimensions()
-		{
-			yield return this.Ad;
-			foreach (TargetMatch target in this.TargetDimensions)
-				yield return target;
-		}
 	}
 
 	public partial class GenericMetricsUnit : MetricsUnit
 	{
 		public Channel Channel;
 		public Account Account;
-
-		public Dictionary<ConnectionDefinition, object> PropertyDimensions;
-
-		public override IEnumerable<EdgeObject> GetObjectDimensions()
-		{
-			foreach (var prop in this.PropertyDimensions)
-				if (prop.Value is EdgeObject)
-					yield return (EdgeObject)prop.Value;
-
-			foreach (TargetMatch target in this.TargetDimensions)
-				yield return target;
-		}
 	}
 }

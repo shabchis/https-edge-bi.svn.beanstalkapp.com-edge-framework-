@@ -10,7 +10,6 @@ namespace Edge.Data.Objects
 		public long GK;
 		public Account Account;
 		public EdgeType EdgeType;
-		public Dictionary<ConnectionDefinition, EdgeObject> Connections;
 		
 		public Dictionary<EdgeField, object> ExtraFields;
 	}
