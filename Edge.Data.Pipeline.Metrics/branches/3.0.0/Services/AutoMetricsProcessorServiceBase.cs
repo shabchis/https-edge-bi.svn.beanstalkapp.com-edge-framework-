@@ -36,6 +36,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Override DoWork
 		protected override ServiceOutcome DoPipelineWork()
 		{
+			InitMappings();
+
 			LoadConfiguration();
 			
 			// Import data
@@ -99,16 +101,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
 
-		protected override void LoadMappings()
-		{
-			Mappings.Load(Configuration.MappingConfigPath);
-		}
-
 		#endregion
 
 		#region Abstract Methods
 		protected abstract MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options);
-		protected abstract void OnRead(); 
+		protected abstract void OnRead();
+		
 		#endregion
 	}
 }

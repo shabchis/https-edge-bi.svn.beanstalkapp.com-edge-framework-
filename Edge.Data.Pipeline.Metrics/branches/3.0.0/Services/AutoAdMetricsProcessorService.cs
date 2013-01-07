@@ -75,7 +75,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 
 			ImportManager.ImportMetrics(metrics);
-		} 
+		}
+
 		#endregion
 	}
 }
