@@ -110,7 +110,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 
 			var builder = new StringBuilder();
 			var tableName = string.Format("{0}_Metrics", _tablePrefix);
-			builder.AppendFormat("create table [dbo].{0}(\n", tableName);
+			builder.AppendFormat("create table [dbo].[{0}](\n", tableName);
 			foreach (Column col in _columns.Values)
 			{
 
@@ -119,10 +119,10 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 					col.DbType,
 					col.Size != 0 ? string.Format("({0})", col.Size) : null,
 					col.Nullable ? "null" : "not null",
-					col.DefaultValue != string.Empty ? string.Format("Default {0}", col.DefaultValue) : string.Empty
+					!string.IsNullOrWhiteSpace(col.DefaultValue) ? string.Format("Default {0}", col.DefaultValue) : string.Empty
 				);
 			}
-			builder.Remove(builder.Length - 1, 1);
+			builder.Remove(builder.Length - 3, 3);
 			builder.Append(");");
 			using (var command = new SqlCommand(builder.ToString(), _sqlConnection))
 			{

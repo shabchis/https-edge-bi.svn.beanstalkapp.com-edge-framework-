@@ -59,7 +59,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			// MAPPER: load measures and properties using account/channel and options
 			// this.Measures = 
 			// this.MetaProperties = 
-
+			LoadMeasures();
 
 			// Connect to database
 			_sqlConnection = NewDeliveryDbConnection();
@@ -69,7 +69,34 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			// EXAMPLE - ObjectManager.CreateDeliveryObjectTables(string tablePrefix)
 
 			// TABLEMANAGER: run SP to create metrics table
-			var exampleUnit = new AdMetricsUnit();
+
+			// TODO shirat - to replace sample unit by metrics unit from mapping
+			
+			var exampleUnit = new GenericMetricsUnit
+				{
+					Account = new Account {ID = 1, Name = "Shira"},
+					Channel = new Channel {ID = 1},
+					TimePeriodStart = DateTime.Now,
+					TimePeriodEnd = DateTime.Now,
+					TargetDimensions = new List<TargetMatch>(),
+					MeasureValues = new Dictionary<Measure, double>
+						{
+							{new Measure {Name = "Application"}, 0.00},
+							{new Measure {Name = "Account"}, 0.00}
+						},
+				};
+
+			//var exampleUnit = new AdMetricsUnit {Ad = new Ad {Creative = new TextCreative()}};
+			//exampleUnit.TargetDimensions = new List<TargetMatch>();
+			//var targetMatch = new TargetMatch {Target = new KeywordTarget(), TargetDefinition = new TargetDefinition {Target = new KeywordTarget()}};
+			//exampleUnit.TargetDimensions.Add(targetMatch);
+			//exampleUnit.MeasureValues = new Dictionary<Measure, double>
+			//	{
+			//		{new Measure {Name = "Measure1"}, 12.00},
+			//		{new Measure {Name = "Measure2"}, 23.00}
+			//	};
+
+
 			_tableManager = new TableManager(_sqlConnection);
 			string tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix,exampleUnit);
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
@@ -98,6 +125,14 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		{
 			if (State != DeliveryManagerState.Importing)
 				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
+		}
+
+		/// <summary>
+		/// Load meatures from DB by account and channel
+		/// </summary>
+		private void LoadMeasures()
+		{
+			Measures = new Dictionary<string, Measure>();
 		}
 		/*=========================*/
 
@@ -287,7 +322,8 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		SqlConnection NewDeliveryDbConnection()
 		{
-			return new SqlConnection(AppSettings.GetConnectionString(Consts.ConnectionStrings.Deliveries));
+			var connectionString = AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Deliveries);
+			return new SqlConnection(connectionString);
 		}
 
 		protected override void OnDispose()
