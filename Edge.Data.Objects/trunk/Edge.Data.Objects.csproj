@@ -50,6 +50,19 @@
     <Compile Include="Classes\Ad.cs" />
     <Compile Include="Classes\ChannelSpecificObject.cs" />
     <Compile Include="Classes\CompositeCreative.cs" />
+    <Compile Include="Classes\CompositeCreativeDefinition.cs" />
+    <Compile Include="Classes\CompositeCreativeMatch.cs" />
+    <Compile Include="Classes\CompositePartField.cs" />
+    <Compile Include="Classes\ExtraField.cs" />
+    <Compile Include="Classes\SingleCreativeDefinition.cs" />
+    <Compile Include="Classes\SingleCreativeMatch.cs" />
+    <Compile Include="Classes\TextCreativeDefinition.cs" />
+    <Compile Include="Classes\TextCreativeMatch.cs" />
+    <Compile Include="Classes\CreativeReference.cs" />
+    <Compile Include="Classes\ImageCreativeMatch.cs" />
+    <Compile Include="Classes\ImageCreativeDefinition.cs" />
+    <Compile Include="Classes\CreativeMatch.cs" />
+    <Compile Include="Classes\CreativeDefinition.cs" />
     <Compile Include="Classes\EdgeField.cs" />
     <Compile Include="Classes\TargetDefinition.cs" />
     <Compile Include="Classes\EdgeObject.cs" />
@@ -63,7 +76,6 @@
     <Compile Include="Classes\Currency.cs" />
     <Compile Include="Classes\LandingPage.cs" />
     <Compile Include="Classes\Measure.cs" />
-    <Compile Include="Classes\ConnectionDefinition.cs" />
     <Compile Include="Classes\StringValue.cs" />
     <Compile Include="Classes\Target.cs" />
     <Compile Include="Classes\TargetMatch.cs" />
@@ -77,7 +89,6 @@
     <Compile Include="Mappings\Channel.cs" />
     <Compile Include="Mappings\ChannelSpecificObject.cs" />
     <Compile Include="Mappings\CompositeCreative.cs" />
-    <Compile Include="Mappings\ConnectionDefinition.cs" />
     <Compile Include="Mappings\EdgeField.cs" />
     <Compile Include="Mappings\PlacementTarget.cs" />
     <Compile Include="Mappings\GenderTarget.cs" />
@@ -98,7 +109,6 @@
     <Compile Include="Model\Channel.cs" />
     <Compile Include="Model\ChannelSpecificObject.cs" />
     <Compile Include="Model\CompositeCreative.cs" />
-    <Compile Include="Model\ConnectionDefinition.cs" />
     <Compile Include="Model\EdgeField.cs" />
     <Compile Include="Model\TargetDefinition.cs" />
     <Compile Include="Model\Currency.cs" />

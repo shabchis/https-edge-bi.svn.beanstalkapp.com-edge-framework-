@@ -7,6 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class TargetMatch : EdgeObject
 	{
+		public EdgeObject Parent;
 		public Target Target;
 		public TargetDefinition TargetDefinition;
 		public string DestinationUrl;

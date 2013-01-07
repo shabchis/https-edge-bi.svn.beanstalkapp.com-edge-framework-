@@ -16,8 +16,8 @@ namespace Edge.Data.Objects
 				//.Map<string>(ImageCreative.Properties.ImageUrl, "string_Field1")
 				//.Map<string>(ImageCreative.Properties.ImageSize, "string_Field2")
 
-				.MapEdgeField<ImageCreative, string>(ImageCreative.Properties.ImageUrl)
-				.MapEdgeField<ImageCreative, string>(ImageCreative.Properties.ImageSize)
+				//.MapEdgeField<ImageCreative, string>(ImageCreative.Properties.ImageUrl)
+				//.MapEdgeField<ImageCreative, string>(ImageCreative.Properties.ImageSize)
 			);
 		}
 	}

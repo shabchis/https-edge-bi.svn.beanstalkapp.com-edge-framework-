@@ -176,6 +176,7 @@ namespace Edge.Data.Objects
 			;
 		}
 
+		/*
 		public static Mapping<T> MapEdgeField<T, V>(this Mapping<T> mapping, EntityProperty<T, V> property)
 			where T : EdgeObject
 		{
@@ -188,6 +189,7 @@ namespace Edge.Data.Objects
 					})
 				);
 		}
+		*/
 
 		/// <summary>
 		/// Shortcut for ensuring ID is not -1.
