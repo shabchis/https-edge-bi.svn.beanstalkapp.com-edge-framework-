@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 		public Account Account;
 		public EdgeType EdgeType;
 		
-		public Dictionary<EdgeField, object> ExtraFields;
+		public Dictionary<ExtraField, object> ExtraFields;
 	}
 	
 	public abstract class EdgeObjectBase
