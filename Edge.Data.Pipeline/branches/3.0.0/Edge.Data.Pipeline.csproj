@@ -112,6 +112,7 @@
     <Compile Include="Mapping\ReadCommand.cs" />
     <Compile Include="Mapping\ValueFormat.cs" />
     <None Include="Properties\AssemblyInfo.cs.template" />
+    <Compile Include="Objects\ConstEdgeField.cs" />
     <Compile Include="Objects\MetricsUnit.cs" />
     <Compile Include="Objects\Signature.cs" />
     <Compile Include="Readers\Base\ReaderAdapter.cs" />
