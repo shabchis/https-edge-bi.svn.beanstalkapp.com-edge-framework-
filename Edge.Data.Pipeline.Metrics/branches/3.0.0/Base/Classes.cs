@@ -20,6 +20,8 @@ namespace Edge.Data.Pipeline.Metrics.Base
 	{
 		public string StagingConnectionString { get; set; }
 		public string CommitConnectionString { get; set; }
+		public string ObjectsConnectionString { get; set; }
+
 		public string SqlTransformCommand { get; set; }
 		public string SqlStageCommand { get; set; }
 		public string SqlCommitCommand { get; set; }

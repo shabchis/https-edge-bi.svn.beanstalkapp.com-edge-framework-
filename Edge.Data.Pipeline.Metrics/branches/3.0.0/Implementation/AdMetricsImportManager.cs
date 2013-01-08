@@ -22,7 +22,7 @@ namespace Edge.Data.Pipeline.Metrics.Implementation
 			//this.Options.MetaPropertyOptionsMatch = hasSegmentOptions ? this.Options.MetaPropertyOptionsMatch : OptionsMatching.Any;
 		}
 
-		public override void ImportMetrics(AdMetricsUnit metrics) {}
+		//public override void ImportMetrics(AdMetricsUnit metrics) {}
 		public void ImportAd(Ad ad) {}
 
 		/// <summary>

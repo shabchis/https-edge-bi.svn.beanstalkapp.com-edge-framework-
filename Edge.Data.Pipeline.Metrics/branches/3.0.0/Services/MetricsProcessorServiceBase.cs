@@ -16,6 +16,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Properties
 		public Dictionary<string, Account> Accounts { get; private set; }
 		public Dictionary<string, Channel> Channels { get; private set; }
+		public Dictionary<string, Measure> Measures { get; private set; }
+
 		public MetricsDeliveryManager ImportManager { get; protected set; }
 		private int _accountId = -1; 
 		#endregion
@@ -28,8 +30,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				int.TryParse(Configuration.Parameters["AccountID"].ToString(), out _accountId);
 			}
 
-			LoadAccounts(_accountId);
+			LoadAccounts();
 			LoadChannels();
+			LoadMeasures();
 
 			// Load mapping configuration
 			// ------------------------------------------
@@ -90,7 +93,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			var n = (string)name;
 			Measure m;
-			if (!ImportManager.Measures.TryGetValue(n, out m))
+			if (!Measures.TryGetValue(n, out m))
 				throw new MappingException(String.Format("No measure named '{0}' could be found. Make sure you specified the base measure name, not the display name.", n));
 			return m;
 		}
@@ -128,15 +131,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#endregion
 
 		#region Private Methods
-		private void LoadAccounts(int currentAccountId)
+		private void LoadAccounts()
 		{
 			Accounts = new Dictionary<string, Account>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmdStr = String.Format("select name, ID from [dbo].[Account] where ID = {0}", currentAccountId);
-					var cmd = SqlUtility.CreateCommand(cmdStr, CommandType.Text);
+					var cmd = SqlUtility.CreateCommand("Account_GetByAccountId", CommandType.StoredProcedure);
+					cmd.Parameters.AddWithValue("@accountID", _accountId); 
 					cmd.Connection = connection;
 					connection.Open();
 
@@ -146,8 +149,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						{
 							var account = new Account
 								{
-									ID = Convert.ToInt32(reader[1]),
-									Name = Convert.ToString(reader[0])
+									ID = int.Parse(reader["ID"].ToString()),
+									Name = reader["Name"].ToString()
 								};
 							Accounts.Add(account.Name, account);
 						}
@@ -165,31 +168,68 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Channels = new Dictionary<string, Channel>(StringComparer.CurrentCultureIgnoreCase);
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("select ID, name from [dbo].[Channel]", CommandType.Text);
+					var cmd = SqlUtility.CreateCommand("Channel_GetList", CommandType.StoredProcedure);
 					cmd.Connection = connection;
 					connection.Open();
-					using (SqlDataReader reader = cmd.ExecuteReader())
+					using (var reader = cmd.ExecuteReader())
 					{
 						while (reader.Read())
 						{
 							var channel = new Channel
 								{
-									ID = Convert.ToInt16(reader[0]),
-									Name = Convert.ToString(reader[1])
+									ID = int.Parse(reader["ID"].ToString()),
+									Name = reader["Name"].ToString()
 								};
 							Channels.Add(channel.Name, channel);
 						}
 					}
 				}
-				//var a=channels.Where(pp=>pp.Key.ToLower()=="fff".tol
 			}
 			catch (Exception ex)
 			{
 				throw new Exception("Error while trying to get Channels from DB", ex);
 			}
-		} 
+		}
+
+		/// <summary>
+		/// Load meatures from DB by account
+		/// </summary>
+		private void LoadMeasures()
+		{
+			Measures = new Dictionary<string, Measure>();
+			try
+			{
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				{
+					var cmd = SqlUtility.CreateCommand("Measure_GetByAccountId", CommandType.StoredProcedure);
+					cmd.Parameters.AddWithValue("@accountID", _accountId);
+					cmd.Connection = connection;
+					connection.Open();
+
+					using (var reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							var measure = new Measure
+							{
+								ID = int.Parse(reader["ID"].ToString()),
+								Name = reader["Name"].ToString(),
+								DataType = reader["MeasureDataType"] != DBNull.Value ? (MeasureDataType)int.Parse(reader["MeasureDataType"].ToString()) : MeasureDataType.Number,
+								InheritedByDefault = reader["InheritedByDefault"] != DBNull.Value && bool.Parse(reader["InheritedByDefault"].ToString()),
+								Options = reader["Options"] != DBNull.Value ? (MeasureOptions)int.Parse(reader["Options"].ToString()) : MeasureOptions.None,
+							};
+							Measures.Add(measure.Name, measure);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get measures from DB", ex);
+			}
+		}
 		#endregion
 	}
 }

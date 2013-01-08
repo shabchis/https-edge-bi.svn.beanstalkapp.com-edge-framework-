@@ -14,7 +14,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 	/// <summary>
 	/// Table manager class is used to create Delivery metrics table and find matching table for Staging
 	/// </summary>
-	internal class TableManager
+	internal class MetricsTableManager
 	{
 		#region Column class
 		public class Column
@@ -29,52 +29,67 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		#endregion
 
 		#region Data Members
-		string _tablePrefix;
-		readonly SqlConnection _sqlConnection;
 		private const string EGDE_OBJECTS_SUFFIX = "Usid";
+		string _tablePrefix;
+
+		readonly SqlConnection _sqlConnection;
+		readonly EdgeObjectsManager _edgeObjectsManger;
+
 		readonly Dictionary<string, Column> _columns = new Dictionary<string, Column>();
-		readonly EdgeObjectsManager _objectsManger = new EdgeObjectsManager(); 
 		#endregion
 
 		#region Ctor
-		public TableManager(SqlConnection connection)
+		public MetricsTableManager(SqlConnection connection, EdgeObjectsManager edgeObjectsManager)
 		{
 			_sqlConnection = connection;
+			_edgeObjectsManger = edgeObjectsManager;
 		} 
 		#endregion
 
 		#region Delivery Metrics
+		/// <summary>
+		/// Create delivery metric table named by table prefix using sample metric unit structure
+		/// </summary>
+		/// <param name="tablePerifx">delivery metric table prefix</param>
+		/// <param name="metricsUnit">sample metric unit for table structure</param>
+		/// <returns></returns>
 		public string CreateDeliveryMetricsTable(string tablePerifx, MetricsUnit metricsUnit)
 		{
 			_tablePrefix = tablePerifx;
 
 			#region looping object in predetermined order
-			int pass = 0;
-			if (metricsUnit is AdMetricsUnit)
-			{
-				var adMetricsUnit = metricsUnit as AdMetricsUnit;
-				_objectsManger.Add(adMetricsUnit.Ad, pass);
-				_objectsManger.Add(adMetricsUnit.Ad.Creative, pass);
-			}
-			foreach (var target in metricsUnit.TargetDimensions)
-			{
-				_objectsManger.Add(target, pass);
-			}
+			var pass = 0;
 
-			while (_objectsManger.ContainsKey(pass) && _objectsManger[pass] != null && _objectsManger[pass].Count > 0)
+			foreach (var dimention	in metricsUnit.GetObjectDimensions())
 			{
-				foreach (var obj in _objectsManger[pass])
+				if (dimention != null)
+					_edgeObjectsManger.Add(dimention, pass);
+			}
+			//if (metricsUnit is AdMetricsUnit)
+			//{
+			//	var adMetricsUnit = metricsUnit as AdMetricsUnit;
+			//	_edgeObjectsManger.Add(adMetricsUnit.Ad, pass);
+			//	_edgeObjectsManger.Add(adMetricsUnit.Ad.CreativeDefinition, pass);
+			//}
+			//foreach (var target in metricsUnit.TargetDimensions)
+			//{
+			//	_edgeObjectsManger.Add(target, pass);
+			//}
+
+			while (_edgeObjectsManger.ContainsKey(pass) && _edgeObjectsManger[pass] != null && _edgeObjectsManger[pass].Count > 0)
+			{
+				foreach (var obj in _edgeObjectsManger[pass])
 				{
 					AddColumn(obj);
 				}
 
-				foreach (var obj in _objectsManger[pass])
+				foreach (var obj in _edgeObjectsManger[pass])
 				{
 					foreach (var field in obj.GetType().GetFields())
 					{
 						if (field.FieldType.IsSubclassOf(typeof(EdgeObject)))
 						{
-							_objectsManger.Add((EdgeObject)field.GetValue(obj), pass + 1);
+							_edgeObjectsManger.Add((EdgeObject)field.GetValue(obj), pass + 1);
 						}
 					}
 				}
@@ -83,14 +98,15 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			#endregion
 
 			#region runing deeper on all edgeobjects and relevant properties
-			foreach (List<EdgeObject> edgeObjects in _objectsManger.ObjectsByPassValues())
+			foreach (List<object> edgeObjects in _edgeObjectsManger.ObjectsByPassValues())
 			{
-				foreach (EdgeObject edgeObject in edgeObjects)
+				foreach (var edgeObject in edgeObjects)
 				{
-					AddObjects(edgeObject);
+					if (edgeObject is EdgeObject)
+						AddObjects(edgeObject as EdgeObject);
 				}
 			}
-			foreach (EdgeObject edgeObject in _objectsManger.GetOtherObjects())
+			foreach (EdgeObject edgeObject in _edgeObjectsManger.GetOtherObjects())
 			{
 				AddColumn(edgeObject);
 			}
@@ -154,9 +170,9 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			{
 				Type t = obj.GetType();
 
-				if (t == typeof(KeyValuePair<ConnectionDefinition, object>))
+				if (t == typeof(KeyValuePair<EdgeField, object>))
 				{
-					var connection = (KeyValuePair<ConnectionDefinition, object>)obj;
+					var connection = (KeyValuePair<EdgeField, object>)obj;
 					if (!_columns.ContainsKey(connection.Key.Name))
 					{
 						_columns.Add(connection.Key.Name, new Column { Name = connection.Key.Name });
@@ -171,13 +187,31 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 						_columns.Add(name, new Column { Name = name, Value = measure.Value });
 					}
 				}
+				else if (t == typeof (ConstEdgeField))
+				{
+					var field = obj as ConstEdgeField;
+					if (field != null && !_columns.ContainsKey(field.Name))
+					{
+						_columns.Add(field.Name, new Column { Name = field.Name, Value = field.Value, DbType = Convert2DBType(field.Type), Nullable = true});
+					}
+				}
 			}
 		}
+
+		private SqlDbType Convert2DBType(Type type)
+		{
+			return  type == typeof(int)      ? SqlDbType.Int :
+					type == typeof(Guid)     ? SqlDbType.VarChar :
+					type == typeof(DateTime) ? SqlDbType.DateTime :
+					type == typeof(double)   ? SqlDbType.Float :
+					SqlDbType.NVarChar;
+		}
+
 		private void AddObjects(EdgeObject obj)
 		{
-			if (obj.Connections != null)
+			if (obj.ExtraFields != null)
 			{
-				foreach (KeyValuePair<ConnectionDefinition, EdgeObject> metaProperty in obj.Connections)
+				foreach (KeyValuePair<ExtraField, object> metaProperty in obj.ExtraFields)
 				{
 					if (metaProperty.Value.GetType() != typeof(EdgeObject))
 					{
@@ -185,12 +219,97 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 					}
 					else
 					{
-						if (!_objectsManger.ContainsKey(metaProperty.Value))
-							_objectsManger.Add(metaProperty.Value);
+						if (!_edgeObjectsManger.ContainsKey(metaProperty.Value as EdgeObject))
+							_edgeObjectsManger.Add(metaProperty.Value as EdgeObject);
 					}
 				}
 			}
-		} 
+		}
+
+		/// <summary>
+		/// Save metrics row in DB
+		/// </summary>
+		/// <param name="metrics"></param>
+		public void ImportMetrics(MetricsUnit metrics)
+		{
+			// meanwhile insert, later using ORM
+
+			var columnsStr = String.Empty;
+			var valuesStr = String.Empty;
+
+			// add dimentions
+			foreach (var dimention in metrics.GetObjectDimensions())
+			{
+				var column = GetColumn(dimention);
+				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
+				valuesStr = String.Format("{0}\n{1},", valuesStr, column.DbType == SqlDbType.NChar ? String.Format("'{0}'", column.Value) : 
+																  column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
+																  column.Value);
+			}
+			// add meatures
+			foreach (var measure in metrics.MeasureValues)
+			{
+				var column = GetColumn(measure);
+				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
+				valuesStr = String.Format("{0}\n{1},", valuesStr, column.Value);
+			}
+
+			// remove last commas
+			if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
+			if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
+
+			// prepare and execute INSERT
+			var insertSql = String.Format("INSERT INTO [DBO].[{0}_Metrics] ({1}) VALUES ({2});", _tablePrefix, columnsStr, valuesStr);
+			using (var command = new SqlCommand(insertSql, _sqlConnection))
+			{
+				command.ExecuteNonQuery();
+			}
+		}
+
+		private Column GetColumn(object obj)
+		{
+			var clmName = obj.GetType().Name;
+			object clmValue = null;
+			Type cmlType = null;
+			if (obj is EdgeObject)
+			{
+				clmValue = ((EdgeObject) obj).GK;
+				
+			}
+			else if (obj is KeyValuePair<Measure, double>)
+			{
+				var measure = (KeyValuePair<Measure, double>)obj;
+				clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+				clmValue = measure.Value;
+			}
+			else if (obj is ConstEdgeField)
+			{
+				clmName = (obj as ConstEdgeField).Name;
+				clmValue = (obj as ConstEdgeField).Value;
+				cmlType = (obj as ConstEdgeField).Type;
+			}
+			return new Column {Name = clmName, Value = clmValue, DbType = cmlType != null ? Convert2DBType(cmlType) : SqlDbType.BigInt};
+
+			// TODO - check what to do with the childs
+			//if (!((EdgeObject)obj).HasChildsObjects)
+			//	return;
+			//foreach (var child in ((EdgeObject)obj).GetChildObjects())
+			//{
+			//	AddColumn(child);
+			//}
+
+			// TODO - check what to do with EdgeField
+			//var t = obj.GetType();
+			//if (t == typeof(KeyValuePair<EdgeField, object>))
+			//{
+			//	var connection = (KeyValuePair<EdgeField, object>)obj;
+			//	if (!_columns.ContainsKey(connection.Key.Name))
+			//	{
+			//		_columns.Add(connection.Key.Name, new Column { Name = connection.Key.Name });
+			//	}
+			//}
+				
+		}
 		#endregion
 
 		#region Staging
@@ -261,5 +380,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			}
 		} 
 		#endregion
+
+		
 	}
 }
