@@ -6,6 +6,7 @@ using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Base.Submanagers;
+using Edge.Data.Pipeline.Metrics.Services;
 using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Base
@@ -18,9 +19,12 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#region Data Members
 		private SqlConnection _sqlConnection;
 
-		public Dictionary<string, Measure> Measures { get; private set; }
-		public Dictionary<string, ConnectionDefinition> Connections { get; private set; }
+		public Dictionary<string, EdgeField> Connections { get; private set; }
 		public MetricsDeliveryManagerOptions Options { get; private set; }
+
+		private string _tablePrefix;
+		private MetricsTableManager _tableManager;
+		private EdgeObjectsManager _edgeObjectsManager;
 		#endregion
 
 		#region Constructors
@@ -32,6 +36,8 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			options = options ?? new MetricsDeliveryManagerOptions();
 			options.StagingConnectionString = options.StagingConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Staging);
 			options.CommitConnectionString = options.CommitConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.DataWarehouse);
+			options.ObjectsConnectionString = options.CommitConnectionString ?? AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Objects);
+
 			options.SqlTransformCommand = options.SqlTransformCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlTransformCommand, throwException: false);
 			options.SqlStageCommand = options.SqlStageCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlStageCommand, throwException: false);
 			options.SqlCommitCommand = options.SqlStageCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlCommitCommand, throwException: false);
@@ -45,47 +51,35 @@ namespace Edge.Data.Pipeline.Metrics.Base
 
 		#region Import
 		/*=========================*/
-
-		private string _tablePrefix;
-		private TableManager _tableManager;
-
+		
 		protected override void OnBeginImport()
 		{
 			_tablePrefix = string.Format("{0}_{1}_{2}_{3}", CurrentDelivery.Account.ID, CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), CurrentDelivery.DeliveryID.ToString("N").ToLower());
-			CurrentDelivery.Parameters.Add(Consts.DeliveryHistoryParameters.TablePerfix, _tablePrefix);
-
-			//int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
-
-			// MAPPER: load measures and properties using account/channel and options
-			// this.Measures = 
-			// this.MetaProperties = 
-			LoadMeasures();
+			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix] = _tablePrefix;
 
 			// Connect to database
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 
-			// OBJECTMANAGER: run SP to setup delivery object tables (Usid instead of GK)
-			// EXAMPLE - ObjectManager.CreateDeliveryObjectTables(string tablePrefix)
-
-			// TABLEMANAGER: run SP to create metrics table
-
-			// TODO shirat - to replace sample unit by metrics unit from mapping
+			// create delivery object tables (should be Usid instead of GK)
+			_edgeObjectsManager = new EdgeObjectsManager(_sqlConnection);
+			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
 			
+			// TODO shirat - to replace sample unit by metrics unit from mapping
 			var exampleUnit = new GenericMetricsUnit
 				{
 					Account = new Account {ID = 1, Name = "Shira"},
 					Channel = new Channel {ID = 1},
 					TimePeriodStart = DateTime.Now,
 					TimePeriodEnd = DateTime.Now,
+					Currency = new Currency { Code = "NIS" },
 					TargetDimensions = new List<TargetMatch>(),
 					MeasureValues = new Dictionary<Measure, double>
 						{
-							{new Measure {Name = "Application"}, 0.00},
-							{new Measure {Name = "Account"}, 0.00}
+							{new Measure {Name = "ClientSpecific1"}, 0.00},
+							{new Measure {Name = "ClientSpecific2"}, 0.00}
 						},
 				};
-
 			//var exampleUnit = new AdMetricsUnit {Ad = new Ad {Creative = new TextCreative()}};
 			//exampleUnit.TargetDimensions = new List<TargetMatch>();
 			//var targetMatch = new TargetMatch {Target = new KeywordTarget(), TargetDefinition = new TargetDefinition {Target = new KeywordTarget()}};
@@ -96,9 +90,11 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			//		{new Measure {Name = "Measure2"}, 23.00}
 			//	};
 
-
-			_tableManager = new TableManager(_sqlConnection);
-			string tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix,exampleUnit);
+			// create metrics table using metrics table manager
+			_tableManager = new MetricsTableManager(_sqlConnection, _edgeObjectsManager);
+			var tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix,exampleUnit);
+			
+			// store table name in delivery
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
 
 			// CHECKSUMMANAGER: setup
@@ -106,10 +102,11 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			// MAPPER: setup bulks for objects and metrics
 		}
 
-		public virtual void ImportMetrics(DeliveryOutput targetOutput, MetricsUnit metrics)
+		public virtual void ImportMetrics(MetricsUnit metrics)
 		{
 			EnsureBeginImport();
 
+			_tableManager.ImportMetrics(metrics);
 			//foreach (EdgeObject obj in metrics.GetObjectDimensions())
 			//{
 
@@ -126,14 +123,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			if (State != DeliveryManagerState.Importing)
 				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
 		}
-
-		/// <summary>
-		/// Load meatures from DB by account and channel
-		/// </summary>
-		private void LoadMeasures()
-		{
-			Measures = new Dictionary<string, Measure>();
-		}
+		
 		/*=========================*/
 
 		#endregion
@@ -346,12 +336,5 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			: base(serviceInstanceID, options)
 		{
 		}
-
-		public override void ImportMetrics(DeliveryOutput targetOutput, MetricsUnit metrics)
-		{
-			ImportMetrics((TMetricsUnit)metrics);
-		}
-
-		public abstract void ImportMetrics(TMetricsUnit metrics);
 	}
 }

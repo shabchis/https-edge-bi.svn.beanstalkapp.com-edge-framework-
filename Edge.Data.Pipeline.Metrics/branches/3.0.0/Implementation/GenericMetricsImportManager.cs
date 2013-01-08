@@ -61,9 +61,9 @@ namespace Edge.Data.Pipeline.Metrics.Implementation
 			//this.Options.SegmentOptionsOperator = hasSegmentOptions ? this.Options.SegmentOptionsOperator : OptionsMatching.All;
 		}
 
-		public override void ImportMetrics(GenericMetricsUnit metrics)
-		{
-		}
+		//public override void ImportMetrics(GenericMetricsUnit metrics)
+		//{
+		//}
 
 		//public override void ImportMetrics(GenericMetricsUnit metrics)
 		//{
