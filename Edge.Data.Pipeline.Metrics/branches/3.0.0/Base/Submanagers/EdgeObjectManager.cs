@@ -1,6 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
+using Edge.Core.Configuration;
+using Edge.Core.Utilities;
 using Edge.Data.Objects;
+using Edge.Data.Pipeline.Metrics.Services;
 
 namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 {
@@ -46,13 +50,16 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		/// <param name="tablePrefix"></param>
 		public void CreateDeliveryObjectTables(string tablePrefix)
 		{
-			// TODO set real SP name when implemented by Amit
-			//using (var command = new SqlCommand("CreateDeliveryObjectTables", _sqlConnection))
-			//{
-			//	command.Parameters.AddWithValue("@tablePrefix", tablePrefix);
-			//	command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
-			//	command.ExecuteNonQuery();
-			//}
+			using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+			{
+				var cmd = SqlUtility.CreateCommand("MD_CreateObjectTables", CommandType.StoredProcedure);
+				cmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", tablePrefix));
+				cmd.Connection = connection;
+				connection.Open();
+
+				cmd.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
+				cmd.ExecuteNonQuery();
+			}
 		}
 
 		public void Add(object obj, int pass)
