@@ -148,7 +148,7 @@ namespace Edge.Data.Pipeline
 										Status = reader.Get<DeliveryOutputStatus>("Status"),
 										TimePeriodStart = reader.Get<DateTime>("TimePeriodStart"),
 										TimePeriodEnd = reader.Get<DateTime>("TimePeriodEnd"),
-										PipelineInstanceID = reader.Get<Guid>("PipelineInstanceID")
+										PipelineInstanceID = reader.Convert<string,Guid>("PipelineInstanceID", id => id != null ? Guid.Parse (id) : Guid.Empty)
 									};
 									delivery.Outputs.Add(deliveryOutput);
 								}
@@ -424,7 +424,6 @@ namespace Edge.Data.Pipeline
 								[DeliveryID],
 								[OutputID],
 								[AccountID],
-								[AccountOriginalID],
 								[ChannelID],
 								[Signature],
 								[Status] ,								
@@ -438,7 +437,6 @@ namespace Edge.Data.Pipeline
 								@deliveryID:Char,
 								@outputID:Char,
 								@accountID:Int,
-								@accountOriginalID:NVarChar,
 								@channelID:Int,
 								@signature:NVarChar,
 								@status:Int,								
@@ -446,7 +444,7 @@ namespace Edge.Data.Pipeline
 								@timePeriodEnd:DateTime2,
 								@dateCreated:DateTime,
 								@dateModified:DateTime,
-								@pipelineInstanceID:BigInt
+								@pipelineInstanceID:Char
 							)", System.Data.CommandType.Text);
 						cmd.Connection = client;
 						cmd.Transaction = transaction;
@@ -463,7 +461,7 @@ namespace Edge.Data.Pipeline
 						cmd.Parameters["@timePeriodEnd"].Value = output.TimePeriodEnd;
 						cmd.Parameters["@dateCreated"].Value = output.DateCreated;
 						cmd.Parameters["@dateModified"].Value = output.DateModified;
-						cmd.Parameters["@pipelineInstanceID"].Value = output.PipelineInstanceID.HasValue ? output.PipelineInstanceID.Value : (object)DBNull.Value;
+						cmd.Parameters["@pipelineInstanceID"].Value = output.PipelineInstanceID.HasValue ? output.PipelineInstanceID.Value.ToString("N") : (object)DBNull.Value;
 
 						cmd.ExecuteNonQuery();
 					}
