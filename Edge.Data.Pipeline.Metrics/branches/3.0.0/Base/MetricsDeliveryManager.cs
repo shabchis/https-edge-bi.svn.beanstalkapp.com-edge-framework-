@@ -52,12 +52,11 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#region Import
 		/*=========================*/
 		
-		protected override void OnBeginImport()
+		protected override void OnBeginImport(MetricsUnit sampleMetrics)
 		{
 			_tablePrefix = string.Format("{0}_{1}_{2}_{3}", CurrentDelivery.Account.ID, CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), CurrentDelivery.DeliveryID.ToString("N").ToLower());
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix] = _tablePrefix;
 
-			// Connect to database
 			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 
@@ -65,34 +64,9 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			_edgeObjectsManager = new EdgeObjectsManager(_sqlConnection);
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
 			
-			// TODO shirat - to replace sample unit by metrics unit from mapping
-			var exampleUnit = new GenericMetricsUnit
-				{
-					Account = new Account {ID = 1, Name = "Shira"},
-					Channel = new Channel {ID = 1},
-					TimePeriodStart = DateTime.Now,
-					TimePeriodEnd = DateTime.Now,
-					Currency = new Currency { Code = "NIS" },
-					TargetDimensions = new List<TargetMatch>(),
-					MeasureValues = new Dictionary<Measure, double>
-						{
-							{new Measure {Name = "ClientSpecific1"}, 0.00},
-							{new Measure {Name = "ClientSpecific2"}, 0.00}
-						},
-				};
-			//var exampleUnit = new AdMetricsUnit {Ad = new Ad {Creative = new TextCreative()}};
-			//exampleUnit.TargetDimensions = new List<TargetMatch>();
-			//var targetMatch = new TargetMatch {Target = new KeywordTarget(), TargetDefinition = new TargetDefinition {Target = new KeywordTarget()}};
-			//exampleUnit.TargetDimensions.Add(targetMatch);
-			//exampleUnit.MeasureValues = new Dictionary<Measure, double>
-			//	{
-			//		{new Measure {Name = "Measure1"}, 12.00},
-			//		{new Measure {Name = "Measure2"}, 23.00}
-			//	};
-
-			// create metrics table using metrics table manager
+			// create metrics table using metrics table manager and sample metrics
 			_tableManager = new MetricsTableManager(_sqlConnection, _edgeObjectsManager);
-			var tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix,exampleUnit);
+			var tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
 			
 			// store table name in delivery
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;

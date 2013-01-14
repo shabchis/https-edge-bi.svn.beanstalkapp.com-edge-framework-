@@ -43,7 +43,7 @@ namespace Edge.Data.Pipeline.Objects
 		public Channel Channel;
 		public Account Account;
 
-		public Dictionary<EdgeField, object> PropertyDimensions;
+		public Dictionary<ExtraField, EdgeField> ExtraFieldDimensions;
 
 		public override IEnumerable<object> GetObjectDimensions()
 		{
@@ -54,9 +54,9 @@ namespace Edge.Data.Pipeline.Objects
 			yield return new ConstEdgeField { Name = "TimePeriodEnd", Value = TimePeriodEnd, Type = typeof(DateTime) };
 			if (Currency != null) yield return new ConstEdgeField { Name = Currency.GetType().Name, Value = Currency.Code, Type = typeof(string) };
 
-			if (PropertyDimensions != null)
+			if (ExtraFieldDimensions != null)
 			{
-				foreach (var prop in PropertyDimensions)
+				foreach (var prop in ExtraFieldDimensions)
 					if (prop.Value is EdgeObject)
 						yield return prop.Value;
 			}

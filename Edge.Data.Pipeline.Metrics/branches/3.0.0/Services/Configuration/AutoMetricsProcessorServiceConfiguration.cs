@@ -21,6 +21,9 @@ namespace Edge.Data.Pipeline.Metrics.Services.Configuration
 		private string _readerAdapterType;
 		public string ReaderAdapterType { get { return _readerAdapterType; } set { EnsureUnlocked(); _readerAdapterType = value; } }
 
+		private string _sampleFilePath;
+		public string SampleFilePath { get { return _sampleFilePath; } set { EnsureUnlocked(); _sampleFilePath = value; } }
+
 		#endregion
 
 		#region Ctors
@@ -37,6 +40,7 @@ namespace Edge.Data.Pipeline.Metrics.Services.Configuration
 			info.AddValue("DeliveryFileName", _deliveryFileName);
 			info.AddValue("Compression", _compression);
 			info.AddValue("ReaderAdapterType", _readerAdapterType);
+			info.AddValue("SampleFilePath", _sampleFilePath);
 		}
 
 		protected override void Deserialize(SerializationInfo info, StreamingContext context)
@@ -45,6 +49,7 @@ namespace Edge.Data.Pipeline.Metrics.Services.Configuration
 			_deliveryFileName = (string)info.GetValue("DeliveryFileName", typeof(string));
 			_compression = (string)info.GetValue("Compression", typeof(string));
 			_readerAdapterType = (string)info.GetValue("ReaderAdapterType", typeof(string));
+			_sampleFilePath = (string)info.GetValue("SampleFilePath", typeof(string));
 		}
 
 		protected override void CopyConfigurationData(ServiceConfiguration sourceConfig, ServiceConfiguration targetConfig)
@@ -60,6 +65,7 @@ namespace Edge.Data.Pipeline.Metrics.Services.Configuration
 			targetc.DeliveryFileName = sourcec.DeliveryFileName;
 			targetc.Compression = sourcec.Compression;
 			targetc.ReaderAdapterType = sourcec.ReaderAdapterType;
+			targetc.SampleFilePath = sourcec.SampleFilePath;
 		} 
 		#endregion
 	}

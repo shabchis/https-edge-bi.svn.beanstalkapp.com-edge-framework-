@@ -1,5 +1,6 @@
 ﻿using System;
 using Edge.Core.Utilities;
+using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline
 {
@@ -42,13 +43,13 @@ namespace Edge.Data.Pipeline
 			get { return 1; }
 		}
 
-		public void BeginImport(Delivery delivery)
+		public void BeginImport(Delivery delivery, MetricsUnit sampleMetrics)
 		{
 			ThrowIfNotIdle();
 			State = DeliveryManagerState.Importing;
 			CurrentDelivery = delivery;
 			
-			OnBeginImport();
+			OnBeginImport(sampleMetrics);
 		}
 
 		public void EndImport()
@@ -243,7 +244,7 @@ namespace Edge.Data.Pipeline
 			OnDispose();
 		}
 
-		protected virtual void OnBeginImport() {}
+		protected virtual void OnBeginImport(MetricsUnit sampleMetrics) {}
 		protected virtual void OnEndImport() { }
 		protected virtual void OnDisposeImport() { }
 	
