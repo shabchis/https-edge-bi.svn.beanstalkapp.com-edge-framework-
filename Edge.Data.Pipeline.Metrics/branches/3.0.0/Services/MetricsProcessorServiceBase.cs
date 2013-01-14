@@ -14,9 +14,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	public abstract class MetricsProcessorServiceBase : PipelineService
 	{
 		#region Properties
-		public Dictionary<string, Account> Accounts { get; private set; }
-		public Dictionary<string, Channel> Channels { get; private set; }
-		public Dictionary<string, Measure> Measures { get; private set; }
+		public Dictionary<string, Account>  Accounts { get; private set; }
+		public Dictionary<string, Channel>  Channels { get; private set; }
+		public Dictionary<string, Measure>  Measures { get; private set; }
+		public Dictionary<string, EdgeType> EdgeTypes { get; private set; }
 		public Dictionary<string, ExtraField> ExtraFields { get; private set; }
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
@@ -34,8 +35,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			LoadAccounts();
 			LoadChannels();
 			LoadMeasures();
-			// TODO - load extra fields definitions from DB
-			//LoadExtraFields();
+			LoadEdgeTypes();
+			LoadExtraFields();
 
 			// Load mapping configuration
 			// ------------------------------------------
@@ -85,12 +86,21 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return Delivery.Channel;
 		}
 
+		public EdgeType GetEdgeType(dynamic name)
+		{
+			var n = (string)name;
+			EdgeType type;
+			if (!EdgeTypes.TryGetValue(n, out type))
+				throw new MappingException(String.Format("No edge type named '{0}' could be found.", n));
+			return type;
+		}
+
 		public ExtraField GetExtraField(dynamic name)
 		{
 			var n = (string)name;
 			ExtraField field;
 			if (!ExtraFields.TryGetValue(n, out field))
-				throw new MappingException(String.Format("No extra field named '{0}' could be found.", n));
+				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
 			return field;
 		}
 
@@ -143,7 +153,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("Account_GetByAccountId", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("Account_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", _accountId); 
 					cmd.Connection = connection;
 					connection.Open();
@@ -175,7 +185,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("Channel_GetList", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("Channel_Get", CommandType.StoredProcedure);
 					cmd.Connection = connection;
 					connection.Open();
 					using (var reader = cmd.ExecuteReader())
@@ -208,7 +218,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("Measure_GetByAccountId", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("Measure_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", _accountId);
 					cmd.Connection = connection;
 					connection.Open();
@@ -237,16 +247,49 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		}
 
 		/// <summary>
-		/// Load extra fields definition by account
+		/// Load defined edge types by account
 		/// </summary>
-		private void LoadExtraFields()
+		private void LoadEdgeTypes()
 		{
- 			ExtraFields = new Dictionary<string, ExtraField>();
+ 			EdgeTypes = new Dictionary<string, EdgeType>();
 			try
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("ExtraFields_GetByAccountId", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("EdgeType_Get", CommandType.StoredProcedure);
+					cmd.Parameters.AddWithValue("@accountID", _accountId);
+					cmd.Connection = connection;
+					connection.Open();
+
+					using (var reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							var type = new EdgeType
+							{
+								//ClrType = typeof()
+								Name = reader["Name"].ToString(),
+								TableName = reader["TableName"].ToString()
+							};
+							EdgeTypes.Add(type.Name, type);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get edge types from DB", ex);
+			}
+		}
+
+		private void LoadExtraFields()
+		{
+			ExtraFields = new Dictionary<string, ExtraField>();
+			try
+			{
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				{
+					var cmd = SqlUtility.CreateCommand("EdgeField_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", _accountId);
 					cmd.Connection = connection;
 					connection.Open();
@@ -257,7 +300,11 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						{
 							var field = new ExtraField
 							{
-								// fill data from DB row
+								FieldID = int.Parse(reader["ID"].ToString()),
+								Name = reader["Name"].ToString(),
+								ColumnIndex = int.Parse(reader["ColumnIndex"].ToString()),
+								ColumnType = reader["ColumnType"].ToString(),
+								DisplayName = reader["DisplayName"].ToString(),
 							};
 							ExtraFields.Add(field.Name, field);
 						}
