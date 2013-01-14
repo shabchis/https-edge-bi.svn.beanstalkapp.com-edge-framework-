@@ -77,6 +77,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			ImportManager.ImportMetrics(metrics);
 		}
 
+		protected override MetricsUnit CreateEmptyMetricsUnit()
+		{
+			return new AdMetricsUnit();
+		}
 		#endregion
 	}
 }

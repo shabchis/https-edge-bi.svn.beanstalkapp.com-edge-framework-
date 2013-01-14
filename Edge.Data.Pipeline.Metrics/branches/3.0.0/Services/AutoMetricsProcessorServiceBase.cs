@@ -41,16 +41,20 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			LoadConfiguration();
 			
 			// Import data
-			using (var stream = _deliveryFile.OpenContents(compression: _compression))
+			using (ReaderAdapter)
 			{
-				using (ReaderAdapter)
+				using (ImportManager = CreateImportManager(InstanceID, _importManagerOptions))
 				{
-					ReaderAdapter.Init(stream, Configuration);
+					// create objects tables and metrics table according to sample metrics
+					ImportManager.BeginImport(Delivery, GetSampleMetrics());
 
-					using (ImportManager = CreateImportManager(InstanceID, _importManagerOptions))
+					// open delivery file
+					using (var stream = _deliveryFile.OpenContents(compression: _compression))
 					{
-						ImportManager.BeginImport(Delivery);
-						var readSuccess = false;
+						ReaderAdapter.Init(stream, Configuration);
+						
+						// for each row in file read and import into metrics table
+						var readSuccess = false; 
 						while (ReaderAdapter.Reader.Read())
 						{
 							readSuccess = true;
@@ -65,6 +69,24 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				}
 			}
 			return ServiceOutcome.Success;
+		}
+
+		private MetricsUnit GetSampleMetrics()
+		{
+			try
+			{
+				// load sample file, read only one row in order to create metrics table by sample metric unit
+				ReaderAdapter.Init(FileManager.Open(location: Configuration.SampleFilePath, compression: _compression), Configuration);
+				ReaderAdapter.Reader.Read();
+
+				var sampleMetrics = CreateEmptyMetricsUnit();
+				MetricsMappings.Apply(sampleMetrics);
+				return sampleMetrics;
+			}
+			catch (Exception ex)
+			{
+				throw new ConfigurationErrorsException(String.Format("Failed to create metrics by sample file '{0}'", Configuration.SampleFilePath));
+			}
 		} 
 		#endregion
 
@@ -106,6 +128,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Abstract Methods
 		protected abstract MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options);
 		protected abstract void OnRead();
+		protected abstract MetricsUnit CreateEmptyMetricsUnit();
 		
 		#endregion
 	}

@@ -17,6 +17,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public Dictionary<string, Account> Accounts { get; private set; }
 		public Dictionary<string, Channel> Channels { get; private set; }
 		public Dictionary<string, Measure> Measures { get; private set; }
+		public Dictionary<string, ExtraField> ExtraFields { get; private set; }
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
 		private int _accountId = -1; 
@@ -33,6 +34,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			LoadAccounts();
 			LoadChannels();
 			LoadMeasures();
+			// TODO - load extra fields definitions from DB
+			//LoadExtraFields();
 
 			// Load mapping configuration
 			// ------------------------------------------
@@ -46,7 +49,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
 
 			Mappings.Compile();
-		} 
+		}
+
+ 
 		#endregion
 
 		#region Scriptable methods
@@ -80,14 +85,14 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return Delivery.Channel;
 		}
 
-		//public Segment GetSegment(dynamic name)
-		//{
-		//	var n = (string)name;
-		//	Segment s;
-		//	if (!ImportManager.Connections.TryGetValue(n, out s))
-		//		throw new MappingException(String.Format("No segment named '{0}' could be found.", n));
-		//	return s;
-		//}
+		public ExtraField GetExtraField(dynamic name)
+		{
+			var n = (string)name;
+			ExtraField field;
+			if (!ExtraFields.TryGetValue(n, out field))
+				throw new MappingException(String.Format("No extra field named '{0}' could be found.", n));
+			return field;
+		}
 
 		public Measure GetMeasure(dynamic name)
 		{
@@ -228,6 +233,40 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			catch (Exception ex)
 			{
 				throw new Exception("Error while trying to get measures from DB", ex);
+			}
+		}
+
+		/// <summary>
+		/// Load extra fields definition by account
+		/// </summary>
+		private void LoadExtraFields()
+		{
+ 			ExtraFields = new Dictionary<string, ExtraField>();
+			try
+			{
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				{
+					var cmd = SqlUtility.CreateCommand("ExtraFields_GetByAccountId", CommandType.StoredProcedure);
+					cmd.Parameters.AddWithValue("@accountID", _accountId);
+					cmd.Connection = connection;
+					connection.Open();
+
+					using (var reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							var field = new ExtraField
+							{
+								// fill data from DB row
+							};
+							ExtraFields.Add(field.Name, field);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get extra fields from DB", ex);
 			}
 		}
 		#endregion
