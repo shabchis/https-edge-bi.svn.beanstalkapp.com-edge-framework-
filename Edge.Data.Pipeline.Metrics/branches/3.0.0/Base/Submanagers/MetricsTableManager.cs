@@ -154,10 +154,14 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		{
 			if (obj is EdgeObject)
 			{
-				string colName = obj.GetType().Name;
+				string colName = String.Format("{0}_GK", (obj as EdgeObject).EdgeType.Name);
 				if (!_columns.ContainsKey(colName))
 				{
+					// add 2 columns: GK and TK (temp key)
 					_columns.Add(colName, new Column { Name = colName, Value = ((EdgeObject)obj).GK });
+					var tkColName = String.Format("{0}_TK", (obj as EdgeObject).EdgeType.Name);
+					_columns.Add(tkColName, new Column { Name = tkColName, Value = ((EdgeObject)obj).TK, DbType = SqlDbType.NVarChar, Size=500 });
+					
 					if (!((EdgeObject)obj).HasChildsObjects)
 						return;
 					foreach (var child in ((EdgeObject)obj).GetChildObjects())
@@ -237,23 +241,15 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			var columnsStr = String.Empty;
 			var valuesStr = String.Empty;
 
-			// add dimentions
-			foreach (var dimention in metrics.GetObjectDimensions())
+			// get columns from emtrics and build SQL acordingly
+			foreach (var column in GetColumns(metrics))
 			{
-				var column = GetColumn(dimention);
 				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
-				valuesStr = String.Format("{0}\n{1},", valuesStr, column.DbType == SqlDbType.NChar ? String.Format("'{0}'", column.Value) : 
+				valuesStr = String.Format("{0}\n{1},", valuesStr, column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value) : 
 																  column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
 																  column.Value);
 			}
-			// add meatures
-			foreach (var measure in metrics.MeasureValues)
-			{
-				var column = GetColumn(measure);
-				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
-				valuesStr = String.Format("{0}\n{1},", valuesStr, column.Value);
-			}
-
+			
 			// remove last commas
 			if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
 			if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
@@ -266,29 +262,39 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			}
 		}
 
-		private Column GetColumn(object obj)
+		private IList<Column> GetColumns(MetricsUnit metrics)
 		{
-			var clmName = obj.GetType().Name;
-			object clmValue = null;
-			Type cmlType = null;
-			if (obj is EdgeObject)
+			var columnList = new List<Column>();
+
+			// get colummns from dimentions
+			foreach(var dimention in metrics.GetObjectDimensions())
 			{
-				clmValue = ((EdgeObject) obj).GK;
-				
+				if (dimention is EdgeObject)
+				{
+					var obj = dimention as EdgeObject;
+
+					// add 2 columns: GK and TK (temp key)
+					//columnList.Add(new Column {Name = String.Format("{0}_GK", obj.EdgeType.Name), Value = obj.GK });
+					columnList.Add(new Column { Name = String.Format("{0}_TK", obj.EdgeType.Name), Value = obj.TK, DbType = SqlDbType.NVarChar, Size=500 });
+
+					// insert object into object cache in order to insert all objects into object tables at the end of import
+					_edgeObjectsManger.AddToCache(obj);
+				}
+				else if (dimention is ConstEdgeField)
+				{
+					var constField = dimention as ConstEdgeField;
+					columnList.Add(new Column {Name = constField.Name, Value = constField.Value, DbType = Convert2DBType(constField.Type)});
+				}
 			}
-			else if (obj is KeyValuePair<Measure, double>)
+
+			// get columns from measures
+			foreach (var measure in metrics.MeasureValues)
 			{
-				var measure = (KeyValuePair<Measure, double>)obj;
-				clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
-				clmValue = measure.Value;
+				var clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+				columnList.Add(new Column {Name = clmName, Value = measure.Value});
 			}
-			else if (obj is ConstEdgeField)
-			{
-				clmName = (obj as ConstEdgeField).Name;
-				clmValue = (obj as ConstEdgeField).Value;
-				cmlType = (obj as ConstEdgeField).Type;
-			}
-			return new Column {Name = clmName, Value = clmValue, DbType = cmlType != null ? Convert2DBType(cmlType) : SqlDbType.BigInt};
+
+			return columnList;
 
 			// TODO - check what to do with the childs
 			//if (!((EdgeObject)obj).HasChildsObjects)
@@ -308,7 +314,6 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			//		_columns.Add(connection.Key.Name, new Column { Name = connection.Key.Name });
 			//	}
 			//}
-				
 		}
 		#endregion
 
@@ -380,7 +385,5 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			}
 		} 
 		#endregion
-
-		
 	}
 }

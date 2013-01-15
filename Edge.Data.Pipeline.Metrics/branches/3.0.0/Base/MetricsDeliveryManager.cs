@@ -81,15 +81,12 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			EnsureBeginImport();
 
 			_tableManager.ImportMetrics(metrics);
-			//foreach (EdgeObject obj in metrics.GetObjectDimensions())
-			//{
-
-			//}
 		}
 
 		protected override void OnEndImport()
 		{
-			// MAPPER: flush all the bulks
+			// insert all objects into DB
+			_edgeObjectsManager.ImportObjects(_tablePrefix);
 		}
 
 		protected void EnsureBeginImport()

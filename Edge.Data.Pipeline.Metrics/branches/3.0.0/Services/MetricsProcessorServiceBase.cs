@@ -44,7 +44,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
 			Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
 			Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
-			//Mappings.ExternalMethods.Add("GetSegment", new Func<dynamic, Segment>(GetSegment));
+			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, ExtraField>(GetExtraField));
+			Mappings.ExternalMethods.Add("GetEdgeType", new Func<dynamic, EdgeType>(GetEdgeType));
 			Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
 			Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
@@ -218,7 +219,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("Measure_Get", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("MD_Measure_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", _accountId);
 					cmd.Connection = connection;
 					connection.Open();
@@ -256,7 +257,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("EdgeType_Get", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("MD_EdgeType_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", _accountId);
 					cmd.Connection = connection;
 					connection.Open();
@@ -267,9 +268,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						{
 							var type = new EdgeType
 							{
-								//ClrType = typeof()
+								TypeID = int.Parse(reader["TypeID"].ToString()),
 								Name = reader["Name"].ToString(),
-								TableName = reader["TableName"].ToString()
+								TableName = reader["TableName"].ToString(),
+								ClrType = Type.GetType(reader["ClrType"].ToString())
 							};
 							EdgeTypes.Add(type.Name, type);
 						}
@@ -289,7 +291,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 				{
-					var cmd = SqlUtility.CreateCommand("EdgeField_Get", CommandType.StoredProcedure);
+					var cmd = SqlUtility.CreateCommand("MD_EdgeField_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", _accountId);
 					cmd.Connection = connection;
 					connection.Open();
@@ -300,7 +302,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						{
 							var field = new ExtraField
 							{
-								FieldID = int.Parse(reader["ID"].ToString()),
+								FieldID = int.Parse(reader["FieldID"].ToString()),
 								Name = reader["Name"].ToString(),
 								ColumnIndex = int.Parse(reader["ColumnIndex"].ToString()),
 								ColumnType = reader["ColumnType"].ToString(),
