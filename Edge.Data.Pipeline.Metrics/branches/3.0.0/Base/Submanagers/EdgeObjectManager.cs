@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
@@ -10,24 +12,28 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 {
 	/// <summary>
 	/// Contains collection of edge objects
+	/// performs Db operations on objects: create object tables,insert objects into DB
 	/// </summary>
 	internal class EdgeObjectsManager
 	{
 		#region Data Members
 
-		private readonly SqlConnection _sqlConnection;
+		private readonly SqlConnection _deliverySqlConnection;
 
 		private readonly Dictionary<EdgeObject, EdgeObject> _allObjects = new Dictionary<EdgeObject, EdgeObject>();
 		private readonly Dictionary<int, List<object>> _objectsByPass = new Dictionary<int, List<object>>();
 		private readonly Dictionary<EdgeObject, EdgeObject> _otherObjects = new Dictionary<EdgeObject, EdgeObject>();
 
+		// dictionary of objects by TK (temporary key)
+		private readonly Dictionary<string, EdgeObject> _objectsCache = new Dictionary<string, EdgeObject>();
+
 		#endregion
 
 		#region Ctor
 
-		public EdgeObjectsManager(SqlConnection connection)
+		public EdgeObjectsManager(SqlConnection deliveryConnection)
 		{
-			_sqlConnection = connection;
+			_deliverySqlConnection = deliveryConnection;
 		}
 
 		#endregion
@@ -52,7 +58,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		{
 			using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
 			{
-				var cmd = SqlUtility.CreateCommand("MD_CreateObjectTables", CommandType.StoredProcedure);
+				var cmd = SqlUtility.CreateCommand("MD_ObjectTables_Create", CommandType.StoredProcedure);
 				cmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", tablePrefix));
 				cmd.Connection = connection;
 				connection.Open();
@@ -66,14 +72,14 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		{
 			if (!_objectsByPass.ContainsKey(pass))
 				_objectsByPass.Add(pass, new List<object>());
+
 			_objectsByPass[pass].Add(obj);
 		}
 
 		public void Add(EdgeObject obj)
 		{
 			if (_allObjects.ContainsKey(obj))
-				throw new System.ArgumentException(string.Format(
-					"element {0} of type {1}  already exists in _allObjects dictionary", obj.Account.Name, obj.GetType().Name));
+				throw new ArgumentException(string.Format("element {0} of type {1}  already exists in _allObjects dictionary", obj.Account.Name, obj.GetType().Name));
 
 			_otherObjects.Add(obj, obj);
 			_allObjects.Add(obj, obj);
@@ -99,7 +105,58 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			return _otherObjects.Values;
 		}
 
-		#endregion
+		/// <summary>
+		/// Insert objects into object DB tables
+		/// </summary>
+		public void ImportObjects(string tablePrefix)
+		{
+			foreach (var obj in _objectsCache)
+			{
+				// temporary key
+				var columns = "TK";
+				var values = String.Format("'{0}'", obj.Key);
 
+				// Type ID
+				columns = String.Format("{0},\nTypeID", columns);
+				values = String.Format("{0},\n{1}", values, obj.Value.EdgeType.TypeID);
+
+				// account
+				columns = String.Format("{0},\nAccountID", columns);
+				values = String.Format("{0},\n{1}", values, obj.Value.Account.ID);
+
+				// extra fields
+				foreach (var field in obj.Value.ExtraFields)
+				{
+					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+					// TODO - how to support all types???
+					values = String.Format("{0},\n'{1}'", values, (field.Value is StringValue) ? (field.Value as StringValue).Value : String.Empty);
+				}
+
+				var insertSql = String.Format("INSERT INTO [DBO].[{0}_{1}] \n({2}) \nVALUES \n({3})", tablePrefix, obj.Value.EdgeType.TableName, columns, values);
+				using (var command = new SqlCommand(insertSql, _deliverySqlConnection))
+				{
+					command.ExecuteNonQuery();
+				}
+			}
+		}
+
+		public void AddToCache(EdgeObject obj)
+		{
+			if (!_objectsCache.ContainsKey(obj.TK))
+			{
+				_objectsCache.Add(obj.TK, obj);
+			}
+		}
+		#endregion
+	}
+
+	public static class Extensions
+	{
+		public static IEnumerable<TSource> DistinctBy<TSource, TValue>(
+			this IEnumerable<TSource> source, Func<TSource, TValue> selector)
+		{
+			var hashset = new HashSet<TValue>();
+			return from item in source let value = selector(item) where hashset.Add(value) select item;
+		}
 	}
 }
