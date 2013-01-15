@@ -197,10 +197,12 @@ namespace Edge.Data.Pipeline.Mapping
 						if (to == null)
 							throw new MappingConfigurationException("Missing 'To' attribute.", "Map", element);
 
+						string itemType = element.GetAttribute("ItemType");
+
 						if (read != null)
 							read.IsImplicit = true;
 
-						MapCommand map = MapCommand.CreateChild(parent, to, element, read, returnInnermost: true);
+						MapCommand map = MapCommand.CreateChild(parent, to, element, read, returnInnermost: true, itemType: itemType);
 
 						// Force parent to re-inherit, and then inherit from it
 						map.Inherit();

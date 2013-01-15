@@ -78,7 +78,7 @@ namespace Edge.Data.Pipeline.Mapping
 		/// Creates a new map command for a target type, parsing the supplied expression.
 		/// </summary>
 		/// <param name="returnInnermost">If true, returns the last nested map created if the expression has multiple parts. If false, returns the top level map.</param>
-		internal static MapCommand CreateChild(MappingContainer container, string targetExpression, XmlReader xml, ReadCommand implicitRead, bool returnInnermost = false)
+		internal static MapCommand CreateChild(MappingContainer container, string targetExpression, XmlReader xml, ReadCommand implicitRead, bool returnInnermost = false, string itemType=null)
 		{
 			if (container == null)
 				throw new ArgumentNullException("container");
@@ -162,7 +162,7 @@ namespace Edge.Data.Pipeline.Mapping
 					if (indexers.Length > 1)
 						throw new MappingConfigurationException(String.Format("'{0}' has an index with more than one parameter - not currently supported.", targetMemberName), "Map", xml);
 					map.IndexerType = indexers[0].ParameterType;
-					map.ValueType = itemProp.PropertyType;
+					map.ValueType = itemType == null ? itemProp.PropertyType : Type.GetType(itemType);
 
 					if (indexer.StartsWith("{") && indexer.EndsWith("}"))
 					{
@@ -260,6 +260,12 @@ namespace Edge.Data.Pipeline.Mapping
 				if (!condition)
 					return;
 			}
+
+			//// TODO shirat - check with Doron how to create desired type
+			//if (this.MapCommands != null && this.MapCommands.Count > 0)
+			//{
+			//	this.ValueType = MapCommands[0].TargetType;
+			//}
 
 			// .......................................
 			// Process inner read commands only
