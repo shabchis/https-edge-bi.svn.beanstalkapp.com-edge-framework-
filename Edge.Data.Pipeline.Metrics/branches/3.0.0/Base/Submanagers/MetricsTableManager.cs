@@ -274,7 +274,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 					var obj = dimention as EdgeObject;
 
 					// add 2 columns: GK and TK (temp key)
-					//columnList.Add(new Column {Name = String.Format("{0}_GK", obj.EdgeType.Name), Value = obj.GK });
+					columnList.Add(new Column {Name = String.Format("{0}_GK", obj.EdgeType.Name), Value = obj.GK });
 					columnList.Add(new Column { Name = String.Format("{0}_TK", obj.EdgeType.Name), Value = obj.TK, DbType = SqlDbType.NVarChar, Size=500 });
 
 					// insert object into object cache in order to insert all objects into object tables at the end of import
