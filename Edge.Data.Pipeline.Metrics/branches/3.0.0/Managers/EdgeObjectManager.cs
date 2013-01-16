@@ -6,10 +6,11 @@ using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
+using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Metrics.Services;
 using Edge.Data.Pipeline.Objects;
 
-namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
+namespace Edge.Data.Pipeline.Metrics.Managers
 {
 	/// <summary>
 	/// Handle EdgeObject operations:

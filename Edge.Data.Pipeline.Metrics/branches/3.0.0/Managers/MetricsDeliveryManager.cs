@@ -3,10 +3,10 @@ using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
-using Edge.Data.Pipeline.Metrics.Base.Submanagers;
+using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
-namespace Edge.Data.Pipeline.Metrics.Base
+namespace Edge.Data.Pipeline.Metrics.Managers
 {
 	/// <summary>
 	/// Base class for metrics import managers.

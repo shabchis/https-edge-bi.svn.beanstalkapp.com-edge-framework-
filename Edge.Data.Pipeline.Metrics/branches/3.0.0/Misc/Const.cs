@@ -1,4 +1,4 @@
-﻿namespace Edge.Data.Pipeline.Metrics.Base
+﻿namespace Edge.Data.Pipeline.Metrics.Misc
 {
 	public static class Consts
 	{

@@ -10,7 +10,7 @@ using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Objects;
 
-namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
+namespace Edge.Data.Pipeline.Metrics.Managers
 {
 	/// <summary>
 	/// Table manager class is used for:

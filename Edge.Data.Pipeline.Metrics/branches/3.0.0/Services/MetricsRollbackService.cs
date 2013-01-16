@@ -1,6 +1,6 @@
 ﻿using System;
 using Edge.Core.Services;
-using Edge.Data.Pipeline.Metrics.Base;
+using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Metrics.Services.Configuration;
 using Edge.Data.Pipeline.Services;
 using Edge.Core.Utilities;
