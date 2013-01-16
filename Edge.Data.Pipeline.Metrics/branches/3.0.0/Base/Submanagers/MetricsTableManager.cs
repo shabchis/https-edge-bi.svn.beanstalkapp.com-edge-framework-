@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Data;
@@ -12,7 +13,9 @@ using Edge.Data.Pipeline.Objects;
 namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 {
 	/// <summary>
-	/// Table manager class is used to create Delivery metrics table and find matching table for Staging
+	/// Table manager class is used for:
+	/// Delivery: create metrics table and import data into it
+	/// Staging: find matching table for Staging
 	/// </summary>
 	internal class MetricsTableManager
 	{
@@ -47,6 +50,8 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		#endregion
 
 		#region Delivery Metrics
+
+		#region Create delivery metrics table
 		/// <summary>
 		/// Create delivery metric table named by table prefix using sample metric unit structure
 		/// </summary>
@@ -57,79 +62,27 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 		{
 			_tablePrefix = tablePerifx;
 
-			#region looping object in predetermined order
-			var pass = 0;
+			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
 
-			foreach (var dimention	in metricsUnit.GetObjectDimensions())
-			{
-				if (dimention != null)
-					_edgeObjectsManger.Add(dimention, pass);
-			}
-			//if (metricsUnit is AdMetricsUnit)
-			//{
-			//	var adMetricsUnit = metricsUnit as AdMetricsUnit;
-			//	_edgeObjectsManger.Add(adMetricsUnit.Ad, pass);
-			//	_edgeObjectsManger.Add(adMetricsUnit.Ad.CreativeDefinition, pass);
-			//}
-			//foreach (var target in metricsUnit.TargetDimensions)
-			//{
-			//	_edgeObjectsManger.Add(target, pass);
-			//}
+			var columnList = GetColumnList(flatObjectList, false); // sampe metrics objects are not added to object cache
 
-			while (_edgeObjectsManger.ContainsKey(pass) && _edgeObjectsManger[pass] != null && _edgeObjectsManger[pass].Count > 0)
-			{
-				foreach (var obj in _edgeObjectsManger[pass])
-				{
-					AddColumn(obj);
-				}
+			return CreateTable(columnList);
+		}
 
-				foreach (var obj in _edgeObjectsManger[pass])
-				{
-					foreach (var field in obj.GetType().GetFields())
-					{
-						if (field.FieldType.IsSubclassOf(typeof(EdgeObject)))
-						{
-							_edgeObjectsManger.Add((EdgeObject)field.GetValue(obj), pass + 1);
-						}
-					}
-				}
-				pass++;
-			}
-			#endregion
-
-			#region runing deeper on all edgeobjects and relevant properties
-			foreach (List<object> edgeObjects in _edgeObjectsManger.ObjectsByPassValues())
-			{
-				foreach (var edgeObject in edgeObjects)
-				{
-					if (edgeObject is EdgeObject)
-						AddObjects(edgeObject as EdgeObject);
-				}
-			}
-			foreach (EdgeObject edgeObject in _edgeObjectsManger.GetOtherObjects())
-			{
-				AddColumn(edgeObject);
-			}
-			#endregion
-
-			#region runing on measures
-			if (metricsUnit.MeasureValues != null)
-			{
-				foreach (KeyValuePair<Measure, double> measure in metricsUnit.MeasureValues)
-				{
-					AddColumn(measure);
-				}
-			}
-			#endregion
-
-			#region Create Metrics Table
-
+		/// <summary>
+		/// Build DML statement to create delivery table according to the column list
+		/// Run DML statement
+		/// </summary>
+		/// <param name="columnList"></param>
+		/// <returns></returns>
+		private string CreateTable(IEnumerable<Column> columnList)
+		{
 			var builder = new StringBuilder();
 			var tableName = string.Format("{0}_Metrics", _tablePrefix);
-			builder.AppendFormat("create table [dbo].[{0}](\n", tableName);
-			foreach (Column col in _columns.Values)
-			{
+			builder.AppendFormat("CREATE TABLE  [dbo].[{0}](\n", tableName);
 
+			foreach (var col in columnList)
+			{
 				builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}, \n",
 					col.Name,
 					col.DbType,
@@ -146,110 +99,37 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 				command.ExecuteNonQuery();
 			}
 
-			#endregion
-
 			return tableName;
-		}
-		private void AddColumn(object obj)
-		{
-			if (obj is EdgeObject)
-			{
-				string colName = String.Format("{0}_GK", (obj as EdgeObject).EdgeType.Name);
-				if (!_columns.ContainsKey(colName))
-				{
-					// add 2 columns: GK and TK (temp key)
-					_columns.Add(colName, new Column { Name = colName, Value = ((EdgeObject)obj).GK });
-					var tkColName = String.Format("{0}_TK", (obj as EdgeObject).EdgeType.Name);
-					_columns.Add(tkColName, new Column { Name = tkColName, Value = ((EdgeObject)obj).TK, DbType = SqlDbType.NVarChar, Size=500 });
-					
-					if (!((EdgeObject)obj).HasChildsObjects)
-						return;
-					foreach (var child in ((EdgeObject)obj).GetChildObjects())
-					{
-						AddColumn(child);
-					}
-				}
-			}
-			else
-			{
-				Type t = obj.GetType();
+		} 
+		#endregion
 
-				if (t == typeof(KeyValuePair<EdgeField, object>))
-				{
-					var connection = (KeyValuePair<EdgeField, object>)obj;
-					if (!_columns.ContainsKey(connection.Key.Name))
-					{
-						_columns.Add(connection.Key.Name, new Column { Name = connection.Key.Name });
-					}
-				}
-				else if (t == typeof(KeyValuePair<Measure, double>))
-				{
-					var measure = (KeyValuePair<Measure, double>)obj;
-					string name = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
-					if (!_columns.ContainsKey(name))
-					{
-						_columns.Add(name, new Column { Name = name, Value = measure.Value });
-					}
-				}
-				else if (t == typeof (ConstEdgeField))
-				{
-					var field = obj as ConstEdgeField;
-					if (field != null && !_columns.ContainsKey(field.Name))
-					{
-						_columns.Add(field.Name, new Column { Name = field.Name, Value = field.Value, DbType = Convert2DBType(field.Type), Nullable = true});
-					}
-				}
-			}
-		}
-
-		private SqlDbType Convert2DBType(Type type)
-		{
-			return  type == typeof(int)      ? SqlDbType.Int :
-					type == typeof(Guid)     ? SqlDbType.VarChar :
-					type == typeof(DateTime) ? SqlDbType.DateTime :
-					type == typeof(double)   ? SqlDbType.Float :
-					SqlDbType.NVarChar;
-		}
-
-		private void AddObjects(EdgeObject obj)
-		{
-			if (obj.ExtraFields != null)
-			{
-				foreach (KeyValuePair<ExtraField, object> metaProperty in obj.ExtraFields)
-				{
-					if (metaProperty.Value.GetType() != typeof(EdgeObject))
-					{
-						AddColumn(metaProperty);
-					}
-					else
-					{
-						if (!_edgeObjectsManger.ContainsKey(metaProperty.Value as EdgeObject))
-							_edgeObjectsManger.Add(metaProperty.Value as EdgeObject);
-					}
-				}
-			}
-		}
-
+		#region Import metrics
 		/// <summary>
-		/// Save metrics row in DB
+		/// Save metrics (sigle row) into metrics table
 		/// </summary>
-		/// <param name="metrics"></param>
-		public void ImportMetrics(MetricsUnit metrics)
+		/// <param name="metricsUnit"></param>
+		public void ImportMetrics(MetricsUnit metricsUnit)
 		{
-			// meanwhile insert, later using ORM
+			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
 
+			var columnList = GetColumnList(flatObjectList);
+
+			ImportMetricsData(columnList);
+		}
+
+		private void ImportMetricsData(IEnumerable<Column> columnList)
+		{
 			var columnsStr = String.Empty;
 			var valuesStr = String.Empty;
 
-			// get columns from emtrics and build SQL acordingly
-			foreach (var column in GetColumns(metrics))
+			foreach (var column in columnList)
 			{
 				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
-				valuesStr = String.Format("{0}\n{1},", valuesStr, column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value) : 
-																  column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
-																  column.Value);
+				valuesStr = String.Format("{0}\n{1},", valuesStr, column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value) :
+																	column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
+																	column.Value);
 			}
-			
+
 			// remove last commas
 			if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
 			if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
@@ -260,61 +140,110 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			{
 				command.ExecuteNonQuery();
 			}
+		} 
+		#endregion
+
+		/// <summary>
+		/// get column list from falt object list
+		/// </summary>
+		/// <param name="objectList"></param>
+		/// <param name="addToCache">indication if to add to edge object to cache for later instert into EdgeObject tables (on ImportEnd)
+		/// TRUE : default, when import metrics
+		/// FALSE: when creating delivery table by metrics sample</param>
+		/// <returns></returns>
+		private IEnumerable<Column> GetColumnList(IEnumerable<object> objectList, bool addToCache = true)
+		{
+			var columnDict = new Dictionary<string, Column>();
+			foreach (var obj in objectList)
+			{
+				if (obj is EdgeObject)
+				{
+					foreach (var column in CreateEdgeObjColumns(obj as EdgeObject).Where(column => !columnDict.ContainsKey(column.Name)))
+					{
+						columnDict.Add(column.Name, column);
+					}
+					// EdgeObject are added to cache in order to insert them later into object tables
+					if (addToCache)
+						_edgeObjectsManger.AddToCache(obj as EdgeObject);
+				}
+				else
+				{
+					var column = CreateColumn(obj);
+					if (!columnDict.ContainsKey(column.Name))
+						columnDict.Add(column.Name, column);
+				}
+			}
+			return columnDict.Values.ToList();
 		}
 
-		private IList<Column> GetColumns(MetricsUnit metrics)
+		/// <summary>
+		/// Create columns for edge oject (GK and TK)
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <returns></returns>
+		private IEnumerable<Column> CreateEdgeObjColumns(EdgeObject obj)
 		{
 			var columnList = new List<Column>();
 
-			// get colummns from dimentions
-			foreach(var dimention in metrics.GetObjectDimensions())
+			if (obj.EdgeType == null)
+				throw new ConfigurationErrorsException(String.Format("EdgeType is not set for object {0}", obj.GetType()));
+
+			// add 2 columns: GK and TK (temp key)
+			columnList.Add(new Column { Name = String.Format("{0}_GK", obj.EdgeType.Name), Value = obj.GK });
+			columnList.Add(new Column { Name = String.Format("{0}_TK", obj.EdgeType.Name), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
+
+			// add columns for all childs
+			if (obj.HasChildsObjects)
 			{
-				if (dimention is EdgeObject)
+				foreach (var child in obj.GetChildObjects())
 				{
-					var obj = dimention as EdgeObject;
-
-					// add 2 columns: GK and TK (temp key)
-					columnList.Add(new Column {Name = String.Format("{0}_GK", obj.EdgeType.Name), Value = obj.GK });
-					columnList.Add(new Column { Name = String.Format("{0}_TK", obj.EdgeType.Name), Value = obj.TK, DbType = SqlDbType.NVarChar, Size=500 });
-
-					// insert object into object cache in order to insert all objects into object tables at the end of import
-					_edgeObjectsManger.AddToCache(obj);
-				}
-				else if (dimention is ConstEdgeField)
-				{
-					var constField = dimention as ConstEdgeField;
-					columnList.Add(new Column {Name = constField.Name, Value = constField.Value, DbType = Convert2DBType(constField.Type)});
+					columnList.AddRange(CreateEdgeObjColumns(child));
 				}
 			}
-
-			// get columns from measures
-			foreach (var measure in metrics.MeasureValues)
-			{
-				var clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
-				columnList.Add(new Column {Name = clmName, Value = measure.Value});
-			}
-
 			return columnList;
-
-			// TODO - check what to do with the childs
-			//if (!((EdgeObject)obj).HasChildsObjects)
-			//	return;
-			//foreach (var child in ((EdgeObject)obj).GetChildObjects())
-			//{
-			//	AddColumn(child);
-			//}
-
-			// TODO - check what to do with EdgeField
-			//var t = obj.GetType();
-			//if (t == typeof(KeyValuePair<EdgeField, object>))
-			//{
-			//	var connection = (KeyValuePair<EdgeField, object>)obj;
-			//	if (!_columns.ContainsKey(connection.Key.Name))
-			//	{
-			//		_columns.Add(connection.Key.Name, new Column { Name = connection.Key.Name });
-			//	}
-			//}
 		}
+
+		/// <summary>
+		/// Create column from object accoding to the object type
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <returns></returns>
+		private Column CreateColumn(object obj)
+		{
+			string clmName;
+			object clmValue;
+			var isNullable = false;
+			var clmType = SqlDbType.BigInt;
+
+			if (obj is KeyValuePair<Measure, double>)
+			{
+				var measure = (KeyValuePair<Measure, double>)obj;
+				clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+				clmValue = measure.Value;
+			}
+			else if (obj is ConstEdgeField)
+			{
+				var field = obj as ConstEdgeField;
+				clmName = field.Name;
+				clmValue = field.Value;
+				clmType = Convert2DbType(field.Type);
+				isNullable = true;
+			}
+			else
+				throw new ArgumentException(String.Format("Unknown object type '{0}' for creating metrics columns", obj.GetType()));
+
+			return new Column { Name = clmName, Value = clmValue, DbType = clmType, Nullable = isNullable };
+		}
+
+		private static SqlDbType Convert2DbType(Type type)
+		{
+			return type == typeof(int) ? SqlDbType.Int :
+					type == typeof(Guid) ? SqlDbType.VarChar :
+					type == typeof(DateTime) ? SqlDbType.DateTime :
+					type == typeof(double) ? SqlDbType.Float :
+					SqlDbType.NVarChar;
+		}
+
 		#endregion
 
 		#region Staging
@@ -363,11 +292,11 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 				{
 					if (firstFilter)
 					{
-						filter = string.Format("Metrics.{0}=GKS.Usid\n");
+						filter = string.Format("Metrics.{0}=GKS.Usid\n", cols[i].Name);
 						firstFilter = false;
 					}
 					else
-						filter = string.Format("AND Metrics.{0}=GKS.Usid\n");
+						filter = string.Format("AND Metrics.{0}=GKS.Usid\n", cols[i].Name);
 				}
 
 				if (i != cols.Count - 1)

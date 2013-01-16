@@ -7,12 +7,15 @@ using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Services;
+using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 {
 	/// <summary>
-	/// Contains collection of edge objects
-	/// performs Db operations on objects: create object tables,insert objects into DB
+	/// Handle EdgeObject operations:
+	/// 1. Create delivery tables for EdgeObject
+	/// 2. Contains cache of delivery objects and Import them into EdgeObject delivery tables
+	/// 3. Supply flat object list from Metrics 
 	/// </summary>
 	internal class EdgeObjectsManager
 	{
@@ -40,7 +43,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 
 		#region Indexer
 
-		public List<object> this[int index]
+		private List<object> this[int index]
 		{
 			get { return _objectsByPass[index]; }
 		}
@@ -68,42 +71,7 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			}
 		}
 
-		public void Add(object obj, int pass)
-		{
-			if (!_objectsByPass.ContainsKey(pass))
-				_objectsByPass.Add(pass, new List<object>());
-
-			_objectsByPass[pass].Add(obj);
-		}
-
-		public void Add(EdgeObject obj)
-		{
-			if (_allObjects.ContainsKey(obj))
-				throw new ArgumentException(string.Format("element {0} of type {1}  already exists in _allObjects dictionary", obj.Account.Name, obj.GetType().Name));
-
-			_otherObjects.Add(obj, obj);
-			_allObjects.Add(obj, obj);
-		}
-
-		public bool ContainsKey(EdgeObject obj)
-		{
-			return _allObjects.ContainsKey(obj);
-		}
-
-		public bool ContainsKey(int pass)
-		{
-			return _objectsByPass.ContainsKey(pass);
-		}
-
-		public Dictionary<int, List<object>>.ValueCollection ObjectsByPassValues()
-		{
-			return _objectsByPass.Values;
-		}
-
-		public Dictionary<EdgeObject, EdgeObject>.ValueCollection GetOtherObjects()
-		{
-			return _otherObjects.Values;
-		}
+		
 
 		/// <summary>
 		/// Insert objects into object DB tables
@@ -116,21 +84,37 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 				var columns = "TK";
 				var values = String.Format("'{0}'", obj.Key);
 
-				// Type ID
-				columns = String.Format("{0},\nTypeID", columns);
-				values = String.Format("{0},\n{1}", values, obj.Value.EdgeType.TypeID);
+				columns = String.Format("{0},\nGK", columns);
+				values = String.Format("{0},\n{1}", values, obj.Value.GK);
 
+				if (!(obj.Value is Ad))
+				{
+					// Type ID
+					columns = String.Format("{0},\nTypeID", columns);
+					values = String.Format("{0},\n{1}", values, obj.Value.EdgeType.TypeID);
+				}
 				// account
 				columns = String.Format("{0},\nAccountID", columns);
 				values = String.Format("{0},\n{1}", values, obj.Value.Account.ID);
 
-				// extra fields
-				foreach (var field in obj.Value.ExtraFields)
+				if (obj.Value is ChannelSpecificObject)
 				{
-					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-					// TODO - how to support all types???
-					values = String.Format("{0},\n'{1}'", values, (field.Value is StringValue) ? (field.Value as StringValue).Value : String.Empty);
+					var channelObj = obj.Value as ChannelSpecificObject;
+					columns = String.Format("{0},\nChannelID", columns);
+					values = String.Format("{0},\n{1}", values, channelObj.Channel.ID);
+
+					if (!String.IsNullOrEmpty(channelObj.OriginalID))
+					{
+						columns = String.Format("{0},\nOriginalID", columns);
+						values = String.Format("{0},\n'{1}'", values, channelObj.OriginalID);
+					}
+
+					columns = String.Format("{0},\nStatus", columns);
+					values = String.Format("{0},\n{1}", values, (int)channelObj.Status);
 				}
+
+				// extra fields
+				BuildExtraFields4Sql(obj.Value, columns, values);
 
 				var insertSql = String.Format("INSERT INTO [DBO].[{0}_{1}] \n({2}) \nVALUES \n({3})", tablePrefix, obj.Value.EdgeType.TableName, columns, values);
 				using (var command = new SqlCommand(insertSql, _deliverySqlConnection))
@@ -140,6 +124,11 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 			}
 		}
 
+		/// <summary>
+		/// Add EdgeObject to cache, which contains distinct EdgeObjects,
+		/// in order to import EdgeObjects into EdgeObjects delivery tables when import metrics finishes 
+		/// </summary>
+		/// <param name="obj"></param>
 		public void AddToCache(EdgeObject obj)
 		{
 			if (!_objectsCache.ContainsKey(obj.TK))
@@ -147,16 +136,137 @@ namespace Edge.Data.Pipeline.Metrics.Base.Submanagers
 				_objectsCache.Add(obj.TK, obj);
 			}
 		}
-		#endregion
-	}
 
-	public static class Extensions
-	{
-		public static IEnumerable<TSource> DistinctBy<TSource, TValue>(
-			this IEnumerable<TSource> source, Func<TSource, TValue> selector)
+		/// <summary>
+		/// Create flat list of objects which compose metrics data object
+		/// </summary>
+		/// <param name="metricsUnit"></param>
+		/// <returns></returns>
+		public List<object> GetFlatObjectList(MetricsUnit metricsUnit)
 		{
-			var hashset = new HashSet<TValue>();
-			return from item in source let value = selector(item) where hashset.Add(value) select item;
+			// clear all containers
+			ClearObjects();
+
+			var level = 0;
+			var flatList = new List<object>();
+
+			// add all metrics dimentions to object structure
+			foreach (var dimention in metricsUnit.GetObjectDimensions().Where(dimention => dimention != null))
+			{
+				Add(dimention, level);
+			}
+
+			// go over object composition levels and add objects to flat list
+			while (ContainsKey(level) && this[level] != null && this[level].Count > 0)
+			{
+				// add all objects of this level
+				flatList.AddRange(this[level].Where(obj => obj != null));
+
+				foreach (var obj in this[level].Where(obj => obj != null))
+				{
+					foreach (var field in obj.GetType().GetFields().Where(field => field.FieldType.IsSubclassOf(typeof(EdgeObject))))
+					{
+						Add(field.GetValue(obj), level + 1);
+					}
+
+					foreach (var prop in obj.GetType().GetProperties().Where(prop => prop.PropertyType.IsSubclassOf(typeof(EdgeObject))))
+					{
+						Add(prop.GetValue(obj, null), level + 1);
+					}
+				}
+				level++;
+			}
+
+			// runing deeper on all Extra fields
+			foreach (var edgeObjects in ObjectsByPassValues())
+			{
+				foreach (var obj in edgeObjects)
+				{
+					var edgeObj = obj as EdgeObject;
+					if (edgeObj != null)
+					{
+						if (edgeObj.ExtraFields != null)
+						{
+							foreach (var metaProperty in edgeObj.ExtraFields)
+							{
+								if (metaProperty.Value.GetType() != typeof(EdgeObject))
+								{
+									flatList.Add(metaProperty);
+								}
+								else
+								{
+									Add(metaProperty.Value as EdgeObject);
+								}
+							}
+						}
+					}
+				}
+			}
+			flatList.AddRange(GetOtherObjects());
+
+			// add measures
+			if (metricsUnit.MeasureValues != null)
+			{
+				flatList.AddRange(metricsUnit.MeasureValues.Cast<object>());
+			}
+
+			return flatList;
 		}
+
+		private void ClearObjects()
+		{
+			_objectsByPass.Clear();
+			_allObjects.Clear();
+			_otherObjects.Clear();
+		}
+
+		#endregion
+
+		#region Private Methods
+		private void Add(object obj, int pass)
+		{
+			if (!_objectsByPass.ContainsKey(pass))
+				_objectsByPass.Add(pass, new List<object>());
+
+			_objectsByPass[pass].Add(obj);
+		}
+
+		private void Add(EdgeObject obj)
+		{
+			if (_allObjects.ContainsKey(obj))
+				throw new ArgumentException(string.Format("element {0} of type {1}  already exists in _allObjects dictionary", obj.Account.Name, obj.GetType().Name));
+
+			_otherObjects.Add(obj, obj);
+			_allObjects.Add(obj, obj);
+		}
+		
+		private bool ContainsKey(int pass)
+		{
+			return _objectsByPass.ContainsKey(pass);
+		}
+
+		private IEnumerable<List<object>> ObjectsByPassValues()
+		{
+			return _objectsByPass.Values;
+		}
+
+		private IEnumerable<EdgeObject> GetOtherObjects()
+		{
+			return _otherObjects.Values;
+		}
+
+		private static void BuildExtraFields4Sql(EdgeObject obj, string columns, string values)
+		{
+			if (obj.ExtraFields == null) return;
+
+			foreach (var field in obj.ExtraFields)
+			{
+				columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+				// TODO - how to support all types???
+				values = String.Format("{0},\n'{1}'", values,
+										(field.Value is StringValue) ? (field.Value as StringValue).Value : String.Empty);
+			}
+		} 
+		#endregion
 	}
 }
