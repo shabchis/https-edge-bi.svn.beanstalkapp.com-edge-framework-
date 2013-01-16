@@ -42,17 +42,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Base\Classes.cs" />
+    <Compile Include="Base\Options.cs" />
     <Compile Include="Base\Submanagers\EdgeObjectManager.cs" />
     <Compile Include="Base\Submanagers\MetricsTableManager.cs" />
-    <Compile Include="Implementation\AdMetricsImportManager.cs" />
-    <Compile Include="Services\AutoAdMetricsProcessorService.cs" />
-    <Compile Include="Services\AutoGenericMetricsProcessorService.cs" />
     <Compile Include="Services\AutoMetricsProcessorServiceBase.cs" />
     <Compile Include="Services\Configuration\AutoMetricsProcessorServiceConfiguration.cs" />
     <Compile Include="Services\Configuration\MetricsRollbackServiceconfiguration.cs" />
     <Compile Include="Services\MetricsStagingService.cs" />
-    <Compile Include="Implementation\GenericMetricsImportManager.cs" />
     <Compile Include="Base\Const.cs" />
     <Compile Include="Base\MetricsDeliveryManager.cs" />
     <Compile Include="Services\MetricsProcessorServiceBase.cs" />

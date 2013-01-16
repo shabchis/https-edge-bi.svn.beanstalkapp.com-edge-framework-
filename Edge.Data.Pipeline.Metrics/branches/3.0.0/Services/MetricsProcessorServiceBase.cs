@@ -11,13 +11,16 @@ using Edge.Data.Pipeline.Services;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
+	/// <summary>
+	/// Base metrics processor service
+	/// </summary>
 	public abstract class MetricsProcessorServiceBase : PipelineService
 	{
 		#region Properties
-		public Dictionary<string, Account>  Accounts { get; private set; }
-		public Dictionary<string, Channel>  Channels { get; private set; }
-		public Dictionary<string, Measure>  Measures { get; private set; }
-		public Dictionary<string, EdgeType> EdgeTypes { get; private set; }
+		public Dictionary<string, Account>    Accounts { get; private set; }
+		public Dictionary<string, Channel>    Channels { get; private set; }
+		public Dictionary<string, Measure>    Measures { get; private set; }
+		public Dictionary<string, EdgeType>   EdgeTypes { get; private set; }
 		public Dictionary<string, ExtraField> ExtraFields { get; private set; }
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
@@ -32,6 +35,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				int.TryParse(Configuration.Parameters["AccountID"].ToString(), out _accountId);
 			}
 
+			// load definitions from DB
 			LoadAccounts();
 			LoadChannels();
 			LoadMeasures();
@@ -39,7 +43,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			LoadExtraFields();
 
 			// Load mapping configuration
-			// ------------------------------------------
 			Mappings.ExternalMethods.Add("GetChannel", new Func<dynamic, Channel>(GetChannel));
 			Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
 			Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
@@ -52,7 +55,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			Mappings.Compile();
 		}
-
  
 		#endregion
 
@@ -209,9 +211,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 		}
 
-		/// <summary>
-		/// Load meatures from DB by account
-		/// </summary>
 		private void LoadMeasures()
 		{
 			Measures = new Dictionary<string, Measure>();
@@ -247,9 +246,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 		}
 
-		/// <summary>
-		/// Load defined edge types by account
-		/// </summary>
 		private void LoadEdgeTypes()
 		{
  			EdgeTypes = new Dictionary<string, EdgeType>();
