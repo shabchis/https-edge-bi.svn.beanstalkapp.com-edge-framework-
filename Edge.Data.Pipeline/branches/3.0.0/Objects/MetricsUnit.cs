@@ -19,25 +19,6 @@ namespace Edge.Data.Pipeline.Objects
 		public abstract IEnumerable<object> GetObjectDimensions();
 	}
 
-	public class AdMetricsUnit: MetricsUnit
-	{
-		public Ad Ad;
-
-		public override IEnumerable<object> GetObjectDimensions()
-		{
-			yield return Ad;
-			yield return new ConstEdgeField { Name = "TimePeriodStart", Value = TimePeriodStart, Type = typeof(DateTime)};
-			yield return new ConstEdgeField { Name = "TimePeriodEnd", Value = TimePeriodEnd, Type = typeof(DateTime) };
-			if (Currency != null) yield return new ConstEdgeField { Name = Currency.GetType().Name, Value = Currency.Code, Type = typeof(string) };
-
-			if (TargetDimensions != null)
-			{
-				foreach (var target in TargetDimensions)
-					yield return target;
-			}
-		}
-	}
-
 	public class GenericMetricsUnit : MetricsUnit
 	{
 		public Channel Channel;
