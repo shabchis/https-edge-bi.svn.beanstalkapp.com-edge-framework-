@@ -114,8 +114,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					values = String.Format("{0},\n{1}", values, (int)channelObj.Status);
 				}
 
+				// specific fields by object type
+				BuildSpecificFields(obj.Value, ref columns, ref values);
+
 				// extra fields
-				BuildExtraFields4Sql(obj.Value, columns, values);
+				BuildExtraFields4Sql(obj.Value, ref columns, ref values);
 
 				var insertSql = String.Format("INSERT INTO [DBO].[{0}_{1}] \n({2}) \nVALUES \n({3})", tablePrefix, obj.Value.EdgeType.TableName, columns, values);
 				using (var command = new SqlCommand(insertSql, _deliverySqlConnection))
@@ -256,7 +259,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return _otherObjects.Values;
 		}
 
-		private static void BuildExtraFields4Sql(EdgeObject obj, string columns, string values)
+		private static void BuildExtraFields4Sql(EdgeObject obj, ref string columns, ref string values)
 		{
 			if (obj.ExtraFields == null) return;
 
@@ -267,7 +270,16 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				values = String.Format("{0},\n'{1}'", values,
 										(field.Value is StringValue) ? (field.Value as StringValue).Value : String.Empty);
 			}
-		} 
+		}
+
+		private void BuildSpecificFields(EdgeObject edgeObject, ref string columns, ref string values)
+		{
+			if (edgeObject is Ad)
+			{
+				columns = String.Format("{0},\nDestinationUrl", columns);
+				values = String.Format("{0},\n'{1}'", values, (edgeObject as Ad).DestinationUrl);
+			}
+		}
 		#endregion
 	}
 }

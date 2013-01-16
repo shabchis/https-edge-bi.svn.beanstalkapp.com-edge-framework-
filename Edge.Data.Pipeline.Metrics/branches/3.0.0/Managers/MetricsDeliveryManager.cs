@@ -9,7 +9,7 @@ using Edge.Data.Pipeline.Objects;
 namespace Edge.Data.Pipeline.Metrics.Managers
 {
 	/// <summary>
-	/// Base class for metrics import managers.
+	/// Responsible for delivery processing: import data, staging, rollback, etc.
 	/// </summary>
 	public class MetricsDeliveryManager : DeliveryManager
 	{
@@ -296,16 +296,4 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/*=========================*/
 		#endregion
 	}
-
-	///// <summary>
-	///// A type-safe base class for metrics import managers
-	///// </summary>
-	///// <typeparam name="TMetricsUnit"></typeparam>
-	//public abstract class MetricsDeliveryManager<TMetricsUnit> : MetricsDeliveryManager where TMetricsUnit : MetricsUnit
-	//{
-	//	protected MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
-	//		: base(serviceInstanceID, options)
-	//	{
-	//	}
-	//}
 }

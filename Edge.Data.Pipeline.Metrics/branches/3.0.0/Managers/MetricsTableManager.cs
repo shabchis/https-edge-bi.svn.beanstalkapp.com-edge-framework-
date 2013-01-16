@@ -14,8 +14,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 {
 	/// <summary>
 	/// Table manager class is used for:
-	/// Delivery: create metrics table and import data into it
-	/// Staging: find matching table for Staging
+	/// * Delivery: create metrics table and import data into it
+	/// * Staging: find matching table for Staging
 	/// </summary>
 	internal class MetricsTableManager
 	{
