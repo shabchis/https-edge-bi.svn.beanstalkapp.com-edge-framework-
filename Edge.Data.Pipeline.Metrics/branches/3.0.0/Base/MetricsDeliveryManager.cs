@@ -6,7 +6,6 @@ using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Base.Submanagers;
-using Edge.Data.Pipeline.Metrics.Services;
 using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Base
