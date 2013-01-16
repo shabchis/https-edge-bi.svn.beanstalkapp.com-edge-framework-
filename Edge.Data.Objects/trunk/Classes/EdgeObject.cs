@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 		
 		public Dictionary<ExtraField, object> ExtraFields;
 
-		public string TK { get { return ToString(); } }
+		public virtual string TK { get { return ToString(); } }
 
 		public override string ToString()
 		{
