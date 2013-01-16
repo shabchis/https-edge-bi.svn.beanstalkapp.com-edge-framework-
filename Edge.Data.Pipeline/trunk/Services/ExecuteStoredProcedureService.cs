@@ -161,7 +161,7 @@ namespace Edge.Data.Pipeline.Services
 						Smtp.SetFromTo(Instance.Configuration.GetOption("EMailFrom"), Instance.Configuration.GetOption("EMailTo"));
 						string htmlBody = CreateHtmlFromTemplate(dataTable, returnMsg);
 
-						Smtp.Send(topic, htmlBody, highPriority: true, IsBodyHtml: true);
+						Smtp.Send(topic, htmlBody, highPriority: Convert.ToBoolean(Instance.Configuration.GetOption("HighPriority")), IsBodyHtml: true);
 					}
 				}
 				/*============================================================================*/
