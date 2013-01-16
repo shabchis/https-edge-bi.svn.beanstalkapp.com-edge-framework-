@@ -162,11 +162,5 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		}
 
 		#endregion
-
-		//#region Abstract Methods
-		//protected abstract MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options);
-		//protected abstract MetricsUnit CreateEmptyMetricsUnit();
-		
-		//#endregion
 	}
 }
