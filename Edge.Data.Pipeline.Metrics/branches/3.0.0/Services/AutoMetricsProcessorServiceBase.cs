@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Linq;
 using Edge.Core.Services;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Mapping;
@@ -10,9 +11,9 @@ using Edge.Data.Pipeline.Objects;
 namespace Edge.Data.Pipeline.Metrics.Services
 {
 	/// <summary>
-	/// Base class for automatic data processing
+	/// Service for automatic data processing
 	/// </summary>
-	public abstract class AutoMetricsProcessorServiceBase: MetricsProcessorServiceBase
+	public class AutoMetricsProcessorService: MetricsProcessorServiceBase
 	{
 		#region Data Members
 		private MetricsDeliveryManagerOptions _importManagerOptions;
@@ -43,7 +44,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// Import data
 			using (ReaderAdapter)
 			{
-				using (ImportManager = CreateImportManager(InstanceID, _importManagerOptions))
+				using (ImportManager = new MetricsDeliveryManager(InstanceID, _importManagerOptions))
 				{
 					// create objects tables and metrics table according to sample metrics
 					ImportManager.BeginImport(Delivery, GetSampleMetrics());
@@ -58,7 +59,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						while (ReaderAdapter.Reader.Read())
 						{
 							readSuccess = true;
-							OnRead();
+							ProcessMetrics();
 						}
 
 						if (!readSuccess)
@@ -76,22 +77,58 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			try
 			{
 				// load sample file, read only one row in order to create metrics table by sample metric unit
-				ReaderAdapter.Init(FileManager.Open(location: Configuration.SampleFilePath, compression: _compression), Configuration);
+				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				var sampleMetrics = CreateEmptyMetricsUnit();
+				var sampleMetrics = new GenericMetricsUnit();
 				MetricsMappings.Apply(sampleMetrics);
 				return sampleMetrics;
 			}
 			catch (Exception ex)
 			{
-				throw new ConfigurationErrorsException(String.Format("Failed to create metrics by sample file '{0}'", Configuration.SampleFilePath));
+				throw new ConfigurationErrorsException(String.Format("Failed to create metrics by sample file '{0}', ex: {1}", Configuration.SampleFilePath, ex.Message));
 			}
 		} 
+		
+		private void ProcessMetrics()
+		{
+			// fill the metrics using mapping
+			var metrics = new GenericMetricsUnit();
+			MetricsMappings.Apply(metrics);
+
+			var signature = new Signature();
+			SignatureMappings.Apply(signature);
+
+			// check if signature is already exists in delivery outputs
+			var outputs = from output in Delivery.Outputs
+						  where output.Signature.Equals(signature.ToString())
+						  select output;
+
+			// attach output to Metrics: take existing or create new
+			var op = outputs.FirstOrDefault();
+			if (op != null)
+				metrics.Output = op;
+			else
+			{
+				var deliveryOutput = new DeliveryOutput
+				{
+					Signature = signature.Value,
+					TimePeriodStart = metrics.TimePeriodStart,
+					TimePeriodEnd = metrics.TimePeriodEnd,
+					Account = metrics.Account,
+					Channel = metrics.Channel
+				};
+				Delivery.Outputs.Add(deliveryOutput);
+				metrics.Output = deliveryOutput;
+			}
+
+			// import metrics into DB
+			ImportManager.ImportMetrics(metrics);
+		}
 		#endregion
 
 		#region Configuration
-		protected virtual void LoadConfiguration()
+		protected void LoadConfiguration()
 		{
 			// TODO shirat - may be to add all these parameters to AutoMetricsProcessorServiceConfiguration?
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold);
@@ -125,11 +162,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 		#endregion
 
-		#region Abstract Methods
-		protected abstract MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options);
-		protected abstract void OnRead();
-		protected abstract MetricsUnit CreateEmptyMetricsUnit();
+		//#region Abstract Methods
+		//protected abstract MetricsDeliveryManager CreateImportManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options);
+		//protected abstract MetricsUnit CreateEmptyMetricsUnit();
 		
-		#endregion
+		//#endregion
 	}
 }

@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
-using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Base.Submanagers;
 using Edge.Data.Pipeline.Objects;
 
@@ -13,12 +11,11 @@ namespace Edge.Data.Pipeline.Metrics.Base
 	/// <summary>
 	/// Base class for metrics import managers.
 	/// </summary>
-	public abstract class MetricsDeliveryManager : DeliveryManager
+	public class MetricsDeliveryManager : DeliveryManager
 	{
 		#region Data Members
 		private SqlConnection _sqlConnection;
 
-		public Dictionary<string, EdgeField> Connections { get; private set; }
 		public MetricsDeliveryManagerOptions Options { get; private set; }
 
 		private string _tablePrefix;
@@ -27,9 +24,7 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#endregion
 
 		#region Constructors
-		/*=========================*/
-
-		protected MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
+		public MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
@@ -45,7 +40,6 @@ namespace Edge.Data.Pipeline.Metrics.Base
 			Options = options;
 		}
 
-		/*=========================*/
 		#endregion
 
 		#region Import
@@ -277,6 +271,13 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		/*=========================*/
 		#endregion
 
+		#region Commin
+		protected override void OnCommit(Delivery delivery, int pass)
+		{
+			throw new NotImplementedException();
+		} 
+		#endregion
+
 		#region Misc
 		/*=========================*/
 
@@ -296,15 +297,15 @@ namespace Edge.Data.Pipeline.Metrics.Base
 		#endregion
 	}
 
-	/// <summary>
-	/// A type-safe base class for metrics import managers
-	/// </summary>
-	/// <typeparam name="TMetricsUnit"></typeparam>
-	public abstract class MetricsDeliveryManager<TMetricsUnit> : MetricsDeliveryManager where TMetricsUnit : MetricsUnit
-	{
-		protected MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
-			: base(serviceInstanceID, options)
-		{
-		}
-	}
+	///// <summary>
+	///// A type-safe base class for metrics import managers
+	///// </summary>
+	///// <typeparam name="TMetricsUnit"></typeparam>
+	//public abstract class MetricsDeliveryManager<TMetricsUnit> : MetricsDeliveryManager where TMetricsUnit : MetricsUnit
+	//{
+	//	protected MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
+	//		: base(serviceInstanceID, options)
+	//	{
+	//	}
+	//}
 }
