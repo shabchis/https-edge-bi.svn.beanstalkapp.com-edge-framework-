@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Edge.Data.Objects
 {
@@ -16,8 +13,8 @@ namespace Edge.Data.Objects
 			get { return _creative; }
 			set
 			{
-				if (value != null && this.CreativeType.IsAssignableFrom(value.GetType()))
-					throw new ArgumentException(String.Format("{0}.Creative must be of type {1}.", this.GetType().Name, this.CreativeType.Name), "value");
+				if (value != null && !CreativeType.IsInstanceOfType(value))
+					throw new ArgumentException(String.Format("{0}.Creative must be of type {1}.", GetType().Name, CreativeType.Name), "value");
 				_creative = value;
 			}
 		}

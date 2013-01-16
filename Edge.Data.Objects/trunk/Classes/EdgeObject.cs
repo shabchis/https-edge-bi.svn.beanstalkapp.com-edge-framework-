@@ -16,9 +16,12 @@ namespace Edge.Data.Objects
 		public override string ToString()
 		{
 			var str = EdgeType.Name;
-			foreach (var field in ExtraFields)
+			if (ExtraFields != null)
 			{
-				str = String.Format("{0}{1}{2}", str, str.Length > 0 ? "_" : String.Empty, field.Value);
+				foreach (var field in ExtraFields)
+				{
+					str = String.Format("{0}{1}{2}", str, str.Length > 0 ? "_" : String.Empty, field.Value);
+				}
 			}
 			return str;
 		}

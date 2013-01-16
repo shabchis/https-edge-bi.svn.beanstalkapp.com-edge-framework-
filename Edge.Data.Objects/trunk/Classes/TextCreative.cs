@@ -9,6 +9,11 @@ namespace Edge.Data.Objects
 	{
 		public TextCreativeType TextType;
 		public string Text;
+
+		public override string ToString()
+		{
+			return String.Format("Type:{0}_Text:{1}", TextType, Text);
+		}
 	}
 
 	public enum TextCreativeType
