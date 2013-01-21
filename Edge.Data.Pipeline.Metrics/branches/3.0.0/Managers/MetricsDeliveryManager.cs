@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
+using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
@@ -19,12 +21,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		public MetricsDeliveryManagerOptions Options { get; private set; }
 
 		private string _tablePrefix;
-		private MetricsTableManager _tableManager;
-		private EdgeObjectsManager _edgeObjectsManager;
+		private readonly MetricsTableManager _tableManager;
+		private readonly EdgeObjectsManager _edgeObjectsManager;
 		#endregion
 
 		#region Constructors
-		public MetricsDeliveryManager(Guid serviceInstanceID, MetricsDeliveryManagerOptions options = null)
+		public MetricsDeliveryManager(Guid serviceInstanceID, List<EdgeType> edgeTypes, List<ExtraField> extraFields, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
@@ -38,6 +40,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			options.SqlRollbackCommand = options.SqlRollbackCommand ?? AppSettings.Get(this, Consts.AppSettings.SqlRollbackCommand, throwException: false);
 
 			Options = options;
+			
+			// create connection and table managers
+			_sqlConnection = NewDeliveryDbConnection();
+			_edgeObjectsManager = new EdgeObjectsManager(_sqlConnection) {EdgeTypes = edgeTypes, ExtraFields = extraFields};
+			_tableManager = new MetricsTableManager(_sqlConnection, _edgeObjectsManager);
 		}
 
 		#endregion
@@ -47,18 +54,16 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		
 		protected override void OnBeginImport(MetricsUnit sampleMetrics)
 		{
+			// set table prefix
 			_tablePrefix = string.Format("{0}_{1}_{2}_{3}", CurrentDelivery.Account.ID, CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), CurrentDelivery.DeliveryID.ToString("N").ToLower());
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix] = _tablePrefix;
 
-			_sqlConnection = NewDeliveryDbConnection();
 			_sqlConnection.Open();
 
 			// create delivery object tables (should be Usid instead of GK)
-			_edgeObjectsManager = new EdgeObjectsManager(_sqlConnection);
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
 			
 			// create metrics table using metrics table manager and sample metrics
-			_tableManager = new MetricsTableManager(_sqlConnection, _edgeObjectsManager);
 			var tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
 			
 			// store table name in delivery

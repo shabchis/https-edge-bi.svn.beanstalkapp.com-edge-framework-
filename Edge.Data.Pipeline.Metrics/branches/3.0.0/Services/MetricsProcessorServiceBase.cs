@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
@@ -298,13 +299,16 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						while (reader.Read())
 						{
 							var field = new ExtraField
-							{
-								FieldID = int.Parse(reader["FieldID"].ToString()),
-								Name = reader["Name"].ToString(),
-								ColumnIndex = int.Parse(reader["ColumnIndex"].ToString()),
-								ColumnType = reader["ColumnType"].ToString(),
-								DisplayName = reader["DisplayName"].ToString(),
-							};
+								{
+									FieldID = int.Parse(reader["FieldID"].ToString()),
+									Name = reader["Name"].ToString(),
+									DisplayName = reader["DisplayName"].ToString(),
+									ColumnIndex = int.Parse(reader["ColumnIndex"].ToString()),
+									ColumnType = reader["ColumnType"].ToString(),
+									FieldClrType = Type.GetType(reader["FieldClrType"].ToString()),
+									FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["EdgeTypeID"].ToString())),
+									ParentEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["ParentEdgeTypeID"].ToString()))
+								};
 							ExtraFields.Add(field.Name, field);
 						}
 					}

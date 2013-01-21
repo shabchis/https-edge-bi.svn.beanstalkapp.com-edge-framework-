@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Reflection;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
@@ -30,7 +31,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		// dictionary of objects by TK (temporary key)
 		private readonly Dictionary<string, EdgeObject> _objectsCache = new Dictionary<string, EdgeObject>();
-
+		
 		#endregion
 
 		#region Ctor
@@ -39,7 +40,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			_deliverySqlConnection = deliveryConnection;
 		}
+		#endregion
 
+		#region Properties
+		public List<ExtraField> ExtraFields { get; set; }
+		public List<EdgeType> EdgeTypes { get; set; } 
 		#endregion
 
 		#region Indexer
@@ -72,8 +77,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 		}
 
-		
-
 		/// <summary>
 		/// Insert objects into object DB tables
 		/// </summary>
@@ -85,38 +88,20 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				var columns = "TK";
 				var values = String.Format("'{0}'", obj.Key);
 
+				// global key
 				columns = String.Format("{0},\nGK", columns);
 				values = String.Format("{0},\n{1}", values, obj.Value.GK);
 
-				if (!(obj.Value is Ad))
-				{
-					// Type ID
-					columns = String.Format("{0},\nTypeID", columns);
-					values = String.Format("{0},\n{1}", values, obj.Value.EdgeType.TypeID);
-				}
 				// account
 				columns = String.Format("{0},\nAccountID", columns);
 				values = String.Format("{0},\n{1}", values, obj.Value.Account.ID);
 
-				if (obj.Value is ChannelSpecificObject)
-				{
-					var channelObj = obj.Value as ChannelSpecificObject;
-					columns = String.Format("{0},\nChannelID", columns);
-					values = String.Format("{0},\n{1}", values, channelObj.Channel.ID);
-
-					if (!String.IsNullOrEmpty(channelObj.OriginalID))
-					{
-						columns = String.Format("{0},\nOriginalID", columns);
-						values = String.Format("{0},\n'{1}'", values, channelObj.OriginalID);
-					}
-
-					columns = String.Format("{0},\nStatus", columns);
-					values = String.Format("{0},\n{1}", values, (int)channelObj.Status);
-				}
-
 				// specific fields by object type
 				BuildSpecificFields(obj.Value, ref columns, ref values);
 
+				// fields defined in object and configured to be stored (according to MD_EdgeField)
+				BuildEdgeObjectFields(obj.Value, ref columns, ref values);
+				
 				// extra fields
 				BuildExtraFields4Sql(obj.Value, ref columns, ref values);
 
@@ -214,16 +199,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				flatList.AddRange(metricsUnit.MeasureValues.Cast<object>());
 			}
 
-			return flatList;
+			return Normalize(flatList, metricsUnit);
 		}
-
-		private void ClearObjects()
-		{
-			_objectsByPass.Clear();
-			_allObjects.Clear();
-			_otherObjects.Clear();
-		}
-
+		
 		#endregion
 
 		#region Private Methods
@@ -265,21 +243,159 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			foreach (var field in obj.ExtraFields)
 			{
-				columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-				// TODO - how to support all types???
-				values = String.Format("{0},\n'{1}'", values,
-										(field.Value is StringValue) ? (field.Value as StringValue).Value : String.Empty);
+				if (field.Key.ColumnType == "obj")
+				{
+					var edgeObj = field.Value as EdgeObject;
+					if (edgeObj != null)
+					{
+						columns = String.Format("{0},\n{1}_Field{2}_GK", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+						values = String.Format("{0},\n{1}", values, edgeObj.GK);
+
+						columns = String.Format("{0},\n{1}_Field{2}_TK", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+						values = String.Format("{0},\n'{1}'", values, edgeObj.TK);
+
+						columns = String.Format("{0},\n{1}_Field{2}_type", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+						values = String.Format("{0},\n'{1}'", values, field.Key.FieldEdgeType.TypeID);
+					}
+				}
+				else if (field.Key.ColumnType == "string")
+				{
+					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+					values = String.Format("{0},\n'{1}'", values, field.Value);
+				}
+				else // INT and FLOAT
+				{
+					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
+					values = String.Format("{0},\n{1}", values, field.Value);
+				}
 			}
 		}
 
+		/// <summary>
+		/// Get EdgeObject fields which are configured in MD_EdgeField table according to object type
+		/// get fields values by reflection and compose values and columns string for INSERT
+		/// </summary>
+		/// <param name="edgeObject"></param>
+		/// <param name="columns"></param>
+		/// <param name="values"></param>
+		private void BuildEdgeObjectFields(EdgeObject edgeObject, ref string columns, ref string values)
+		{
+			// get the list of configured fields in MD_EdgeFields according to the object type
+			var fieldList = ExtraFields.Where(x => x.ParentEdgeType != null && x.ParentEdgeType.ClrType == edgeObject.GetType());
+			foreach (var field in fieldList)
+			{
+				// get field by reflection
+				var memberInfo = edgeObject.GetType().GetMember(field.Name)[0];
+				var fieldInfo = memberInfo as FieldInfo;
+				if (fieldInfo != null)
+				{
+					columns = String.Format("{0},\n{1}_Field{2}", columns, field.ColumnType, field.ColumnIndex);
+
+					var val = fieldInfo.GetValue(edgeObject);
+					// prepare insert according to the field type
+					if (fieldInfo.FieldType == typeof (string))
+					{
+						values = String.Format("{0},\n'{1}'", values, val);
+					}
+					else if (fieldInfo.FieldType.BaseType == typeof (Enum))
+					{
+						// parsing to enum
+						values = String.Format("{0},\n{1}", values, (int) Enum.Parse(fieldInfo.FieldType, val.ToString()));
+					}
+					else
+					{
+						// default for int, float and others
+						values = String.Format("{0},\n{1}", values, val);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Handle specific fields of th EdgeObject which are defined hard coded in Object table 
+		/// </summary>
+		/// <param name="edgeObject"></param>
+		/// <param name="columns"></param>
+		/// <param name="values"></param>
 		private void BuildSpecificFields(EdgeObject edgeObject, ref string columns, ref string values)
 		{
 			if (edgeObject is Ad)
 			{
+				var ad = edgeObject as Ad;
+				// destination Url
 				columns = String.Format("{0},\nDestinationUrl", columns);
-				values = String.Format("{0},\n'{1}'", values, (edgeObject as Ad).DestinationUrl);
+				values = String.Format("{0},\n'{1}'", values, ad.DestinationUrl);
+
+				// creative
+				columns = String.Format("{0},\nCreativeGK", columns);
+				values = String.Format("{0},\n{1}", values, ad.CreativeDefinition.Creative.GK);
+
+				columns = String.Format("{0},\nCreativeTK", columns);
+				values = String.Format("{0},\n'{1}'", values, ad.CreativeDefinition.Creative.TK);
+
+				columns = String.Format("{0},\nCreativeTypeID", columns);
+				values = String.Format("{0},\n{1}", values, EdgeTypes.Where(x => x.ClrType == ad.CreativeDefinition.Creative.GetType()).Select(x => x.TypeID).FirstOrDefault());
+			}
+			else 
+			{
+				// Type ID is defined in all objects except Ad
+				columns = String.Format("{0},\nTypeID", columns);
+				values = String.Format("{0},\n{1}", values, edgeObject.EdgeType.TypeID);
+			}
+
+			// fields defined for channel specific objects
+			if (edgeObject is ChannelSpecificObject)
+			{
+				var channelObj = edgeObject as ChannelSpecificObject;
+				columns = String.Format("{0},\nChannelID", columns);
+				values = String.Format("{0},\n{1}", values, channelObj.Channel.ID);
+
+				if (!String.IsNullOrEmpty(channelObj.OriginalID))
+				{
+					columns = String.Format("{0},\nOriginalID", columns);
+					values = String.Format("{0},\n'{1}'", values, channelObj.OriginalID);
+				}
+
+				columns = String.Format("{0},\nStatus", columns);
+				values = String.Format("{0},\n{1}", values, (int)channelObj.Status);
 			}
 		}
+
+		/// <summary>
+		/// Normalize flat object list to set Account and Channel to all objects according to Metrics unit definition
+		/// </summary>
+		/// <param name="flatObjectList"></param>
+		/// <param name="metricsUnit"></param>
+		/// <returns></returns>
+		private List<object> Normalize(List<object> flatObjectList, MetricsUnit metricsUnit)
+		{
+			foreach (var obj in flatObjectList)
+			{
+				// edge object can be an object or an extra field
+				var edgeObj = obj as EdgeObject;
+				if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
+				{
+					edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
+				}
+				if (edgeObj != null)
+				{
+					edgeObj.Account = metricsUnit.Account;
+					if (edgeObj is ChannelSpecificObject)
+					{
+						(edgeObj as ChannelSpecificObject).Channel = metricsUnit.Channel;
+					}
+				}
+			}
+			return flatObjectList;
+		}
+
+		private void ClearObjects()
+		{
+			_objectsByPass.Clear();
+			_allObjects.Clear();
+			_otherObjects.Clear();
+		}
+
 		#endregion
 	}
 }
