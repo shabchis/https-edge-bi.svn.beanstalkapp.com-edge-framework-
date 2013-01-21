@@ -156,15 +156,23 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var columnDict = new Dictionary<string, Column>();
 			foreach (var obj in objectList)
 			{
-				if (obj is EdgeObject)
+				if (obj is EdgeObject || obj is KeyValuePair<ExtraField, object>)
 				{
-					foreach (var column in CreateEdgeObjColumns(obj as EdgeObject).Where(column => !columnDict.ContainsKey(column.Name)))
+					// edge object or edge ebject in extra fields 
+					var edgeObj = obj as EdgeObject;
+					if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
+					{
+						edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
+					}
+
+					foreach (var column in CreateEdgeObjColumns(edgeObj).Where(column => !columnDict.ContainsKey(column.Name)))
 					{
 						columnDict.Add(column.Name, column);
 					}
+					
 					// EdgeObject are added to cache in order to insert them later into object tables
 					if (addToCache)
-						_edgeObjectsManger.AddToCache(obj as EdgeObject);
+						_edgeObjectsManger.AddToCache(edgeObj);
 				}
 				else
 				{

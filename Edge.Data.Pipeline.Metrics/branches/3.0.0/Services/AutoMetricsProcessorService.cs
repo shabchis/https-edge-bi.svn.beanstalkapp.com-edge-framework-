@@ -45,7 +45,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// Import data
 			using (ReaderAdapter)
 			{
-				using (ImportManager = new MetricsDeliveryManager(InstanceID, _importManagerOptions))
+				using (ImportManager = new MetricsDeliveryManager(InstanceID, EdgeTypes.Values.ToList(), ExtraFields.Values.ToList(), _importManagerOptions))
 				{
 					// create objects tables and metrics table according to sample metrics
 					ImportManager.BeginImport(Delivery, GetSampleMetrics());
@@ -81,7 +81,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				var sampleMetrics = new GenericMetricsUnit();
+				var sampleMetrics = new MetricsUnit();
 				MetricsMappings.Apply(sampleMetrics);
 				return sampleMetrics;
 			}
@@ -94,7 +94,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		private void ProcessMetrics()
 		{
 			// fill the metrics using mapping
-			var metrics = new GenericMetricsUnit();
+			var metrics = new MetricsUnit();
 			MetricsMappings.Apply(metrics);
 
 			var signature = new Signature();
@@ -154,7 +154,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			Mappings.OnFieldRequired = ReaderAdapter.GetField;
 
-			if (!Mappings.Objects.TryGetValue(typeof(GenericMetricsUnit), out MetricsMappings))
+			if (!Mappings.Objects.TryGetValue(typeof(MetricsUnit), out MetricsMappings))
 				throw new MappingConfigurationException("Missing mapping definition for GenericMetricsUnit.", "Object");
 
 			if (!Mappings.Objects.TryGetValue(typeof(Signature), out SignatureMappings))
