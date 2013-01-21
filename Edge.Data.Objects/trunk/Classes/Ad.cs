@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Edge.Data.Objects
 {
@@ -9,7 +8,5 @@ namespace Edge.Data.Objects
 
 		public List<TargetDefinition> TargetDefinitions;
 		public CreativeDefinition CreativeDefinition;
-
-		public override string TK {get { return String.Format("Ad_{0}", DestinationUrl);} }
 	}
 }
