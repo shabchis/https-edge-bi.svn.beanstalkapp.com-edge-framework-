@@ -4,31 +4,31 @@ using Edge.Data.Objects;
 
 namespace Edge.Data.Pipeline.Objects
 {
-	public abstract class MetricsUnit
-	{	
+	public class MetricsUnit
+	{
+		#region Properties
 		public DateTime TimePeriodStart;
 		public DateTime TimePeriodEnd;
 
+		public Channel Channel;
+		public Account Account;
 		public Currency Currency;
 
+		public List<EdgeObject> ObjectDimensions;
 		public List<TargetMatch> TargetDimensions;
 		public Dictionary<Measure, double> MeasureValues;
 
-		public DeliveryOutput Output;
+		public DeliveryOutput Output; 
+		#endregion
 
-		public abstract IEnumerable<object> GetObjectDimensions();
-	}
-
-	public class GenericMetricsUnit : MetricsUnit
-	{
-		public Channel Channel;
-		public Account Account;
-
-		public List<EdgeObject> ObjectDimensions;
-
-		public override IEnumerable<object> GetObjectDimensions()
+		#region Public Methods
+		/// <summary>
+		/// enumeration of all dimentions in MetricsUnit
+		/// </summary>
+		/// <returns></returns>
+		public IEnumerable<object> GetObjectDimensions()
 		{
-			if (Account != null) yield return new ConstEdgeField { Name = Account.GetType().Name, Value = Account.ID, Type = typeof(int)};
+			if (Account != null) yield return new ConstEdgeField { Name = Account.GetType().Name, Value = Account.ID, Type = typeof(int) };
 			if (Channel != null) yield return new ConstEdgeField { Name = Channel.GetType().Name, Value = Channel.ID, Type = typeof(int) };
 
 			yield return new ConstEdgeField { Name = "TimePeriodStart", Value = TimePeriodStart, Type = typeof(DateTime) };
@@ -46,6 +46,7 @@ namespace Edge.Data.Pipeline.Objects
 				foreach (var target in TargetDimensions)
 					yield return target;
 			}
-		}
+		} 
+		#endregion
 	}
 }
