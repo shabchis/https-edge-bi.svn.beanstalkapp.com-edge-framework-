@@ -86,7 +86,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			{
 				// temporary key
 				var columns = "TK";
-				var values = String.Format("'{0}'", obj.Key);
+				var values = String.Format("'{0}'", obj.Value.TK);
 
 				// global key
 				columns = String.Format("{0},\nGK", columns);
@@ -120,9 +120,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="obj"></param>
 		public void AddToCache(EdgeObject obj)
 		{
-			if (!_objectsCache.ContainsKey(obj.TK))
+			var key = String.Format("{0}_{1}", obj.GetType().Name, obj.TK);
+			if (!_objectsCache.ContainsKey(key))
 			{
-				_objectsCache.Add(obj.TK, obj);
+				_objectsCache.Add(key, obj);
 			}
 		}
 
@@ -281,7 +282,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private void BuildEdgeObjectFields(EdgeObject edgeObject, ref string columns, ref string values)
 		{
 			// get the list of configured fields in MD_EdgeFields according to the object type
-			var fieldList = ExtraFields.Where(x => x.ParentEdgeType != null && x.ParentEdgeType.ClrType == edgeObject.GetType());
+			var fieldList = ExtraFields.Where(x => x.ParentEdgeType != null && x.ParentEdgeType.TypeID == edgeObject.EdgeType.TypeID);
 			foreach (var field in fieldList)
 			{
 				// get field by reflection
