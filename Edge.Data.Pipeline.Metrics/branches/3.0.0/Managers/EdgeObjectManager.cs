@@ -10,6 +10,7 @@ using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Metrics.Services;
 using Edge.Data.Pipeline.Objects;
+using System.Configuration;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
 {
@@ -44,7 +45,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		#region Properties
 		public List<ExtraField> ExtraFields { get; set; }
-		public List<EdgeType> EdgeTypes { get; set; } 
+		public Dictionary<string, EdgeType> EdgeTypes { get; set; } 
 		#endregion
 
 		#region Indexer
@@ -335,7 +336,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				values = String.Format("{0},\n'{1}'", values, ad.CreativeDefinition.Creative.TK);
 
 				columns = String.Format("{0},\nCreativeTypeID", columns);
-				values = String.Format("{0},\n{1}", values, EdgeTypes.Where(x => x.ClrType == ad.CreativeDefinition.Creative.GetType()).Select(x => x.TypeID).FirstOrDefault());
+				values = String.Format("{0},\n{1}", values, EdgeTypes.Values.Where(x => x.ClrType == ad.CreativeDefinition.Creative.GetType()).Select(x => x.TypeID).FirstOrDefault());
 			}
 			else 
 			{
@@ -363,7 +364,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		}
 
 		/// <summary>
-		/// Normalize flat object list to set Account and Channel to all objects according to Metrics unit definition
+		/// Normalize flat object list to set:
+		/// 1. Account and Channel to all objects according to Metrics unit definition
+		/// 2. EdgeType according to object type name or extra field name
 		/// </summary>
 		/// <param name="flatObjectList"></param>
 		/// <param name="metricsUnit"></param>
@@ -380,10 +383,41 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				}
 				if (edgeObj != null)
 				{
+					// set account and channeL
 					edgeObj.Account = metricsUnit.Account;
 					if (edgeObj is ChannelSpecificObject)
 					{
 						(edgeObj as ChannelSpecificObject).Channel = metricsUnit.Channel;
+					}
+					// if edge type is not set in configuration try to set it
+					if (edgeObj.EdgeType == null)
+					{
+						// 1st - according to edge object name in EdgeType table
+						var requiredTypeName = edgeObj.GetType().Name;
+						if (EdgeTypes.ContainsKey(requiredTypeName))
+						{
+							edgeObj.EdgeType = EdgeTypes[requiredTypeName];
+						}
+						else
+						{
+							// 2nd - according to extra field name in EdgeField table (in this case, EdgeType Name = EdgeField Name)
+							if ((obj is KeyValuePair<ExtraField, object>))
+							{
+								var extraField = (KeyValuePair<ExtraField, object>)obj;
+								if (EdgeTypes.ContainsKey(extraField.Key.Name))
+								{
+									edgeObj.EdgeType = EdgeTypes[extraField.Key.Name];
+								}
+								else
+								{
+									throw new ConfigurationErrorsException(String.Format("Edge type is not set for extra field {0} and cannot be found in EdgeTypes", extraField.Key.Name));
+								}
+							}
+							else
+							{
+								throw new ConfigurationErrorsException(String.Format("Edge type is not set for object {0} and cannot be found in EdgeTypes by object name", requiredTypeName));
+							}
+						}
 					}
 				}
 			}

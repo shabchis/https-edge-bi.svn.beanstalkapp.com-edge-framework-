@@ -26,7 +26,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Constructors
-		public MetricsDeliveryManager(Guid serviceInstanceID, List<EdgeType> edgeTypes, List<ExtraField> extraFields, MetricsDeliveryManagerOptions options = null)
+		public MetricsDeliveryManager(Guid serviceInstanceID, Dictionary<string,EdgeType> edgeTypes, List<ExtraField> extraFields, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
