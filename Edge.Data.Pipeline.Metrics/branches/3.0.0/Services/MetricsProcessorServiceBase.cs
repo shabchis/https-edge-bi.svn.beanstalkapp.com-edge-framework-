@@ -23,7 +23,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public Dictionary<string, Channel>    Channels { get; private set; }
 		public Dictionary<string, Measure>    Measures { get; private set; }
 		public Dictionary<string, EdgeType>   EdgeTypes { get; private set; }
-		public Dictionary<string, ExtraField> ExtraFields { get; private set; }
+		public List<ExtraField> ExtraFields { get; private set; }
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
 		private int _accountId = -1; 
@@ -103,8 +103,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public ExtraField GetExtraField(dynamic name)
 		{
 			var n = (string)name;
-			ExtraField field;
-			if (!ExtraFields.TryGetValue(n, out field))
+			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
+			if (field == null)
 				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
 			return field;
 		}
@@ -284,7 +284,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 		private void LoadExtraFields()
 		{
-			ExtraFields = new Dictionary<string, ExtraField>();
+			ExtraFields = new List<ExtraField>();
 			try
 			{
 				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
@@ -309,7 +309,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 									FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["EdgeTypeID"].ToString())),
 									ParentEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["ParentEdgeTypeID"].ToString()))
 								};
-							ExtraFields.Add(field.Name, field);
+							ExtraFields.Add(field);
 						}
 					}
 				}
