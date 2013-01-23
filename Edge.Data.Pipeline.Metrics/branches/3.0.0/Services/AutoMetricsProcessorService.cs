@@ -45,7 +45,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// Import data
 			using (ReaderAdapter)
 			{
-				using (ImportManager = new MetricsDeliveryManager(InstanceID, EdgeTypes.Values.ToList(), ExtraFields, _importManagerOptions))
+				using (ImportManager = new MetricsDeliveryManager(InstanceID, EdgeTypes, ExtraFields, _importManagerOptions))
 				{
 					// create objects tables and metrics table according to sample metrics
 					ImportManager.BeginImport(Delivery, GetSampleMetrics());
