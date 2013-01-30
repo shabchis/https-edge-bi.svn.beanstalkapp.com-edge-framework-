@@ -50,11 +50,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
 			Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
 			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, ExtraField>(GetExtraField));
+			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, CompositePartField>(GetCompositePartField));
 			Mappings.ExternalMethods.Add("GetEdgeType", new Func<dynamic, EdgeType>(GetEdgeType));
 			Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
 			Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
-
+			
 			Mappings.Compile();
 		}
  
@@ -107,6 +108,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			if (field == null)
 				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
 			return field;
+		}
+
+		public CompositePartField GetCompositePartField(dynamic name)
+		{
+			var n = (string)name;
+			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
+			if (field == null)
+				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
+			return new CompositePartField(field);
 		}
 
 		public Measure GetMeasure(dynamic name)
