@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public partial class CompositeCreativeDefintion : CreativeDefinition
+	public partial class CompositeCreativeDefinition : CreativeDefinition
 	{
 		public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions;
 
