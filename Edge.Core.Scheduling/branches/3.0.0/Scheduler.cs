@@ -570,10 +570,11 @@ namespace Edge.Core.Services.Scheduling
 
 		private void RemoveNotRelevantRequests()
 		{
-			// remove old not relevant scheduled request ended and could not be scheduled
+			// remove old not relevant scheduled request ended, request that could not be scheduled and request that probably stop by max deviation + max execution
 			_scheduledRequests.RemoveByPredicate(request => (request.State == ServiceState.Ended &&
 			                                                 request.SchedulingInfo.RequestedTime.Add(request.SchedulingInfo.MaxDeviationAfter) < DateTime.Now) ||
-			                                                 request.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled);
+			                                                 request.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled ||
+															 request.SchedulingInfo.RequestedTime.Add(request.SchedulingInfo.MaxDeviationAfter).Add(request.Configuration.Limits.MaxExecutionTime) < DateTime.Now);
 
 			// remove from unscheduled request all requests which could not be scheduled and are out of timeframe by max deviation
 			_unscheduledRequests.RemoveByPredicate(request => request.SchedulingInfo.SchedulingStatus == SchedulingStatus.CouldNotBeScheduled &&
