@@ -8,6 +8,7 @@ using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
+using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
@@ -125,9 +126,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			foreach (var column in columnList)
 			{
 				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
-				valuesStr = String.Format("{0}\n{1},", valuesStr, column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value) :
-																	column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
-																	column.Value);
+				valuesStr  = String.Format("{0}\n{1},", valuesStr, 
+														column.Value == null ? "NULL" :
+														column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value.ToString().RemoveInvalidCharacters()) :
+														column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
+														column.Value);
 			}
 
 			// remove last commas
@@ -156,16 +159,22 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var columnDict = new Dictionary<string, Column>();
 			foreach (var obj in objectList)
 			{
-				if (obj is EdgeObject || obj is KeyValuePair<ExtraField, object>)
+				if (obj is EdgeObject || obj is KeyValuePair<ExtraField, object> || obj is KeyValuePair<CompositePartField, EdgeObject>)
 				{
 					// edge object or edge ebject in extra fields 
 					var edgeObj = obj as EdgeObject;
+					var fieldIndex = String.Empty;
 					if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
 					{
 						edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
 					}
+					else if (obj is KeyValuePair<CompositePartField, EdgeObject>)
+					{
+						edgeObj = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Value;
+						fieldIndex = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Key.ColumnIndex.ToString();
+					}
 
-					foreach (var column in CreateEdgeObjColumns(edgeObj).Where(column => !columnDict.ContainsKey(column.Name)))
+					foreach (var column in CreateEdgeObjColumns(edgeObj, fieldIndex).Where(column => !columnDict.ContainsKey(column.Name)))
 					{
 						columnDict.Add(column.Name, column);
 					}
@@ -188,8 +197,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// Create columns for edge oject (GK and TK)
 		/// </summary>
 		/// <param name="obj"></param>
+		/// <param name="fieldIndex"></param>
 		/// <returns></returns>
-		private IEnumerable<Column> CreateEdgeObjColumns(EdgeObject obj)
+		private IEnumerable<Column> CreateEdgeObjColumns(EdgeObject obj, string fieldIndex = "")
 		{
 			var columnList = new List<Column>();
 
@@ -197,8 +207,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				throw new ConfigurationErrorsException(String.Format("EdgeType is not set for object {0}", obj.GetType()));
 
 			// add 2 columns: GK and TK (temp key)
-			columnList.Add(new Column { Name = String.Format("{0}_GK", obj.EdgeType.Name), Value = obj.GK });
-			columnList.Add(new Column { Name = String.Format("{0}_TK", obj.EdgeType.Name), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
+			columnList.Add(new Column { Name = String.Format("{0}{1}_GK", obj.EdgeType.Name, fieldIndex), Value = obj.GK });
+			columnList.Add(new Column { Name = String.Format("{0}{1}_TK", obj.EdgeType.Name, fieldIndex), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
 
 			// add columns for all childs
 			if (obj.HasChildsObjects)

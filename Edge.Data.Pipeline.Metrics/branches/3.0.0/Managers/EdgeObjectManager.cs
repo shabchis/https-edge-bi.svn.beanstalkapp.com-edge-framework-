@@ -87,7 +87,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			{
 				// temporary key
 				var columns = "TK";
-				var values = String.Format("'{0}'", obj.Value.TK);
+				var values = String.Format("'{0}'", obj.Value.TK.RemoveInvalidCharacters());
 
 				// global key
 				columns = String.Format("{0},\nGK", columns);
@@ -163,6 +163,26 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					foreach (var prop in obj.GetType().GetProperties().Where(prop => prop.PropertyType.IsSubclassOf(typeof(EdgeObject))))
 					{
 						Add(prop.GetValue(obj, null), level + 1);
+					}
+
+					// handle dictionary of object fields
+					foreach (var field in obj.GetType().GetFields().Where(field => field.FieldType.GetInterface("IDictionary`2") != null))
+					{
+						var dictionary = field.GetValue(obj);
+						if (dictionary != null)
+						{
+							var keys = field.FieldType.GetInterface("IDictionary`2").GetProperty("Keys").GetValue(dictionary, null) as IEnumerable<CompositePartField>;
+
+							if (keys != null)
+							{
+								foreach (var key in keys)
+								{
+									var val = field.FieldType.GetMethod("get_Item").Invoke(dictionary, new object[] {key}) as EdgeObject;
+									var pair = new KeyValuePair<CompositePartField, EdgeObject>(key, val);
+									Add(pair, level + 1);
+								}
+							}
+						}
 					}
 				}
 				level++;
@@ -254,7 +274,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						values = String.Format("{0},\n{1}", values, edgeObj.GK);
 
 						columns = String.Format("{0},\n{1}_Field{2}_TK", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-						values = String.Format("{0},\n'{1}'", values, edgeObj.TK);
+						values = String.Format("{0},\n'{1}'", values, edgeObj.TK.RemoveInvalidCharacters());
 
 						columns = String.Format("{0},\n{1}_Field{2}_type", columns, field.Key.ColumnType, field.Key.ColumnIndex);
 						values = String.Format("{0},\n'{1}'", values, field.Key.FieldEdgeType.TypeID);
@@ -263,7 +283,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				else if (field.Key.ColumnType == "string")
 				{
 					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-					values = String.Format("{0},\n'{1}'", values, field.Value);
+					values = String.Format("{0},\n'{1}'", values, field.Value != null ? field.Value.ToString().RemoveInvalidCharacters() : field.Value);
 				}
 				else // INT and FLOAT
 				{
@@ -297,7 +317,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					// prepare insert according to the field type
 					if (fieldInfo.FieldType == typeof (string))
 					{
-						values = String.Format("{0},\n'{1}'", values, val);
+						values = String.Format("{0},\n'{1}'", values, val != null ? val.ToString().RemoveInvalidCharacters() : val);
 					}
 					else if (fieldInfo.FieldType.BaseType == typeof (Enum))
 					{
@@ -380,6 +400,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
 				{
 					edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
+				}
+				else if (obj is KeyValuePair<CompositePartField, EdgeObject>)
+				{
+					edgeObj = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Value;
 				}
 				if (edgeObj != null)
 				{
