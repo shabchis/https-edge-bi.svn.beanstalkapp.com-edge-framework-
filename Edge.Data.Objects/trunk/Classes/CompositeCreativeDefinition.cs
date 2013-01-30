@@ -14,7 +14,7 @@ namespace Edge.Data.Objects
 			get { return typeof(CompositeCreative); }
 		}
 
-		public new CompositeCreative Creative
+		public override Creative Creative
 		{
 			get { return (CompositeCreative)base.Creative; }
 			set { base.Creative = value; }

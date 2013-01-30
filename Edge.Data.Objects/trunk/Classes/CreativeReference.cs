@@ -8,7 +8,7 @@ namespace Edge.Data.Objects
 
 		public EdgeObject Parent;
 
-		public Creative Creative
+		public virtual Creative Creative
 		{
 			get { return _creative; }
 			set
