@@ -10,6 +10,7 @@ using System.Reflection;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using System.Data;
+using System.IO;
 
 namespace Edge.Data.Pipeline.Services
 {
@@ -19,6 +20,7 @@ namespace Edge.Data.Pipeline.Services
 		bool SendResultByEmail = false;
 		protected override void OnInit()
 		{
+			
 			string sp = Instance.Configuration.GetOption("Procedure");
 
 
@@ -44,7 +46,7 @@ namespace Edge.Data.Pipeline.Services
 			//Getting SQL Parameters from configuration
 			foreach (SqlParameter param in Cmd.Parameters)
 			{
-				string name = param.ParameterName.Remove(0, 1); //fix by alon on 20/1/2001 remove the '@'
+				string name = param.ParameterName.Remove(0, 1); 
 				string configVal;
 				if (!Instance.Configuration.Options.TryGetValue("param." + name, out configVal)) // remove the s from params
 				{
@@ -101,7 +103,6 @@ namespace Edge.Data.Pipeline.Services
 					else
 					{
 						// Asked for an instance value
-						//Alon & Shay Bug fix = incorrect date format ( daycode )
 						PropertyInfo property = typeof(ServiceInstanceInfo).GetProperty(dynamicParamParts[0]);
 						if (!property.PropertyType.FullName.Equals("System.DateTime"))
 						{
@@ -110,9 +111,7 @@ namespace Edge.Data.Pipeline.Services
 						}
 						else
 						{
-
 							value = ((DateTimeSpecification)(property.GetValue(targetInstance, null))).ToDateTime().ToString("yyyyMMdd");
-							// Log.Write("Delete Days - DayCode " + (string)value, LogMessageType.Information);
 						}
 					}
 				}
@@ -132,7 +131,7 @@ namespace Edge.Data.Pipeline.Services
 			{
 				DataManager.Current.AssociateCommands(Cmd);
 				Log.Write(Cmd.ToString(), LogMessageType.Information);
-				
+
 				#region Sending email
 				/*============================================================================*/
 				if (SendResultByEmail)
@@ -149,7 +148,37 @@ namespace Edge.Data.Pipeline.Services
 						}
 					}
 
-					if (dataTable.Rows.Count > 0) // only if getting results -> send email.
+					#region Attaching result as file to email 
+					string filePath = string.Empty;
+					
+					if (Convert.ToBoolean(Instance.Configuration.GetOption("AttachResultAsFile")))
+					{
+						StringBuilder sb = new StringBuilder();
+
+						foreach (DataColumn col in dataTable.Columns)
+						{
+							sb.Append(col.ColumnName + '\u0009');
+						}
+
+						sb.Remove(sb.Length - 1, 1);
+						sb.Append(Environment.NewLine);
+
+						foreach (DataRow row in dataTable.Rows)
+						{
+							for (int i = 0; i < dataTable.Columns.Count; i++)
+							{
+								sb.Append(row[i].ToString() + '\u0009');
+							}
+
+							sb.Append(Environment.NewLine);
+						}
+
+						filePath = Instance.Configuration.GetOption("CsvFilePath")+ "AccountPreformanceReport_" + DateTime.Now.ToString("yyyyMMddHHmmssffff") + this.Instance.AccountID + "_" + Guid.NewGuid()+".csv";
+						File.WriteAllText(filePath , sb.ToString(),Encoding.Unicode);
+						}
+					#endregion
+
+					if (dataTable.Rows.Count > 0 || !string.IsNullOrEmpty(returnMsg)) // only if getting results -> send email.
 					{
 						if (!string.IsNullOrEmpty(Instance.Configuration.GetOption("EMailCC")) && Instance.Configuration.GetOption("EMailCC").Equals("GetUsersFromDB()"))
 						{
@@ -161,8 +190,10 @@ namespace Edge.Data.Pipeline.Services
 						Smtp.SetFromTo(Instance.Configuration.GetOption("EMailFrom"), Instance.Configuration.GetOption("EMailTo"));
 						string htmlBody = CreateHtmlFromTemplate(dataTable, returnMsg);
 
-						Smtp.Send(topic, htmlBody, highPriority: Convert.ToBoolean(Instance.Configuration.GetOption("HighPriority")), IsBodyHtml: true);
+						Smtp.Send(topic, htmlBody, highPriority: Convert.ToBoolean(Instance.Configuration.GetOption("HighPriority")), IsBodyHtml: true,attachmentPath:string.IsNullOrEmpty(filePath)?null:filePath);
 					}
+
+
 				}
 				/*============================================================================*/
 				#endregion
@@ -184,14 +215,14 @@ namespace Edge.Data.Pipeline.Services
 				else
 					template = template.Replace("{Result_PlaceHolder}", string.Empty);
 
-				string htmlTable =  ConvertDataTableToHtmlTable(dataTable);
-				
+				string htmlTable = ConvertDataTableToHtmlTable(dataTable);
+
 				if (!string.IsNullOrEmpty(htmlTable))
 					template = template.Replace("{DataTable_PlaceHolder}", htmlTable);
 				else
 					template = template.Replace("{DataTable_PlaceHolder}", string.Empty);
 
-					return template;
+				return template;
 			}
 			catch (Exception ex)
 			{
