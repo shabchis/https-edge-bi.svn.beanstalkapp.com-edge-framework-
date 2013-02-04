@@ -10,6 +10,15 @@ namespace Edge.Data.Objects
 		public EdgeType EdgeType;
 		
 		public Dictionary<ExtraField, object> ExtraFields;
+
+		public override IEnumerable<ObjectDimension> GetObjectDimensions()
+		{
+			if (ExtraFields == null) yield break;
+			foreach (var field in ExtraFields)
+			{
+				yield return new ObjectDimension {Field = field.Key, Value = field.Value};
+			}
+		}
 	}
 	
 	public abstract class EdgeObjectBase
@@ -19,7 +28,7 @@ namespace Edge.Data.Objects
 			get { return false; }
 		}
 
-		public virtual IEnumerable<EdgeObject> GetChildObjects()
+		public virtual IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
 			return null;
 		}
