@@ -85,30 +85,30 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			foreach (var obj in _objectsCache)
 			{
-				// temporary key
-				var columns = "TK";
-				var values = String.Format("'{0}'", obj.Value.TK.RemoveInvalidCharacters());
+				var columns = String.Empty;
+				var values = String.Empty;
+				var paramList = new List<SqlParameter>();
 
-				// global key
-				columns = String.Format("{0},\nGK", columns);
-				values = String.Format("{0},\n{1}", values, obj.Value.GK);
-
+				// GK and TK
+				AddColumn(ref columns, ref values, paramList, "GK", obj.Value.GK);
+				AddColumn(ref columns, ref values, paramList, "TK", obj.Value.TK);
+				
 				// account
-				columns = String.Format("{0},\nAccountID", columns);
-				values = String.Format("{0},\n{1}", values, obj.Value.Account.ID);
+				AddColumn(ref columns, ref values, paramList, "AccountID", obj.Value.Account.ID);
 
 				// specific fields by object type
-				BuildSpecificFields(obj.Value, ref columns, ref values);
+				BuildSpecificFields(obj.Value, ref columns, ref values, paramList);
 
 				// fields defined in object and configured to be stored (according to MD_EdgeField)
-				BuildEdgeObjectFields(obj.Value, ref columns, ref values);
+				BuildEdgeObjectFields(obj.Value, ref columns, ref values, paramList);
 				
 				// extra fields
-				BuildExtraFields4Sql(obj.Value, ref columns, ref values);
+				BuildExtraFields4Sql(obj.Value, ref columns, ref values, paramList);
 
 				var insertSql = String.Format("INSERT INTO [DBO].[{0}_{1}] \n({2}) \nVALUES \n({3})", tablePrefix, obj.Value.EdgeType.TableName, columns, values);
 				using (var command = new SqlCommand(insertSql, _deliverySqlConnection))
 				{
+					command.Parameters.AddRange(paramList.ToArray());
 					command.ExecuteNonQuery();
 				}
 			}
@@ -121,7 +121,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="obj"></param>
 		public void AddToCache(EdgeObject obj)
 		{
-			var key = String.Format("{0}_{1}", obj.GetType().Name, obj.TK);
+			var key = String.Format("{0}_{1}", obj.EdgeType.Name, obj.TK);
 			if (!_objectsCache.ContainsKey(key))
 			{
 				_objectsCache.Add(key, obj);
@@ -165,7 +165,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						Add(prop.GetValue(obj, null), level + 1);
 					}
 
-					// handle dictionary of object fields
+					// handle dictionary of edge object fields
 					foreach (var field in obj.GetType().GetFields().Where(field => field.FieldType.GetInterface("IDictionary`2") != null))
 					{
 						var dictionary = field.GetValue(obj);
@@ -259,7 +259,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return _otherObjects.Values;
 		}
 
-		private static void BuildExtraFields4Sql(EdgeObject obj, ref string columns, ref string values)
+		private void BuildExtraFields4Sql(EdgeObject obj, ref string columns, ref string values, ICollection<SqlParameter> paramList)
 		{
 			if (obj.ExtraFields == null) return;
 
@@ -270,25 +270,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					var edgeObj = field.Value as EdgeObject;
 					if (edgeObj != null)
 					{
-						columns = String.Format("{0},\n{1}_Field{2}_GK", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-						values = String.Format("{0},\n{1}", values, edgeObj.GK);
-
-						columns = String.Format("{0},\n{1}_Field{2}_TK", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-						values = String.Format("{0},\n'{1}'", values, edgeObj.TK.RemoveInvalidCharacters());
-
-						columns = String.Format("{0},\n{1}_Field{2}_type", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-						values = String.Format("{0},\n'{1}'", values, field.Key.FieldEdgeType.TypeID);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_GK", field.Key.ColumnType, field.Key.ColumnIndex), edgeObj.GK);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_TK", field.Key.ColumnType, field.Key.ColumnIndex), edgeObj.TK);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_type", field.Key.ColumnType, field.Key.ColumnIndex), field.Key.FieldEdgeType.TypeID);
 					}
 				}
-				else if (field.Key.ColumnType == "string")
+				else // for all primitive types only value (INT, STRING, FLOAT, etc.)
 				{
-					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-					values = String.Format("{0},\n'{1}'", values, field.Value != null ? field.Value.ToString().RemoveInvalidCharacters() : field.Value);
-				}
-				else // INT and FLOAT
-				{
-					columns = String.Format("{0},\n{1}_Field{2}", columns, field.Key.ColumnType, field.Key.ColumnIndex);
-					values = String.Format("{0},\n{1}", values, field.Value);
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.Key.ColumnType, field.Key.ColumnIndex), field.Value);
 				}
 			}
 		}
@@ -300,10 +289,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="edgeObject"></param>
 		/// <param name="columns"></param>
 		/// <param name="values"></param>
-		private void BuildEdgeObjectFields(EdgeObject edgeObject, ref string columns, ref string values)
+		/// <param name="paramList"></param>
+		private void BuildEdgeObjectFields(EdgeObject edgeObject, ref string columns, ref string values, ICollection<SqlParameter> paramList)
 		{
 			// get the list of configured fields in MD_EdgeFields according to the object type
 			var fieldList = ExtraFields.Where(x => x.ParentEdgeType != null && x.ParentEdgeType.TypeID == edgeObject.EdgeType.TypeID);
+			
 			foreach (var field in fieldList)
 			{
 				// get field by reflection
@@ -311,24 +302,32 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				var fieldInfo = memberInfo as FieldInfo;
 				if (fieldInfo != null)
 				{
-					columns = String.Format("{0},\n{1}_Field{2}", columns, field.ColumnType, field.ColumnIndex);
+					var value = fieldInfo.GetValue(edgeObject);
+					// special case for enum value - parse to INT
+					if (fieldInfo.FieldType.BaseType == typeof (Enum))
+					{
+						value = (int)Enum.Parse(fieldInfo.FieldType, value.ToString());
+					}
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.ColumnType, field.ColumnIndex), value);
 
-					var val = fieldInfo.GetValue(edgeObject);
-					// prepare insert according to the field type
-					if (fieldInfo.FieldType == typeof (string))
-					{
-						values = String.Format("{0},\n'{1}'", values, val != null ? val.ToString().RemoveInvalidCharacters() : val);
-					}
-					else if (fieldInfo.FieldType.BaseType == typeof (Enum))
-					{
-						// parsing to enum
-						values = String.Format("{0},\n{1}", values, (int) Enum.Parse(fieldInfo.FieldType, val.ToString()));
-					}
-					else
-					{
-						// default for int, float and others
-						values = String.Format("{0},\n{1}", values, val);
-					}
+
+					//columns = String.Format("{0},\n{1}_Field{2}", columns, field.ColumnType, field.ColumnIndex);
+					
+					//// prepare insert according to the field type
+					//if (fieldInfo.FieldType == typeof (string))
+					//{
+					//	values = String.Format("{0},\n'{1}'", values, value != null ? value.ToString().RemoveInvalidCharacters() : null);
+					//}
+					//else if (fieldInfo.FieldType.BaseType == typeof (Enum))
+					//{
+					//	// parsing to enum
+					//	values = String.Format("{0},\n{1}", values, (int) Enum.Parse(fieldInfo.FieldType, value.ToString()));
+					//}
+					//else
+					//{
+					//	// default for int, float and others
+					//	values = String.Format("{0},\n{1}", values, value);
+					//}
 				}
 			}
 		}
@@ -339,47 +338,33 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="edgeObject"></param>
 		/// <param name="columns"></param>
 		/// <param name="values"></param>
-		private void BuildSpecificFields(EdgeObject edgeObject, ref string columns, ref string values)
+		/// <param name="paramList"></param>
+		private void BuildSpecificFields(EdgeObject edgeObject, ref string columns, ref string values, ICollection<SqlParameter> paramList)
 		{
 			if (edgeObject is Ad)
 			{
 				var ad = edgeObject as Ad;
 				// destination Url
-				columns = String.Format("{0},\nDestinationUrl", columns);
-				values = String.Format("{0},\n'{1}'", values, ad.DestinationUrl);
+				AddColumn(ref columns, ref values, paramList, "DestinationUrl", ad.DestinationUrl);
 
 				// creative
-				columns = String.Format("{0},\nCreativeGK", columns);
-				values = String.Format("{0},\n{1}", values, ad.CreativeDefinition.Creative.GK);
-
-				columns = String.Format("{0},\nCreativeTK", columns);
-				values = String.Format("{0},\n'{1}'", values, ad.CreativeDefinition.Creative.TK);
-
-				columns = String.Format("{0},\nCreativeTypeID", columns);
-				values = String.Format("{0},\n{1}", values, EdgeTypes.Values.Where(x => x.ClrType == ad.CreativeDefinition.Creative.GetType()).Select(x => x.TypeID).FirstOrDefault());
+				AddColumn(ref columns, ref values, paramList, "CreativeGK", ad.CreativeDefinition.Creative.GK);
+				AddColumn(ref columns, ref values, paramList, "CreativeTK", ad.CreativeDefinition.Creative.TK);
+				AddColumn(ref columns, ref values, paramList, "CreativeTypeID", EdgeTypes.Values.Where(x => x.ClrType == ad.CreativeDefinition.Creative.GetType()).Select(x => x.TypeID).FirstOrDefault());
 			}
 			else 
 			{
 				// Type ID is defined in all objects except Ad
-				columns = String.Format("{0},\nTypeID", columns);
-				values = String.Format("{0},\n{1}", values, edgeObject.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "TypeID", edgeObject.EdgeType.TypeID);
 			}
 
 			// fields defined for channel specific objects
 			if (edgeObject is ChannelSpecificObject)
 			{
 				var channelObj = edgeObject as ChannelSpecificObject;
-				columns = String.Format("{0},\nChannelID", columns);
-				values = String.Format("{0},\n{1}", values, channelObj.Channel.ID);
-
-				if (!String.IsNullOrEmpty(channelObj.OriginalID))
-				{
-					columns = String.Format("{0},\nOriginalID", columns);
-					values = String.Format("{0},\n'{1}'", values, channelObj.OriginalID);
-				}
-
-				columns = String.Format("{0},\nStatus", columns);
-				values = String.Format("{0},\n{1}", values, (int)channelObj.Status);
+				AddColumn(ref columns, ref values, paramList, "ChannelID", channelObj.Channel.ID);
+				AddColumn(ref columns, ref values, paramList, "OriginalID", channelObj.OriginalID);
+				AddColumn(ref columns, ref values, paramList, "Status", (int)channelObj.Status);
 			}
 		}
 
@@ -455,6 +440,23 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_otherObjects.Clear();
 		}
 
+		/// <summary>
+		/// Add column to columns string, valuses string and Sql parameters list
+		/// </summary>
+		/// <param name="columns"></param>
+		/// <param name="values"></param>
+		/// <param name="paramList"></param>
+		/// <param name="columnName"></param>
+		/// <param name="value"></param>
+		private void AddColumn(ref string columns, ref string values, ICollection<SqlParameter> paramList, string columnName, object value)
+		{
+			if (value != null)
+			{
+				columns = String.Format("{0}{1}", !String.IsNullOrEmpty(columns) ? String.Format("{0},\n", columns) : columns, columnName);
+				values = String.Format("{0}@{1}", !String.IsNullOrEmpty(values) ? String.Format("{0},\n", values) : values, columnName);
+				paramList.Add(new SqlParameter(String.Format("@{0}", columnName), value));
+			}
+		}
 		#endregion
 	}
 }
