@@ -123,24 +123,29 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var columnsStr = String.Empty;
 			var valuesStr = String.Empty;
 
-			foreach (var column in columnList)
+			using (var command = new SqlCommand())
 			{
-				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
-				valuesStr  = String.Format("{0}\n{1},", valuesStr, 
-														column.Value == null ? "NULL" :
-														column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value.ToString().RemoveInvalidCharacters()) :
-														column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
-														column.Value);
-			}
+				foreach (var column in columnList)
+				{
+					columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
+					valuesStr = String.Format("{0}\n@{1},", valuesStr, column.Name);
+					command.Parameters.Add(new SqlParameter(String.Format("@{0}", column.Name), column.Value));
+					
+					//valuesStr  = String.Format("{0}\n{1},", valuesStr, 
+					//										column.Value == null ? "NULL" :
+					//										column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value.ToString().RemoveInvalidCharacters()) :
+					//										column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
+					//										column.Value);
 
-			// remove last commas
-			if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
-			if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
+				}
 
-			// prepare and execute INSERT
-			var insertSql = String.Format("INSERT INTO [DBO].[{0}_Metrics] ({1}) VALUES ({2});", _tablePrefix, columnsStr, valuesStr);
-			using (var command = new SqlCommand(insertSql, _sqlConnection))
-			{
+				// remove last commas
+				if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
+				if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
+
+				// prepare and execute INSERT
+				command.Connection = _sqlConnection;
+				command.CommandText = String.Format("INSERT INTO [DBO].[{0}_Metrics] ({1}) VALUES ({2});", _tablePrefix, columnsStr, valuesStr);
 				command.ExecuteNonQuery();
 			}
 		} 
@@ -163,18 +168,19 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				{
 					// edge object or edge ebject in extra fields 
 					var edgeObj = obj as EdgeObject;
-					var fieldIndex = String.Empty;
+					var columnName = String.Empty;
 					if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
 					{
 						edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
+						columnName = ((KeyValuePair<ExtraField, object>) obj).Key.Name;	// get column name from EdgeField
 					}
 					else if (obj is KeyValuePair<CompositePartField, EdgeObject>)
 					{
 						edgeObj = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Value;
-						fieldIndex = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Key.ColumnIndex.ToString();
+						columnName = ((KeyValuePair<CompositePartField, EdgeObject>) obj).Key.Name;
 					}
 
-					foreach (var column in CreateEdgeObjColumns(edgeObj, fieldIndex).Where(column => !columnDict.ContainsKey(column.Name)))
+					foreach (var column in CreateEdgeObjColumns(edgeObj, columnName).Where(column => !columnDict.ContainsKey(column.Name)))
 					{
 						columnDict.Add(column.Name, column);
 					}
@@ -197,18 +203,22 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// Create columns for edge oject (GK and TK)
 		/// </summary>
 		/// <param name="obj"></param>
-		/// <param name="fieldIndex"></param>
+		/// <param name="columnName"></param>
 		/// <returns></returns>
-		private IEnumerable<Column> CreateEdgeObjColumns(EdgeObject obj, string fieldIndex = "")
+		private IEnumerable<Column> CreateEdgeObjColumns(EdgeObject obj, string columnName = "")
 		{
 			var columnList = new List<Column>();
 
 			if (obj.EdgeType == null)
 				throw new ConfigurationErrorsException(String.Format("EdgeType is not set for object {0}", obj.GetType()));
 
-			// add 2 columns: GK and TK (temp key)
-			columnList.Add(new Column { Name = String.Format("{0}{1}_GK", obj.EdgeType.Name, fieldIndex), Value = obj.GK });
-			columnList.Add(new Column { Name = String.Format("{0}{1}_TK", obj.EdgeType.Name, fieldIndex), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
+			// if column name is not set according to EdgeField set it according to EdgeType
+			columnName = String.IsNullOrEmpty(columnName) ? obj.EdgeType.Name : columnName;
+
+			// add 3 columns: GK (to be set later in Identify stage), TK (temp key) amd type (from EdgeTypes)
+			columnList.Add(new Column { Name = String.Format("{0}_GK", columnName), Value = obj.GK });
+			columnList.Add(new Column { Name = String.Format("{0}_TK", columnName), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
+			columnList.Add(new Column { Name = String.Format("{0}_type", columnName), Value = obj.EdgeType.TypeID, DbType = SqlDbType.Int });
 
 			// add columns for all childs
 			if (obj.HasChildsObjects)
