@@ -5,7 +5,7 @@
 	{
 		public static string RemoveInvalidCharacters(this string expression)
 		{
-			return expression.Replace("'", "");
+			return expression.Replace("'", "''");
 		}
 	}
 	
