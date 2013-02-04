@@ -56,6 +56,7 @@
     <Compile Include="Classes\ExtraField.cs" />
     <Compile Include="Classes\SingleCreativeDefinition.cs" />
     <Compile Include="Classes\SingleCreativeMatch.cs" />
+    <Compile Include="Classes\SystemField.cs" />
     <Compile Include="Classes\TextCreativeDefinition.cs" />
     <Compile Include="Classes\TextCreativeMatch.cs" />
     <Compile Include="Classes\CreativeReference.cs" />

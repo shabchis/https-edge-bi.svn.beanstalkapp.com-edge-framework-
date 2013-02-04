@@ -15,10 +15,6 @@ namespace Edge.Data.Objects
 		public Type FieldClrType;
 		public EdgeType FieldEdgeType;
 		public EdgeType ParentEdgeType;
-
-		// meanwhile not in use
-		public bool IsConnection;
-		public Type ConnectionClrType;
 	}
 
 }
