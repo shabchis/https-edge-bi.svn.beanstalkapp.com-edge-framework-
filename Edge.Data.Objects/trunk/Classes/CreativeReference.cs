@@ -8,6 +8,8 @@ namespace Edge.Data.Objects
 
 		public EdgeObject Parent;
 
+		public string DestinationUrl;
+
 		public virtual Creative Creative
 		{
 			get { return _creative; }

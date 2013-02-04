@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Edge.Data.Objects
 {
@@ -16,13 +13,9 @@ namespace Edge.Data.Objects
 			get { return Target != null; }
 		}
 
-		public override IEnumerable<EdgeObject> GetChildObjects()
+		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
-			if (Target != null)
-				yield return Target;
-
-			yield break;
+			if (Target != null) yield return new ObjectDimension {Value = Target};
 		}
 	}
-
 }

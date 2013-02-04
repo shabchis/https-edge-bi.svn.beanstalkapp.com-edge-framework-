@@ -19,5 +19,16 @@ namespace Edge.Data.Objects
 			get { return (CompositeCreative)base.Creative; }
 			set { base.Creative = value; }
 		}
+
+		public override IEnumerable<ObjectDimension> GetObjectDimensions()
+		{
+			if (Creative != null) yield return new ObjectDimension {Value = Creative};
+
+			if (CreativeDefinitions == null) yield break;
+			foreach (var definition in CreativeDefinitions)
+			{
+				yield return new ObjectDimension {Field = definition.Key, Value = definition.Value};
+			}
+		}
 	}
 }
