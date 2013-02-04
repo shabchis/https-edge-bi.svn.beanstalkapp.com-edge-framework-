@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Edge.Data.Objects
+﻿namespace Edge.Data.Objects
 {
 	public partial class CompositePartField: EdgeField
 	{
@@ -20,10 +15,6 @@ namespace Edge.Data.Objects
 			FieldClrType = field.FieldClrType;
 			FieldEdgeType = field.FieldEdgeType;
 			ParentEdgeType = field.ParentEdgeType;
-
-			// meanwhile not in use
-			IsConnection = field.IsConnection;
-			ConnectionClrType = field.ConnectionClrType;
 		}
 	}
 }
