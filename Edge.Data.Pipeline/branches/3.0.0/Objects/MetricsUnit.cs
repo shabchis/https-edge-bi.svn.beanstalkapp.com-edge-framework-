@@ -14,8 +14,15 @@ namespace Edge.Data.Pipeline.Objects
 		public Account Account;
 		public Currency Currency;
 
-		public List<EdgeObject> ObjectDimensions;
-		public List<TargetMatch> TargetDimensions;
+		// Ad 
+		// Targets
+		//		-- EdgeType
+		// Other
+		//		-- Field
+
+		public Ad Ad;
+		public Dictionary<TargetField, TargetMatch> TargetDimensions;
+		public Dictionary<ExtraField, object> ExtraDimensions;
 		public Dictionary<Measure, double> MeasureValues;
 
 		public DeliveryOutput Output; 
@@ -26,27 +33,31 @@ namespace Edge.Data.Pipeline.Objects
 		/// enumeration of all dimentions in MetricsUnit
 		/// </summary>
 		/// <returns></returns>
-		public IEnumerable<object> GetObjectDimensions()
+		public IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
-			if (Account != null) yield return new ConstEdgeField { Name = Account.GetType().Name, Value = Account.ID, Type = typeof(int) };
-			if (Channel != null) yield return new ConstEdgeField { Name = Channel.GetType().Name, Value = Channel.ID, Type = typeof(int) };
+			if (Account != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = Account.GetType().Name, Value = Account.ID, Type = typeof(int) } };
+			if (Channel != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = Channel.GetType().Name, Value = Channel.ID, Type = typeof(int) } };
 
-			yield return new ConstEdgeField { Name = "TimePeriodStart", Value = TimePeriodStart, Type = typeof(DateTime) };
-			yield return new ConstEdgeField { Name = "TimePeriodEnd", Value = TimePeriodEnd, Type = typeof(DateTime) };
-			if (Currency != null) yield return new ConstEdgeField { Name = Currency.GetType().Name, Value = Currency.Code, Type = typeof(string) };
+			yield return new ObjectDimension { Value = new ConstEdgeField { Name = "TimePeriodStart", Value = TimePeriodStart, Type = typeof(DateTime) } };
+			yield return new ObjectDimension { Value = new ConstEdgeField { Name = "TimePeriodEnd", Value = TimePeriodEnd, Type = typeof(DateTime) } };
+			if (Currency != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = Currency.GetType().Name, Value = Currency.Code, Type = typeof(string) }};
 
-			if (ObjectDimensions != null)
+			if (Ad != null) yield return new ObjectDimension {Value = Ad};
+
+			if (ExtraDimensions != null)
 			{
-				foreach (var obj in ObjectDimensions)
-					yield return obj;
+				foreach (var obj in ExtraDimensions)
+					yield return new ObjectDimension {Field = obj.Key, Value = obj.Value};
 			}
 
 			if (TargetDimensions != null)
 			{
 				foreach (var target in TargetDimensions)
-					yield return target;
+					yield return new ObjectDimension { Field = target.Key, Value = target.Value };
 			}
 		} 
 		#endregion
 	}
+
+	
 }
