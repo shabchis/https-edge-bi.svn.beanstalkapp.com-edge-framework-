@@ -8,7 +8,6 @@ using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
@@ -130,13 +129,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
 					valuesStr = String.Format("{0}\n@{1},", valuesStr, column.Name);
 					command.Parameters.Add(new SqlParameter(String.Format("@{0}", column.Name), column.Value));
-					
-					//valuesStr  = String.Format("{0}\n{1},", valuesStr, 
-					//										column.Value == null ? "NULL" :
-					//										column.DbType == SqlDbType.NVarChar ? String.Format("'{0}'", column.Value.ToString().RemoveInvalidCharacters()) :
-					//										column.DbType == SqlDbType.DateTime ? String.Format("'{0}'", ((DateTime)column.Value).ToString("yyyy-MM-dd HH:mm:ss")) :
-					//										column.Value);
-
 				}
 
 				// remove last commas
@@ -164,21 +156,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var columnDict = new Dictionary<string, Column>();
 			foreach (var obj in objectList)
 			{
-				if (obj is EdgeObject || obj is KeyValuePair<ExtraField, object> || obj is KeyValuePair<CompositePartField, EdgeObject>)
+				var dimension = obj as ObjectDimension;
+				if (dimension != null && dimension.Value is EdgeObject)
 				{
-					// edge object or edge ebject in extra fields 
-					var edgeObj = obj as EdgeObject;
-					var columnName = String.Empty;
-					if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
-					{
-						edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
-						columnName = ((KeyValuePair<ExtraField, object>) obj).Key.Name;	// get column name from EdgeField
-					}
-					else if (obj is KeyValuePair<CompositePartField, EdgeObject>)
-					{
-						edgeObj = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Value;
-						columnName = ((KeyValuePair<CompositePartField, EdgeObject>) obj).Key.Name;
-					}
+					var edgeObj = dimension.Value as EdgeObject;
+					var columnName = dimension.Field != null ? dimension.Field.Name : edgeObj.EdgeType.Name;
 
 					foreach (var column in CreateEdgeObjColumns(edgeObj, columnName).Where(column => !columnDict.ContainsKey(column.Name)))
 					{
@@ -215,19 +197,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// if column name is not set according to EdgeField set it according to EdgeType
 			columnName = String.IsNullOrEmpty(columnName) ? obj.EdgeType.Name : columnName;
 
-			// add 3 columns: GK (to be set later in Identify stage), TK (temp key) amd type (from EdgeTypes)
+			// add 3 columns: GK (to be set later in Identify stage), TK (temp key) and type (from EdgeTypes)
 			columnList.Add(new Column { Name = String.Format("{0}_GK", columnName), Value = obj.GK });
 			columnList.Add(new Column { Name = String.Format("{0}_TK", columnName), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
 			columnList.Add(new Column { Name = String.Format("{0}_type", columnName), Value = obj.EdgeType.TypeID, DbType = SqlDbType.Int });
 
-			// add columns for all childs
-			if (obj.HasChildsObjects)
-			{
-				foreach (var child in obj.GetChildObjects())
-				{
-					columnList.AddRange(CreateEdgeObjColumns(child));
-				}
-			}
 			return columnList;
 		}
 
@@ -249,9 +223,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
 				clmValue = measure.Value;
 			}
-			else if (obj is ConstEdgeField)
+			else if (obj is ObjectDimension && (obj as ObjectDimension).Value is ConstEdgeField)
 			{
-				var field = obj as ConstEdgeField;
+				var field = (obj as ObjectDimension).Value as ConstEdgeField;
 				clmName = field.Name;
 				clmValue = field.Value;
 				clmType = Convert2DbType(field.Type);
