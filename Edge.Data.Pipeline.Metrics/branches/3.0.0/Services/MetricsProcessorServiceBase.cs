@@ -9,6 +9,7 @@ using Edge.Data.Objects;
 using Edge.Data.Pipeline.Mapping;
 using Edge.Data.Pipeline.Metrics.Managers;
 using Edge.Data.Pipeline.Metrics.Misc;
+using Edge.Data.Pipeline.Objects;
 using Edge.Data.Pipeline.Services;
 
 namespace Edge.Data.Pipeline.Metrics.Services
@@ -26,7 +27,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public List<ExtraField> ExtraFields { get; private set; }
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
-		private int _accountId = -1; 
+		private int _accountId = -1;
+		protected MetricsUnit CurrentUnit;
+
 		#endregion
 
 		#region Mappings

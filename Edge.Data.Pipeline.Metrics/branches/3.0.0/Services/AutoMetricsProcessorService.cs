@@ -94,8 +94,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		private void ProcessMetrics()
 		{
 			// fill the metrics using mapping
-			var metrics = new MetricsUnit();
-			MetricsMappings.Apply(metrics);
+			CurrentUnit = new MetricsUnit();
+			MetricsMappings.Apply(CurrentUnit);
 
 			var signature = new Signature();
 			SignatureMappings.Apply(signature);
@@ -108,23 +108,23 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// attach output to Metrics: take existing or create new
 			var op = outputs.FirstOrDefault();
 			if (op != null)
-				metrics.Output = op;
+				CurrentUnit.Output = op;
 			else
 			{
 				var deliveryOutput = new DeliveryOutput
 				{
 					Signature = signature.Value,
-					TimePeriodStart = metrics.TimePeriodStart,
-					TimePeriodEnd = metrics.TimePeriodEnd,
-					Account = metrics.Account,
-					Channel = metrics.Channel
+					TimePeriodStart = CurrentUnit.TimePeriodStart,
+					TimePeriodEnd = CurrentUnit.TimePeriodEnd,
+					Account = CurrentUnit.Account,
+					Channel = CurrentUnit.Channel
 				};
 				Delivery.Outputs.Add(deliveryOutput);
-				metrics.Output = deliveryOutput;
+				CurrentUnit.Output = deliveryOutput;
 			}
 
 			// import metrics into DB
-			ImportManager.ImportMetrics(metrics);
+			ImportManager.ImportMetrics(CurrentUnit);
 		}
 		#endregion
 

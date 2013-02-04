@@ -26,9 +26,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		private readonly SqlConnection _deliverySqlConnection;
 
-		private readonly Dictionary<EdgeObject, EdgeObject> _allObjects = new Dictionary<EdgeObject, EdgeObject>();
-		private readonly Dictionary<int, List<object>> _objectsByPass = new Dictionary<int, List<object>>();
-		private readonly Dictionary<EdgeObject, EdgeObject> _otherObjects = new Dictionary<EdgeObject, EdgeObject>();
+		// dictionary of objects per level of hierarchy in MetricsUnit
+		private readonly Dictionary<int, List<object>> _objectsByLevel = new Dictionary<int, List<object>>();
 
 		// dictionary of objects by TK (temporary key)
 		private readonly Dictionary<string, EdgeObject> _objectsCache = new Dictionary<string, EdgeObject>();
@@ -52,7 +51,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		private List<object> this[int index]
 		{
-			get { return _objectsByPass[index]; }
+			get { return _objectsByLevel[index]; }
 		}
 
 		#endregion
@@ -153,67 +152,20 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				// add all objects of this level
 				flatList.AddRange(this[level].Where(obj => obj != null));
 
-				foreach (var obj in this[level].Where(obj => obj != null))
+				foreach (var obj in this[level])
 				{
-					foreach (var field in obj.GetType().GetFields().Where(field => field.FieldType.IsSubclassOf(typeof(EdgeObject))))
+					var dimention = obj as ObjectDimension;
+					if (dimention != null && dimention.Value is EdgeObject)
 					{
-						Add(field.GetValue(obj), level + 1);
-					}
-
-					foreach (var prop in obj.GetType().GetProperties().Where(prop => prop.PropertyType.IsSubclassOf(typeof(EdgeObject))))
-					{
-						Add(prop.GetValue(obj, null), level + 1);
-					}
-
-					// handle dictionary of edge object fields
-					foreach (var field in obj.GetType().GetFields().Where(field => field.FieldType.GetInterface("IDictionary`2") != null))
-					{
-						var dictionary = field.GetValue(obj);
-						if (dictionary != null)
+						// add all dimentions of the EdgeObject
+						foreach (var dimentsion in (dimention.Value as EdgeObject).GetObjectDimensions())
 						{
-							var keys = field.FieldType.GetInterface("IDictionary`2").GetProperty("Keys").GetValue(dictionary, null) as IEnumerable<CompositePartField>;
-
-							if (keys != null)
-							{
-								foreach (var key in keys)
-								{
-									var val = field.FieldType.GetMethod("get_Item").Invoke(dictionary, new object[] {key}) as EdgeObject;
-									var pair = new KeyValuePair<CompositePartField, EdgeObject>(key, val);
-									Add(pair, level + 1);
-								}
-							}
+							Add(dimentsion, level + 1);
 						}
 					}
 				}
 				level++;
 			}
-
-			// runing deeper on all Extra fields
-			foreach (var edgeObjects in ObjectsByPassValues())
-			{
-				foreach (var obj in edgeObjects)
-				{
-					var edgeObj = obj as EdgeObject;
-					if (edgeObj != null)
-					{
-						if (edgeObj.ExtraFields != null)
-						{
-							foreach (var metaProperty in edgeObj.ExtraFields)
-							{
-								if (metaProperty.Value.GetType() != typeof(EdgeObject))
-								{
-									flatList.Add(metaProperty);
-								}
-								else
-								{
-									Add(metaProperty.Value as EdgeObject);
-								}
-							}
-						}
-					}
-				}
-			}
-			flatList.AddRange(GetOtherObjects());
 
 			// add measures
 			if (metricsUnit.MeasureValues != null)
@@ -227,36 +179,17 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Private Methods
-		private void Add(object obj, int pass)
+		private void Add(object obj, int level)
 		{
-			if (!_objectsByPass.ContainsKey(pass))
-				_objectsByPass.Add(pass, new List<object>());
+			if (!_objectsByLevel.ContainsKey(level))
+				_objectsByLevel.Add(level, new List<object>());
 
-			_objectsByPass[pass].Add(obj);
+			_objectsByLevel[level].Add(obj);
 		}
 
-		private void Add(EdgeObject obj)
+		private bool ContainsKey(int level)
 		{
-			if (_allObjects.ContainsKey(obj))
-				throw new ArgumentException(string.Format("element {0} of type {1}  already exists in _allObjects dictionary", obj.Account.Name, obj.GetType().Name));
-
-			_otherObjects.Add(obj, obj);
-			_allObjects.Add(obj, obj);
-		}
-		
-		private bool ContainsKey(int pass)
-		{
-			return _objectsByPass.ContainsKey(pass);
-		}
-
-		private IEnumerable<List<object>> ObjectsByPassValues()
-		{
-			return _objectsByPass.Values;
-		}
-
-		private IEnumerable<EdgeObject> GetOtherObjects()
-		{
-			return _otherObjects.Values;
+			return _objectsByLevel.ContainsKey(level);
 		}
 
 		private void BuildExtraFields4Sql(EdgeObject obj, ref string columns, ref string values, ICollection<SqlParameter> paramList)
@@ -309,25 +242,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						value = (int)Enum.Parse(fieldInfo.FieldType, value.ToString());
 					}
 					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.ColumnType, field.ColumnIndex), value);
-
-
-					//columns = String.Format("{0},\n{1}_Field{2}", columns, field.ColumnType, field.ColumnIndex);
-					
-					//// prepare insert according to the field type
-					//if (fieldInfo.FieldType == typeof (string))
-					//{
-					//	values = String.Format("{0},\n'{1}'", values, value != null ? value.ToString().RemoveInvalidCharacters() : null);
-					//}
-					//else if (fieldInfo.FieldType.BaseType == typeof (Enum))
-					//{
-					//	// parsing to enum
-					//	values = String.Format("{0},\n{1}", values, (int) Enum.Parse(fieldInfo.FieldType, value.ToString()));
-					//}
-					//else
-					//{
-					//	// default for int, float and others
-					//	values = String.Format("{0},\n{1}", values, value);
-					//}
 				}
 			}
 		}
@@ -348,11 +262,22 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				AddColumn(ref columns, ref values, paramList, "DestinationUrl", ad.DestinationUrl);
 
 				// creative
-				AddColumn(ref columns, ref values, paramList, "CreativeGK", ad.CreativeDefinition.Creative.GK);
-				AddColumn(ref columns, ref values, paramList, "CreativeTK", ad.CreativeDefinition.Creative.TK);
-				AddColumn(ref columns, ref values, paramList, "CreativeTypeID", EdgeTypes.Values.Where(x => x.ClrType == ad.CreativeDefinition.Creative.GetType()).Select(x => x.TypeID).FirstOrDefault());
+				AddColumn(ref columns, ref values, paramList, "CreativeDefinitionGK", ad.CreativeDefinition.GK);
+				AddColumn(ref columns, ref values, paramList, "CreativeDefinitionTK", ad.CreativeDefinition.TK);
+				AddColumn(ref columns, ref values, paramList, "CreativeDefinitionTypeID", ad.CreativeDefinition.EdgeType.TypeID);
 			}
-			else 
+			else if (edgeObject is CreativeDefinition)
+			{
+				var creativeDef = edgeObject as CreativeDefinition;
+				// destination Url
+				AddColumn(ref columns, ref values, paramList, "DestinationUrl", creativeDef.DestinationUrl);
+
+				// creative
+				//AddColumn(ref columns, ref values, paramList, "CreativeGK", creativeDef.Creative.GK);
+				//AddColumn(ref columns, ref values, paramList, "CreativeTK", creativeDef.Creative.TK);
+				//AddColumn(ref columns, ref values, paramList, "CreativeTypeID", creativeDef.Creative.EdgeType.TypeID);
+			}
+			else
 			{
 				// Type ID is defined in all objects except Ad
 				AddColumn(ref columns, ref values, paramList, "TypeID", edgeObject.EdgeType.TypeID);
@@ -382,13 +307,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			{
 				// edge object can be an object or an extra field
 				var edgeObj = obj as EdgeObject;
-				if (obj is KeyValuePair<ExtraField, object> && ((KeyValuePair<ExtraField, object>) obj).Value is EdgeObject)
+				if (obj is ObjectDimension && (obj as ObjectDimension).Value is EdgeObject)
 				{
-					edgeObj = ((KeyValuePair<ExtraField, object>)obj).Value as EdgeObject;
-				}
-				else if (obj is KeyValuePair<CompositePartField, EdgeObject>)
-				{
-					edgeObj = ((KeyValuePair<CompositePartField, EdgeObject>)obj).Value;
+					edgeObj = (obj as ObjectDimension).Value as EdgeObject;
 				}
 				if (edgeObj != null)
 				{
@@ -410,16 +331,16 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						else
 						{
 							// 2nd - according to extra field name in EdgeField table (in this case, EdgeType Name = EdgeField Name)
-							if ((obj is KeyValuePair<ExtraField, object>))
+							if (obj is ObjectDimension)
 							{
-								var extraField = (KeyValuePair<ExtraField, object>)obj;
-								if (EdgeTypes.ContainsKey(extraField.Key.Name))
+								var dimension = (obj as ObjectDimension);
+								if (EdgeTypes.ContainsKey(dimension.Field.Name))
 								{
-									edgeObj.EdgeType = EdgeTypes[extraField.Key.Name];
+									edgeObj.EdgeType = EdgeTypes[dimension.Field.Name];
 								}
 								else
 								{
-									throw new ConfigurationErrorsException(String.Format("Edge type is not set for extra field {0} and cannot be found in EdgeTypes", extraField.Key.Name));
+									throw new ConfigurationErrorsException(String.Format("Edge type is not set for extra field {0} and cannot be found in EdgeTypes", dimension.Field.Name));
 								}
 							}
 							else
@@ -435,9 +356,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		private void ClearObjects()
 		{
-			_objectsByPass.Clear();
-			_allObjects.Clear();
-			_otherObjects.Clear();
+			_objectsByLevel.Clear();
 		}
 
 		/// <summary>
