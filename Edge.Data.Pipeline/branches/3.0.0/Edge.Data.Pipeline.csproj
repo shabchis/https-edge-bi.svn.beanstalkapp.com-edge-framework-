@@ -99,7 +99,7 @@
     <Compile Include="Deliveries\DeliveryConflictException.cs" />
     <Compile Include="Deliveries\DeliveryChildList.cs" />
     <Compile Include="Deliveries\DeliveryManagerException.cs" />
-    <Compile Include="Deliveries\Enums.cs" />
+    <Compile Include="FileSystem\Enums.cs" />
     <Compile Include="Deliveries\DeliveryOutput.cs" />
     <Compile Include="FileSystem\BatchDownloadOperation.cs" />
     <Compile Include="FileSystem\FileDownloadOperation.cs" />
