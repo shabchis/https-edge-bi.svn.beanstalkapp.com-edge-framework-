@@ -261,7 +261,6 @@ namespace Edge.Data.Pipeline.Mapping
 					return;
 			}
 
-			//// TODO shirat - check with Doron how to create desired type
 			//if (this.MapCommands != null && this.MapCommands.Count > 0)
 			//{
 			//	this.ValueType = MapCommands[0].TargetType;

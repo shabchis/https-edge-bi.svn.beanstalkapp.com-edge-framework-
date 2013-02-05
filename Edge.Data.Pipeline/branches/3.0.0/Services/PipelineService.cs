@@ -157,10 +157,6 @@ namespace Edge.Data.Pipeline.Services
 					_mapping.Usings.Add("Edge.Data.Objects.{0}, Edge.Data.Objects");
 					_mapping.Usings.Add("Edge.Data.Pipeline.Objects.{0}, Edge.Data.Pipeline");
 
-					// TODO shirat - remove obsolute configuration, load mapping configuration from file, may be to move mappings to Processor
-					//var extension = Configuration.Parameters.Get<MappingConfigurationElement>("MappingConfigurationElement", false);
-					//if (extension != null)
-					//	extension.LoadInto(_mapping);
 					Mappings.Load(Configuration.MappingConfigPath);
 				}
 				return _mapping;

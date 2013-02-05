@@ -131,7 +131,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Configuration
 		protected void LoadConfiguration()
 		{
-			// TODO shirat - may be to add all these parameters to AutoMetricsProcessorServiceConfiguration?
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold);
 			_importManagerOptions = new MetricsDeliveryManagerOptions
 			{
