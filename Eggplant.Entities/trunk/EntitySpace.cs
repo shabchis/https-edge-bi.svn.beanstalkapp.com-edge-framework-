@@ -47,11 +47,11 @@ namespace Eggplant.Entities
 			return (EntityDefinition<T>)def;
 		}
 
-		public QueryTemplate<T> CreateQueryTemplate<T>(Mapping<T> inboundMapping = null)
+		public QueryTemplate<T> CreateQueryTemplate<T>(Mapping<T> mapping = null)
 		{
 			return new QueryTemplate<T>(this)
 			{
-				InboundMapping = inboundMapping
+				Mapping = mapping
 			};
 		}
 

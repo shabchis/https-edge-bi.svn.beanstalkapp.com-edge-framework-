@@ -14,12 +14,12 @@ namespace Eggplant.Entities.Persistence
 		{
 		}
 
-		void IActionMapping.Execute(MappingContext context)
+		public override void Apply(MappingContext<T> context)
 		{
 			if (this.Action == null)
 				throw new MappingException("ActionMapping.Action is null and cannot be executed.");
 
-			this.Action((MappingContext<T>)context);
+			this.Action(context);
 		}
 
 	}

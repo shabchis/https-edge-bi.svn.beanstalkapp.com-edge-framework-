@@ -40,52 +40,15 @@ namespace Eggplant.Entities.Model
 		public string Name { get; private set; }
 		public AccessMode AccessMode { get; set; }
 		public bool AllowEmpty { get; set; }
+		public Func<EntityT, ValueT> Getter { get; set; }
+		public Action<EntityT, ValueT> Setter { get; set; }
 
-		public Func<EntityT, ValueT> Getter
-		{
-			get
-			{
-				if (this.Getter == null)
-					return null;
-
-				if (!(((IEntityProperty)this).Getter is Func<EntityT, ValueT>))
-					throw new InvalidCastException(String.Format("The getter for this property is not a Func<{0}, {1}>; cast the property to IEntityProperty in order to retrieve the delegate.", typeof(EntityT).Name, typeof(ValueT).Name));
-
-				return (Func<EntityT, ValueT>) ((IEntityProperty)this).Getter;
-			}
-
-			set
-			{
-				((IEntityProperty)this).Getter = value; 
-			}
-		}
-		public Action<EntityT, ValueT> Setter
-		{
-			get
-			{
-				if (this.Getter == null)
-					return null;
-
-				if (!(((IEntityProperty)this).Setter is Action<EntityT, ValueT>))
-					throw new InvalidCastException(String.Format("The setter for this property is not a Action<{0}, {1}>; cast the property to IEntityProperty in order to retrieve the delegate.", typeof(EntityT).Name, typeof(ValueT).Name));
-
-				return (Action<EntityT, ValueT>)((IEntityProperty)this).Setter;
-			}
-
-			set
-			{
-				((IEntityProperty)this).Setter = value;
-			}
-		}
-
-		//public Func<EntityT, ValueT, AssignmentResult> OnAdd;
-		//public Func<EntityT, ValueT, AssignmentResult> OnRemove;
 
 		public EntityProperty(string name)
 		{
 			this.Name = name;
 		}
-
+		
 		public ValueT GetValue(EntityT target)
 		{
 			return this.Getter(target);
@@ -117,14 +80,46 @@ namespace Eggplant.Entities.Model
 
 		Delegate IEntityProperty.Getter
 		{
-			get;
-			set;
+			get
+			{
+				return this.Getter;
+			}
+			set
+			{
+				Func<EntityT, ValueT> getter;
+				if (value is Func<EntityT, ValueT>)
+					// Use the func as-is
+					getter = (Func<EntityT, ValueT>)value;
+				else if (value is Func<object, object>)
+					// Nest the func inside a strong-typed func
+					getter = new Func<EntityT, ValueT>(entity => (ValueT)((Func<object, object>)value)(entity));
+				else
+					throw new ArgumentException(String.Format("The getter for this property must be either a Func<{0}, {1}> or a Func<object, object>.", typeof(EntityT).Name, typeof(ValueT).Name));
+
+				this.Getter = getter;
+			}
 		}
 
 		Delegate IEntityProperty.Setter
 		{
-			get;
-			set;
+			get
+			{
+				return this.Setter;
+			}
+			set
+			{
+				Action<EntityT, ValueT> setter;
+				if (value is Action<EntityT, ValueT>)
+					// Use the action as-is
+					setter = (Action<EntityT, ValueT>)value;
+				else if (value is Action<object, object>)
+					// Nest the action inside a strong-typed action
+					setter = new Action<EntityT, ValueT>((entity, val) => ((Action<object, object>)value)(entity, val));
+				else
+					throw new ArgumentException(String.Format("The setter for this property must be either a Action<{0}, {1}> or a Action<object, object>.", typeof(EntityT).Name, typeof(ValueT).Name));
+
+				this.Setter = setter;
+			}
 		}
 
 

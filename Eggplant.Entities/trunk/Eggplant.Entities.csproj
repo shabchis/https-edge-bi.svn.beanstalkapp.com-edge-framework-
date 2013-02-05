@@ -85,8 +85,8 @@
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Persistence\Mappings\PropertyMapping.cs" />
     <Compile Include="Persistence\Mappings\VariableMapping.cs" />
-    <Compile Include="Persistence\PersistenceChannel.cs" />
-    <Compile Include="Persistence\SqlServer\SqlServerDataReaderChannel.cs" />
+    <Compile Include="Persistence\PersistenceAdapter.cs" />
+    <Compile Include="Persistence\SqlServer\SqlDataReaderAdapter.cs" />
     <Compile Include="Persistence\SqlServer\SqlServerPersistenceStore.cs" />
     <Compile Include="Queries\Enums.cs" />
     <Compile Include="Queries\Exceptions.cs" />

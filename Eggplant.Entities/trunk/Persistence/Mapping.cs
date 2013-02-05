@@ -15,7 +15,7 @@ namespace Eggplant.Entities.Persistence
 		{
 			this.ParentMapping = parentMapping;
 			this.EntitySpace = parentMapping == null ? space : parentMapping.EntitySpace;
-			this.EntityDefinition = space.GetDefinition<T>();
+			this.EntityDefinition = this.EntitySpace.GetDefinition<T>();
 			this.SubMappings = new List<IMapping>();
 		}
 
@@ -26,6 +26,7 @@ namespace Eggplant.Entities.Persistence
 		public EntityDefinition<T> EntityDefinition { get; private set; }
 		public IMapping ParentMapping { get; private set; }
 		public IList<IMapping> SubMappings { get; private set; }
+		public IdentityDefinition CacheIdentity { get; private set; }
 
 		// ===================================
 		// Internal
@@ -47,10 +48,7 @@ namespace Eggplant.Entities.Persistence
 		{
 			return this.Do(new Action<MappingContext<T>>(context =>
 			{
-				//if (context.Stream.Options & PersistenceStreamOptions.OutboundFields > 0)
-				//	throw new MappingException("Current stream does not support outbound fields.");
-
-				context.SetTarget(function(context));
+				context.Target = function(context);
 			}));
 
 		}
@@ -105,6 +103,21 @@ namespace Eggplant.Entities.Persistence
 			var submapping = new SubqueryMapping<V>(this) { SubqueryName = subqueryName };
 			this.SubMappings.Add(submapping);
 			init(submapping);
+
+			IMapping[] submappings = submapping.SubMappings.AsEnumerable().ToArray();
+			submapping.SubMappings.Clear();
+
+			// After initialization, convert the subquery so that every submapping is actually applied to each child row
+			submapping.Do(context=> {
+				do
+				{
+					foreach (IMapping mapping in submappings)
+					{
+						mapping.Apply(context);
+					}
+				}
+				while (context.Adapter.Read());
+			});
 			return this;
 		}
 
@@ -159,25 +172,90 @@ namespace Eggplant.Entities.Persistence
 		// ===================================
 		// Other
 
-
-
 		// Finds the nearest parent context
-		public MappingContext<T> FromContext(MappingContext context)
+		public T FromContext(MappingContext context)
 		{
 			while (context.ParentContext != null)
 			{
 				if (context.ParentContext.ActiveMapping == this)
-					return (MappingContext<T>)context.ParentContext;
+					return ((MappingContext<T>)context.ParentContext).Target;
 				else
 					context = context.ParentContext;
 			}
 
-			throw new MappingException("Could not find the requested mapping target from the context specified.");
+			throw new MappingException("Could not find the requested mapping target from context.");
 		}
 
-		MappingContext IMapping.CreateContext(MappingContext baseContext)
+		MappingContext IMapping.CreateContext(MappingContext parentContext)
 		{
-			return new MappingContext<T>(baseContext);
+			return new MappingContext<T>(parentContext);
+		}
+
+		MappingContext IMapping.CreateContext(PersistenceAdapter adapter)
+		{
+			return new MappingContext<T>(adapter);
+		}
+
+		// ===================================
+		// Apply
+
+		void IMapping.Apply(MappingContext context)
+		{
+			this.Apply((MappingContext<T>)context);
+		}
+
+		public virtual void Apply(MappingContext<T> context)
+		{
+			this.ApplyInner(context);
+		}
+
+		protected void ApplyInner(MappingContext<T> context)
+		{
+			Dictionary<IEntityProperty, object> propertyValues = null;
+
+			// Apply child mappings
+			foreach (IMapping mapping in this.SubMappings)
+			{
+				MappingContext currentContext = mapping is IChildMapping ?
+					mapping.CreateContext(context) :
+					context;
+
+				mapping.Apply(currentContext);
+				if (context.DoBreak)
+					break;
+
+				if (mapping is IChildMapping)
+				{
+					if (mapping is IPropertyMapping)
+					{
+						if (propertyValues == null)
+							propertyValues = new Dictionary<IEntityProperty, object>();
+
+						var propertyMapping = (IPropertyMapping)mapping;
+						propertyValues.Add(propertyMapping.Property, currentContext.Target);
+					}
+					else if (mapping is IVariableMapping)
+					{
+						var variableMapping = (IVariableMapping)mapping;
+						context.SetVariable(variableMapping.Variable, currentContext.Target);
+					}
+				}
+			}
+
+			// TODO: Cache the object (either retrieve a more complete cached object, or insert this into the cache)
+			//if (this.EntitySpace.IsDefined<T>() && this.CacheIdentity != null && context.Target != null)
+			//	context.Target = context.Cache.Get<T>(this.CacheIdentity, this.CacheIdentity.IdentityOf(context.Target));
+
+			if (!context.IsTargetSet)
+			{
+				context.Target = Activator.CreateInstance<T>();
+			}
+
+			if (propertyValues != null)
+			{
+				foreach (var propVal in propertyValues)
+					propVal.Key.SetValue(context.Target, propVal.Value);
+			}
 		}
 	}
 }

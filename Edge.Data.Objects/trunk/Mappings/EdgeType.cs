@@ -13,17 +13,22 @@ namespace Edge.Data.Objects
 		{
 			public static Mapping<EdgeType> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
 				.Map<int>(EdgeType.Properties.TypeID, "TypeID")
-				.Map<string>(EdgeType.Properties.Name, "Name")
+				.Map<EdgeType>(EdgeType.Properties.BaseEdgeType, baseEdgeType => baseEdgeType
+					.Do(context=>context.NullIf<object>("BaseTypeID", id => id == null))
+					.Map<int>(EdgeType.Properties.TypeID, "BaseTypeID")
+				)
 				.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
 					.Set(context => Type.GetType(context.GetField<string>("ClrType")))
 				)
+				.Map<string>(EdgeType.Properties.Name, "Name")
 				.Map<string>(EdgeType.Properties.TableName, "TableName")
+				.Map<bool>(EdgeType.Properties.IsAbstract, "IsAbstract")
 				.Map<Account>(EdgeType.Properties.Account, account => account
-					.Do(context => context.BreakIfNegative("AccountID"))
+					.Do(context => context.NullIf<int>("AccountID", id => id == -1))
 					.Map<int>(Account.Properties.ID, "AccountID")
 				)
 				.Map<Channel>(EdgeType.Properties.Channel, channel => channel
-					.Do(context => context.BreakIfNegative("ChannelID"))
+					.Do(context => context.NullIf<int>("ChannelID", id => id == -1))
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 				)
 			);
@@ -33,7 +38,7 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<EdgeType> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<EdgeType>(Mappings.Default)
-				.RootSubquery("select * from EdgeType where AccountID in (-1, @accountID) and ChannelID in (-1, @channelID)", init => init
+				.RootSubquery("select * from MD_EdgeType where AccountID in (-1, @accountID) and ChannelID in (-1, @channelID)", init => init
 					.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
 					.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
 				)

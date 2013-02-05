@@ -12,49 +12,50 @@ namespace Eggplant.Entities.Persistence
 {
 	public abstract class MappingContext
 	{
-		public Query Query { get; internal set; }
+		//public Query Query { get; internal set; }
 		//public MappingDirection Direction { get; internal set; }
 
 		//public Subquery ActivateSubquery { get; internal set; }
-		public PersistenceChannel IO { get; private set; }
+		public PersistenceAdapter Adapter { get; private set; }
 		public IMapping ActiveMapping { get; internal set; }
 		public MappingContext ParentContext { get; private set; }
-		public object Target { get; internal set; }
-		public EntitySpace EntitySpace { get; private set; }
+		
+		//public EntitySpace EntitySpace { get; private set; }
 		public EntityCacheManager Cache { get; private set; }
+		public object Target { get { return GetTarget(); } set { SetTarget(value); } }
 
 		internal bool DoBreak { get; private set; }
 
+		object _target;
+		internal bool IsTargetSet { get; private set; }
 		Dictionary<string, object> _vars;
 
-		internal MappingContext(Query query, EntitySpace space, PersistenceChannel io, EntityCacheManager cache, MappingContext baseContext = null)
+		internal MappingContext(PersistenceAdapter adapter, MappingContext parentContext = null)
 		{
-			this.IO = io;
-			this.EntitySpace = space;
-			this.Query = query;
-			this.Cache = cache;
+			this.Adapter = adapter;
+			this.ParentContext = parentContext;
 			this.DoBreak = false;
 
 			// Inherit vars from base
-			_vars = baseContext != null ? new Dictionary<string, object>(baseContext._vars) : new Dictionary<string, object>();
+			_vars = parentContext != null ? new Dictionary<string, object>(parentContext._vars) : new Dictionary<string, object>();
 		}
 
 		public object GetField(string field)
 		{
-			return this.IO.GetField(field);
+			return this.Adapter.GetField(field);
 		}
 
 		public V GetField<V>(string field, Func<object, V> convert = null)
 		{
 			if (convert == null)
-				return (V)this.IO.GetField(field);
+				return (V)this.Adapter.GetField(field);
 			else
-				return convert(this.IO.GetField(field));
+				return convert(this.Adapter.GetField(field));
 		}
 
 		public void SetField(string field, object value)
 		{
-			this.IO.SetField(field, value);
+			this.Adapter.SetField(field, value);
 		}
 
 		public void SetVariable(string variable, object value)
@@ -75,10 +76,19 @@ namespace Eggplant.Entities.Persistence
 				return convert(_vars[variable]);
 		}
 
-		internal virtual void SetTarget(object target)
+		protected virtual object GetTarget()
 		{
-			this.Target = target;
+			//if (!IsTargetSet)
+			//	throw new NotImplementedException("here we need to implicitly create a new object, or at least notify about it");
+			return _target;
 		}
+
+		protected virtual void SetTarget(object target)
+		{
+			_target = target;
+			this.IsTargetSet = true;
+		}
+
 
 		/// <summary>
 		/// Stops the mapping operation and returns to the parent
@@ -91,19 +101,19 @@ namespace Eggplant.Entities.Persistence
 
 	public class MappingContext<T> : MappingContext
 	{
-		public new T Target { get { return (T)base.Target; } }
+		public new T Target { get { return (T)base.Target; } set { base.Target = value; } }
 
-		public MappingContext(Query query, EntitySpace space, PersistenceChannel io, EntityCacheManager cache):base(query, space, io, cache)
+		internal MappingContext(PersistenceAdapter adapter):base(adapter, null)
 		{
 		}
 
-		internal MappingContext(MappingContext baseContext): base(baseContext.Query, baseContext.EntitySpace, baseContext.IO, baseContext.Cache, baseContext)
+		internal MappingContext(MappingContext parentContext): base(parentContext.Adapter, parentContext)
 		{
 		}
 
-		internal override void SetTarget(object target)
+		protected override void SetTarget(object target)
 		{
-			if (!(target is T))
+			if (!(target is T) && !(typeof(T).IsClass && target == null ))
 				throw new MappingException(String.Format("The mapping context expects a target of type {0}.", typeof(T).FullName));
 
 			base.SetTarget(target);

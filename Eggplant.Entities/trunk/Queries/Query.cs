@@ -5,8 +5,8 @@ using System.Text;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence;
 using System.Data;
-using System.Data.SqlClient;
 using System.Collections;
+using System.Data.Common;
 
 namespace Eggplant.Entities.Queries
 {
@@ -30,7 +30,7 @@ namespace Eggplant.Entities.Queries
 	{
 		public QueryTemplate<T> Template { get; internal set; }
 
-		protected List<SqlCommand> PreparedCommands { get; private set; }
+		protected List<DbCommand> PreparedCommands { get; private set; }
 		protected int MainCommandResultSetCount { get; private set; }
 		
 		internal Query(QueryTemplate<T> template)
@@ -45,26 +45,29 @@ namespace Eggplant.Entities.Queries
 				this.Parameters.Add(parameter.Name, parameter.Clone());
 
 			// Find relevant subqueries
-			var subqueryNames = new List<string>();
+			var subqueryNames = new Dictionary<string, ISubqueryMapping>();
 			Action<IMapping> findSubqueryNames = null; findSubqueryNames = m =>
 			{
 				foreach (IMapping subMapping in m.SubMappings)
 				{
 					if (subMapping is ISubqueryMapping)
-						subqueryNames.Add(((ISubqueryMapping)subMapping).SubqueryName);
+						subqueryNames.Add(((ISubqueryMapping)subMapping).SubqueryName, (ISubqueryMapping)subMapping);
 					else
 						findSubqueryNames(subMapping);
 				}
 			};
-			findSubqueryNames(template.InboundMapping);
+			findSubqueryNames(template.Mapping);
 
 			// Create subquery objects from templates
 			foreach (SubqueryTemplate subquerytpl in template.SubqueryTemplates)
 			{
-				if (!subqueryNames.Contains(subquerytpl.Name))
+				ISubqueryMapping mapping = null;
+				if (subquerytpl.IsRoot)
+					mapping = (ISubqueryMapping) template.Mapping;
+				else if (!subqueryNames.TryGetValue(subquerytpl.Name, out mapping))
 					continue;
 
-				var subquery = new Subquery(this, subquerytpl);
+				var subquery = new Subquery(this, subquerytpl, mapping);
 				this.Subqueries.Add(subquery);
 			}
 		}
@@ -99,13 +102,13 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public void Prepare()
+		public void Prepare(PersistenceStore store)
 		{
 			// ----------------------------------------
 			// Prepare SQL commands
 			var mainCommandText = new StringBuilder();
-			SqlCommand mainCommand = new SqlCommand();
-			this.PreparedCommands = new List<SqlCommand>();
+			DbCommand mainCommand = store.NewDbCommand();
+			this.PreparedCommands = new List<DbCommand>();
 			
 			foreach (Subquery subquery in this.Subqueries)
 			{
@@ -115,7 +118,7 @@ namespace Eggplant.Entities.Queries
 				// Apply subquery SQL to command object
 				if (subquery.Template.IsStandalone && !subquery.Template.IsRoot)
 				{
-					subquery.Command = new SqlCommand(subquery.PreparedCommandText);
+					subquery.Command = store.NewDbCommand(subquery.PreparedCommandText);
 					this.PreparedCommands.Add(subquery.Command);
 				}
 				else
@@ -133,7 +136,7 @@ namespace Eggplant.Entities.Queries
 				// Add parameters to the command object
 				foreach (DbParameter param in subquery.DbParameters.Values)
 				{
-					var p = new SqlParameter() { ParameterName = param.Name };// param.ValueFunction != null ? param.ValueFunction(this) : param.Value
+					System.Data.Common.DbParameter p = store.NewDbParameter(param.Name);// param.ValueFunction != null ? param.ValueFunction(this) : param.Value
 
 					if (param.Size != null)
 						p.Size = param.Size.Value;
@@ -177,12 +180,14 @@ namespace Eggplant.Entities.Queries
 			}
 
 			if (!this.IsPrepared)
-				this.Prepare();
+				this.Prepare(this.Connection.Store);
 
-			var conn = (SqlConnection)this.Connection.DbConnection;
+			DbConnection conn = this.Connection.DbConnection;
 
-			foreach (SqlCommand command in this.PreparedCommands)
+			foreach (DbCommand command in this.PreparedCommands)
 			{
+				command.Connection = conn;
+
 				// Find associated subqueries
 				Subquery[] subqueries = this.Subqueries.Where(s => s.Command == command).OrderBy(s => s.ResultSetIndex).ToArray();
 
@@ -191,30 +196,25 @@ namespace Eggplant.Entities.Queries
 					foreach (DbParameter param in subquery.DbParameters.Values)
 						command.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
 
-				//this.MappingContext = new MappingContext<T>(this, MappingDirection.Inbound);
-
 				// Execute the command
 				int resultSetIndex = -1;
-				using (SqlDataReader reader = command.ExecuteReader())
+				using (DbDataReader reader = command.ExecuteReader())
 				{
-					// Iterate result set
-					while (reader.NextResult())
-					{
+					PersistenceAdapter adapter = this.Connection.Store.NewAdapter(reader);
+
+					// TODO: Iterate result set
+					//do
+					//{
 						resultSetIndex++;
 						Subquery subquery = subqueries[resultSetIndex];
 
-						while (reader.Read())
-						{
-
-						}
-					}
+						MappingContext context = subquery.Mapping.CreateContext(adapter);
+						foreach (T result in subquery.Mapping.ApplyAndReturn(context))
+							yield return result;
+					//}
+					//while (reader.NextResult());
 				}
 			}
-
-			// Execute all commands
-			throw new NotImplementedException();
-		}
-
-		
+		}		
 	}
 }

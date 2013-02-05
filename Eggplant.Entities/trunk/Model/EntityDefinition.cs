@@ -11,13 +11,14 @@ namespace Eggplant.Entities.Model
 		IEntityDefinition BaseDefinition { get; }
 		Type TargetType { get; }
 		IDictionary<string,IEntityProperty> Properties { get; }
+		IList<IdentityDefinition> Identities { get; }
 	}
 
 	public class EntityDefinition<T> : IEntityDefinition
 	{
 		public readonly Type TargetType = typeof(T);
 		public Dictionary<string,IEntityProperty> Properties { get; private set; }
-		public Func<T, object> Identity;
+		public List<IdentityDefinition> Identities { get; private set; }
 
 		public IEntityDefinition BaseDefinition { get; private set; }
 
@@ -42,20 +43,22 @@ namespace Eggplant.Entities.Model
 						if (potentialMembers.Length > 0)
 						{
 							MemberInfo bestMatchMember = potentialMembers[0];
-							
+
 							if (bestMatchMember is FieldInfo)
 							{
 								var fieldInfo = (FieldInfo)bestMatchMember;
-								if (entityProperty.Getter == null ) entityProperty.Getter = new Func<object, object>(entity => fieldInfo.GetValue(entity));
+								if (entityProperty.Getter == null) entityProperty.Getter = new Func<object, object>(entity => fieldInfo.GetValue(entity));
 								if (entityProperty.Setter == null) entityProperty.Setter = new Action<object, object>((entity, value) => fieldInfo.SetValue(entity, value));
 							}
 							if (bestMatchMember is PropertyInfo)
 							{
 								var propertyInfo = (PropertyInfo)bestMatchMember;
-								if (entityProperty.Getter == null) entityProperty.Getter = new Func<object, object>(entity => propertyInfo.GetValue(entity,null));
+								if (entityProperty.Getter == null) entityProperty.Getter = new Func<object, object>(entity => propertyInfo.GetValue(entity, null));
 								if (entityProperty.Setter == null) entityProperty.Setter = new Action<object, object>((entity, value) => propertyInfo.SetValue(entity, value, null));
 							}
 						}
+						else
+							throw new EntityDefinitionException(String.Format("Could not find a field or property named '{0}' in the type {1}.", entityProperty.Name, typeof(T).FullName));
 					}
 
 					this.Properties.Add(info.Name, entityProperty);
@@ -75,7 +78,23 @@ namespace Eggplant.Entities.Model
 			get { return this.Properties; }
 		}
 
+		IList<IdentityDefinition> IEntityDefinition.Identities
+		{
+			get { return this.Identities; }
+		}
+
 		#endregion
 	}
 
+	[Serializable]
+	public class EntityDefinitionException : Exception
+	{
+		public EntityDefinitionException() { }
+		public EntityDefinitionException(string message) : base(message) { }
+		public EntityDefinitionException(string message, Exception inner) : base(message, inner) { }
+		protected EntityDefinitionException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
+	}
 }

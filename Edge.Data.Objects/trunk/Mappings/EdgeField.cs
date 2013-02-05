@@ -14,11 +14,11 @@ namespace Edge.Data.Objects
 				.Map<int>(EdgeField.Properties.FieldID, "FieldID")
 				.Map<bool>(EdgeField.Properties.IsSystem, "IsSystem")
 				.Map<Account>(EdgeField.Properties.Account, account => account
-					.Do(context => context.BreakIfNegative("AccountID"))
+					.Do(context => context.NullIf<int>("AccountID", id => id == -1))
 					.Map<int>(Account.Properties.ID, "AccountID")
 				)
 				.Map<Channel>(EdgeField.Properties.Channel, channel => channel
-					.Do(context => context.BreakIfNegative("ChannelID"))
+					.Do(context => context.NullIf<int>("ChannelID", id => id == -1))
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 				)
 				.Map<string>(EdgeField.Properties.Name, "Name")

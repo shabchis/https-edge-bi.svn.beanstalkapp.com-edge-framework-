@@ -21,7 +21,7 @@ namespace Eggplant.Entities.Queries
 
 	public class QueryTemplate<T> : QueryTemplate
 	{
-		public Mapping<T> InboundMapping;
+		public Mapping<T> Mapping;
 		//public OutboundMapping<T> OutboundMapping;
 
 		internal QueryTemplate(EntitySpace space):base(space)
