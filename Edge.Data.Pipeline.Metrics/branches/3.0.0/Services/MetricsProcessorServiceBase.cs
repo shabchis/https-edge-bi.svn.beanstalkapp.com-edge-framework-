@@ -56,6 +56,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, CompositePartField>(GetCompositePartField));
 			Mappings.ExternalMethods.Add("GetEdgeType", new Func<dynamic, EdgeType>(GetEdgeType));
 			Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
+			Mappings.ExternalMethods.Add("GetObjectByEdgeType", new Func<dynamic, EdgeObject>(GetObjectByEdgeType));
+			Mappings.ExternalMethods.Add("GetObjectByEdgeTypeAndEdgeField", new Func<dynamic, dynamic, EdgeObject>(GetObjectByEdgeTypeAndEdgeField));
 			Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
 			
@@ -129,6 +131,50 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			if (!Measures.TryGetValue(n, out m))
 				throw new MappingException(String.Format("No measure named '{0}' could be found. Make sure you specified the base measure name, not the display name.", n));
 			return m;
+		}
+
+		public EdgeObject GetObjectByEdgeType(dynamic edgeType)
+		{
+			return GetObjectByEdgeTypeAndEdgeField(edgeType, String.Empty);
+		}
+
+		/// <summary>
+		/// try to find specific object edge in currrent metrics unit by type (not EdgeType, because it will set after mapping) 
+		/// and field name (optional, the 1st occurancy is returned
+		/// </summary>
+		/// <param name="edgeType">CLR type name</param>
+		/// <param name="edgeField">EdgeField name</param>
+		/// <returns>EdgeObject or NULL if not found</returns>
+		public EdgeObject GetObjectByEdgeTypeAndEdgeField(dynamic edgeType, dynamic edgeField)
+		{
+			var typeName = (string)edgeType;
+			var fieldName = (string)edgeField;
+			if (CurrentUnit == null)
+				throw new MappingException("Current metrics unit is NULL");
+
+			foreach (var dimension in CurrentUnit.GetObjectDimensions().Where(x => x.Value is EdgeObject))
+			{
+				return GetObjectRecursively(typeName, fieldName, dimension);
+			}
+			return null;
+		}
+
+		private EdgeObject GetObjectRecursively(string typeName, string fieldName, ObjectDimension currentDimension)
+		{
+			var edgeObj = currentDimension.Value as EdgeObject;
+			if (edgeObj == null) return null;
+
+			if (edgeObj.GetType().Name == typeName && (String.IsNullOrEmpty(fieldName) || currentDimension.Field != null && currentDimension.Field.Name == fieldName))
+			{
+				// found the required object by type and edge file
+				return edgeObj;
+			}
+			foreach (var childDimension in edgeObj.GetObjectDimensions().Where(x => x.Value is EdgeObject))
+			{
+				var returnObj = GetObjectRecursively(typeName, fieldName, childDimension);
+				if (returnObj != null) return returnObj;
+			}
+			return null;
 		}
 
 		public DateTime CreatePeriodStart(dynamic year, dynamic month, dynamic day)
