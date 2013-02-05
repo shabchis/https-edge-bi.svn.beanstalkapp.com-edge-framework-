@@ -81,9 +81,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				var sampleMetrics = new MetricsUnit();
-				MetricsMappings.Apply(sampleMetrics);
-				return sampleMetrics;
+				CurrentUnit = new MetricsUnit();
+				MetricsMappings.Apply(CurrentUnit);
+				return CurrentUnit;
 			}
 			catch (Exception ex)
 			{

@@ -273,9 +273,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				AddColumn(ref columns, ref values, paramList, "DestinationUrl", creativeDef.DestinationUrl);
 
 				// creative
-				//AddColumn(ref columns, ref values, paramList, "CreativeGK", creativeDef.Creative.GK);
-				//AddColumn(ref columns, ref values, paramList, "CreativeTK", creativeDef.Creative.TK);
-				//AddColumn(ref columns, ref values, paramList, "CreativeTypeID", creativeDef.Creative.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "CreativeGK", creativeDef.Creative.GK);
+				AddColumn(ref columns, ref values, paramList, "CreativeTK", creativeDef.Creative.TK);
+				AddColumn(ref columns, ref values, paramList, "CreativeTypeID", creativeDef.Creative.EdgeType.TypeID);
+
+				// add
+				AddColumn(ref columns, ref values, paramList, "ParentGK", creativeDef.Parent.GK);
+				AddColumn(ref columns, ref values, paramList, "ParentTK", creativeDef.Parent.TK);
+				AddColumn(ref columns, ref values, paramList, "ParentTypeID", creativeDef.Parent.EdgeType.TypeID);
 			}
 			else
 			{
