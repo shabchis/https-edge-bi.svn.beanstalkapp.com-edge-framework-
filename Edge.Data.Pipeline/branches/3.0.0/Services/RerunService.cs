@@ -42,8 +42,7 @@ namespace Edge.Data.Pipeline.Services
 					foreach (var param in Configuration.Parameters)
 						configuration.Parameters[param.Key] = param.Value;
 
-					// TODO shriat add to scheduler 
-					//this.Environment.ScheduleServiceByName(serviceName, this.Configuration.Profile.ProfileID, configuration);
+					// add to scheduler 
 					var serviceInstance = Environment.NewServiceInstance(Configuration);
 					Environment.AddToSchedule(serviceInstance);
 
