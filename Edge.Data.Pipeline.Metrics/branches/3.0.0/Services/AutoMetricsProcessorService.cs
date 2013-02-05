@@ -73,7 +73,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return ServiceOutcome.Success;
 		}
 
-		private MetricsUnit GetSampleMetrics()
+		protected MetricsUnit GetSampleMetrics()
 		{
 			try
 			{
@@ -81,9 +81,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				CurrentUnit = new MetricsUnit();
-				MetricsMappings.Apply(CurrentUnit);
-				return CurrentUnit;
+				CurrentMetricsUnit = new MetricsUnit();
+				MetricsMappings.Apply(CurrentMetricsUnit);
+				return CurrentMetricsUnit;
 			}
 			catch (Exception ex)
 			{
@@ -91,11 +91,11 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 		} 
 		
-		private void ProcessMetrics()
+		protected void ProcessMetrics()
 		{
 			// fill the metrics using mapping
-			CurrentUnit = new MetricsUnit();
-			MetricsMappings.Apply(CurrentUnit);
+			CurrentMetricsUnit = new MetricsUnit();
+			MetricsMappings.Apply(CurrentMetricsUnit);
 
 			var signature = new Signature();
 			SignatureMappings.Apply(signature);
@@ -108,23 +108,23 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// attach output to Metrics: take existing or create new
 			var op = outputs.FirstOrDefault();
 			if (op != null)
-				CurrentUnit.Output = op;
+				CurrentMetricsUnit.Output = op;
 			else
 			{
 				var deliveryOutput = new DeliveryOutput
 				{
 					Signature = signature.Value,
-					TimePeriodStart = CurrentUnit.TimePeriodStart,
-					TimePeriodEnd = CurrentUnit.TimePeriodEnd,
-					Account = CurrentUnit.Account,
-					Channel = CurrentUnit.Channel
+					TimePeriodStart = CurrentMetricsUnit.TimePeriodStart,
+					TimePeriodEnd = CurrentMetricsUnit.TimePeriodEnd,
+					Account = CurrentMetricsUnit.Account,
+					Channel = CurrentMetricsUnit.Channel
 				};
 				Delivery.Outputs.Add(deliveryOutput);
-				CurrentUnit.Output = deliveryOutput;
+				CurrentMetricsUnit.Output = deliveryOutput;
 			}
 
 			// import metrics into DB
-			ImportManager.ImportMetrics(CurrentUnit);
+			ImportManager.ImportMetrics(CurrentMetricsUnit);
 		}
 		#endregion
 

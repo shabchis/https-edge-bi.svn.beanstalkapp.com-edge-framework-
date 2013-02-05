@@ -28,7 +28,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
 		private int _accountId = -1;
-		protected MetricsUnit CurrentUnit;
+		protected MetricsUnit CurrentMetricsUnit;
 
 		#endregion
 
@@ -149,10 +149,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			var typeName = (string)edgeType;
 			var fieldName = (string)edgeField;
-			if (CurrentUnit == null)
+			if (CurrentMetricsUnit == null)
 				throw new MappingException("Current metrics unit is NULL");
 
-			foreach (var dimension in CurrentUnit.GetObjectDimensions().Where(x => x.Value is EdgeObject))
+			foreach (var dimension in CurrentMetricsUnit.GetObjectDimensions().Where(x => x.Value is EdgeObject))
 			{
 				return GetObjectRecursively(typeName, fieldName, dimension);
 			}
