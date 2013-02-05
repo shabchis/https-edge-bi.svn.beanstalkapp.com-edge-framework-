@@ -16,35 +16,70 @@ namespace Edge.Data.Objects
 
 				.Map<long>(EdgeObject.Properties.GK, "GK")
 				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
+					//.Identity(EdgeType.Identites.Default)
 					.Map<int>(EdgeType.Properties.TypeID, "TypeID")
 				)
 				.Map<Account>(EdgeObject.Properties.Account, account => account
-					.Do(context => context.BreakIfNegative("AccountID"))
+					.Do(context => context.NullIf<int>("AccountID", id => id == -1))
 					.Map<int>(Account.Properties.ID, "AccountID")
 				)
-
 				/*
-				.Map<Dictionary<EdgeField, object>>(EdgeObject.Properties.ExtraFields, extraFields => extraFields
+				.Map<Dictionary<ExtraField, object>>(EdgeObject.Properties.ExtraFields, extraFields => extraFields
+					.Join<ExtraField>(
+						context => context
+							.Cache.Get<ExtraField>().Where(field =>
+								field.ParentEdgeType == null || edgeObject.FromContext(context).EdgeType.IsRelatedTo(field.ParentEdgeType)
+							),
+						extraField => extraField
+							.Map<object>("value", value => value
+								.Set(context => {
+									ExtraField ef = extraField.FromContext(context);
+									if (ef.FieldEdgeType != null)
+									{
+										return context.GetEdgeObject(
+											fieldGK: string.Format("{0}_Field{1}_gk", ef.ColumnType, ef.ColumnIndex),
+											fieldTypeID: string.Format("{0}_Field{1}_type", ef.ColumnType, ef.ColumnIndex),
+											fieldClrType: string.Format("{0}_Field{1}_clr", ef.ColumnType, ef.ColumnIndex)
+										);
+									}
+									else
+									{
+										return context.GetField(string.Format("{0}_Field{1}", ef.ColumnType, ef.ColumnIndex));
+									}
+								})
+							)
+							.Do(context => context.Target.Add(
+								key: extraField.FromContext(context),
+								value: context.GetVariable<object>("value"))
+							)
+					)
+				)
+				*/
+						
+				#region Obsolete
+				/*
+				.Map<Dictionary<ExtraField, object>>(EdgeObject.Properties.ExtraFields, extraFields => extraFields
 					.Do(context => {
-						EdgeObject current = edgeObject.FromContext(context);
-						Type currentType = current.GetType();
-						foreach (EdgeField field in context.Cache.Get<EdgeField>())
-						{
-							if (field.FieldUse)
-								continue;
+						EdgeObject edgeObj = edgeObject.FromContext(context);
 
-							// Ignore unrelated fields
-							if (!field.ObjectEdgeType.ClrType.IsAssignableFrom(currentType))
+						foreach (ExtraField field in context.Cache.Get<ExtraField>())
+						{
+							// Ignore fields associated with different types
+							if (field.ParentEdgeType != null && !edgeObj.EdgeType.RelatedTo(field.ParentEdgeType))
 								continue;
 
 							object value;
 							if (field.FieldEdgeType != null)
 							{
 								// EdgeType value (with GK)
-								//int valueTypeID = context.GetField<int>(string.Format("{0}_t_Field{1}", field.ColumnPrefix, field.ColumnIndex));
-								//EdgeType valueEdgeType = context.Cache.Get<EdgeType>(EdgeType.Identities.Default, valueTypeID);
-								//valueEdgeType.ClrType
-								throw new NotImplementedException("Fields of type GK not yet implemented");
+								int valueTypeID = context.GetField<int>(string.Format("{0}_Field{1}_type", field.ColumnType, field.ColumnIndex), val=>val==null?-1:(int)val);
+								long valueGK = context.GetField<long>(string.Format("{0}_Field{1}_gk", field.ColumnType, field.ColumnIndex), val=>val==null?-1:(long)val);
+								if (valueTypeID != -1 && valueGK != -1)
+								{
+									EdgeType fieldEdgeType = context.Cache.Get<EdgeType>(EdgeType.Identities.Default, valueTypeID);
+									// TODO: this should create an empty entry
+									value = context.Cache.Get(fieldEdgeType.ClrType, EdgeObject.Identities.Default, EdgeObject.Identities.Default.NewIdentity(valueGK));
+								}
 							}
 							else
 							{
@@ -67,14 +102,14 @@ namespace Edge.Data.Objects
 							current.ExtraFields.Add(field, value);
 						}
 					})
+					
 				)
 				*/
 
-			#region Obsolete
 				/*
 				// Connections FULL
 				.Map<Dictionary<ConnectionDefinition, EdgeObject>>(EdgeObject.Properties.Connections, connections => connections
-					.Subquery("Connections", subquery => subquery
+					.Join("Connections", subquery => subquery
 						.Map<EdgeObject>("parent", parent => parent
 							.Map<long>(EdgeObject.Properties.GK, "FromGK")
 							//resolve: IdentityResolve.ExistingOnly

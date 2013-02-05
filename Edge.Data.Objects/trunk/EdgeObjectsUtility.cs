@@ -168,6 +168,8 @@ namespace Edge.Data.Objects
 			where T: EdgeObject
 		{
 			mapping
+				//.Identity(EdgeObject.Identites.GK)
+				.Do(context => context.NullIf<object>(fieldGK, gk => gk == null))
 				.Set(context => (T)Activator.CreateInstance(Type.GetType(context.GetField<string>(fieldClrType))))
 				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType
 					.Map<int>(EdgeType.Properties.TypeID, fieldTypeID)
@@ -175,6 +177,32 @@ namespace Edge.Data.Objects
 				.Map<long>(EdgeObject.Properties.GK, fieldGK)
 			;
 		}
+
+		/*
+		/// <summary>
+		/// Shortcut for getting an EdgeObject reference from fields during runtime.
+		/// </summary>
+		public static T GetEdgeObject<T>(this MappingContext<T> context, string fieldGK, string fieldTypeID, string fieldClrType)
+			where T : EdgeObject
+		{
+			if (context.GetField<object>(fieldGK) == null)
+				return null;
+
+			T obj = context.Cache.GetOrCreate(
+				Type.GetType(context.GetField<string>(fieldClrType)),
+				EdgeObject.Identites.Default,
+				EdgeObject.Identites.Default.NewIdentity(context.GetField<long>(fieldGK))
+			);
+
+			if (obj.EdgeType == null)
+				obj.EdgeType = context.Cache.GetOrCreate<EdgeType>(
+					EdgeType.Identities.Default,
+					EdgeType.Identities.Default.NewIdentity(context.GetField(fieldTypeID))
+				);
+
+			return obj;
+		}
+		*/
 
 		/*
 		public static Mapping<T> MapEdgeField<T, V>(this Mapping<T> mapping, EntityProperty<T, V> property)
@@ -194,10 +222,13 @@ namespace Edge.Data.Objects
 		/// <summary>
 		/// Shortcut for ensuring ID is not -1.
 		/// </summary>
-		public static void BreakIfNegative(this MappingContext context, string idField)
+		public static void NullIf<V>(this MappingContext context, string idField, Func<V, bool> condition)
 		{
-			if (context.GetField<int>(idField) < 0)
+			if (condition(context.GetField<V>(idField)))
+			{
+				context.Target = null;
 				context.Break();
+			}
 		}
 
 		/// <summary>

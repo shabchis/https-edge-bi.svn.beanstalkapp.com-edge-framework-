@@ -5,7 +5,8 @@ using System.Text;
 using System.Data;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence;
-using System.Data.SqlClient;
+using System.Data.Common;
+//using System.Data.SqlClient;
 
 namespace Eggplant.Entities.Queries
 {
@@ -13,13 +14,18 @@ namespace Eggplant.Entities.Queries
 	{
 		public Query ParentQuery { get; private set; }
 		public SubqueryTemplate Template { get; private set; }
+		public ISubqueryMapping Mapping { get; private set; }
 		public string PreparedCommandText { get; protected set; }
 		
-		internal SqlCommand Command { get; set; }
+		internal DbCommand Command { get; set; }
 		internal int ResultSetIndex { get; set; }
 
-		internal Subquery(Query parent, SubqueryTemplate template)
+		internal Subquery(Query parent, SubqueryTemplate template, ISubqueryMapping mapping)
 		{
+			this.ParentQuery = parent;
+			this.Template = template;
+			this.Mapping = mapping;
+
 			foreach (DbParameter parameter in template.DbParameters.Values)
 				this.DbParameters.Add(parameter.Name, parameter.Clone());
 
@@ -73,6 +79,7 @@ namespace Eggplant.Entities.Queries
 
 		internal void Prepare()
 		{
+			/*
 			// .....................................
 			// If top level, inherit all selects, filters, sorting
 			this.SelectList.Clear();
@@ -122,6 +129,9 @@ namespace Eggplant.Entities.Queries
 				.Replace("{filter}", string.Empty)
 				.Replace("{sorting}", string.Empty);
 			;
+			*/
+
+			this.PreparedCommandText = this.Template.CommandText;
 			this.IsPrepared = true;
 		}
 

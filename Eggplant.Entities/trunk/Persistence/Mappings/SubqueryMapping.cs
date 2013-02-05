@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,9 +10,29 @@ namespace Eggplant.Entities.Persistence
 	public class SubqueryMapping<T>:Mapping<T>, ISubqueryMapping
 	{
 		public string SubqueryName { get; set; }
+		public Func<IEnumerable<T>> SourceFunction { get; set; }
 
 		internal SubqueryMapping(IMapping parent, EntitySpace space = null): base(parent, space)
 		{
+		}
+
+		public override void Apply(MappingContext<T> context)
+		{
+			ApplyAndReturn(context);
+		}
+
+		public IEnumerable<T> ApplyAndReturn(MappingContext<T> context)
+		{
+			while (context.Adapter.Read())
+			{
+				base.ApplyInner(context);
+				yield return context.Target;
+			}
+		}
+
+		IEnumerable ISubqueryMapping.ApplyAndReturn(MappingContext context)
+		{
+			return this.ApplyAndReturn((MappingContext<T>)context);
 		}
 
 		#region Sugar

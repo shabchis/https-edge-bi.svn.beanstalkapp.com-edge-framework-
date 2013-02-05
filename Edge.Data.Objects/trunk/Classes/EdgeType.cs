@@ -8,9 +8,11 @@ namespace Edge.Data.Objects
 	public partial class EdgeType
 	{
 		public int TypeID;
-		public string Name;
+		public EdgeType BaseEdgeType;
 		public Type ClrType;
+		public string Name;
 		public string TableName;
+		public bool IsAbstract;
 
 		public Account Account;
 		public Channel Channel;

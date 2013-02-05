@@ -10,6 +10,18 @@ namespace Eggplant.Entities.Cache
 	{
 		Dictionary<Type, IEntityCache> _caches;
 
+		private IEntityCache ResolveCacheForType(Type entityType)
+		{
+			// TODO: go over caches and check if current type has a cache (base class might have a cache)
+			return this._caches[entityType];
+		}
+
+		public object Get(Type entityType, IdentityDefinition def, Identity id)
+		{
+			return ResolveCacheForType(entityType).Get(def, id);
+		}
+
+		
 		public T Get<T>(IdentityDefinition def, Identity id)
 		{
 			return (T) this._caches[typeof(T)].Get(def, id);

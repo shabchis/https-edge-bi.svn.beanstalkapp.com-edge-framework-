@@ -18,7 +18,7 @@ namespace Edge.Data.Objects
 				.Map<string>(ChannelSpecificObject.Properties.OriginalID, "OriginalID")
 				.Map<ObjectStatus>(ChannelSpecificObject.Properties.Status, "Status")
 				.Map<Channel>(ChannelSpecificObject.Properties.Channel, channel => channel
-					.Do(context=> context.BreakIfNegative("ChannelID"))
+					.Do(context => context.NullIf<int>("ChannelID", id => id == -1))
 					.Map<int>(Account.Properties.ID, "ChannelID")
 				)
 			);

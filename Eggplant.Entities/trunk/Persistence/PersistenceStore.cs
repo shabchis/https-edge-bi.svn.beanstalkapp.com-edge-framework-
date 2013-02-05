@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.IO;
+using System.Data.Common;
+using System.Data;
 
 namespace Eggplant.Entities.Persistence
 {
@@ -29,6 +31,11 @@ namespace Eggplant.Entities.Persistence
 			return connection;
 		}
 
+		public abstract DbParameter NewDbParameter(string name);
+		public abstract DbCommand NewDbCommand(string commandText = null, CommandType commandType = CommandType.Text);
+		public abstract PersistenceAdapter NewAdapter(DbDataReader reader);
+
+		/*
 		public static PersistenceStore LoadFromConfiguration(string configurationName)
 		{
 			throw new NotImplementedException();
@@ -43,5 +50,6 @@ namespace Eggplant.Entities.Persistence
 		{
 			return LoadXml(new XmlTextReader(new StringReader(xml)), true);
 		}
+		*/
 	}
 }

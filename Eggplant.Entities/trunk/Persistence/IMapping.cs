@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Queries;
+using System.Collections;
 
 namespace Eggplant.Entities.Persistence
 {
@@ -16,26 +17,34 @@ namespace Eggplant.Entities.Persistence
 		IList<IMapping> SubMappings { get; }
 
 		MappingContext CreateContext(MappingContext baseContext);
+		MappingContext CreateContext(PersistenceAdapter channel);
+
+		void Apply(MappingContext context);
 	}
 
-	public interface IVariableMapping: IMapping
+	public interface IChildMapping : IMapping
+	{
+	}
+
+	public interface IVariableMapping : IChildMapping
 	{
 		string Variable { get; }
 	}
 
-	public interface IPropertyMapping : IMapping
+	public interface IPropertyMapping : IChildMapping
 	{
 		IEntityProperty Property { get; }
 	}
 
 	public interface IActionMapping : IMapping
 	{
-		void Execute(MappingContext context);
 	}
 
 	public interface ISubqueryMapping : IMapping
 	{
 		string SubqueryName { get; }
+
+		IEnumerable ApplyAndReturn(MappingContext context);
 	}
 
 	public interface IInlineMapping : IMapping
