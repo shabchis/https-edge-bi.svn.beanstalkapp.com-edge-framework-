@@ -58,6 +58,4 @@ namespace Edge.Data.Pipeline.Objects
 		} 
 		#endregion
 	}
-
-	
 }
