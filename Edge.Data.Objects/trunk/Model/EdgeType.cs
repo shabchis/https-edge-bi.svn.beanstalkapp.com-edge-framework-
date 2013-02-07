@@ -19,6 +19,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<EdgeType, string> TableName = new EntityProperty<EdgeType, string>("TableName");
 			public static EntityProperty<EdgeType, Account> Account = new EntityProperty<EdgeType, Account>("Account");
 			public static EntityProperty<EdgeType, Channel> Channel = new EntityProperty<EdgeType, Channel>("Channel");
+			public static EntityProperty<EdgeType, List<EdgeField>> Fields = new EntityProperty<EdgeType, List<EdgeField>>("Fields");
 		}
 	}
 }

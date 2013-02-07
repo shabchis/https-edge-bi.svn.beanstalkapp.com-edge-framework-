@@ -15,14 +15,15 @@ namespace Eggplant.Entities.Persistence
 		//public Query Query { get; internal set; }
 		//public MappingDirection Direction { get; internal set; }
 
-		//public Subquery ActivateSubquery { get; internal set; }
 		public PersistenceAdapter Adapter { get; private set; }
-		public IMapping ActiveMapping { get; internal set; }
+		public IMapping CurrentMapping { get; internal set; }
+		public Subquery CurrentSubquery { get; internal set; }
 		public MappingContext ParentContext { get; private set; }
 		
 		//public EntitySpace EntitySpace { get; private set; }
 		public EntityCacheManager Cache { get; private set; }
 		public object Target { get { return GetTarget(); } set { SetTarget(value); } }
+		public Type TargetType { get; set; }
 
 		internal bool DoBreak { get; private set; }
 
@@ -30,14 +31,21 @@ namespace Eggplant.Entities.Persistence
 		internal bool IsTargetSet { get; private set; }
 		Dictionary<string, object> _vars;
 
-		internal MappingContext(PersistenceAdapter adapter, MappingContext parentContext = null)
+		internal MappingContext(PersistenceAdapter adapter, Subquery subquery, IMapping mapping, MappingContext parentContext = null)
 		{
 			this.Adapter = adapter;
 			this.ParentContext = parentContext;
+			this.CurrentSubquery = subquery;
+			this.CurrentMapping = mapping;
 			this.DoBreak = false;
 
 			// Inherit vars from base
 			_vars = parentContext != null ? new Dictionary<string, object>(parentContext._vars) : new Dictionary<string, object>();
+		}
+
+		public bool HasField(string field)
+		{
+			return this.Adapter.HasField(field);
 		}
 
 		public object GetField(string field)
@@ -103,11 +111,13 @@ namespace Eggplant.Entities.Persistence
 	{
 		public new T Target { get { return (T)base.Target; } set { base.Target = value; } }
 
-		internal MappingContext(PersistenceAdapter adapter):base(adapter, null)
+		internal MappingContext(PersistenceAdapter adapter, Subquery subquery, Mapping<T> mapping):
+			base(adapter, subquery, mapping, null)
 		{
 		}
 
-		internal MappingContext(MappingContext parentContext): base(parentContext.Adapter, parentContext)
+		internal MappingContext(MappingContext parentContext, Mapping<T> mapping):
+			base(parentContext.Adapter, parentContext.CurrentSubquery, mapping, parentContext)
 		{
 		}
 
@@ -118,7 +128,5 @@ namespace Eggplant.Entities.Persistence
 
 			base.SetTarget(target);
 		}
-
-		
 	}
 }

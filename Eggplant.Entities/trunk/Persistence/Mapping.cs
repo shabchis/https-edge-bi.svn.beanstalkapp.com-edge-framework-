@@ -25,6 +25,7 @@ namespace Eggplant.Entities.Persistence
 		public EntitySpace EntitySpace { get; private set; }
 		public EntityDefinition<T> EntityDefinition { get; private set; }
 		public IMapping ParentMapping { get; private set; }
+		public IMapping BaseMapping { get; private set; }
 		public IList<IMapping> SubMappings { get; private set; }
 		public IdentityDefinition CacheIdentity { get; private set; }
 
@@ -40,7 +41,7 @@ namespace Eggplant.Entities.Persistence
 		public Mapping<T> Inherit(IMapping baseMapping)
 		{
 			// Add any submappings from base that are not already defined here
-			((List<IMapping>)this.SubMappings).InsertRange(0, baseMapping.SubMappings.Where(m => !this.SubMappings.Any(s => s.Equals(m))));
+			this.BaseMapping = baseMapping;
 			return this;
 		}
 
@@ -59,6 +60,30 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
+		public Mapping<T> Type(string field)
+		{
+			return this.Type(context => context.GetField<Type>(field, t => {
+				Type type = null;
+				if (t != null)
+				{
+					if (t is string && !String.IsNullOrWhiteSpace((string)t))
+						type = System.Type.GetType((string)t);
+					if (type == null)
+						throw new MappingException(String.Format("Type information cannot be retrieved from the field '{0}' with the value is '{1}'.", field, t == null ? null : t));
+				}
+				return type;
+			}));
+		}
+
+		public Mapping<T> Type(Func<MappingContext<T>, Type> function)
+		{
+			return this.Do(new Action<MappingContext<T>>(context =>
+			{
+				context.TargetType = function(context);
+			}));
+
+		}
+
 		public Mapping<T> Map<V>(string variable, Action<VariableMapping<V>> init)
 		{
 			var submapping = new VariableMapping<V>(this) { Variable = variable };
@@ -70,11 +95,11 @@ namespace Eggplant.Entities.Persistence
 		public Mapping<T> Map<V>(string variable, string field)
 		{
 			return this.Map<V>(variable, mapping => mapping
-				.Set(context => context.GetField<V>(field)
-					//context.Direction == MappingDirection.Inbound ?
-					//	context.GetField<V>(field) :
-					//	context.GetVariable<V>(variable)
-				)
+				.Do(context =>
+				{
+					if (context.HasField(field))
+						context.Target = context.GetField<V>(field);
+				})
 			);
 		}
 
@@ -89,11 +114,11 @@ namespace Eggplant.Entities.Persistence
 		public Mapping<T> Map<V>(IEntityProperty<V> property, string field)
 		{
 			return this.Map<V>(property, mapping => mapping
-				.Set(context => context.GetField<V>(field)
-					//context.Direction == MappingDirection.Inbound ?
-					//	context.GetField<V>(field) :
-					//	mapping.Property.GetValue(context.Target)
-				)
+				.Do(context =>
+				{
+					if (context.HasField(field))
+						context.Target = context.GetField<V>(field);
+				})
 			);
 		}
 
@@ -104,6 +129,7 @@ namespace Eggplant.Entities.Persistence
 			this.SubMappings.Add(submapping);
 			init(submapping);
 
+			/*
 			IMapping[] submappings = submapping.SubMappings.AsEnumerable().ToArray();
 			submapping.SubMappings.Clear();
 
@@ -118,6 +144,7 @@ namespace Eggplant.Entities.Persistence
 				}
 				while (context.Adapter.Read());
 			});
+			*/
 			return this;
 		}
 
@@ -139,35 +166,16 @@ namespace Eggplant.Entities.Persistence
 			return this.Inline<object>(init);
 		}
 
-		// Exxxtra sugar
-		/*
-		public Mapping<T> MapSubquery<K, V>(EntityProperty<T, Dictionary<K, V>> property, string subqueryName, Action<SubqueryDictionaryMapping<object>> init)
+		/// <summary>
+		/// Import another mapping's settings
+		/// </summary>
+		public Mapping<T> UseMapping(Mapping<T> mapping)
 		{
-			var mapping = this.Map<Dictionary<K, V>>(property, dictionary => dictionary
-					.Set(context => new Dictionary<K,V>())
-					.Subquery(subqueryName, subquery => subquery
-						.Map<T>("parent", parent => parent
-							.Map<long>(EdgeObject.Properties.GK, "GK")//,
-							//resolve: IdentityResolve.ExistingOnly
-						)
-						.Map<ConnectionDefinition>("key", key => key
-							.Map<int>(ConnectionDefinition.Properties.ID, "ConnectionID")
-						)
-						.Map<object>("value", value => value
-							.Set(context => ConnectionDefinition.DeserializeValue<object>(
-								context.GetField<string>("Value"),
-								Type.GetType(context.GetField<string>("ActualValueType")))
-							)
-						)
-						.Do(context => EdgeObject.Properties.Connections.GetValue(context.GetVar<EdgeObject>("parent")).Add(
-								context.GetVar<ConnectionDefinition>("key"),
-								context.GetVar<object>("value")
-							)
-						)
-					)
-				)
+			this.BaseMapping = mapping.BaseMapping;
+			((List<IMapping>)this.SubMappings).AddRange(mapping.SubMappings);
+
+			return this;
 		}
-		*/
 
 		// ===================================
 		// Other
@@ -177,7 +185,7 @@ namespace Eggplant.Entities.Persistence
 		{
 			while (context.ParentContext != null)
 			{
-				if (context.ParentContext.ActiveMapping == this)
+				if (context.ParentContext.CurrentMapping == this)
 					return ((MappingContext<T>)context.ParentContext).Target;
 				else
 					context = context.ParentContext;
@@ -188,12 +196,12 @@ namespace Eggplant.Entities.Persistence
 
 		MappingContext IMapping.CreateContext(MappingContext parentContext)
 		{
-			return new MappingContext<T>(parentContext);
+			return new MappingContext<T>(parentContext, this);
 		}
 
-		MappingContext IMapping.CreateContext(PersistenceAdapter adapter)
+		MappingContext IMapping.CreateContext(PersistenceAdapter adapter, Subquery subquery)
 		{
-			return new MappingContext<T>(adapter);
+			return new MappingContext<T>(adapter, subquery, this);
 		}
 
 		// ===================================
@@ -206,16 +214,31 @@ namespace Eggplant.Entities.Persistence
 
 		public virtual void Apply(MappingContext<T> context)
 		{
-			this.ApplyInner(context);
+			((IMapping)this).InnerApply(context);
 		}
 
-		protected void ApplyInner(MappingContext<T> context)
+		void IMapping.InnerApply(MappingContext c, bool applyInheritedMappings = true, bool applyDerivedMappings = true)
 		{
+			var context = (MappingContext<T>) c;
 			Dictionary<IEntityProperty, object> propertyValues = null;
+			bool hasChildMappings = false;
 
-			// Apply child mappings
+			// Apply base mappings
+			if (this.BaseMapping != null && applyInheritedMappings)
+			{
+				MappingContext baseContext = this.BaseMapping.CreateContext(context);
+				this.BaseMapping.InnerApply(baseContext, applyDerivedMappings: false);
+
+				// TODO: if (this.BaseMapping.DoBreak)
+			}
+
+			// Apply current mappings
 			foreach (IMapping mapping in this.SubMappings)
 			{
+				// Ignore subquery mappings that aren't the current mapping
+				if (mapping is ISubqueryMapping && context.CurrentSubquery.Mapping != mapping)
+					continue;
+
 				MappingContext currentContext = mapping is IChildMapping ?
 					mapping.CreateContext(context) :
 					context;
@@ -226,18 +249,24 @@ namespace Eggplant.Entities.Persistence
 
 				if (mapping is IChildMapping)
 				{
-					if (mapping is IPropertyMapping)
-					{
-						if (propertyValues == null)
-							propertyValues = new Dictionary<IEntityProperty, object>();
+					hasChildMappings = true;
 
-						var propertyMapping = (IPropertyMapping)mapping;
-						propertyValues.Add(propertyMapping.Property, currentContext.Target);
-					}
-					else if (mapping is IVariableMapping)
+					// If a target has been specified, save it
+					if (currentContext.IsTargetSet)
 					{
-						var variableMapping = (IVariableMapping)mapping;
-						context.SetVariable(variableMapping.Variable, currentContext.Target);
+						if (mapping is IPropertyMapping)
+						{
+							if (propertyValues == null)
+								propertyValues = new Dictionary<IEntityProperty, object>();
+
+							var propertyMapping = (IPropertyMapping)mapping;
+							propertyValues.Add(propertyMapping.Property, currentContext.Target);
+						}
+						else if (mapping is IVariableMapping)
+						{
+							var variableMapping = (IVariableMapping)mapping;
+							context.SetVariable(variableMapping.Variable, currentContext.Target);
+						}
 					}
 				}
 			}
@@ -246,11 +275,33 @@ namespace Eggplant.Entities.Persistence
 			//if (this.EntitySpace.IsDefined<T>() && this.CacheIdentity != null && context.Target != null)
 			//	context.Target = context.Cache.Get<T>(this.CacheIdentity, this.CacheIdentity.IdentityOf(context.Target));
 
-			if (!context.IsTargetSet)
+			// Instantiate target if it hasn't been specifically applied and there are sub mappings that have executed
+			if (!context.IsTargetSet && hasChildMappings && (context.TargetType != null || typeof(T) != typeof(object)))
 			{
-				context.Target = Activator.CreateInstance<T>();
+				context.Target = context.TargetType != null ?
+					(T) Activator.CreateInstance(context.TargetType) :
+					Activator.CreateInstance<T>();
 			}
 
+			// Cascade to inherited mappings
+			if (context.TargetType != null && applyDerivedMappings)
+			{
+				IEntityDefinition definition = this.EntitySpace.GetDefinition(context.TargetType);
+				if (definition != null)
+				{
+					// TODO: better way to indicate which derived mapping to use - possibly by name
+					IMapping derived = null;
+					foreach (IMapping d in definition.Mappings.Where(m => m.BaseMapping == this))
+					{
+						derived = d;
+						break;
+					}
+
+					derived.InnerApply(context, applyInheritedMappings: false);
+				}
+			}
+
+			// Apply property values
 			if (propertyValues != null)
 			{
 				foreach (var propVal in propertyValues)

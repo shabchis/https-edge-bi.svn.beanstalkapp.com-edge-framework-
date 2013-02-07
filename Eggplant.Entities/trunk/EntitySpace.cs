@@ -21,9 +21,8 @@ namespace Eggplant.Entities
 			this.Definitions = new Dictionary<Type,IEntityDefinition>();
 		}
 
-		public EntityDefinition<T> GetDefinition<T>()
+		public IEntityDefinition GetDefinition(Type entityType)
 		{
-			Type entityType = typeof(T);
 			IEntityDefinition def;
 			if (!this.Definitions.TryGetValue(entityType, out def))
 			{
@@ -31,20 +30,25 @@ namespace Eggplant.Entities
 					return null;
 
 				FieldInfo defField = entityType.GetField(this.AutoRegisterStaticDefinitionFieldName, BindingFlags.Public | BindingFlags.Static);
-				if (defField == null || !typeof(EntityDefinition<T>).IsAssignableFrom(defField.FieldType))
+				if (defField == null || !typeof(IEntityDefinition).IsAssignableFrom(defField.FieldType))
 					return null;
-					/*
-					throw new ArgumentException(String.Format(
-						"The type '{0}' does not have a static field '{1}' of type 'EntityDefinition<{0}>'. Use RegisterDefinition to manually register a EntityDefinition object for this type.",
-						entityType.Name,
-						this.AutoRegisterStaticDefinitionFieldName)
-					);
-					*/
+				/*
+				throw new ArgumentException(String.Format(
+					"The type '{0}' does not have a static field '{1}' of type 'EntityDefinition<{0}>'. Use RegisterDefinition to manually register a EntityDefinition object for this type.",
+					entityType.Name,
+					this.AutoRegisterStaticDefinitionFieldName)
+				);
+				*/
 
-				def = (IEntityDefinition) defField.GetValue(null);
+				def = (IEntityDefinition)defField.GetValue(null);
 			}
 
-			return (EntityDefinition<T>)def;
+			return def;
+		}
+
+		public EntityDefinition<T> GetDefinition<T>()
+		{
+			return ( EntityDefinition<T>) GetDefinition(typeof(T));
 		}
 
 		public QueryTemplate<T> CreateQueryTemplate<T>(Mapping<T> mapping = null)

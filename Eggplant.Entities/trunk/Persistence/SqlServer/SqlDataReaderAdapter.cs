@@ -16,12 +16,28 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			_reader = reader;
 		}
 
+		public override bool HasField(string field)
+		{
+			for (int i = 0; i < _reader.FieldCount; i++)
+				if (_reader.GetName(i) == field)
+					return true;
+
+			return false;
+		}
+
 		public override object GetField(string field)
 		{
-			object val = _reader[field];
-			if (val is DBNull)
-				val = null;
-			return val;
+			try
+			{
+				object val = _reader[field];
+				if (val is DBNull)
+					val = null;
+				return val;
+			}
+			catch (IndexOutOfRangeException ex)
+			{
+				throw new MappingException(String.Format("Field '{0}' not preset in the SQL results.", field), ex);
+			}
 		}
 
 		public override void SetField(string field, object value)

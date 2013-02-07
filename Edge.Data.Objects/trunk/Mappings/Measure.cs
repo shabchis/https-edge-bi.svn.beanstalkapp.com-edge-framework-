@@ -65,7 +65,7 @@ namespace Edge.Data.Objects
 				.Param<Account>("account", account)
 				.Param<Channel>("channel", channel)
 				.Filter(Measure.Properties.DataType, " = ", MeasureDataType.Currency)
-				.Execute(QueryExecutionMode.Buffered);
+				.Execute();
 		}
 	}
 }

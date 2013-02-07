@@ -143,8 +143,15 @@ namespace Eggplant.Entities.Queries
 					if (param.DbType != null)
 						p.DbType = param.DbType.Value;
 
-					// TODO: avoid exceptions on duplicate parameter names by prefixing them?
-					subquery.Command.Parameters.Add(p);
+					
+					if (subquery.Command.Parameters.Contains(p.ParameterName))
+					{
+						System.Data.Common.DbParameter existing = subquery.Command.Parameters[p.ParameterName];
+						if (existing.Size != p.Size || existing.DbType != p.DbType)
+							throw new QueryTemplateException(String.Format("Parameter conflict: '{0}' is declared more than once but with different options.", p.ParameterName));
+					}
+					else
+						subquery.Command.Parameters.Add(p);
 				}
 			}
 
@@ -171,7 +178,7 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public IEnumerable<T> Execute(QueryExecutionMode mode)
+		public IEnumerable<T> Execute()
 		{
 			if (this.Connection == null)
 			{
@@ -183,6 +190,7 @@ namespace Eggplant.Entities.Queries
 				this.Prepare(this.Connection.Store);
 
 			DbConnection conn = this.Connection.DbConnection;
+			List<T> buffer = null;
 
 			foreach (DbCommand command in this.PreparedCommands)
 			{
@@ -203,18 +211,43 @@ namespace Eggplant.Entities.Queries
 					PersistenceAdapter adapter = this.Connection.Store.NewAdapter(reader);
 
 					// TODO: Iterate result set
-					//do
-					//{
+					do
+					{
 						resultSetIndex++;
 						Subquery subquery = subqueries[resultSetIndex];
 
-						MappingContext context = subquery.Mapping.CreateContext(adapter);
-						foreach (T result in subquery.Mapping.ApplyAndReturn(context))
-							yield return result;
-					//}
-					//while (reader.NextResult());
+						MappingContext context = subquery.Mapping.CreateContext(adapter, subquery);
+
+						var results = subquery.Mapping.ApplyAndReturn(context);
+
+						if (subquery.Template.IsRoot)
+						{
+							// Yield results with no buffering only if this is the root subquery and it is the last to be executed
+							if (resultSetIndex == subqueries.Length - 1 && command == this.PreparedCommands[this.PreparedCommands.Count - 1])
+							{
+								foreach (T result in results)
+									yield return result;
+							}
+							else
+							{
+								buffer = ((IEnumerable<T>)results).ToList();
+							}
+						}
+						else
+						{
+							foreach (object result in results)
+							{
+							}
+						}
+					}
+					while (reader.NextResult());
 				}
 			}
-		}		
+
+			// If the results were buffered because of subqueries, yield the results now
+			if (buffer != null)
+				foreach (T result in buffer)
+					yield return result;
+		}
 	}
 }
