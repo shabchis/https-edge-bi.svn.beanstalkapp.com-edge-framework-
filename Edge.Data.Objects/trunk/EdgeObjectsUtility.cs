@@ -259,6 +259,38 @@ namespace Edge.Data.Objects
 
 			return mapping;
 		}
+
+		/// <summary>
+		/// Shortcut for mapping a list from a subquery.
+		/// </summary>
+		public static Mapping<ParentT> MapListFromSubquery<ParentT, ItemT>(
+			this Mapping<ParentT> mapping,
+			EntityProperty<ParentT, List<ItemT>> listProperty,
+			string subqueryName,
+			Action<Mapping<ParentT>> parentMappingFunction,
+			Action<Mapping<ItemT>> itemMappingFunction
+		)
+		{
+
+			mapping.Map<List<ItemT>>(listProperty, list => list
+				.Subquery(subqueryName, subquery => subquery
+					.Map<ParentT>("parent", parentMappingFunction)
+					.Map<ItemT>("item", itemMappingFunction)
+					.Do(context =>
+					{
+						var parent = context.GetVariable<ParentT>("parent");
+						var item = context.GetVariable<ItemT>("item");
+						var l = listProperty.GetValue(parent);
+						if (l == null)
+							l = new List<ItemT>();
+
+						l.Add(item);
+					})
+				)
+			);
+
+			return mapping;
+		}
 	}
 
 	[Serializable]

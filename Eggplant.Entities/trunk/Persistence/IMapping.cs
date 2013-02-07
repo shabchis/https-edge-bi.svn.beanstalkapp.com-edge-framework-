@@ -13,13 +13,15 @@ namespace Eggplant.Entities.Persistence
 	public interface IMapping
 	{
 		EntitySpace EntitySpace { get; }
+		IMapping BaseMapping { get; }
 		IMapping ParentMapping { get; }
 		IList<IMapping> SubMappings { get; }
 
 		MappingContext CreateContext(MappingContext baseContext);
-		MappingContext CreateContext(PersistenceAdapter channel);
+		MappingContext CreateContext(PersistenceAdapter channel, Subquery subquery);
 
 		void Apply(MappingContext context);
+		void InnerApply(MappingContext context, bool applyInheritedMappings = true, bool applyDerivedMappings = true);
 	}
 
 	public interface IChildMapping : IMapping

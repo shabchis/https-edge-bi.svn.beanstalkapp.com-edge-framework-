@@ -31,6 +31,14 @@ namespace Edge.Data.Objects
 					.Do(context => context.NullIf<int>("ChannelID", id => id == -1))
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 				)
+
+				.MapListFromSubquery<EdgeType, EdgeField>(EdgeType.Properties.Fields, "EdgeFields",
+					parent => parent
+						.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
+					,
+					item => item
+						.UseMapping(EdgeField.Mappings.Default)
+				)
 			);
 
 		}
@@ -38,7 +46,32 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<EdgeType> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<EdgeType>(Mappings.Default)
-				.RootSubquery("select * from MD_EdgeType where AccountID in (-1, @accountID) and ChannelID in (-1, @channelID)", init => init
+				.RootSubquery(@"
+					select *
+					from MD_EdgeType
+					where
+						AccountID in (-1, @accountID) and
+						ChannelID in (-1, @channelID)
+				", init => init
+					.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
+					.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
+				)
+				.Subquery("EdgeFields", @"
+					select
+						types.TypeID as ParentTypeID,
+						fields.FieldID as FieldID,
+						fields.FieldType as FieldType,
+						fields.Name as Name
+					from
+						MD_EdgeType as types
+						inner join MD_EdgeField as fields on
+							fields.ParentTypeID in (-1, types.TypeID) and
+							fields.AccountID in (-1, types.AccountID) and
+							fields.ChannelID in (-1, types.ChannelID)
+					where
+						types.AccountID in (-1, @accountID) and
+						types.ChannelID in (-1, @channelID)
+				", init => init
 					.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
 					.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
 				)
@@ -53,7 +86,7 @@ namespace Edge.Data.Objects
 				.Param<Account>("account", account)
 				.Param<Channel>("channel", channel)
 				.Connect(connection)
-				.Execute(QueryExecutionMode.Buffered);
+				.Execute();
 		}
 	}
 }

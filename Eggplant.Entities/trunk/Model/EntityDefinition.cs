@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using Eggplant.Entities.Persistence;
 
 namespace Eggplant.Entities.Model
 {
@@ -12,6 +13,7 @@ namespace Eggplant.Entities.Model
 		Type TargetType { get; }
 		IDictionary<string,IEntityProperty> Properties { get; }
 		IList<IdentityDefinition> Identities { get; }
+		IList<IMapping> Mappings { get; }
 	}
 
 	public class EntityDefinition<T> : IEntityDefinition
@@ -19,6 +21,7 @@ namespace Eggplant.Entities.Model
 		public readonly Type TargetType = typeof(T);
 		public Dictionary<string,IEntityProperty> Properties { get; private set; }
 		public List<IdentityDefinition> Identities { get; private set; }
+		public List<IMapping> Mappings { get; private set; }
 
 		public IEntityDefinition BaseDefinition { get; private set; }
 
@@ -76,6 +79,11 @@ namespace Eggplant.Entities.Model
 		IDictionary<string, IEntityProperty> IEntityDefinition.Properties
 		{
 			get { return this.Properties; }
+		}
+
+		IList<IMapping> IEntityDefinition.Mappings
+		{
+			get { return this.Mappings; }
 		}
 
 		IList<IdentityDefinition> IEntityDefinition.Identities

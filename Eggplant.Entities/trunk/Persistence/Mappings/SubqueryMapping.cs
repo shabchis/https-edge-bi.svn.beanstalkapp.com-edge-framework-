@@ -25,8 +25,9 @@ namespace Eggplant.Entities.Persistence
 		{
 			while (context.Adapter.Read())
 			{
-				base.ApplyInner(context);
-				yield return context.Target;
+				((IMapping)this).InnerApply(context);
+				if (context.Target != null)
+					yield return context.Target;
 			}
 		}
 

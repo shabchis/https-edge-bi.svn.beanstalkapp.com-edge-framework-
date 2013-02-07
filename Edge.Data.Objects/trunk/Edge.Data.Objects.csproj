@@ -92,6 +92,8 @@
     <Compile Include="Mappings\Channel.cs" />
     <Compile Include="Mappings\ChannelSpecificObject.cs" />
     <Compile Include="Mappings\CompositeCreative.cs" />
+    <Compile Include="Mappings\CompositePartField.cs" />
+    <Compile Include="Mappings\ExtraField.cs" />
     <Compile Include="Mappings\EdgeField.cs" />
     <Compile Include="Mappings\PlacementTarget.cs" />
     <Compile Include="Mappings\GenderTarget.cs" />
@@ -112,6 +114,8 @@
     <Compile Include="Model\Channel.cs" />
     <Compile Include="Model\ChannelSpecificObject.cs" />
     <Compile Include="Model\CompositeCreative.cs" />
+    <Compile Include="Model\CompositePartField.cs" />
+    <Compile Include="Model\ExtraField.cs" />
     <Compile Include="Model\EdgeField.cs" />
     <Compile Include="Model\TargetDefinition.cs" />
     <Compile Include="Model\Currency.cs" />

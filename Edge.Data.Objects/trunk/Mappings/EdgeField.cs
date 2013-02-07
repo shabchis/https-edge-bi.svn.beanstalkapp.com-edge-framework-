@@ -11,32 +11,22 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<EdgeField> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeField>()
+				.Type(field: "FieldType")
 				.Map<int>(EdgeField.Properties.FieldID, "FieldID")
-				.Map<bool>(EdgeField.Properties.IsSystem, "IsSystem")
-				.Map<Account>(EdgeField.Properties.Account, account => account
-					.Do(context => context.NullIf<int>("AccountID", id => id == -1))
-					.Map<int>(Account.Properties.ID, "AccountID")
-				)
-				.Map<Channel>(EdgeField.Properties.Channel, channel => channel
-					.Do(context => context.NullIf<int>("ChannelID", id => id == -1))
-					.Map<int>(Channel.Properties.ID, "ChannelID")
-				)
 				.Map<string>(EdgeField.Properties.Name, "Name")
 				.Map<string>(EdgeField.Properties.DisplayName, "DisplayName")
-				.Map<EdgeType>(EdgeField.Properties.ObjectEdgeType, edgeType => edgeType
-					.Map<int>(EdgeType.Properties.TypeID, "ObjectTypeID")
-					.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
-						.Set(context => Type.GetType(context.GetField<string>("ObjectClrType")))
-					)
-				)
 				.Map<EdgeType>(EdgeField.Properties.FieldEdgeType, edgeType => edgeType
 					.Map<int>(EdgeType.Properties.TypeID, "FieldTypeID")
 					.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
-						.Set(context => Type.GetType(context.GetField<string>("FieldClrType")))
+						.Set(context => context.HasField("FieldClrType") ? Type.GetType(context.GetField<string>("FieldClrType")) : null)
+						//.Set(context => context.IfFieldPresent<string>("FieldClrType", value => Type.GetType(value), null))
 					)
 				)
-				.Map<Type>(EdgeField.Properties.FieldClrType, clrType => clrType
-					.Set(context => Type.GetType(context.GetField<string>("FieldClrType")))
+				.Map<EdgeType>(EdgeField.Properties.ParentEdgeType, edgeType => edgeType
+					.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
+					.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
+						.Set(context => context.HasField("ParentClrType") ? Type.GetType(context.GetField<string>("ParentClrType")) : null)
+					)
 				)
 				.Map<string>(EdgeField.Properties.ColumnPrefix, "ColumnPrefix")
 				.Map<int>(EdgeField.Properties.ColumnIndex, "ColumnIndex")

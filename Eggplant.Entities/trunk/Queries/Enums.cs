@@ -5,12 +5,6 @@ using System.Text;
 
 namespace Eggplant.Entities.Queries
 {
-	public enum QueryExecutionMode
-	{
-		Streaming,
-		Buffered
-	}
-
 	public enum SortOrder
 	{
 		Ascending,
