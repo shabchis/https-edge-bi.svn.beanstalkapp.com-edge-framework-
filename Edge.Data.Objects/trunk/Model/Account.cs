@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class Account
 	{
-		public static EntityDefinition<Account> Definition = new EntityDefinition<Account>(fromReflection: typeof(Properties));
+		public static EntityDefinition<Account> Definition = new EntityDefinition<Account>(fromReflection: true);
 
 		public static class Properties
 		{

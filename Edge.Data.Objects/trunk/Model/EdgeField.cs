@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class EdgeField
 	{
-		public static EntityDefinition<EdgeField> Definition = new EntityDefinition<EdgeField>(fromReflection: typeof(Properties));
+		public static EntityDefinition<EdgeField> Definition = new EntityDefinition<EdgeField>(fromReflection: true);
 
 		public static class Properties
 		{

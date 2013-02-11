@@ -21,6 +21,19 @@ namespace Eggplant.Entities
 			this.Definitions = new Dictionary<Type,IEntityDefinition>();
 		}
 
+		/*
+		public bool IsDefined(Type entityType)
+		{
+			IEntityDefinition def;
+			return this.Definitions.TryGetValue(entityType, out def);
+		}
+
+		public bool IsDefined<T>()
+		{
+			return IsDefined(typeof(T));
+		}
+		*/
+
 		public IEntityDefinition GetDefinition(Type entityType)
 		{
 			IEntityDefinition def;

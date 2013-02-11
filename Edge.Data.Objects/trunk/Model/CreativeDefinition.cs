@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class CreativeDefinition
 	{
-		public static EntityDefinition<CreativeDefinition> Definition = new EntityDefinition<CreativeDefinition>(baseDefinition: CreativeReference.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<CreativeDefinition> Definition = new EntityDefinition<CreativeDefinition>(baseDefinition: CreativeReference.Definition, fromReflection: true);
 
 		public static class Properties
 		{

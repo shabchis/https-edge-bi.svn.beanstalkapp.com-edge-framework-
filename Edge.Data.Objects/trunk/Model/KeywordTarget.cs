@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class KeywordTarget
 	{
-		public static EntityDefinition<KeywordTarget> Definition = new EntityDefinition<KeywordTarget>(baseDefinition: Target.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<KeywordTarget> Definition = new EntityDefinition<KeywordTarget>(baseDefinition: Target.Definition, fromReflection: true);
 
 		public static class Properties
 		{

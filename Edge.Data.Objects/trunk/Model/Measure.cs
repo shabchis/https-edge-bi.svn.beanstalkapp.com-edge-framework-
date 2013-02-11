@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class Measure
 	{
-		public static EntityDefinition<Measure> Definition = new EntityDefinition<Measure>(fromReflection: typeof(Properties));
+		public static EntityDefinition<Measure> Definition = new EntityDefinition<Measure>(fromReflection: true);
 
 		public static class Properties
 		{

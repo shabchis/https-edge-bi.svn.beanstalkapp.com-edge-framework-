@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class TargetMatch
 	{
-		public static EntityDefinition<TargetMatch> Definition = new EntityDefinition<TargetMatch>(baseDefinition: EdgeObject.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<TargetMatch> Definition = new EntityDefinition<TargetMatch>(baseDefinition: EdgeObject.Definition, fromReflection: true);
 
 		public static class Properties
 		{

@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class AgeTarget
 	{
-		public static EntityDefinition<AgeTarget> Definition = new EntityDefinition<AgeTarget>(baseDefinition: Target.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<AgeTarget> Definition = new EntityDefinition<AgeTarget>(baseDefinition: Target.Definition, fromReflection: true);
 
 		public static class Properties
 		{

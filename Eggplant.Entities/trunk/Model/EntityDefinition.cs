@@ -25,14 +25,24 @@ namespace Eggplant.Entities.Model
 
 		public IEntityDefinition BaseDefinition { get; private set; }
 
-		public EntityDefinition(IEntityDefinition baseDefinition = null, Type fromReflection = null)
+		public EntityDefinition(IEntityDefinition baseDefinition = null, bool fromReflection = false, Type reflectionSource = null)
 		{
-			this.Properties = new Dictionary<string,IEntityProperty>();
 			this.BaseDefinition = baseDefinition;
+			this.Properties = new Dictionary<string,IEntityProperty>();
+			this.Mappings = new List<IMapping>();
 
-			if (fromReflection != null)
+			// Use reflection to find properties/mappings/identites if fromReflection is true or reflectionSource is specified
+			fromReflection |= reflectionSource != null;
+			if (!fromReflection)
+				return;
+
+			// Use either the specified reflection source or the type itself
+			reflectionSource = reflectionSource ?? typeof(T);
+
+			Type propContainer = reflectionSource.GetNestedType("Properties", BindingFlags.Static | BindingFlags.Public);
+			if (propContainer != null)
 			{
-				FieldInfo[] fields = fromReflection.GetFields(BindingFlags.Static | BindingFlags.Public);
+				FieldInfo[] fields = propContainer.GetFields(BindingFlags.Static | BindingFlags.Public);
 				foreach (FieldInfo info in fields)
 				{
 					if (!typeof(IEntityProperty).IsAssignableFrom(info.FieldType))
@@ -65,6 +75,19 @@ namespace Eggplant.Entities.Model
 					}
 
 					this.Properties.Add(info.Name, entityProperty);
+				}
+			}
+
+			Type mappingContainer = reflectionSource.GetNestedType("Mappings", BindingFlags.Static | BindingFlags.Public);
+			if (mappingContainer != null)
+			{
+				FieldInfo[] fields = mappingContainer.GetFields(BindingFlags.Static | BindingFlags.Public);
+				foreach (FieldInfo info in fields)
+				{
+					if (!typeof(Mapping<T>).IsAssignableFrom(info.FieldType))
+						continue;
+
+					this.Mappings.Add((IMapping)info.GetValue(null));
 				}
 			}
 		}

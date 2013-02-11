@@ -14,13 +14,23 @@ namespace Eggplant.Entities.Cache
 		public EntityCache(params IdentityDefinition[] defs)
 		{
 			_objects = new Dictionary<IdentityDefinition, Dictionary<Identity, EntityCacheEntry<T>>>();
-			foreach (var def in defs)
-				_objects.Add(def, new Dictionary<Identity, EntityCacheEntry<T>>());
+		}
+
+		public T Update(T obj, IEntityProperty[] activeProperties)
+		{
+			throw new NotImplementedException();
 		}
 
 		public T Get(IdentityDefinition def, Identity id)
 		{
-			return this._objects[def][id].Object;
+			Dictionary<Identity, EntityCacheEntry<T>> dict;
+			if (!_objects.TryGetValue(def, out dict))
+			{
+				dict = new Dictionary<Identity, EntityCacheEntry<T>>();
+				_objects[def] = dict;
+			}
+
+			return dict[id].Object;
 		}
 
 		public T Get(IdentityDefinition def, params object[] idParts)
@@ -28,9 +38,9 @@ namespace Eggplant.Entities.Cache
 			return Get(def, def.NewIdentity(idParts));
 		}
 
-		public IEnumerable<T> Get()
+		public IEnumerable<T> Get(IdentityDefinition def)
 		{
-			return this._objects.First().Value.Values.Select<EntityCacheEntry<T>, T>(entry => entry.Object);
+			return this._objects[def].Values.Select<EntityCacheEntry<T>, T>(entry => entry.Object);
 		}
 
 		public void Add(IEnumerable<T> objects, IEntityProperty[] activeProperties)
@@ -76,7 +86,7 @@ namespace Eggplant.Entities.Cache
 
 		System.Collections.IEnumerable IEntityCache.Get()
 		{
-			return this.Get();
+			throw new NotImplementedException();
 		}
 
 		void IEntityCache.Add(IEnumerable objects, IEntityProperty[] activeProperties)

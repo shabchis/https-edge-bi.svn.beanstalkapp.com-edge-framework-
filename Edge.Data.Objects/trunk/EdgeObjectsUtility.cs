@@ -273,7 +273,7 @@ namespace Edge.Data.Objects
 		{
 
 			mapping.Map<List<ItemT>>(listProperty, list => list
-				.Subquery(subqueryName, subquery => subquery
+				.Subquery<ItemT>(subqueryName, subquery => subquery
 					.Map<ParentT>("parent", parentMappingFunction)
 					.Map<ItemT>("item", itemMappingFunction)
 					.Do(context =>
@@ -285,6 +285,9 @@ namespace Edge.Data.Objects
 							l = new List<ItemT>();
 
 						l.Add(item);
+
+						// This has no real value but helps makes sense of this cruel world
+						context.Target = item;
 					})
 				)
 			);
