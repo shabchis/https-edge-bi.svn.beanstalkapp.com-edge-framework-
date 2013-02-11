@@ -64,10 +64,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
 			
 			// create metrics table using metrics table manager and sample metrics
-			var tableName = _tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
+			var tableMetadata = _tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
 			
-			// store table name in delivery
-			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = tableName;
+			// store table name and table metadata in delivery
+			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = _tableManager.TableName;
+			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.MetricsTableMetadata] = tableMetadata;
 
 			// CHECKSUMMANAGER: setup
 
