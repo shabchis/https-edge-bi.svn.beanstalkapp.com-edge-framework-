@@ -31,7 +31,7 @@ namespace Edge.Data.Objects
 					)
 				)
 				*/
-
+				/*
 				.MapDictionaryFromSubquery<CompositeCreative, string, SingleCreative>(CompositeCreative.Properties.Parts, "Parts",
 					parent => parent
 						.Map<long>(EdgeObject.Properties.GK, "CompositeGK"),
@@ -40,6 +40,7 @@ namespace Edge.Data.Objects
 					value => value
 						.MapEdgeObject("PartGK", "PartTypeID", "PartClrType")
 				)
+				*/
 			);
 		}
 	}

@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<CreativeMatch, CreativeDefinition> Definition = new EntityProperty<CreativeMatch, CreativeDefinition>("Definition");
+			public static EntityProperty<CreativeMatch, CreativeDefinition> CreativeDefinition = new EntityProperty<CreativeMatch, CreativeDefinition>("CreativeDefinition");
 		}
 	}
 }

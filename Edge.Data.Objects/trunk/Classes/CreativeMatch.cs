@@ -7,6 +7,6 @@ namespace Edge.Data.Objects
 {
 	public abstract partial class CreativeMatch : CreativeReference
 	{
-		public CreativeDefinition Definition;
+		public CreativeDefinition CreativeDefinition;
 	}
 }
