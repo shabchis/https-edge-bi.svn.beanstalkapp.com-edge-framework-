@@ -14,11 +14,6 @@ namespace Edge.Data.Objects
 				.Inherit(ChannelSpecificObject.Mappings.Default)
 
 				.Map<string>(Ad.Properties.DestinationUrl, "DestinationUrl")
-
-
-				.Map<Creative>(Ad.Properties.Creative, creative => creative
-					.MapEdgeObject("CreativeGK", "CreativeTypeID", "CreativeClrType")
-				)
 			);
 		}
 	}

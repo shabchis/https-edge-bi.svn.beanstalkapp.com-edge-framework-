@@ -87,57 +87,162 @@
     <Compile Include="Classes\KeywordTarget.cs" />
     <Compile Include="Classes\PlacementTarget.cs" />
     <Compile Include="EdgeObjectsUtility.cs" />
-    <Compile Include="Mappings\Account.cs" />
-    <Compile Include="Mappings\Ad.cs" />
-    <Compile Include="Mappings\Channel.cs" />
-    <Compile Include="Mappings\ChannelSpecificObject.cs" />
-    <Compile Include="Mappings\CompositeCreative.cs" />
-    <Compile Include="Mappings\CompositePartField.cs" />
-    <Compile Include="Mappings\ExtraField.cs" />
-    <Compile Include="Mappings\EdgeField.cs" />
-    <Compile Include="Mappings\PlacementTarget.cs" />
-    <Compile Include="Mappings\GenderTarget.cs" />
-    <Compile Include="Mappings\ImageCreative.cs" />
-    <Compile Include="Mappings\KeywordTarget.cs" />
-    <Compile Include="Mappings\SingleCreative.cs" />
-    <Compile Include="Mappings\Creative.cs" />
-    <Compile Include="Mappings\EdgeType.cs" />
-    <Compile Include="Mappings\StringValue.cs" />
-    <Compile Include="Mappings\Target.cs" />
-    <Compile Include="Mappings\TargetDefinition.cs" />
-    <Compile Include="Mappings\TargetMatch.cs" />
-    <Compile Include="Mappings\TextCreative.cs" />
-    <Compile Include="Model\Account.cs" />
-    <Compile Include="Model\Ad.cs" />
-    <Compile Include="Model\AgeTarget.cs" />
-    <Compile Include="Model\Campaign.cs" />
-    <Compile Include="Model\Channel.cs" />
-    <Compile Include="Model\ChannelSpecificObject.cs" />
-    <Compile Include="Model\CompositeCreative.cs" />
-    <Compile Include="Model\CompositePartField.cs" />
-    <Compile Include="Model\ExtraField.cs" />
-    <Compile Include="Model\EdgeField.cs" />
-    <Compile Include="Model\TargetDefinition.cs" />
-    <Compile Include="Model\Currency.cs" />
-    <Compile Include="Model\CurrencyRate.cs" />
-    <Compile Include="Model\EdgeObject.cs" />
-    <Compile Include="Model\EdgeType.cs" />
-    <Compile Include="Model\GenderTarget.cs" />
-    <Compile Include="Model\ImageCreative.cs" />
-    <Compile Include="Model\KeywordTarget.cs" />
-    <Compile Include="Model\LandingPage.cs" />
-    <Compile Include="Model\Measure.cs" />
-    <Compile Include="Model\PlacementTarget.cs" />
-    <Compile Include="Model\StringValue.cs" />
-    <Compile Include="Model\Target.cs" />
-    <Compile Include="Model\TargetMatch.cs" />
-    <Compile Include="Model\TextCreative.cs" />
+    <Compile Include="Mappings\Account.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Ad.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Channel.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\ChannelSpecificObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\CompositeCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\CompositePartField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Creative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\EdgeField.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Mappings\EdgeObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\EdgeType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\ExtraField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\GenderTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\ImageCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\KeywordTarget.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Mappings\Measure.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Mappings\PlacementTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\SingleCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\StringValue.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Target.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\TargetDefinition.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\TargetMatch.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\TextCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Account.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Ad.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\AgeTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Campaign.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Channel.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ChannelSpecificObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\CompositeCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\CompositeCreativeDefinition.cs" />
+    <Compile Include="Model\CompositeCreativeMatch.cs" />
+    <Compile Include="Model\CompositePartField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Creative.cs" />
+    <Compile Include="Model\CreativeDefinition.cs" />
+    <Compile Include="Model\CreativeMatch.cs" />
+    <Compile Include="Model\CreativeReference.cs" />
+    <Compile Include="Model\Currency.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\CurrencyRate.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ExtraField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\GenderTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ImageCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ImageCreativeDefinition.cs" />
+    <Compile Include="Model\ImageCreativeMatch.cs" />
+    <Compile Include="Model\KeywordTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\LandingPage.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Measure.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\PlacementTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\SingleCreative.cs" />
+    <Compile Include="Model\SingleCreativeDefinition.cs" />
+    <Compile Include="Model\SingleCreativeMatch.cs" />
+    <Compile Include="Model\StringValue.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\SystemField.cs" />
+    <Compile Include="Model\Target.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TargetDefinition.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TargetField.cs" />
+    <Compile Include="Model\TargetMatch.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TextCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TextCreativeDefinition.cs" />
+    <Compile Include="Model\TextCreativeMatch.cs" />
     <None Include="Edge.Data.Objects.snk" />
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
