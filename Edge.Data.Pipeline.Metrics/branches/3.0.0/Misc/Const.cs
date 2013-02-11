@@ -9,6 +9,8 @@
 			public const string DeliveryMetricsTableName = "DeliveryMetricsTableName";
 			public const string StagingMetricsTableName = "StagingMetricsTableName";
 			public const string CommitMetricsTableName = "CommitMetricsTableName";
+
+			public const string MetricsTableMetadata = "MetricsTableMetadata";
 		}
 
 		public static class AppSettings
@@ -18,7 +20,6 @@
 			public const string SqlStageCommand = "Sql.StageCommand";
 			public const string SqlCommitCommand = "Sql.CommitCommand";
 			public const string SqlRollbackCommand = "Sql.RollbackCommand";
-			
 		}
 
 		public static class ConnectionStrings

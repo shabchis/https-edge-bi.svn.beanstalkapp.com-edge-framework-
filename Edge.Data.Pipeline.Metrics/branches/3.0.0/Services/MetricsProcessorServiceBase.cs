@@ -121,7 +121,16 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
 			if (field == null)
 				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
-			return new CompositePartField(field);
+			return new CompositePartField
+				{
+					FieldID = field.FieldID,
+					Name = field.Name,
+					DisplayName = field.DisplayName,
+					ColumnPrefix = field.ColumnPrefix,
+					ColumnIndex = field.ColumnIndex,
+					FieldEdgeType = field.FieldEdgeType,
+					ParentEdgeType = field.ParentEdgeType
+				};
 		}
 
 		public Measure GetMeasure(dynamic name)
@@ -363,10 +372,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 									Name = reader["Name"].ToString(),
 									DisplayName = reader["DisplayName"].ToString(),
 									ColumnIndex = int.Parse(reader["ColumnIndex"].ToString()),
-									ColumnType = reader["ColumnType"].ToString(),
-									FieldClrType = Type.GetType(reader["FieldClrType"].ToString()),
-									FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["EdgeTypeID"].ToString())),
-									ParentEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["ParentEdgeTypeID"].ToString()))
+									ColumnPrefix = reader["ColumnPrefix"].ToString(),
+									FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["FieldTypeID"].ToString())),
+									ParentEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["ParentTypeID"].ToString()))
 								};
 							ExtraFields.Add(field);
 						}

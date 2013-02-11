@@ -198,19 +198,19 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			foreach (var field in obj.ExtraFields)
 			{
-				if (field.Key.ColumnType == "obj")
+				if (field.Key.ColumnPrefix == "obj")
 				{
 					var edgeObj = field.Value as EdgeObject;
 					if (edgeObj != null)
 					{
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_GK", field.Key.ColumnType, field.Key.ColumnIndex), edgeObj.GK);
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_TK", field.Key.ColumnType, field.Key.ColumnIndex), edgeObj.TK);
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_type", field.Key.ColumnType, field.Key.ColumnIndex), field.Key.FieldEdgeType.TypeID);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_gk", field.Key.ColumnPrefix, field.Key.ColumnIndex), edgeObj.GK);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_tk", field.Key.ColumnPrefix, field.Key.ColumnIndex), edgeObj.TK);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_type", field.Key.ColumnPrefix, field.Key.ColumnIndex), field.Key.FieldEdgeType.TypeID);
 					}
 				}
 				else // for all primitive types only value (INT, STRING, FLOAT, etc.)
 				{
-					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.Key.ColumnType, field.Key.ColumnIndex), field.Value);
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.Key.ColumnPrefix, field.Key.ColumnIndex), field.Value);
 				}
 			}
 		}
@@ -241,7 +241,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					{
 						value = (int)Enum.Parse(fieldInfo.FieldType, value.ToString());
 					}
-					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.ColumnType, field.ColumnIndex), value);
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.ColumnPrefix, field.ColumnIndex), value);
 				}
 			}
 		}
@@ -262,9 +262,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				AddColumn(ref columns, ref values, paramList, "DestinationUrl", ad.DestinationUrl);
 
 				// creative
-				AddColumn(ref columns, ref values, paramList, "CreativeDefinitionGK", ad.CreativeDefinition.GK);
-				AddColumn(ref columns, ref values, paramList, "CreativeDefinitionTK", ad.CreativeDefinition.TK);
-				AddColumn(ref columns, ref values, paramList, "CreativeDefinitionTypeID", ad.CreativeDefinition.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "CreativeDefinition_gk", ad.CreativeDefinition.GK);
+				AddColumn(ref columns, ref values, paramList, "CreativeDefinition_tk", ad.CreativeDefinition.TK);
+				AddColumn(ref columns, ref values, paramList, "CreativeDefinition_type", ad.CreativeDefinition.EdgeType.TypeID);
 			}
 			else if (edgeObject is CreativeDefinition)
 			{
@@ -273,14 +273,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				AddColumn(ref columns, ref values, paramList, "DestinationUrl", creativeDef.DestinationUrl);
 
 				// creative
-				AddColumn(ref columns, ref values, paramList, "CreativeGK", creativeDef.Creative.GK);
-				AddColumn(ref columns, ref values, paramList, "CreativeTK", creativeDef.Creative.TK);
-				AddColumn(ref columns, ref values, paramList, "CreativeTypeID", creativeDef.Creative.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "Creative_gk", creativeDef.Creative.GK);
+				AddColumn(ref columns, ref values, paramList, "Creative_tk", creativeDef.Creative.TK);
+				AddColumn(ref columns, ref values, paramList, "Creative_type", creativeDef.Creative.EdgeType.TypeID);
 
 				// add
-				AddColumn(ref columns, ref values, paramList, "ParentGK", creativeDef.Parent.GK);
-				AddColumn(ref columns, ref values, paramList, "ParentTK", creativeDef.Parent.TK);
-				AddColumn(ref columns, ref values, paramList, "ParentTypeID", creativeDef.Parent.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "Parent_gk", creativeDef.Parent.GK);
+				AddColumn(ref columns, ref values, paramList, "Parent_tk", creativeDef.Parent.TK);
+				AddColumn(ref columns, ref values, paramList, "Parent_type", creativeDef.Parent.EdgeType.TypeID);
 			}
 			else
 			{

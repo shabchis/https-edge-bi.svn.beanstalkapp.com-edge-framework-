@@ -8,6 +8,7 @@ using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
+using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
@@ -33,12 +34,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		#region Data Members
 		private const string EGDE_OBJECTS_SUFFIX = "Usid";
-		string _tablePrefix;
+		public string TableName { get; set; }
 
 		readonly SqlConnection _sqlConnection;
 		readonly EdgeObjectsManager _edgeObjectsManger;
 
 		readonly Dictionary<string, Column> _columns = new Dictionary<string, Column>();
+
 		#endregion
 
 		#region Ctor
@@ -52,21 +54,24 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Delivery Metrics
 
 		#region Create delivery metrics table
+
 		/// <summary>
 		/// Create delivery metric table named by table prefix using sample metric unit structure
 		/// </summary>
-		/// <param name="tablePerifx">delivery metric table prefix</param>
+		/// <param name="tablePrefix"></param>
 		/// <param name="metricsUnit">sample metric unit for table structure</param>
 		/// <returns></returns>
-		public string CreateDeliveryMetricsTable(string tablePerifx, MetricsUnit metricsUnit)
+		public MetricsTableMetadata CreateDeliveryMetricsTable(string tablePrefix, MetricsUnit metricsUnit)
 		{
-			_tablePrefix = tablePerifx;
+			TableName = string.Format("[DBO].[{0}_Metrics]", tablePrefix);
 
 			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
 
 			var columnList = GetColumnList(flatObjectList, false); // sampe metrics objects are not added to object cache
 
-			return CreateTable(columnList);
+			CreateTable(columnList);
+
+			return GetTableMetadata(flatObjectList);
 		}
 
 		/// <summary>
@@ -75,11 +80,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// </summary>
 		/// <param name="columnList"></param>
 		/// <returns></returns>
-		private string CreateTable(IEnumerable<Column> columnList)
+		private void CreateTable(IEnumerable<Column> columnList)
 		{
 			var builder = new StringBuilder();
-			var tableName = string.Format("{0}_Metrics", _tablePrefix);
-			builder.AppendFormat("CREATE TABLE  [dbo].[{0}](\n", tableName);
+			builder.AppendFormat("CREATE TABLE {0}(\n", TableName);
 
 			foreach (var col in columnList)
 			{
@@ -98,8 +102,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
 				command.ExecuteNonQuery();
 			}
-
-			return tableName;
 		} 
 		#endregion
 
@@ -137,7 +139,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 				// prepare and execute INSERT
 				command.Connection = _sqlConnection;
-				command.CommandText = String.Format("INSERT INTO [DBO].[{0}_Metrics] ({1}) VALUES ({2});", _tablePrefix, columnsStr, valuesStr);
+				command.CommandText = String.Format("INSERT INTO {0} ({1}) VALUES ({2});", TableName, columnsStr, valuesStr);
 				command.ExecuteNonQuery();
 			}
 		} 
@@ -198,8 +200,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			columnName = String.IsNullOrEmpty(columnName) ? obj.EdgeType.Name : columnName;
 
 			// add 3 columns: GK (to be set later in Identify stage), TK (temp key) and type (from EdgeTypes)
-			columnList.Add(new Column { Name = String.Format("{0}_GK", columnName), Value = obj.GK });
-			columnList.Add(new Column { Name = String.Format("{0}_TK", columnName), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
+			columnList.Add(new Column { Name = String.Format("{0}_gk", columnName), Value = obj.GK });
+			columnList.Add(new Column { Name = String.Format("{0}_tk", columnName), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
 			columnList.Add(new Column { Name = String.Format("{0}_type", columnName), Value = obj.EdgeType.TypeID, DbType = SqlDbType.Int });
 
 			return columnList;
@@ -244,6 +246,30 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					type == typeof(DateTime) ? SqlDbType.DateTime :
 					type == typeof(double) ? SqlDbType.Float :
 					SqlDbType.NVarChar;
+		}
+
+		private MetricsTableMetadata GetTableMetadata(IEnumerable<object> flatObjectList)
+		{
+			var tableMetadata = new MetricsTableMetadata();
+			foreach (var obj in flatObjectList)
+			{
+				var fieldMetadata = new FieldMetadata();
+				if (obj is ObjectDimension && (obj as ObjectDimension).Value is EdgeObject)
+				{
+					var dimention = obj as ObjectDimension;
+					fieldMetadata.FieldId = dimention.Field != null ? dimention.Field.FieldID : 0;
+					fieldMetadata.FieldName = dimention.Field != null ? dimention.Field.Name : null;
+				}
+				else if (obj is KeyValuePair<Measure, double>)
+				{
+					var measure = (KeyValuePair<Measure, double>)obj;
+					fieldMetadata.FieldName = measure.Key.Name;
+					fieldMetadata.IsMeasure = true;
+				}
+				if (fieldMetadata.FieldId > 0 || fieldMetadata.IsMeasure)
+					tableMetadata.FieldList.Add(fieldMetadata);
+			}
+			return tableMetadata;
 		}
 
 		#endregion
