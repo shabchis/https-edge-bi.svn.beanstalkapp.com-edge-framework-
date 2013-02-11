@@ -12,6 +12,7 @@ namespace Edge.Data.Objects
 		public static class Properties
 		{
 			public static EntityProperty<Campaign, double> Budget = new EntityProperty<Campaign, double>("Budget");
+			public static EntityProperty<Campaign, string> Name = new EntityProperty<Campaign, string>("Name");
 		}
 	}
 }

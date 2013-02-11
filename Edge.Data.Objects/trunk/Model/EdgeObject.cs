@@ -12,9 +12,10 @@ namespace Edge.Data.Objects
 		public static class Properties
 		{
 			public static EntityProperty<EdgeObject, long> GK = new EntityProperty<EdgeObject, long>("GK");
+			public static EntityProperty<EdgeObject, string> TK = new EntityProperty<EdgeObject, string>("TK");
 			public static EntityProperty<EdgeObject, Account> Account = new EntityProperty<EdgeObject, Account>("Account");
 			public static EntityProperty<EdgeObject, EdgeType> EdgeType = new EntityProperty<EdgeObject, EdgeType>("EdgeType");
-			public static EntityProperty<EdgeObject, Dictionary<ExtraField, object>> ExtraFields = new EntityProperty<EdgeObject, Dictionary<ExtraField, object>>("ExtraFields");
+			public static EntityProperty<EdgeObject, Dictionary<Edge.Data.Objects.ExtraField, object>> ExtraFields = new EntityProperty<EdgeObject, Dictionary<Edge.Data.Objects.ExtraField, object>>("ExtraFields");
 		}
 	}
 }

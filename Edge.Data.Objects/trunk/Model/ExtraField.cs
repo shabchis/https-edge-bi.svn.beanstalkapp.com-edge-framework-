@@ -11,8 +11,8 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<EdgeField, Account> Account = new EntityProperty<EdgeField, Account>("Account");
-			public static EntityProperty<EdgeField, Channel> Channel = new EntityProperty<EdgeField, Channel>("Channel");
+			public static EntityProperty<ExtraField, Account> Account = new EntityProperty<ExtraField, Account>("Account");
+			public static EntityProperty<ExtraField, Channel> Channel = new EntityProperty<ExtraField, Channel>("Channel");
 		}
 	}
 }

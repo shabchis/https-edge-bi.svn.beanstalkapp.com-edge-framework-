@@ -19,10 +19,5 @@ namespace Edge.Data.Objects
 			public static EntityProperty<EdgeField, string> ColumnPrefix = new EntityProperty<EdgeField, string>("ColumnPrefix");
 			public static EntityProperty<EdgeField, int> ColumnIndex = new EntityProperty<EdgeField, int>("ColumnIndex");
 		}
-
-		public static class Identities
-		{
-			public static IdentityDefinition Default = new IdentityDefinition(Properties.FieldID);	
-		}
 	}
 }
