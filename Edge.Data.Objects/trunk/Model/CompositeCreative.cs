@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<CompositeCreative, Dictionary<string, Edge.Data.Objects.SingleCreative>> Parts = new EntityProperty<CompositeCreative, Dictionary<string, Edge.Data.Objects.SingleCreative>>("Parts");
+			public static EntityProperty<CompositeCreative, Dictionary<Edge.Data.Objects.CompositePartField, Edge.Data.Objects.SingleCreative>> Parts = new EntityProperty<CompositeCreative, Dictionary<Edge.Data.Objects.CompositePartField, Edge.Data.Objects.SingleCreative>>("Parts");
 		}
 	}
 }

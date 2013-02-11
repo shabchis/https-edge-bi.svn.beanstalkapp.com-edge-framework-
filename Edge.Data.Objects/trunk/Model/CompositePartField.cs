@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<EdgeField, Channel> Channel = new EntityProperty<EdgeField, Channel>("Channel");
+			public static EntityProperty<CompositePartField, Channel> Channel = new EntityProperty<CompositePartField, Channel>("Channel");
 		}
 	}
 }
