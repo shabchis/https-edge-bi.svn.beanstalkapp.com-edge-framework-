@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class Campaign
 	{
-		public static EntityDefinition<Campaign> Definition = new EntityDefinition<Campaign>(baseDefinition: ChannelSpecificObject.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<Campaign> Definition = new EntityDefinition<Campaign>(baseDefinition: ChannelSpecificObject.Definition, fromReflection: true);
 
 		public static class Properties
 		{

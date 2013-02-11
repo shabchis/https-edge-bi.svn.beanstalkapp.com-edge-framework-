@@ -87,6 +87,8 @@
     <Compile Include="Classes\KeywordTarget.cs" />
     <Compile Include="Classes\PlacementTarget.cs" />
     <Compile Include="EdgeObjectsUtility.cs" />
+    <Compile Include="Identities\EdgeField.cs" />
+    <Compile Include="Identities\EdgeType.cs" />
     <Compile Include="Mappings\Account.cs">
       <SubType>Code</SubType>
     </Compile>

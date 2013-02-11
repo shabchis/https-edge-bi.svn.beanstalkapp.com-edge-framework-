@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class ChannelSpecificObject
 	{
-		public static EntityDefinition<ChannelSpecificObject> Definition = new EntityDefinition<ChannelSpecificObject>(baseDefinition: EdgeObject.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<ChannelSpecificObject> Definition = new EntityDefinition<ChannelSpecificObject>(baseDefinition: EdgeObject.Definition, fromReflection: true);
 
 		public static class Properties
 		{

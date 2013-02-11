@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class CreativeReference
 	{
-		public static EntityDefinition<CreativeReference> Definition = new EntityDefinition<CreativeReference>(baseDefinition: ChannelSpecificObject.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<CreativeReference> Definition = new EntityDefinition<CreativeReference>(baseDefinition: ChannelSpecificObject.Definition, fromReflection: true);
 
 		public static class Properties
 		{

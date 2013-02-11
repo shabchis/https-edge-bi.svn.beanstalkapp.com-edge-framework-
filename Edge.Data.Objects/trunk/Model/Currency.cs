@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class Currency
 	{
-		public static EntityDefinition<Currency> Definition = new EntityDefinition<Currency>(fromReflection: typeof(Properties));
+		public static EntityDefinition<Currency> Definition = new EntityDefinition<Currency>(fromReflection: true);
 
 		public static class Properties
 		{

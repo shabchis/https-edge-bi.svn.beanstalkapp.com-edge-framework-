@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class PlacementTarget
 	{
-		public static EntityDefinition<PlacementTarget> Definition = new EntityDefinition<PlacementTarget>(baseDefinition: Target.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<PlacementTarget> Definition = new EntityDefinition<PlacementTarget>(baseDefinition: Target.Definition, fromReflection: true);
 
 		public static class Properties
 		{

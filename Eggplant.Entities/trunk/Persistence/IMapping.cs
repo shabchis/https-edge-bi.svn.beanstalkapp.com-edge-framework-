@@ -21,7 +21,9 @@ namespace Eggplant.Entities.Persistence
 		MappingContext CreateContext(PersistenceAdapter channel, Subquery subquery);
 
 		void Apply(MappingContext context);
-		void InnerApply(MappingContext context, bool applyInheritedMappings = true, bool applyDerivedMappings = true);
+		void InnerApply(MappingContext context);
+
+		IEnumerable<IMapping> GetAllMappings(bool includeBase = true, Type untilBase = null);
 	}
 
 	public interface IChildMapping : IMapping

@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class CompositePartField
 	{
-		public static EntityDefinition<CompositePartField> Definition = new EntityDefinition<CompositePartField>(baseDefinition: EdgeField.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<CompositePartField> Definition = new EntityDefinition<CompositePartField>(baseDefinition: EdgeField.Definition, fromReflection: true);
 
 		public static class Properties
 		{

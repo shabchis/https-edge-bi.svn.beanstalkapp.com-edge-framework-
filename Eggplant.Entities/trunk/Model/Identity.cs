@@ -97,6 +97,24 @@ namespace Eggplant.Entities.Model
 			return new Identity(parts);
 		}
 
+		public Identity IdentityFrom(Dictionary<IEntityProperty, object> propertyValues)
+		{
+			IdentityPart[] parts = new IdentityPart[this.PartDefinitions.Length];
+			try
+			{
+				for (int i = 0; i < parts.Length; i++)
+				{
+					parts[i] = new IdentityPart(this.PartDefinitions[i], propertyValues[this.PartDefinitions[i].Property]);
+				}
+			}
+			catch (KeyNotFoundException)
+			{
+				throw new KeyNotFoundException("The supplied property values are missing properties that are required for this identity.");
+			}
+
+			return new Identity(parts);
+
+		}
 		
 		public Identity NewIdentity(params object[] values)
 		{

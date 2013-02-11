@@ -235,9 +235,8 @@ namespace Eggplant.Entities.Queries
 						}
 						else
 						{
-							foreach (object result in results)
-							{
-							}
+							// This is required in order for the IEnumerable to execute
+							foreach (object result in results);
 						}
 					}
 					while (reader.NextResult());

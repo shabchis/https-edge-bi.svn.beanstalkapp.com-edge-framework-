@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class LandingPage
 	{
-		public static EntityDefinition<LandingPage> Definition = new EntityDefinition<LandingPage>(baseDefinition: EdgeObject.Definition, fromReflection: typeof(Properties));
+		public static EntityDefinition<LandingPage> Definition = new EntityDefinition<LandingPage>(baseDefinition: EdgeObject.Definition, fromReflection: true);
 
 		public static class Properties
 		{
