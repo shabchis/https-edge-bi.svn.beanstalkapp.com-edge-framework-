@@ -10,7 +10,7 @@ namespace Eggplant.Entities.Model
 	public interface IEntityDefinition
 	{
 		IEntityDefinition BaseDefinition { get; }
-		Type TargetType { get; }
+		Type EntityType { get; }
 		IDictionary<string,IEntityProperty> Properties { get; }
 		IList<IdentityDefinition> Identities { get; }
 		IList<IMapping> Mappings { get; }
@@ -18,7 +18,7 @@ namespace Eggplant.Entities.Model
 
 	public class EntityDefinition<T> : IEntityDefinition
 	{
-		public readonly Type TargetType = typeof(T);
+		public readonly Type EntityType = typeof(T);
 		public Dictionary<string,IEntityProperty> Properties { get; private set; }
 		public List<IdentityDefinition> Identities { get; private set; }
 		public List<IMapping> Mappings { get; private set; }
@@ -94,9 +94,9 @@ namespace Eggplant.Entities.Model
 
 		#region IEntityDefinition Members
 
-		Type IEntityDefinition.TargetType
+		Type IEntityDefinition.EntityType
 		{
-			get { return this.TargetType; }
+			get { return this.EntityType; }
 		}
 
 		IDictionary<string, IEntityProperty> IEntityDefinition.Properties

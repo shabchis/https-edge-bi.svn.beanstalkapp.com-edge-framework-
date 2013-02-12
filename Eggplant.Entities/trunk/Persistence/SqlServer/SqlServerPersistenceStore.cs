@@ -26,9 +26,9 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			return new System.Data.SqlClient.SqlParameter(name, null);
 		}
 
-		public override PersistenceAdapter NewAdapter(System.Data.Common.DbDataReader reader)
+		public override PersistenceAdapter CreateAdapter(PersistenceConnection connection, System.Data.Common.DbDataReader reader)
 		{
-			return new SqlDataReaderAdapter((SqlDataReader)reader);
+			return new SqlDataReaderAdapter(connection, (SqlDataReader)reader);
 		}
 	}
 }

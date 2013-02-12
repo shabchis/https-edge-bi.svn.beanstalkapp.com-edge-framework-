@@ -35,6 +35,7 @@ namespace Edge.Data.Objects
 
 				.MapListFromSubquery<EdgeType, EdgeField>(EdgeType.Properties.Fields, "EdgeFields",
 					parent => parent
+						.Identity(EdgeType.Identities.Default)
 						.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
 					,
 					item => item

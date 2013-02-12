@@ -33,7 +33,7 @@ namespace Eggplant.Entities.Persistence
 
 		public abstract DbParameter NewDbParameter(string name);
 		public abstract DbCommand NewDbCommand(string commandText = null, CommandType commandType = CommandType.Text);
-		public abstract PersistenceAdapter NewAdapter(DbDataReader reader);
+		public abstract PersistenceAdapter CreateAdapter(PersistenceConnection connection, DbDataReader reader);
 
 		/*
 		public static PersistenceStore LoadFromConfiguration(string configurationName)

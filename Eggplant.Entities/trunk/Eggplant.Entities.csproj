@@ -66,9 +66,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache\EntityCacheManager.cs" />
-    <Compile Include="Cache\EntityCache.cs" />
+    <Compile Include="Cache\EntityCacheTable.cs" />
     <Compile Include="Cache\EntityCacheEntry.cs" />
-    <Compile Include="Cache\IEntityCache.cs" />
     <Compile Include="EntitySpace.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="Model\EntityDefinition.cs" />
