@@ -81,8 +81,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				CurrentMetricsUnit = new MetricsUnit();
-				MetricsMappings.Apply(CurrentMetricsUnit);
+				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetExtraField};
+				MetricsMappings.Apply(CurrentMetricsUnit);	
 				return CurrentMetricsUnit;
 			}
 			catch (Exception ex)
@@ -94,7 +94,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		protected void ProcessMetrics()
 		{
 			// fill the metrics using mapping
-			CurrentMetricsUnit = new MetricsUnit();
+			CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetExtraField };
 			MetricsMappings.Apply(CurrentMetricsUnit);
 
 			var signature = new Signature();

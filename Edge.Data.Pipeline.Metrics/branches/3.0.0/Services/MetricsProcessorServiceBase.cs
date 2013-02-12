@@ -54,6 +54,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
 			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, ExtraField>(GetExtraField));
 			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, CompositePartField>(GetCompositePartField));
+			Mappings.ExternalMethods.Add("GetTargetField", new Func<dynamic, TargetField>(GetTargetField));
 			Mappings.ExternalMethods.Add("GetEdgeType", new Func<dynamic, EdgeType>(GetEdgeType));
 			Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
 			Mappings.ExternalMethods.Add("GetObjectByEdgeType", new Func<dynamic, EdgeObject>(GetObjectByEdgeType));
@@ -131,6 +132,24 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					FieldEdgeType = field.FieldEdgeType,
 					ParentEdgeType = field.ParentEdgeType
 				};
+		}
+
+		public TargetField GetTargetField(dynamic name)
+		{
+			var n = (string)name;
+			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
+			if (field == null)
+				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
+			return new TargetField
+			{
+				FieldID = field.FieldID,
+				Name = field.Name,
+				DisplayName = field.DisplayName,
+				ColumnPrefix = field.ColumnPrefix,
+				ColumnIndex = field.ColumnIndex,
+				FieldEdgeType = field.FieldEdgeType,
+				ParentEdgeType = field.ParentEdgeType
+			};
 		}
 
 		public Measure GetMeasure(dynamic name)
