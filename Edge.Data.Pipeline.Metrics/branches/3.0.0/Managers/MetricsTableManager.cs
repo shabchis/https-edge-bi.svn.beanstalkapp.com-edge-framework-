@@ -285,18 +285,24 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Staging
-		public string FindStagingTable(string metricsTableName)
+		/// <summary>
+		/// Search for best match table in staging DB according to delivery table structure
+		/// </summary>
+		/// <param name="deliveryTableName"></param>
+		/// <returns></returns>
+		public string FindStagingTable(string deliveryTableName)
 		{
 			string stagingTableName;
-			using (SqlCommand command = SqlUtility.CreateCommand(AppSettings.Get(this, "SP_FindStagingTable"), CommandType.StoredProcedure))
+			using (var command = SqlUtility.CreateCommand(AppSettings.Get(this, "SP_FindStagingTable"), CommandType.StoredProcedure))
 			{
-				command.Parameters["@templateTable"].Value = metricsTableName;
+				command.Parameters["@templateTable"].Value = deliveryTableName;
 				command.Parameters["@templateDB"].Value = ""; //TODO: FROM WHERE DO i TAKE THIS TABLE?
 				command.Parameters["@searchDB"].Value = ""; //TODO: FROM WHERE DO i TAKE THIS TABLE?
-				using (SqlDataReader reader = command.ExecuteReader())
+
+				using (var reader = command.ExecuteReader())
 				{
 					if (!reader.Read())
-						throw new Exception("No staging table   Found");
+						throw new Exception(String.Format("No staging table was found for delivery table {0}", deliveryTableName));
 					
 					stagingTableName = reader["TABLE_NAME"].ToString();
 				}
@@ -304,8 +310,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return stagingTableName;
 		}
 
-		internal void Staging(string deliveryTable, string stagingTable)
+		public void Staging(string deliveryTable, string stagingTable)
 		{
+			// TODO: should only call store procedure to copy data from delivery to staging
 			List<Column> cols = _columns.Values.ToList();
 			var builder = new StringBuilder();
 			builder.AppendFormat("INSERT INTO {0}\n(", stagingTable);

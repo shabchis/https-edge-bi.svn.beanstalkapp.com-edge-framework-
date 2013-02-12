@@ -26,7 +26,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Constructors
-		public MetricsDeliveryManager(Guid serviceInstanceID, Dictionary<string,EdgeType> edgeTypes, List<ExtraField> extraFields, MetricsDeliveryManagerOptions options = null)
+		public MetricsDeliveryManager(Guid serviceInstanceID, Dictionary<string,EdgeType> edgeTypes = null, List<ExtraField> extraFields = null, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
@@ -168,8 +168,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		protected override void OnStage(Delivery delivery, int pass)
 		{
-			//string tablePerfix = (string)delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
-			//string deliveryId = delivery.DeliveryID.ToString("N");
+			CurrentDelivery = delivery;
 
 			if (pass == STAGING_PASS_OBJECTS)
 			{
@@ -178,12 +177,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			else if (pass == STAGING_PASS_METRICS)
 			{
 				// TABLEMANAGER: find matching staging table and save to delivery parameter
-				string stagingMetricsTableName=_tableManager.FindStagingTable(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				var stagingMetricsTableName=_tableManager.FindStagingTable(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
 				CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
 				
 				// TABLEMANAGER: call metrics insert SP with identity manager USID --> GK translation
 				_tableManager.Staging(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
-					CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+					                  CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
 			}
 		}
 
