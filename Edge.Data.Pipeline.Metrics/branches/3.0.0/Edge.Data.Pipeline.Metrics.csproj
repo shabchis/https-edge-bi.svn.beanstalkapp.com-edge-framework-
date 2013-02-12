@@ -54,6 +54,7 @@
     <Compile Include="Managers\MetricsDeliveryManager.cs" />
     <Compile Include="Services\MetricsProcessorServiceBase.cs" />
     <Compile Include="Services\MetricsRollbackService.cs" />
+    <Compile Include="Services\MetricsTransformService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\AssemblyInfo.cs.template" />

@@ -68,7 +68,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			
 			// store table name and table metadata in delivery
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = _tableManager.TableName;
-			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.MetricsTableMetadata] = tableMetadata;
+			// TODO: to remove mark - meanwhile exception on edge field mapping (?)
+			//CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.MetricsTableMetadata] = tableMetadata;
 
 			// CHECKSUMMANAGER: setup
 
