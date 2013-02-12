@@ -15,6 +15,11 @@ namespace Eggplant.Entities.Persistence
 		{
 		}
 
+		public override void Apply(MappingContext<T> context)
+		{
+			base.Apply(context);
+		}
+
 		#region Sugar
 		// =========================
 		public new VariableMapping<T> Inherit(IMapping baseMapping)

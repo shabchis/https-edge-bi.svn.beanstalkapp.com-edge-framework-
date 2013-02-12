@@ -313,38 +313,46 @@ namespace Eggplant.Entities.Persistence
 			// .......................
 			// GET FROM CACHE
 
-			if (this.EntitySpace.GetDefinition<T>() != null && this.CacheIdentity != null && (!context.IsTargetSet || context.Target != null))
+			bool isEntity = this.EntitySpace.GetDefinition<T>() != null;
+			bool shouldCache = isEntity && this.CacheIdentity != null && propertyValues != null;
+
+			Identity cacheId;
+
+			if (shouldCache)
 			{
-				var id = this.CacheIdentity.IdentityFrom(propertyValues);
-				//context.Target = context.Cache.Get<T>(this.CacheIdentity, this.CacheIdentity.IdentityFrom(propertyValues), context.Target);
+				cacheId = this.CacheIdentity.IdentityFromValues(propertyValues);
+				object val = context.Cache.Get<T>(cacheId);
+				if (val != null)
+				{
+					// Update cache
+					context.Target = (T)val;
+					context.Cache.Update(this.CacheIdentity, propertyValues);
+					shouldCache = false;
+				}
 			}
 
 			// .......................
 			// INSTANTIATION
 
 			// Instantiate target if it hasn't been specifically applied and there are sub mappings that have executed
-			if (!context.IsTargetSet && hasChildMappings && (context.TargetType != null || typeof(T) != typeof(object)))
+			if (!context.IsTargetSet && hasChildMappings)
 			{
+				// Instantiate a new target
 				context.Target = context.TargetType != null ?
 					(T)Activator.CreateInstance(context.TargetType) :
 					Activator.CreateInstance<T>();
+
+				if (propertyValues != null)
+				{
+					// Apply properties
+					foreach (var propVal in propertyValues)
+						propVal.Key.SetValue(context.Target, propVal.Value);
+
+					// Add to cache
+					if (shouldCache)
+						context.Cache.Put<T>(this.CacheIdentity, context.Target, propertyValues.Keys.ToArray());
+				}
 			}
-
-			// .......................
-			// APPLY VALUES
-
-			// Apply property values
-			if (propertyValues != null)
-			{
-				foreach (var propVal in propertyValues)
-					propVal.Key.SetValue(context.Target, propVal.Value);
-			}
-
-			// .......................
-			// UPDATE CACHE
-
-			//if (this.EntitySpace.IsDefined<T>() && this.CacheIdentity != null && context.Target != null)
-			//	context.Cache.Update<T>(this.CacheIdentity, context.Target);
 		}
 	}
 }

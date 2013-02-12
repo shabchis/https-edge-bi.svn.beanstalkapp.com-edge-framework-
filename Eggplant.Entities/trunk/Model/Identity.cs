@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace Eggplant.Entities.Model
@@ -36,15 +37,18 @@ namespace Eggplant.Entities.Model
 	public class IdentityDefinition
 	{
 		public readonly IdentityPartDefinition[] PartDefinitions;
+		private int _hash;
 
 		public IdentityDefinition(params IEntityProperty[] parts)
 		{
 			if (parts == null || parts.Length < 1)
 				throw new ArgumentException("One or more properties are required.", "parts");
 
-			PartDefinitions = new IdentityPartDefinition[parts.Length];
+			this.PartDefinitions = new IdentityPartDefinition[parts.Length];
 			for (int i = 0; i < parts.Length; i++)
-				PartDefinitions[i] = new IdentityPartDefinition(parts[i]);
+				this.PartDefinitions[i] = new IdentityPartDefinition(parts[i]);
+
+			_hash = HashingHelper.Hash(this.PartDefinitions);
 		}
 
 		public override bool Equals(object obj)
@@ -70,7 +74,7 @@ namespace Eggplant.Entities.Model
 
 		public override int GetHashCode()
 		{
-			return HashingHelper.Hash(this.PartDefinitions);
+			return _hash;
 		}
 
 		public override string ToString()
@@ -94,10 +98,10 @@ namespace Eggplant.Entities.Model
 				parts[i] = new IdentityPart(this.PartDefinitions[i], this.PartDefinitions[i].Property.GetValue(obj));
 			}
 
-			return new Identity(parts);
+			return new Identity(this, parts);
 		}
 
-		public Identity IdentityFrom(Dictionary<IEntityProperty, object> propertyValues)
+		public Identity IdentityFromValues(IDictionary<IEntityProperty, object> propertyValues)
 		{
 			IdentityPart[] parts = new IdentityPart[this.PartDefinitions.Length];
 			try
@@ -109,14 +113,14 @@ namespace Eggplant.Entities.Model
 			}
 			catch (KeyNotFoundException)
 			{
-				throw new KeyNotFoundException("The supplied property values are missing properties that are required for this identity.");
+				throw new KeyNotFoundException("The supplied property values are missing properties required for this identity.");
 			}
 
-			return new Identity(parts);
+			return new Identity(this, parts);
 
 		}
-		
-		public Identity NewIdentity(params object[] values)
+
+		public Identity IdentityFromValues(params object[] values)
 		{
 			if (values.Length != this.PartDefinitions.Length)
 				throw new ArgumentException("The number of values is different than the identity definition parts.", "values");
@@ -130,19 +134,25 @@ namespace Eggplant.Entities.Model
 				parts[i] = new IdentityPart(this.PartDefinitions[i], values[i]);
 			}
 
-			return new Identity(parts);
+			return new Identity(this, parts);
 		}
 	}
 
-	public class IdentityPart
+	public struct IdentityPart
 	{
-		public IdentityPartDefinition PartDefinition;
-		public object Value;
+		public readonly IdentityPartDefinition PartDefinition;
+		public readonly object Value;
+		private int _hash;
 
-		internal IdentityPart(IdentityPartDefinition partDefinition, object value)
+		public IdentityPart(IdentityPartDefinition partDefinition, object value)
 		{
 			PartDefinition = partDefinition;
 			Value = value;
+
+			var hashinput = new object[2];
+			hashinput[0] = partDefinition;
+			hashinput[1] = value;
+			_hash = HashingHelper.Hash(hashinput);
 		}
 
 		public override bool Equals(object obj)
@@ -158,7 +168,7 @@ namespace Eggplant.Entities.Model
 
 		public override int GetHashCode()
 		{
-			return HashingHelper.Hash(new object[] { PartDefinition, Value});
+			return _hash;
 		}
 
 		public override string ToString()
@@ -167,17 +177,29 @@ namespace Eggplant.Entities.Model
 		}
 	}
 
-	public class Identity
+	public struct Identity
 	{
+		public readonly IdentityDefinition IdentityDefinition;
 		public readonly IdentityPart[] Parts;
+		private int _hash;
 
-		internal Identity(IdentityPart[] parts)
+		public Identity(IdentityDefinition definition, IdentityPart[] parts)
 		{
+			if (definition == null)
+				throw new ArgumentNullException("definition");
+
 			if (parts == null || parts.Length < 1)
 				throw new ArgumentException("Parts cannot be null or zero length", "parts");
 
-			Parts = new IdentityPart[parts.Length];
+			this.IdentityDefinition = definition;
+			this.Parts = new IdentityPart[parts.Length];
 			parts.CopyTo(Parts, 0);
+
+			var hashinput = new object[parts.Length + 1];
+			hashinput[0] = definition;
+			parts.CopyTo(hashinput, 1);
+			_hash = HashingHelper.Hash(hashinput);
+
 		}
 
 		public override bool Equals(object obj)
@@ -186,6 +208,9 @@ namespace Eggplant.Entities.Model
 				return false;
 
 			Identity keyToCompare = (Identity)obj;
+
+			if (keyToCompare.IdentityDefinition != this.IdentityDefinition)
+				return false;
 
 			// Segment length must match
 			if (keyToCompare.Parts.Length != Parts.Length)
@@ -206,7 +231,12 @@ namespace Eggplant.Entities.Model
 
 		public override int GetHashCode()
 		{
-			return HashingHelper.Hash(this.Parts);
+			return _hash;
+		}
+
+		public bool IsEmpty
+		{
+			get { return this.IdentityDefinition == null; }
 		}
 
 		public override string ToString()

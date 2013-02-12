@@ -34,6 +34,7 @@ namespace Eggplant.Entities.Persistence
 		internal MappingContext(PersistenceAdapter adapter, Subquery subquery, IMapping mapping, MappingContext parentContext = null)
 		{
 			this.Adapter = adapter;
+			this.Cache = adapter.Connection.Cache;
 			this.ParentContext = parentContext;
 			this.CurrentSubquery = subquery;
 			this.CurrentMapping = mapping;

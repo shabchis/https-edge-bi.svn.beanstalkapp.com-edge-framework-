@@ -282,7 +282,10 @@ namespace Edge.Data.Objects
 						var item = context.GetVariable<ItemT>("item");
 						var l = listProperty.GetValue(parent);
 						if (l == null)
+						{
 							l = new List<ItemT>();
+							listProperty.SetValue(parent, l);
+						}
 
 						l.Add(item);
 

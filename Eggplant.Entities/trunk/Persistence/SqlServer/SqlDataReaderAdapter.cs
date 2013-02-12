@@ -11,7 +11,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 	{
 		SqlDataReader _reader;
 
-		public SqlDataReaderAdapter(SqlDataReader reader)
+		public SqlDataReaderAdapter(PersistenceConnection connection, SqlDataReader reader): base(connection)
 		{
 			_reader = reader;
 		}

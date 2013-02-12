@@ -208,7 +208,7 @@ namespace Eggplant.Entities.Queries
 				int resultSetIndex = -1;
 				using (DbDataReader reader = command.ExecuteReader())
 				{
-					PersistenceAdapter adapter = this.Connection.Store.NewAdapter(reader);
+					PersistenceAdapter adapter = this.Connection.CreateAdapter(reader);
 
 					// TODO: Iterate result set
 					do
