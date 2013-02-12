@@ -61,6 +61,10 @@ namespace Eggplant.Entities.Model
 
 		public Type PropertyType { get { return typeof(ValueT); } }
 
+		public override string ToString()
+		{
+			return String.Format("{0}.{1} ({2})", typeof(EntityT).Name, this.Name, typeof(ValueT).Name);
+		}
 		
 		#region IEntityProperty<ValueT> Members
 

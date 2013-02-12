@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<EdgeType> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
-				.Identity(EdgeType.Identities.Default)
+				//.Identity(EdgeType.Identities.Default)
 				.Map<int>(EdgeType.Properties.TypeID, "TypeID")
 				.Map<EdgeType>(EdgeType.Properties.BaseEdgeType, baseEdgeType => baseEdgeType
 					.Do(context=>context.NullIf<object>("BaseTypeID", id => id == null))
