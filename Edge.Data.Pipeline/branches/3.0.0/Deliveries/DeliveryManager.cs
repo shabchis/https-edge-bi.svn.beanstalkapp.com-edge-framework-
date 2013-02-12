@@ -6,12 +6,9 @@ namespace Edge.Data.Pipeline
 {
 	public abstract class DeliveryManager: IDisposable
 	{
-		Guid _serviceInstanceID;
-
 		protected DeliveryManager(Guid serviceInstanceID)
 		{
 			State = DeliveryManagerState.Idle;
-			_serviceInstanceID = serviceInstanceID;
 		}
 
 		public DeliveryManagerState State
@@ -23,7 +20,7 @@ namespace Edge.Data.Pipeline
 		public Delivery CurrentDelivery
 		{
 		    get;
-		    private set;
+		    protected set;
 		}
 
 		protected virtual int TransformPassCount
@@ -51,6 +48,7 @@ namespace Edge.Data.Pipeline
 			
 			OnBeginImport(sampleMetrics);
 		}
+
 
 		public void EndImport()
 		{
@@ -198,9 +196,9 @@ namespace Edge.Data.Pipeline
 					onEndPass(pass);
 				}
 			}
-			catch (DeliveryConflictException dceex)
+			catch (DeliveryConflictException)
 			{
-				throw dceex;
+				throw;
 			}
 			catch (Exception ex)
 			{
@@ -216,7 +214,7 @@ namespace Edge.Data.Pipeline
 				if (exception == null)
 					exception = ex;
 				else
-					Log.Write(this.ToString(), "Failed to end delivery operation - probably because of another exception. See next log message.", ex);
+					Log.Write(ToString(), "Failed to end delivery operation - probably because of another exception. See next log message.", ex);
 			}
 			finally
 			{

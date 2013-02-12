@@ -25,9 +25,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
 				};
 
-			Type importManagerType = Configuration.Parameters.Get(Consts.ConfigurationOptions.ImportManagerType, convertFunction: raw => Type.GetType((string)raw));
-
-			var importManager = (MetricsDeliveryManager)Activator.CreateInstance(importManagerType, InstanceID, options);
+			var importManager = new MetricsDeliveryManager(InstanceID, options: options);
 			Progress = 0.1;
 
 			// ----------------
@@ -50,7 +48,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				throw new Exception(String.Format("Delivery {0} failed during Transform.", Delivery.DeliveryID), ex);
 			}
-
 			Progress = 0.6;
 
 			// ----------------
