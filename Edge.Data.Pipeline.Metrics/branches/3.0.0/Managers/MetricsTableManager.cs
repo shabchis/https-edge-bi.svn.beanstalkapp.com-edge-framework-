@@ -71,7 +71,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			CreateTable(columnList);
 
-			return GetTableMetadata(flatObjectList);
+			return GetTableMetadata(flatObjectList, metricsUnit);
 		}
 
 		/// <summary>
@@ -248,26 +248,36 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					SqlDbType.NVarChar;
 		}
 
-		private MetricsTableMetadata GetTableMetadata(IEnumerable<object> flatObjectList)
+		private MetricsTableMetadata GetTableMetadata(IEnumerable<object> flatObjectList, MetricsUnit metricsUnit)
 		{
-			var tableMetadata = new MetricsTableMetadata();
+			var tableMetadata = new MetricsTableMetadata {TableName = TableName};
+
+			// add fields on metrics unit level
+			foreach (var dimension in metricsUnit.GetObjectDimensions())
+			{
+				if (dimension.Value is EdgeObject)
+					tableMetadata.FieldList.Add(new FieldMetadata {Field = dimension.Field});
+			}
+
+			// add fields deeper in metrics unit according to the flat object list
 			foreach (var obj in flatObjectList)
 			{
-				var fieldMetadata = new FieldMetadata();
 				if (obj is ObjectDimension && (obj as ObjectDimension).Value is EdgeObject)
 				{
-					var dimention = obj as ObjectDimension;
-					fieldMetadata.FieldId = dimention.Field != null ? dimention.Field.FieldID : 0;
-					fieldMetadata.FieldName = dimention.Field != null ? dimention.Field.Name : null;
+					var edgeObject = (obj as ObjectDimension).Value as EdgeObject;
+					if (edgeObject != null && edgeObject.EdgeType != null && edgeObject.EdgeType.Fields != null)
+					{
+						foreach (var field in edgeObject.EdgeType.Fields)
+						{
+							tableMetadata.FieldList.Add(new FieldMetadata {Field = field});
+						}
+					}
 				}
 				else if (obj is KeyValuePair<Measure, double>)
 				{
 					var measure = (KeyValuePair<Measure, double>)obj;
-					fieldMetadata.FieldName = measure.Key.Name;
-					fieldMetadata.IsMeasure = true;
+					tableMetadata.FieldList.Add(new FieldMetadata { Field = measure.Key });
 				}
-				if (fieldMetadata.FieldId > 0 || fieldMetadata.IsMeasure)
-					tableMetadata.FieldList.Add(fieldMetadata);
 			}
 			return tableMetadata;
 		}
