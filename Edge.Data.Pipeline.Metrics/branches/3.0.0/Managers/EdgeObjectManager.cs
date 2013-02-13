@@ -140,10 +140,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var level = 0;
 			var flatList = new List<object>();
 
-			// add all metrics dimentions to object structure
-			foreach (var dimention in metricsUnit.GetObjectDimensions().Where(dimention => dimention != null))
+			// add all metrics dimensions to object structure
+			foreach (var dimension in metricsUnit.GetObjectDimensions().Where(dimension => dimension != null))
 			{
-				Add(dimention, level);
+				Add(dimension, level);
 			}
 
 			// go over object composition levels and add objects to flat list
@@ -154,13 +154,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 				foreach (var obj in this[level])
 				{
-					var dimention = obj as ObjectDimension;
-					if (dimention != null && dimention.Value is EdgeObject)
+					var dimension = obj as ObjectDimension;
+					if (dimension != null && dimension.Value is EdgeObject)
 					{
-						// add all dimentions of the EdgeObject
-						foreach (var dimentsion in (dimention.Value as EdgeObject).GetObjectDimensions())
+						// add all dimensions of the EdgeObject
+						foreach (var childDimension in (dimension.Value as EdgeObject).GetObjectDimensions())
 						{
-							Add(dimentsion, level + 1);
+							Add(childDimension, level + 1);
 						}
 					}
 				}
