@@ -50,7 +50,7 @@ namespace Edge.Data.Pipeline.Objects
 				}
 			}
 		}
-		public Dictionary<TargetField, TargetMatch> TargetDimentions
+		public Dictionary<TargetField, TargetMatch> TargetDimensions
 		{
 			get
 			{
@@ -69,7 +69,7 @@ namespace Edge.Data.Pipeline.Objects
 
 		#region Public Methods
 		/// <summary>
-		/// enumeration of all dimentions in MetricsUnit
+		/// enumeration of all dimensions in MetricsUnit
 		/// </summary>
 		/// <returns></returns>
 		public IEnumerable<ObjectDimension> GetObjectDimensions()

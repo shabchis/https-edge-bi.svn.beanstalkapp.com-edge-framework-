@@ -22,6 +22,11 @@ namespace Edge.Data.Objects
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
+			foreach (var dimension in base.GetObjectDimensions())
+			{
+				yield return dimension;
+			}
+
 			if (Creative != null) yield return new ObjectDimension {Value = Creative};
 
 			if (CreativeDefinitions == null) yield break;
