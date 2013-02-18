@@ -43,7 +43,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Properties
-		public List<ExtraField> ExtraFields { get; set; }
+
 		public Dictionary<string, EdgeType> EdgeTypes { get; set; } 
 		#endregion
 
@@ -56,6 +56,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		#endregion
 
+		#region Import
 		#region Public Methods
 
 		/// <summary>
@@ -91,7 +92,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				// GK and TK
 				AddColumn(ref columns, ref values, paramList, "GK", obj.Value.GK);
 				AddColumn(ref columns, ref values, paramList, "TK", obj.Value.TK);
-				
+
 				// account
 				AddColumn(ref columns, ref values, paramList, "AccountID", obj.Value.Account.ID);
 
@@ -100,9 +101,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 				// fields defined in object and configured to be stored (according to MD_EdgeField)
 				BuildEdgeObjectFields(obj.Value, ref columns, ref values, paramList);
-				
+
 				// extra fields
-				BuildExtraFields4Sql(obj.Value, ref columns, ref values, paramList);
+				//BuildExtraFields4Sql(obj.Value, ref columns, ref values, paramList);
 
 				var insertSql = String.Format("INSERT INTO [DBO].[{0}_{1}] \n({2}) \nVALUES \n({3})", tablePrefix, obj.Value.EdgeType.TableName, columns, values);
 				using (var command = new SqlCommand(insertSql, _deliverySqlConnection))
@@ -175,7 +176,39 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			return Normalize(flatList, metricsUnit);
 		}
-		
+
+		public void BuildMetricDependencies(List<object> flatObjectList)
+		{
+			var dependencies = new Dictionary<EdgeField, EdgeFieldDependencyInfo>();
+
+
+			// TODO: take care of special case for Ad <-- Creative Definition --> Creative
+			foreach (var obj in flatObjectList.Where(x => x is ObjectDimension && (x as ObjectDimension).Value is EdgeObject))
+			{
+				var dimension = obj as ObjectDimension;
+				var edgeObj = (obj as ObjectDimension).Value as EdgeObject;
+
+				// try to add field to dependency dictionary if not exists yet
+				if (!dependencies.ContainsKey(dimension.Field))
+					dependencies.Add(dimension.Field, new EdgeFieldDependencyInfo { Field = dimension.Field });
+
+				// for all child dimensions of the field update its dependent fields
+				foreach (var childDimension in edgeObj.GetObjectDimensions())
+				{
+					// add child field if not exists yet
+					if (!dependencies.ContainsKey(childDimension.Field))
+						dependencies.Add(childDimension.Field, new EdgeFieldDependencyInfo { Field = childDimension.Field });
+
+					// udpate child dependency in parent
+					if (!dependencies[childDimension.Field].DependentFields.Contains(dimension.Field))
+						dependencies[childDimension.Field].DependentFields.Add(dimension.Field);
+
+					// update dependency level of parent
+					dependencies[dimension.Field].Level++;
+				}
+			}
+
+		}
 		#endregion
 
 		#region Private Methods
@@ -192,28 +225,28 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return _objectsByLevel.ContainsKey(level);
 		}
 
-		private void BuildExtraFields4Sql(EdgeObject obj, ref string columns, ref string values, ICollection<SqlParameter> paramList)
-		{
-			if (obj.ExtraFields == null) return;
+		//private void BuildExtraFields4Sql(EdgeObject obj, ref string columns, ref string values, ICollection<SqlParameter> paramList)
+		//{
+		//	if (obj.ExtraFields == null) return;
 
-			foreach (var field in obj.ExtraFields)
-			{
-				if (field.Key.ColumnPrefix == "obj")
-				{
-					var edgeObj = field.Value as EdgeObject;
-					if (edgeObj != null)
-					{
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_gk", field.Key.ColumnPrefix, field.Key.ColumnIndex), edgeObj.GK);
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_tk", field.Key.ColumnPrefix, field.Key.ColumnIndex), edgeObj.TK);
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}_type", field.Key.ColumnPrefix, field.Key.ColumnIndex), field.Key.FieldEdgeType.TypeID);
-					}
-				}
-				else // for all primitive types only value (INT, STRING, FLOAT, etc.)
-				{
-					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.Key.ColumnPrefix, field.Key.ColumnIndex), field.Value);
-				}
-			}
-		}
+		//	foreach (var field in obj.ExtraFields)
+		//	{
+		//		if (field.Key.FieldEdgeType != null)
+		//		{
+		//			var edgeObj = field.Value as EdgeObject;
+		//			if (edgeObj != null)
+		//			{
+		//				AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.Key.ColumnIndex, field.Key.ColumnIndex), edgeObj.GK);
+		//				AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.Key.ColumnPrefix, field.Key.ColumnIndex), edgeObj.TK);
+		//				AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.Key.ColumnPrefix, field.Key.ColumnIndex), field.Key.FieldEdgeType.TypeID);
+		//			}
+		//		}
+		//		else // for all primitive types only value (INT, STRING, FLOAT, etc.)
+		//		{
+		//			AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.Key.ColumnPrefix, field.Key.ColumnIndex), field.Value);
+		//		}
+		//	}
+		//}
 
 		/// <summary>
 		/// Get EdgeObject fields which are configured in MD_EdgeField table according to object type
@@ -226,22 +259,38 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private void BuildEdgeObjectFields(EdgeObject edgeObject, ref string columns, ref string values, ICollection<SqlParameter> paramList)
 		{
 			// get the list of configured fields in MD_EdgeFields according to the object type
-			var fieldList = ExtraFields.Where(x => x.ParentEdgeType != null && x.ParentEdgeType.TypeID == edgeObject.EdgeType.TypeID);
-			
-			foreach (var field in fieldList)
+			foreach (var field in edgeObject.EdgeType.Fields)
 			{
-				// get field by reflection
-				var memberInfo = edgeObject.GetType().GetMember(field.Name)[0];
-				var fieldInfo = memberInfo as FieldInfo;
-				if (fieldInfo != null)
+				if (field.Value.Field is ExtraField && edgeObject.ExtraFields != null && edgeObject.ExtraFields.ContainsKey(field.Value.Field as ExtraField))
 				{
-					var value = fieldInfo.GetValue(edgeObject);
-					// special case for enum value - parse to INT
-					if (fieldInfo.FieldType.BaseType == typeof (Enum))
+					// add extra field column
+					var extraFieldObj = edgeObject.ExtraFields[field.Value.Field as ExtraField] as EdgeObject;
+					if (extraFieldObj != null)
 					{
-						value = (int)Enum.Parse(fieldInfo.FieldType, value.ToString());
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.Value.ColumnName), extraFieldObj.GK);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.Value.ColumnName), extraFieldObj.TK);
+						AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.Value.ColumnName), extraFieldObj.EdgeType.TypeID);
 					}
-					AddColumn(ref columns, ref values, paramList, String.Format("{0}_Field{1}", field.ColumnPrefix, field.ColumnIndex), value);
+				}
+				else
+				{
+					// try to get field by reflection by configured edge field name
+					var member = edgeObject.GetType().GetMember(field.Value.Field.Name);
+					if (member.Length > 0)
+					{
+						var memberInfo = edgeObject.GetType().GetMember(field.Value.Field.Name)[0];
+						var fieldInfo = memberInfo as FieldInfo;
+						if (fieldInfo != null)
+						{
+							var value = fieldInfo.GetValue(edgeObject);
+							// special case for enum value - parse to INT
+							if (fieldInfo.FieldType.BaseType == typeof (Enum))
+							{
+								value = (int) Enum.Parse(fieldInfo.FieldType, value.ToString());
+							}
+							AddColumn(ref columns, ref values, paramList, field.Value.ColumnName, value);
+						}
+					}
 				}
 			}
 		}
@@ -381,6 +430,35 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				paramList.Add(new SqlParameter(String.Format("@{0}", columnName), value));
 			}
 		}
+		#endregion 
+		#endregion
+
+		#region Transform
+
+		#region Public Methods
+		
+		public void SetObjectsIdentity(string tablePrefix, MetricsDependencyInfo metricsDependefyInfo)
+		{
+			int maxDependecyLevel = metricsDependefyInfo.Dependencies.Max(x => x.Level);
+			for (int i = 0; i <= maxDependecyLevel; i++)
+			{
+				foreach (var obj in metricsDependefyInfo.Dependencies.Where(x => x.Level == i))
+				{
+					//load objects by type from Delivery DB (identity fields + additional fields)
+
+					// foreach loaded object 
+						// find GK bi
+
+				}
+
+			}
+		}
+
+		#endregion
+
+		#region Private Methods
+		
+		#endregion
 		#endregion
 	}
 }

@@ -26,7 +26,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Constructors
-		public MetricsDeliveryManager(Guid serviceInstanceID, Dictionary<string,EdgeType> edgeTypes = null, List<ExtraField> extraFields = null, MetricsDeliveryManagerOptions options = null)
+		public MetricsDeliveryManager(Guid serviceInstanceID, Dictionary<string,EdgeType> edgeTypes = null, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
 		{
 			options = options ?? new MetricsDeliveryManagerOptions();
@@ -43,7 +43,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			
 			// create connection and table managers
 			_sqlConnection = NewDeliveryDbConnection();
-			_edgeObjectsManager = new EdgeObjectsManager(_sqlConnection) {EdgeTypes = edgeTypes, ExtraFields = extraFields};
+			_edgeObjectsManager = new EdgeObjectsManager(_sqlConnection) {EdgeTypes = edgeTypes};
 			_tableManager = new MetricsTableManager(_sqlConnection, _edgeObjectsManager);
 		}
 
@@ -96,14 +96,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		}
 		
 		/*=========================*/
-
 		#endregion
 
-		#region Prepare
+		#region Transform
 		/*=========================*/
 
-		//SqlCommand _transformCommand = null;
-		//SqlCommand _validateCommand = null;
 		const int TRANSFORM_PASS_IDENTITY = 0;
 		const int TRANSFORM_PASS_CHECKSUM = 1;
 		const int TRANSFORM_PASS_CURRENCY = 2;
@@ -124,10 +121,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			//string tablePerfix = (string)delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix];
+			var tablePerfix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			// TODO: may be to load from DB for Transform service only
+			var metricDependencies = delivery.Parameters[Consts.DeliveryHistoryParameters.MetricsTableMetadata] as MetricsDependencyInfo;
 
 			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
+				//_edgeObjectsManager.
 				// OBJECTMANAGER: call identity SP - setup GK cache and assign existing GKs to object tables
 			}
 			else if (pass == TRANSFORM_PASS_CHECKSUM)

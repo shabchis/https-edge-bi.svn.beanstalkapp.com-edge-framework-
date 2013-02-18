@@ -69,6 +69,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			CreateTable(columnList);
 
+			// TODO: find hte right place to call this method
+			//_edgeObjectsManger.BuildMetricDependencies(flatObjectList);
+
 			return GetTableMetadata(flatObjectList, metricsUnit);
 		}
 

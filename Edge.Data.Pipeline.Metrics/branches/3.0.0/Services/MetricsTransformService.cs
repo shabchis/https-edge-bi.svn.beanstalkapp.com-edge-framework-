@@ -23,17 +23,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				// TODO: need this? Only check tickets, don't check conflicts
 				HandleConflicts(importManager, DeliveryConflictBehavior.Ignore, getBehaviorFromConfiguration: false);
 
-				try
-				{
-					// perform transform
-					Log("Transform: start", LogMessageType.Information);
-					importManager.Transform(new[] {Delivery});
-					Log("Transform: end", LogMessageType.Information);
-				}
-				catch (Exception ex)
-				{
-					throw new Exception(String.Format("Delivery {0} failed during Transform.", Delivery.DeliveryID), ex);
-				}
+				// perform transform
+				Log(String.Format("Start transform deliver '{0}'", Delivery.DeliveryID), LogMessageType.Information);
+				importManager.Transform(new[] {Delivery});
+				Log(String.Format("Finished transform deliver '{0}'", Delivery.DeliveryID), LogMessageType.Information);
 			}
 			return ServiceOutcome.Success;
 		}

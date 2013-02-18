@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -45,7 +46,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			LoadChannels();
 			LoadMeasures();
 			LoadEdgeTypes();
-			LoadExtraFields();
+			LoadEdgeFields();
+			LoadEdgeTypeFields();
 
 			// Load mapping configuration
 			Mappings.ExternalMethods.Add("GetChannel", new Func<dynamic, Channel>(GetChannel));
@@ -107,48 +109,37 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return type;
 		}
 
-		public ExtraField GetExtraField(dynamic name)
+		public ExtraField GetExtraField(dynamic fieldName)
 		{
-			var n = (string)name;
-			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
+			var strFieldName = (string) fieldName;
+
+			var field = ExtraFields.FirstOrDefault(x => x.Name == strFieldName);
 			if (field == null)
-				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
+				throw new MappingException(String.Format("Unknown edge field '{0}'", strFieldName));
 			return field;
 		}
 
-		public CompositePartField GetCompositePartField(dynamic name)
+		public CompositePartField GetCompositePartField(dynamic fieldName)
 		{
-			var n = (string)name;
-			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
-			if (field == null)
-				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
+			var field = GetExtraField(fieldName);
 			return new CompositePartField
 				{
 					FieldID = field.FieldID,
 					Name = field.Name,
 					DisplayName = field.DisplayName,
-					ColumnPrefix = field.ColumnPrefix,
-					ColumnIndex = field.ColumnIndex,
-					FieldEdgeType = field.FieldEdgeType,
-					ParentEdgeType = field.ParentEdgeType
+					FieldEdgeType = field.FieldEdgeType
 				};
 		}
 
-		public TargetField GetTargetField(dynamic name)
+		public TargetField GetTargetField(dynamic fieldName)
 		{
-			var n = (string)name;
-			var field = ExtraFields.FirstOrDefault(x => x.Name == n);
-			if (field == null)
-				throw new MappingException(String.Format("No edge field named '{0}' could be found.", n));
+			var field = GetExtraField(fieldName);
 			return new TargetField
 			{
 				FieldID = field.FieldID,
 				Name = field.Name,
 				DisplayName = field.DisplayName,
-				ColumnPrefix = field.ColumnPrefix,
-				ColumnIndex = field.ColumnIndex,
-				FieldEdgeType = field.FieldEdgeType,
-				ParentEdgeType = field.ParentEdgeType
+				FieldEdgeType = field.FieldEdgeType
 			};
 		}
 
@@ -369,7 +360,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 		}
 
-		private void LoadExtraFields()
+		private void LoadEdgeFields()
 		{
 			ExtraFields = new List<ExtraField>();
 			try
@@ -386,16 +377,63 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						while (reader.Read())
 						{
 							var field = new ExtraField
-								{
-									FieldID = int.Parse(reader["FieldID"].ToString()),
-									Name = reader["Name"].ToString(),
-									DisplayName = reader["DisplayName"].ToString(),
-									ColumnIndex = int.Parse(reader["ColumnIndex"].ToString()),
-									ColumnPrefix = reader["ColumnPrefix"].ToString(),
-									FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["FieldTypeID"].ToString())),
-									ParentEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["ParentTypeID"].ToString()))
-								};
+							{
+								FieldID = int.Parse(reader["FieldID"].ToString()),
+								Name = reader["Name"].ToString(),
+								DisplayName = reader["DisplayName"].ToString(),
+								FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["FieldTypeID"].ToString())),
+							};
 							ExtraFields.Add(field);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while trying to get extra fields from DB", ex);
+			}
+		}
+
+		private void LoadEdgeTypeFields()
+		{
+			try
+			{
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				{
+					var cmd = SqlUtility.CreateCommand("MD_EdgeTypeField_Get", CommandType.StoredProcedure);
+					cmd.Parameters.AddWithValue("@accountID", _accountId);
+					cmd.Connection = connection;
+					connection.Open();
+
+					using (var reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							// find parent edge type nad edge field
+							var parentTypeId = int.Parse(reader["ParentTypeID"].ToString());
+							var fieldtId = int.Parse(reader["FieldID"].ToString());
+
+							var parentType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == parentTypeId);
+							if (parentType == null)
+								throw new ConfigurationErrorsException(String.Format("Configuration error: Unknown parent edge type {0} while loading edge type fields", parentTypeId));
+							
+							var field = ExtraFields.FirstOrDefault(x => x.FieldID == fieldtId);
+							if (field == null)
+								throw new ConfigurationErrorsException(String.Format("Configuration error: Unknown edge field {0} while loading edge type fields", fieldtId));
+
+							var typeField = new EdgeTypeField
+									{
+										ColumnName   = reader["ColumnName"].ToString(),
+										IsIdentity	   = reader["IsIdentity"].ToString() == "1",
+										Field = field
+									};
+
+							// add edge field to parent edge type
+							if (!parentType.Fields.ContainsKey(field.Name))
+								parentType.Fields.Add(field.Name, typeField);
+							else
+								throw new ConfigurationErrorsException(String.Format("Configuration error: Field {0} already exists in parent edge type {1}", field.Name,  parentType.Name));
+								
 						}
 					}
 				}
