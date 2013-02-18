@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Edge.Data.Objects
 {
@@ -17,6 +15,6 @@ namespace Edge.Data.Objects
 		public Account Account;
 		public Channel Channel;
 
-		public List<EdgeField> Fields;
+		public Dictionary<string, EdgeTypeField> Fields = new Dictionary<string, EdgeTypeField>();
 	}
 }

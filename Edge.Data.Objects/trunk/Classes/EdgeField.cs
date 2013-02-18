@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Edge.Data.Objects
+﻿namespace Edge.Data.Objects
 {
 	public abstract partial class EdgeField
 	{
@@ -10,10 +8,5 @@ namespace Edge.Data.Objects
 		public string DisplayName;
 
 		public EdgeType FieldEdgeType;
-		public EdgeType ParentEdgeType;
-
-		public string ColumnPrefix;
-		public int ColumnIndex;
 	}
-
 }
