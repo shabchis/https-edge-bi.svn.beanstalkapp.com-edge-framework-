@@ -54,9 +54,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
 			Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
 			Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
-			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, ExtraField>(GetExtraField));
-			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, CompositePartField>(GetCompositePartField));
-			Mappings.ExternalMethods.Add("GetTargetField", new Func<dynamic, TargetField>(GetTargetField));
+			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, EdgeField>(GetExtraField));
+			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, EdgeField>(GetCompositePartField));
+			Mappings.ExternalMethods.Add("GetTargetField", new Func<dynamic, EdgeField>(GetTargetField));
 			Mappings.ExternalMethods.Add("GetEdgeType", new Func<dynamic, EdgeType>(GetEdgeType));
 			Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
 			Mappings.ExternalMethods.Add("GetObjectByEdgeType", new Func<dynamic, EdgeObject>(GetObjectByEdgeType));
@@ -109,7 +109,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return type;
 		}
 
-		public ExtraField GetExtraField(dynamic fieldName)
+		public EdgeField GetExtraField(dynamic fieldName)
 		{
 			var strFieldName = (string) fieldName;
 
@@ -119,7 +119,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return field;
 		}
 
-		public CompositePartField GetCompositePartField(dynamic fieldName)
+		public EdgeField GetCompositePartField(dynamic fieldName)
 		{
 			var field = GetExtraField(fieldName);
 			return new CompositePartField
@@ -131,7 +131,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				};
 		}
 
-		public TargetField GetTargetField(dynamic fieldName)
+		public EdgeField GetTargetField(dynamic fieldName)
 		{
 			var field = GetExtraField(fieldName);
 			return new TargetField
