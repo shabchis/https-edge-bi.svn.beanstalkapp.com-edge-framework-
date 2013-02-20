@@ -9,7 +9,7 @@ namespace Edge.Data.Objects
 		public Account Account;
 		public EdgeType EdgeType;
 		
-		public Dictionary<ExtraField, object> ExtraFields;
+		public Dictionary<EdgeField, object> ExtraFields;
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{

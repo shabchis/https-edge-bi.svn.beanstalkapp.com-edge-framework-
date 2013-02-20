@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Edge.Data.Objects
 {
 	public partial class CompositeCreativeDefinition : CreativeDefinition
 	{
-		public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions;
+		//public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions;
 
 		protected override Type CreativeType
 		{
@@ -18,6 +17,17 @@ namespace Edge.Data.Objects
 		{
 			get { return (CompositeCreative)base.Creative; }
 			set { base.Creative = value; }
+		}
+
+		public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions
+		{
+			get
+			{
+				if (ExtraFields == null) return null;
+
+				return ExtraFields.Where(x => x.Key is CompositePartField && x.Value is SingleCreativeDefinition)
+								  .ToDictionary(x => x.Key as CompositePartField, x => x.Value as SingleCreativeDefinition);
+			}
 		}
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()

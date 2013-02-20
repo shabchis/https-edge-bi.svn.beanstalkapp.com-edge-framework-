@@ -1,10 +1,22 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Edge.Data.Objects
 {
 	public partial class CompositeCreative : Creative
 	{
-		public Dictionary<CompositePartField, SingleCreative> Parts;
+		//public Dictionary<CompositePartField, SingleCreative> Parts;
+
+		public Dictionary<CompositePartField, SingleCreative> Parts
+		{
+			get
+			{
+				if (ExtraFields == null) return null;
+
+				return ExtraFields.Where(x => x.Key is CompositePartField && x.Value is SingleCreative)
+				                  .ToDictionary(x => x.Key as CompositePartField, x => x.Value as SingleCreative);
+			}
+		}
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
