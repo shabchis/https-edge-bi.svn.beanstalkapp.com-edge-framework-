@@ -25,7 +25,7 @@ namespace Edge.Data.Objects
 				.Map<string>(Measure.Properties.DisplayName, "DisplayName")
 				.Map<string>(Measure.Properties.StringFormat, "StringFormat")
 				.Map<MeasureOptions>(Measure.Properties.Options, "Options")
-				.Map<bool>(Measure.Properties.InheritedOptionsOverride, "InheritedOptionsOverride")
+				//.Map<bool>(Measure.Properties.InheritedOptionsOverride, "InheritedOptionsOverride")
 				.Map<bool>(Measure.Properties.InheritedByDefault, "InheritedByDefault")
 			;
 		}

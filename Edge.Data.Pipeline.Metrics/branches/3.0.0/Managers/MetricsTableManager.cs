@@ -6,7 +6,6 @@ using System.Text;
 using System.Data;
 using System.Data.SqlClient;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
@@ -31,7 +30,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Data Members
-		//private const string EGDE_OBJECTS_SUFFIX = "Usid";
 		public string TableName { get; set; }
 
 		readonly SqlConnection _sqlConnection;
@@ -59,7 +57,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="tablePrefix"></param>
 		/// <param name="metricsUnit">sample metric unit for table structure</param>
 		/// <returns></returns>
-		public MetricsTableMetadata CreateDeliveryMetricsTable(string tablePrefix, MetricsUnit metricsUnit)
+		public void CreateDeliveryMetricsTable(string tablePrefix, MetricsUnit metricsUnit)
 		{
 			TableName = string.Format("[DBO].[{0}_Metrics]", tablePrefix);
 
@@ -68,11 +66,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var columnList = GetColumnList(flatObjectList, false); // sampe metrics objects are not added to object cache
 
 			CreateTable(columnList);
-
-			// TODO: find hte right place to call this method
-			//_edgeObjectsManger.BuildMetricDependencies(flatObjectList);
-
-			return GetTableMetadata(flatObjectList, metricsUnit);
 		}
 
 		/// <summary>
@@ -250,40 +243,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					type == typeof(DateTime) ? SqlDbType.DateTime :
 					type == typeof(double) ? SqlDbType.Float :
 					SqlDbType.NVarChar;
-		}
-
-		private MetricsTableMetadata GetTableMetadata(IEnumerable<object> flatObjectList, MetricsUnit metricsUnit)
-		{
-			var tableMetadata = new MetricsTableMetadata {TableName = TableName};
-
-			// add fields on metrics unit level
-			foreach (var dimension in metricsUnit.GetObjectDimensions())
-			{
-				if (dimension.Value is EdgeObject)
-					tableMetadata.FieldList.Add(new FieldMetadata {Field = dimension.Field});
-			}
-
-			// add fields deeper in metrics unit according to the flat object list
-			foreach (var obj in flatObjectList)
-			{
-				if (obj is ObjectDimension && (obj as ObjectDimension).Value is EdgeObject)
-				{
-					var edgeObject = (obj as ObjectDimension).Value as EdgeObject;
-					if (edgeObject != null && edgeObject.EdgeType != null && edgeObject.EdgeType.Fields != null)
-					{
-						foreach (var field in edgeObject.EdgeType.Fields)
-						{
-							tableMetadata.FieldList.Add(new FieldMetadata {Field = field});
-						}
-					}
-				}
-				else if (obj is KeyValuePair<Measure, double>)
-				{
-					var measure = (KeyValuePair<Measure, double>)obj;
-					tableMetadata.FieldList.Add(new FieldMetadata { Field = measure.Key });
-				}
-			}
-			return tableMetadata;
 		}
 
 		#endregion
