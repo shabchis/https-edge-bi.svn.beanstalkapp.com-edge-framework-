@@ -19,7 +19,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<Measure, MeasureDataType> DataType = new EntityProperty<Measure, MeasureDataType>("DataType");
 			public static EntityProperty<Measure, string> StringFormat = new EntityProperty<Measure, string>("StringFormat");
 			public static EntityProperty<Measure, MeasureOptions> Options = new EntityProperty<Measure, MeasureOptions>("Options");
-			public static EntityProperty<Measure, bool> InheritedOptionsOverride = new EntityProperty<Measure, bool>("InheritedOptionsOverride");
+			//public static EntityProperty<Measure, bool> InheritedOptionsOverride = new EntityProperty<Measure, bool>("InheritedOptionsOverride");
 			public static EntityProperty<Measure, bool> InheritedByDefault = new EntityProperty<Measure, bool>("InheritedByDefault");
 		}
 	}

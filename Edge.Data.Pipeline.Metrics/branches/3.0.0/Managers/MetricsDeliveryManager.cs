@@ -25,6 +25,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private string _tablePrefix;
 		private readonly MetricsTableManager _tableManager;
 		private readonly EdgeObjectsManager _edgeObjectsManager;
+		private IdentityManager _identityManager;
 		#endregion
 
 		public Dictionary<EdgeField, EdgeFieldDependencyInfo> EdgeObjectDependencies { get; set; }
@@ -68,10 +69,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
 			
 			// create metrics table using metrics table manager and sample metrics
-			var tableMetadata = _tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
+			_tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
 			
 			// store table name and table metadata in delivery
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = _tableManager.TableName;
+			
+			
 			// TODO: to remove mark - meanwhile exception on edge field mapping (?)
 			//CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.MetricsTableMetadata] = tableMetadata;
 
@@ -121,19 +124,22 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			_deliverySqlConnection.Open();
 
+			_identityManager = new IdentityManager(_deliverySqlConnection);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			_edgeObjectsManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
-			
+			if (_identityManager == null)
+				throw new ConfigurationErrorsException("Identity manager is not created! Please call onBeginTransform() first");
 			if (EdgeObjectDependencies == null)
-				throw  new ConfigurationErrorsException("Edge object dependencies was not loaded!");
+				throw new ConfigurationErrorsException("Edge object dependencies was not loaded!");
+
+			_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
 
 			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
 				// OBJECTMANAGER: call identity SP - setup GK cache and assign existing GKs to object tables
-				_edgeObjectsManager.SetObjectsIdentity(EdgeObjectDependencies.Values.ToList());
+				_identityManager.SetObjectsIdentity(EdgeObjectDependencies.Values.ToList());
 			}
 			else if (pass == TRANSFORM_PASS_CHECKSUM)
 			{

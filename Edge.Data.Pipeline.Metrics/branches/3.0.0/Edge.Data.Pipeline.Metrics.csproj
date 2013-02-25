@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Managers\IdentityManager.cs" />
     <Compile Include="Misc\EdgeFieldDependencyInfo.cs" />
     <Compile Include="Misc\IdentityField.cs" />
     <Compile Include="Misc\MetricsTableMetadata.cs" />
