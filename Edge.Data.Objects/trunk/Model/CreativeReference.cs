@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<CreativeReference, EdgeObject> Parent = new EntityProperty<CreativeReference, EdgeObject>("Parent");
+			//public static EntityProperty<CreativeReference, EdgeObject> Parent = new EntityProperty<CreativeReference, EdgeObject>("Parent");
 			public static EntityProperty<CreativeReference, string> DestinationUrl = new EntityProperty<CreativeReference, string>("DestinationUrl");
 		}
 	}
