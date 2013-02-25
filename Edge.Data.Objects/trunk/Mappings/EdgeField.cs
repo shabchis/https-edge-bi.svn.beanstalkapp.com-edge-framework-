@@ -19,20 +19,8 @@ namespace Edge.Data.Objects
 				.Map<EdgeType>(EdgeField.Properties.FieldEdgeType, edgeType => edgeType
 					.Identity(EdgeType.Identities.Default)
 					.Map<int>(EdgeType.Properties.TypeID, "FieldTypeID")
-					.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
-						.Set(context => context.HasField("FieldClrType") ? Type.GetType(context.GetField<string>("FieldClrType")) : null)
-						//.Set(context => context.IfFieldPresent<string>("FieldClrType", value => Type.GetType(value), null))
-					)
+					.Map<Type>(EdgeType.Properties.ClrType, "FieldClrType", typeName => Type.GetType(typeName.ToString()))
 				)
-				//.Map<EdgeType>(EdgeField.Properties.ParentEdgeType, edgeType => edgeType
-				//	.Identity(EdgeType.Identities.Default)
-				//	.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
-				//	.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
-				//		.Set(context => context.HasField("ParentClrType") ? Type.GetType(context.GetField<string>("ParentClrType")) : null)
-				//	)
-				//)
-				//.Map<string>(EdgeField.Properties.ColumnPrefix, "ColumnPrefix")
-				//.Map<int>(EdgeField.Properties.ColumnIndex, "ColumnIndex")
 			;
 
 		}

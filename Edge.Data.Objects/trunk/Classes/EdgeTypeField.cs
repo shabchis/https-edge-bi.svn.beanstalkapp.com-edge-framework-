@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Edge.Data.Objects
 {
-	public class EdgeTypeField
+	public partial class EdgeTypeField
 	{
 		public EdgeField Field;
 		public string ColumnName;

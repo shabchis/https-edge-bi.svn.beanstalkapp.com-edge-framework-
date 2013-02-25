@@ -15,6 +15,6 @@ namespace Edge.Data.Objects
 		public Account Account;
 		public Channel Channel;
 
-		public Dictionary<string, EdgeTypeField> Fields = new Dictionary<string, EdgeTypeField>();
+		public List<EdgeTypeField> Fields;
 	}
 }

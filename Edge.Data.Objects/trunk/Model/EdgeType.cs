@@ -19,7 +19,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<EdgeType, bool> IsAbstract = new EntityProperty<EdgeType, bool>("IsAbstract");
 			public static EntityProperty<EdgeType, Account> Account = new EntityProperty<EdgeType, Account>("Account");
 			public static EntityProperty<EdgeType, Channel> Channel = new EntityProperty<EdgeType, Channel>("Channel");
-			public static EntityProperty<EdgeType, List<Edge.Data.Objects.EdgeField>> Fields = new EntityProperty<EdgeType, List<Edge.Data.Objects.EdgeField>>("Fields");
+			public static EntityProperty<EdgeType, List<EdgeTypeField>> Fields = new EntityProperty<EdgeType, List<EdgeTypeField>>("Fields");
 		}
 	}
 }

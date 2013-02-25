@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<EdgeType> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
-				//.Identity(EdgeType.Identities.Default)
+				.Identity(EdgeType.Identities.Default)
 				.Map<int>(EdgeType.Properties.TypeID, "TypeID")
 				.Map<EdgeType>(EdgeType.Properties.BaseEdgeType, baseEdgeType => baseEdgeType
 					.Do(context=>context.NullIf<object>("BaseTypeID", id => id == null))
@@ -33,13 +33,17 @@ namespace Edge.Data.Objects
 					.Map<int>(Channel.Properties.ID, "ChannelID")
 				)
 
-				.MapListFromSubquery<EdgeType, EdgeField>(EdgeType.Properties.Fields, "EdgeFields",
+				.MapListFromSubquery<EdgeType, EdgeTypeField>(EdgeType.Properties.Fields, "EdgeTypeFields",
 					parent => parent
 						.Identity(EdgeType.Identities.Default)
 						.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
 					,
 					item => item
-						.UseMapping(EdgeField.Mappings.Default)
+						.Map<EdgeField>(EdgeTypeField.Properties.Field, field => field
+							.UseMapping(EdgeField.Mappings.Default)
+						)
+						.Map<string>(EdgeTypeField.Properties.ColumnName, "ColumnName")
+						.Map<bool>(EdgeTypeField.Properties.IsIdentity, "IsIdentity")
 				)
 			);
 
@@ -58,18 +62,23 @@ namespace Edge.Data.Objects
 					.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
 					.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
 				)
-				.Subquery("EdgeFields", @"
+				.Subquery("EdgeTypeFields", @"
 					select
 						types.TypeID as ParentTypeID,
 						fields.FieldID as FieldID,
 						fields.FieldType as FieldType,
-						fields.Name as Name
+						fields.Name as Name,
+						typeFields.ColumnName as ColumnName,
+						typeFields.IsIdentity as IsIdentity
 					from
 						MD_EdgeType as types
+						inner join MD_EdgeTypeField as typeFields on
+							typeFields.ParentTypeID in (-1, types.TypeID)
 						inner join MD_EdgeField as fields on
-							fields.ParentTypeID in (-1, types.TypeID) and
+							fields.FieldID = typeFields.FieldID and
 							fields.AccountID in (-1, types.AccountID) and
 							fields.ChannelID in (-1, types.ChannelID)
+
 					where
 						types.AccountID in (-1, @accountID) and
 						types.ChannelID in (-1, @channelID)

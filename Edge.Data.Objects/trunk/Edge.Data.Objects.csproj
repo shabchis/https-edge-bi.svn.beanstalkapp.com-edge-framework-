@@ -182,6 +182,7 @@
     <Compile Include="Model\CompositePartField.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Model\EdgeTypeField.cs" />
     <Compile Include="Model\Creative.cs" />
     <Compile Include="Model\CreativeDefinition.cs" />
     <Compile Include="Model\CreativeMatch.cs" />
