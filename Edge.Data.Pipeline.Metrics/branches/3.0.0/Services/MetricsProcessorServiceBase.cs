@@ -424,13 +424,13 @@ namespace Edge.Data.Pipeline.Metrics.Services
 							var typeField = new EdgeTypeField
 									{
 										ColumnName   = reader["ColumnName"].ToString(),
-										IsIdentity	   = reader["IsIdentity"].ToString() == "1",
+										IsIdentity	 = bool.Parse(reader["IsIdentity"].ToString()),
 										Field = field
 									};
 
 							// add edge field to parent edge type
-							if (!parentType.Fields.ContainsKey(field.Name))
-								parentType.Fields.Add(field.Name, typeField);
+							if (!parentType.Fields.Contains(typeField))
+								parentType.Fields.Add(typeField);
 							else
 								throw new ConfigurationErrorsException(String.Format("Configuration error: Field {0} already exists in parent edge type {1}", field.Name,  parentType.Name));
 								
