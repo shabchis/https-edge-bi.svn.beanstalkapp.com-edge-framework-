@@ -6,7 +6,7 @@ namespace Edge.Data.Objects
 	{
 		private Creative _creative;
 
-		public EdgeObject Parent;
+		//public EdgeObject Parent;
 
 		public string DestinationUrl;
 
