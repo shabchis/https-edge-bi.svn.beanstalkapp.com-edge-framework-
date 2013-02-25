@@ -30,8 +30,10 @@ namespace Eggplant.Entities.Persistence
 		public IdentityDefinition CacheIdentity { get; set; }
 
 		// ===================================
-		// Internal
+		// General
 
+
+	
 		// ===================================
 		// Inline definition helpers
 
@@ -117,13 +119,13 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
-		public Mapping<T> Map<V>(IEntityProperty<V> property, string field)
+		public Mapping<T> Map<V>(IEntityProperty<V> property, string field, Func<object, V> convertFunc = null)
 		{
 			return this.Map<V>(property, mapping => mapping
 				.Do(context =>
 				{
 					if (context.HasField(field))
-						context.Target = context.GetField<V>(field);
+						context.Target = context.GetField<V>(field, convertFunc);
 				})
 			);
 		}
@@ -268,11 +270,11 @@ namespace Eggplant.Entities.Persistence
 
 				if (mapping is IChildMapping)
 				{
-					hasChildMappings = true;
-
 					// If a target has been specified, save it
 					if (currentContext.IsTargetSet)
 					{
+						hasChildMappings = true;
+
 						if (mapping is IPropertyMapping)
 						{
 							if (propertyValues == null)
@@ -314,13 +316,12 @@ namespace Eggplant.Entities.Persistence
 			// GET FROM CACHE
 
 			bool isEntity = this.EntitySpace.GetDefinition<T>() != null;
-			bool shouldCache = isEntity && this.CacheIdentity != null && propertyValues != null;
-
-			Identity cacheId;
+			bool shouldCache = isEntity && this.CacheIdentity != null && propertyValues != null && this.CacheIdentity.HasValidValues(propertyValues);
 
 			if (shouldCache)
 			{
-				cacheId = this.CacheIdentity.IdentityFromValues(propertyValues);
+				Identity cacheId = this.CacheIdentity.IdentityFromValues(propertyValues);
+
 				object val = context.Cache.Get<T>(cacheId);
 				if (val != null)
 				{
@@ -341,17 +342,20 @@ namespace Eggplant.Entities.Persistence
 				context.Target = context.TargetType != null ?
 					(T)Activator.CreateInstance(context.TargetType) :
 					Activator.CreateInstance<T>();
+			}
 
-				if (propertyValues != null)
-				{
-					// Apply properties
-					foreach (var propVal in propertyValues)
-						propVal.Key.SetValue(context.Target, propVal.Value);
+			// .......................
+			// PUT IN CACHE
 
-					// Add to cache
-					if (shouldCache)
-						context.Cache.Put<T>(this.CacheIdentity, context.Target, propertyValues.Keys.ToArray());
-				}
+			if (context.IsTargetSet && propertyValues != null)
+			{
+				// Apply properties
+				foreach (var propVal in propertyValues)
+					propVal.Key.SetValue(context.Target, propVal.Value);
+
+				// Add to cache
+				if (shouldCache)
+					context.Cache.Put<T>(this.CacheIdentity, context.Target, propertyValues.Keys.ToArray());
 			}
 		}
 	}

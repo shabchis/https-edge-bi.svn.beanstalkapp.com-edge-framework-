@@ -9,13 +9,13 @@ namespace Edge.Data.Objects
 	{
 		public int ID;
 		public string Name;
+		public string DisplayName;
 		public ChannelType ChannelType;
 	}
 
 	public enum ChannelType
 	{
-		BackOfficeChannel,
-		MarketingChannel
+		Unknown = 0
 	}
 
 }

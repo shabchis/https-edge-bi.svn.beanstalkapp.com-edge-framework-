@@ -22,7 +22,8 @@ namespace Eggplant.Entities.Queries
 				ParameterType = typeof(V),
 				IsRequired = required,
 				DefaultValue = defaultValue,
-				EmptyValue = emptyValue
+				EmptyValue = emptyValue,
+				Value = defaultValue
 			};
 		}
 	}

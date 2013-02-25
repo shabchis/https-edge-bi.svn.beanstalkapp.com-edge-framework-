@@ -39,7 +39,9 @@ namespace Eggplant.Entities.Queries
 			this.EntitySpace = template.EntitySpace;
 
 			foreach (DbParameter parameter in template.DbParameters.Values)
+			{
 				this.DbParameters.Add(parameter.Name, parameter.Clone());
+			}
 
 			foreach (QueryParameter parameter in template.Parameters.Values)
 				this.Parameters.Add(parameter.Name, parameter.Clone());
