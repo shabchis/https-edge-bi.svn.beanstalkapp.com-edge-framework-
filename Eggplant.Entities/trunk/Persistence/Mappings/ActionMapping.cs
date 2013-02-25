@@ -22,5 +22,9 @@ namespace Eggplant.Entities.Persistence
 			this.Action(context);
 		}
 
+		public override string ToString()
+		{
+			return String.Format("Action ({0})", typeof(T).Name);
+		}
 	}
 }

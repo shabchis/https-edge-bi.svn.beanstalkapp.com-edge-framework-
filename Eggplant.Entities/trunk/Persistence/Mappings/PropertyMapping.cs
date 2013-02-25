@@ -19,6 +19,11 @@ namespace Eggplant.Entities.Persistence
 			get { return this.Property; }
 		}
 
+		public override string ToString()
+		{
+			return String.Format("property \"{0}\" ({1})", this.Property.Name, typeof(T).Name);
+		}
+
 		#region Sugar
 		// =========================
 		public new PropertyMapping<T> Inherit(IMapping baseMapping)

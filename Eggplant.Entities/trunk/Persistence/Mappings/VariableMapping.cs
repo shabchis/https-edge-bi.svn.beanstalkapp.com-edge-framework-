@@ -20,6 +20,12 @@ namespace Eggplant.Entities.Persistence
 			base.Apply(context);
 		}
 
+		public override string ToString()
+		{
+			return String.Format("variable \"{0}\" ({1})", this.Variable, typeof(T).Name);
+		}
+
+
 		#region Sugar
 		// =========================
 		public new VariableMapping<T> Inherit(IMapping baseMapping)

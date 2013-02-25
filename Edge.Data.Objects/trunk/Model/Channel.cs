@@ -13,6 +13,7 @@ namespace Edge.Data.Objects
 		{
 			public static EntityProperty<Channel, int> ID = new EntityProperty<Channel, int>("ID");
 			public static EntityProperty<Channel, string> Name = new EntityProperty<Channel, string>("Name");
+			public static EntityProperty<Channel, string> DisplayName = new EntityProperty<Channel, string>("DisplayName");
 			public static EntityProperty<Channel, ChannelType> ChannelType = new EntityProperty<Channel, ChannelType>("ChannelType");
 		}
 	}

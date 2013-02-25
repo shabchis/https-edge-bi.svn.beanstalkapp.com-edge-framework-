@@ -50,7 +50,11 @@ namespace Eggplant.Entities.Cache
 					union = union.Union(entities);
 			}
 
-			return union;
+			if (union == null)
+				yield break;
+			else
+				foreach (T t in union)
+					yield return t;
 		}
 
 		public void Update(IdentityDefinition def, IDictionary<IEntityProperty, object> propertyValues)

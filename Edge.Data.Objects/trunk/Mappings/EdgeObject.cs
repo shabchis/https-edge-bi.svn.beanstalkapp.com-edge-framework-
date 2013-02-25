@@ -166,7 +166,6 @@ namespace Edge.Data.Objects
 						.ConditionalColumn("AccountID", EdgeObject.Properties.Account)
 						.DbParam("@objectType", query => query.Param<Type>("objectType").FullName)
 						.DbParam("@gk", query => query.Param<long>("gk"))
-						.ParseEdgeTemplate()
 					)
 
 				.Subquery("Connections",
@@ -174,7 +173,6 @@ namespace Edge.Data.Objects
 					subquery => subquery
 						.DbParam("@objectType", query => query.Param<Type>("objectType").FullName)
 						.DbParam("@objectGK", query => query.Param<long>("gk"))
-						.ParseEdgeTemplate()
 					)
 
 			;

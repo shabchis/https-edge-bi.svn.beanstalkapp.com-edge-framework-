@@ -35,7 +35,7 @@ namespace Edge.Data.Objects
 			public static QueryTemplate<Account> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Account>(Mappings.Default)
 				.RootSubquery(@"
 					select *
-					from Account
+					from Account 
 					where @accountID = -1 or ID = @accountID or ParentAccountID = @accountID
 					", init => init
 						 .DbParam("@accountID", query => query.Param<int>("accountID"))
@@ -44,12 +44,17 @@ namespace Edge.Data.Objects
 			;
 		}
 
-		public static IEnumerable<Account> Get(int accountID = -1, PersistenceConnection connection = null)
+		public static IEnumerable<Account> Get(int accountID = -1, bool flat = false, PersistenceConnection connection = null)
 		{
-			return Queries.Get.Start()
+			var results = Queries.Get.Start()
 				.Param<int>("accountID", accountID)
 				.Connect(connection)
 				.Execute();
+
+			if (flat)
+				return results;
+			else
+				return results.Where(account => account.ParentAccount == null);
 		}
 	}
 }

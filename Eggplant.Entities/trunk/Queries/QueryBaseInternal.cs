@@ -53,7 +53,7 @@ namespace Eggplant.Entities.Queries
 		}
 	}
 
-	public class QueryParameter:ICloneable
+	public class QueryParameter
 	{
 		public string Name;
 		public Type ParameterType;
@@ -62,22 +62,21 @@ namespace Eggplant.Entities.Queries
 		public object EmptyValue;
 		public object Value;
 
-		#region ICloneable Members
-
 		public QueryParameter Clone()
 		{
-			return (QueryParameter)((ICloneable)this).Clone();
+			return new QueryParameter()
+			{
+				Name = this.Name,
+				ParameterType = this.ParameterType,
+				IsRequired = this.IsRequired,
+				DefaultValue = this.DefaultValue,
+				EmptyValue = this.EmptyValue,
+				Value = this.Value
+			};
 		}
-
-		object ICloneable.Clone()
-		{
-			return this.MemberwiseClone();
-		}
-
-		#endregion
 	}
 
-	public class DbParameter : ICloneable
+	public class DbParameter
 	{
 		public string Name;
 		public object Value;
@@ -85,18 +84,16 @@ namespace Eggplant.Entities.Queries
 		public DbType? DbType;
 		public int? Size;
 
-		#region ICloneable Members
-
 		public DbParameter Clone()
 		{
-			return (DbParameter)((ICloneable)this).Clone();
+			return new DbParameter()
+			{
+				Name = this.Name,
+				Value = this.Value,
+				ValueFunction = this.ValueFunction,
+				DbType = this.DbType,
+				Size = this.Size
+			};
 		}
-
-		object ICloneable.Clone()
-		{
-			return this.MemberwiseClone();
-		}
-
-		#endregion
 	}
 }

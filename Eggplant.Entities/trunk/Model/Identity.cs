@@ -113,7 +113,7 @@ namespace Eggplant.Entities.Model
 			}
 			catch (KeyNotFoundException)
 			{
-				throw new KeyNotFoundException("The supplied property values are missing properties required for this identity.");
+				throw new KeyNotFoundException(String.Format("The identity {{{0}}} requires properties that are not available.", this));
 			}
 
 			return new Identity(this, parts);
@@ -135,6 +135,32 @@ namespace Eggplant.Entities.Model
 			}
 
 			return new Identity(this, parts);
+		}
+
+		public bool HasValidValues(IDictionary<IEntityProperty, object> propertyValues)
+		{
+			for (int i = 0; i < this.PartDefinitions.Length; i++)
+			{
+				if (!propertyValues.ContainsKey(this.PartDefinitions[i].Property))
+					return false;
+			}
+
+			return true;
+		}
+
+		public bool HasValidValues(params object[] values)
+		{
+			if (values.Length != this.PartDefinitions.Length)
+				return false;
+
+			IdentityPart[] parts = new IdentityPart[this.PartDefinitions.Length];
+			for (int i = 0; i < parts.Length; i++)
+			{
+				if (!this.PartDefinitions[i].Property.PropertyType.IsAssignableFrom(values[i].GetType()))
+					return false;
+			}
+
+			return true;
 		}
 	}
 

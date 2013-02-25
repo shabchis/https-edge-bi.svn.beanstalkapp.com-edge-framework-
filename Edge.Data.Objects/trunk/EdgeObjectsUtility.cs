@@ -58,9 +58,9 @@ namespace Edge.Data.Objects
 			return templateString.ToString();
 		}
 
-		#region ParseEdgeTemplate
+		#region ParseEdgeTemplate (disabled)
 		// ===========================
-		
+		#if NOPE
 		enum ParseState
 		{
 			BeforeColumns = 0,
@@ -157,6 +157,7 @@ namespace Edge.Data.Objects
 
 			return subqueryTemplate;
 		}
+		#endif
 
 		// ===========================
 		#endregion

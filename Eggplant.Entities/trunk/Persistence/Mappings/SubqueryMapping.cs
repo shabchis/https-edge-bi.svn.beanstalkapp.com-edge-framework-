@@ -28,6 +28,7 @@ namespace Eggplant.Entities.Persistence
 				((IMapping)this).InnerApply(context);
 				if (context.Target != null)
 					yield return context.Target;
+				context.Reset();
 			}
 		}
 
@@ -35,6 +36,12 @@ namespace Eggplant.Entities.Persistence
 		{
 			return this.ApplyAndReturn((MappingContext<T>)context);
 		}
+
+		public override string ToString()
+		{
+			return String.Format("subquery \"{0}\" ({1})", this.SubqueryName, typeof(T).Name);
+		}
+
 
 		#region Sugar
 		// =========================
