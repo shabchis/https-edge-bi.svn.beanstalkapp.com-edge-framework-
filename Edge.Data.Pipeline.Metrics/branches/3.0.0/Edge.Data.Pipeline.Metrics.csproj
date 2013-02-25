@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Misc\EdgeFieldDependencyInfo.cs" />
+    <Compile Include="Misc\IdentityField.cs" />
     <Compile Include="Misc\MetricsTableMetadata.cs" />
     <Compile Include="Misc\Options.cs" />
     <Compile Include="Managers\EdgeObjectManager.cs" />
