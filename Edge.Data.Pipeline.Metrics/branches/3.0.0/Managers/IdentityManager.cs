@@ -91,7 +91,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var whereParamsStr = String.Format("TYPEID=@typeId AND ");
 			sqlCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
 
-			foreach (var identityColumnName in edgeType.Fields.Where(x => x.IsIdentity).Select(x => x.ColumnName))
+			foreach (var identityColumnName in edgeType.Fields.Where(x => x.IsIdentity).Select(x => x.IdentityColumnName))
 			{
 				whereParamsStr = String.Format("{0}{1}=@{1} AND ", whereParamsStr, identityColumnName);
 				sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", identityColumnName), null));
@@ -125,16 +125,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// create udate SQL for each dependent object 
 			foreach (var dependent in field.DependentFields)
 			{
-				sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk AND {1}_TYPE=@typeId {2};\n",
-										  GetDeliveryTableName(dependent.Key.FieldEdgeType.TableName),
-										  dependent.Value.ColumnName,
-										  dependent.Key.FieldEdgeType.TableName == "Ad" ? String.Empty :
-																					String.Format("AND TYPEID=@{0}_typeId", dependent.Value.Field.Name)
-										  ));
+				sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk AND {1}_TYPE=@typeId AND TYPEID=@{2}_typeId;\n",
+											GetDeliveryTableName(dependent.Key.FieldEdgeType.TableName),
+											dependent.Value.ColumnName, dependent.Value.Field.Name));
 
-				// TODO: remove specific case for Ad (add TYPEID column to Ad table)
-				if (dependent.Key.FieldEdgeType.TableName != "Ad")
-					sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}_typeId", dependent.Value.Field.Name), dependent.Value.Field.FieldEdgeType.TypeID));
+				sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}_typeId", dependent.Value.Field.Name), dependent.Value.Field.FieldEdgeType.TypeID));
 			}
 
 			// update Metrics SQL
@@ -167,29 +162,27 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var identityColumnsStr = String.Empty;
 			foreach (var identityField in edgeType.Fields.Where(x => x.IsIdentity))
 			{
-				identityColumnsStr = String.Format("{0}{1},", identityColumnsStr,
-													identityField.Field.FieldEdgeType == null ?
-													identityField.ColumnName :
-													String.Format("{0}_gk", identityField.ColumnName));
+				identityColumnsStr = String.Format("{0}{1},", identityColumnsStr, identityField.IdentityColumnName);
 			}
 			if (identityColumnsStr.Length == 0) return null;
 
-
 			identityColumnsStr = identityColumnsStr.Remove(identityColumnsStr.Length - 1, 1);
-			var selectDeliveryObjects = String.Format("SELECT TK, {0} FROM {1} WHERE TYPEID = {2}",
-														identityColumnsStr,
-														GetDeliveryTableName(edgeType.TableName),
-														edgeType.TypeID);
 
 			var deliveryObjects = new List<IdentityObject>();
-			using (var command = new SqlCommand(selectDeliveryObjects, _deliverySqlConnection))
-			{
+			using (var command = new SqlCommand {Connection = _deliverySqlConnection})
+			{ 
+				command.CommandText = String.Format("SELECT TK, {0} FROM {1} WHERE TYPEID = @typeId",
+														identityColumnsStr,
+														GetDeliveryTableName(edgeType.TableName));
+
+				command.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+			
 				using (var reader = command.ExecuteReader())
 				{
 					while (reader.Read())
 					{
 						var deliveryObj = new IdentityObject { TK = reader["TK"].ToString() };
-						foreach (var identityName in edgeType.Fields.Where(x => x.IsIdentity).Select(x => x.ColumnName))
+						foreach (var identityName in edgeType.Fields.Where(x => x.IsIdentity).Select(x => x.IdentityColumnName))
 						{
 							deliveryObj.ObjectIdentities.Add(new IdentityField
 							{
