@@ -18,8 +18,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private readonly SqlConnection _deliverySqlConnection;
 		private SqlConnection _objectsSqlConnection;
 
-		public Dictionary<EdgeField, EdgeFieldDependencyInfo> EdgeObjectDependencies { get; set; }
-		public string TablePrefix { get; set; } 
+		public List<EdgeFieldDependencyInfo> Dependencies { get; set; }
+		public string TablePrefix { get; set; }
+		public int AccountId { get; set; }
 		#endregion
 
 		#region Ctor
@@ -30,21 +31,20 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		}
 		#endregion
 
-		#region Transform
-
 		#region Public Methods
 
 		/// <summary>
 		/// Set identity of delivery objects: update delivery objects with existing in EdgeObject DB object GKs 
 		/// </summary>
-		/// <param name="dependencies"></param>
-		public void SetObjectsIdentity(List<EdgeFieldDependencyInfo> dependencies)
+		public void SetExistingObjectsIdentity()
 		{
-			int maxDependecyDepth = dependencies.Max(x => x.Depth);
+			LoadDependencies();
+
+			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
 			{
 				var currentDepth = i;
-				foreach (var field in dependencies.Where(x => x.Depth == currentDepth))
+				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
 					var deliveryObjects = GetDeliveryObjects(field.Field.FieldEdgeType);
 					if (deliveryObjects == null) continue;
@@ -78,6 +78,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Private Methods
+
+		private void LoadDependencies()
+		{
+			// build object dependencies
+			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
+		}
 
 		/// <summary>
 		/// Prepare SQL command for retrieving object GK from EdgeObjects DB by identity fields
@@ -202,7 +208,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return String.Format("[dbo].[{0}_{1}]", TablePrefix, tableName);
 		}
 
-		#endregion
 		#endregion
 	}
 }

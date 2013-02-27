@@ -28,8 +28,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private IdentityManager _identityManager;
 		#endregion
 
-		public Dictionary<EdgeField, EdgeFieldDependencyInfo> EdgeObjectDependencies { get; set; }
-
 		#region Constructors
 		public MetricsDeliveryManager(Guid serviceInstanceID, Dictionary<string,EdgeType> edgeTypes = null, MetricsDeliveryManagerOptions options = null)
 			: base(serviceInstanceID)
@@ -131,15 +129,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			if (_identityManager == null)
 				throw new ConfigurationErrorsException("Identity manager is not created! Please call onBeginTransform() first");
-			if (EdgeObjectDependencies == null)
-				throw new ConfigurationErrorsException("Edge object dependencies was not loaded!");
-
+			
 			_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+			_identityManager.AccountId = delivery.Account.ID;
 
 			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
-				// OBJECTMANAGER: call identity SP - setup GK cache and assign existing GKs to object tables
-				_identityManager.SetObjectsIdentity(EdgeObjectDependencies.Values.ToList());
+				// set identity of edge objects in Delivery according to existing objects in EdgeObject DB
+				_identityManager.SetExistingObjectsIdentity();
 			}
 			else if (pass == TRANSFORM_PASS_CHECKSUM)
 			{

@@ -44,8 +44,8 @@
   <ItemGroup>
     <Compile Include="Managers\IdentityManager.cs" />
     <Compile Include="Misc\EdgeFieldDependencyInfo.cs" />
+    <Compile Include="Misc\EdgeObjectConfigLoader.cs" />
     <Compile Include="Misc\IdentityField.cs" />
-    <Compile Include="Misc\MetricsTableMetadata.cs" />
     <Compile Include="Misc\Options.cs" />
     <Compile Include="Managers\EdgeObjectManager.cs" />
     <Compile Include="Managers\MetricsTableManager.cs" />

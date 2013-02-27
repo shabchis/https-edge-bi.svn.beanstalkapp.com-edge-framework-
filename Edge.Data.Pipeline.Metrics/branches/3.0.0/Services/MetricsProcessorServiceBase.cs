@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
-using Edge.Core.Configuration;
-using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Mapping;
 using Edge.Data.Pipeline.Metrics.Managers;
@@ -42,12 +37,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 
 			// load definitions from DB
-			LoadAccounts();
-			LoadChannels();
-			LoadMeasures();
-			LoadEdgeTypes();
-			LoadEdgeFields();
-			LoadEdgeTypeFields();
+			Accounts	= EdgeObjectConfigLoader.LoadAccounts(_accountId);
+			Channels	= EdgeObjectConfigLoader.LoadChannels();
+			Measures	= EdgeObjectConfigLoader.LoadMeasures(_accountId);
+			EdgeTypes   = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId);
+			ExtraFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes);
+			EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, ExtraFields);
 
 			// Load mapping configuration
 			Mappings.ExternalMethods.Add("GetChannel", new Func<dynamic, Channel>(GetChannel));
@@ -226,223 +221,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		}
 
 		// ==============================================
-		#endregion
-
-		#region Private Methods
-		private void LoadAccounts()
-		{
-			Accounts = new Dictionary<string, Account>();
-			try
-			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
-				{
-					var cmd = SqlUtility.CreateCommand("Account_Get", CommandType.StoredProcedure);
-					cmd.Parameters.AddWithValue("@accountID", _accountId); 
-					cmd.Connection = connection;
-					connection.Open();
-
-					using (var reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-						{
-							var account = new Account
-								{
-									ID = int.Parse(reader["ID"].ToString()),
-									Name = reader["Name"].ToString()
-								};
-							Accounts.Add(account.Name, account);
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error while trying to get accounts from DB", ex);
-			}
-		}
-
-		private void LoadChannels()
-		{
-			Channels = new Dictionary<string, Channel>(StringComparer.CurrentCultureIgnoreCase);
-			try
-			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
-				{
-					var cmd = SqlUtility.CreateCommand("Channel_Get", CommandType.StoredProcedure);
-					cmd.Connection = connection;
-					connection.Open();
-					using (var reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-						{
-							var channel = new Channel
-								{
-									ID = int.Parse(reader["ID"].ToString()),
-									Name = reader["Name"].ToString()
-								};
-							Channels.Add(channel.Name, channel);
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error while trying to get Channels from DB", ex);
-			}
-		}
-
-		private void LoadMeasures()
-		{
-			Measures = new Dictionary<string, Measure>();
-			try
-			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
-				{
-					var cmd = SqlUtility.CreateCommand("MD_Measure_Get", CommandType.StoredProcedure);
-					cmd.Parameters.AddWithValue("@accountID", _accountId);
-					cmd.Connection = connection;
-					connection.Open();
-
-					using (var reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-						{
-							var measure = new Measure
-							{
-								ID = int.Parse(reader["ID"].ToString()),
-								Name = reader["Name"].ToString(),
-								DataType = reader["DataType"] != DBNull.Value ? (MeasureDataType)int.Parse(reader["DataType"].ToString()) : MeasureDataType.Number,
-								InheritedByDefault = reader["InheritedByDefault"] != DBNull.Value && bool.Parse(reader["InheritedByDefault"].ToString()),
-								Options = reader["Options"] != DBNull.Value ? (MeasureOptions)int.Parse(reader["Options"].ToString()) : MeasureOptions.None,
-							};
-							Measures.Add(measure.Name, measure);
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error while trying to get measures from DB", ex);
-			}
-		}
-
-		private void LoadEdgeTypes()
-		{
- 			EdgeTypes = new Dictionary<string, EdgeType>();
-			try
-			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
-				{
-					var cmd = SqlUtility.CreateCommand("MD_EdgeType_Get", CommandType.StoredProcedure);
-					cmd.Parameters.AddWithValue("@accountID", _accountId);
-					cmd.Connection = connection;
-					connection.Open();
-
-					using (var reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-						{
-							var type = new EdgeType
-							{
-								TypeID = int.Parse(reader["TypeID"].ToString()),
-								Name = reader["Name"].ToString(),
-								TableName = reader["TableName"].ToString(),
-								ClrType = Type.GetType(reader["ClrType"].ToString())
-							};
-							EdgeTypes.Add(type.Name, type);
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error while trying to get edge types from DB", ex);
-			}
-		}
-
-		private void LoadEdgeFields()
-		{
-			ExtraFields = new List<ExtraField>();
-			try
-			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
-				{
-					var cmd = SqlUtility.CreateCommand("MD_EdgeField_Get", CommandType.StoredProcedure);
-					cmd.Parameters.AddWithValue("@accountID", _accountId);
-					cmd.Connection = connection;
-					connection.Open();
-
-					using (var reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-						{
-							var field = new ExtraField
-							{
-								FieldID = int.Parse(reader["FieldID"].ToString()),
-								Name = reader["Name"].ToString(),
-								DisplayName = reader["DisplayName"].ToString(),
-								FieldEdgeType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["FieldTypeID"].ToString())),
-							};
-							ExtraFields.Add(field);
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error while trying to get extra fields from DB", ex);
-			}
-		}
-
-		private void LoadEdgeTypeFields()
-		{
-			try
-			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
-				{
-					var cmd = SqlUtility.CreateCommand("MD_EdgeTypeField_Get", CommandType.StoredProcedure);
-					cmd.Parameters.AddWithValue("@accountID", _accountId);
-					cmd.Connection = connection;
-					connection.Open();
-
-					using (var reader = cmd.ExecuteReader())
-					{
-						while (reader.Read())
-						{
-							// find parent edge type nad edge field
-							var parentTypeId = int.Parse(reader["ParentTypeID"].ToString());
-							var fieldtId = int.Parse(reader["FieldID"].ToString());
-
-							var parentType = EdgeTypes.Values.FirstOrDefault(x => x.TypeID == parentTypeId);
-							if (parentType == null)
-								throw new ConfigurationErrorsException(String.Format("Configuration error: Unknown parent edge type {0} while loading edge type fields", parentTypeId));
-							
-							var field = ExtraFields.FirstOrDefault(x => x.FieldID == fieldtId);
-							if (field == null)
-								throw new ConfigurationErrorsException(String.Format("Configuration error: Unknown edge field {0} while loading edge type fields", fieldtId));
-
-							var typeField = new EdgeTypeField
-									{
-										ColumnName   = reader["ColumnName"].ToString(),
-										IsIdentity	 = bool.Parse(reader["IsIdentity"].ToString()),
-										Field = field
-									};
-
-							// add edge field to parent edge type
-							if (!parentType.Fields.Contains(typeField))
-								parentType.Fields.Add(typeField);
-							else
-								throw new ConfigurationErrorsException(String.Format("Configuration error: Field {0} already exists in parent edge type {1}", field.Name,  parentType.Name));
-								
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error while trying to get extra fields from DB", ex);
-			}
-		}
 		#endregion
 	}
 }
