@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Edge.Data.Objects
 {
@@ -10,5 +7,10 @@ namespace Edge.Data.Objects
 		public EdgeField Field;
 		public string ColumnName;
 		public bool IsIdentity;
+
+		public string IdentityColumnName
+		{
+			get { return Field.FieldEdgeType == null ? ColumnName : String.Format("{0}_gk", ColumnName); }
+		}
 	}
 }

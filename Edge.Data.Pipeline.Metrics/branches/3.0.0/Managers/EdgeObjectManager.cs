@@ -97,6 +97,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				// account
 				AddColumn(ref columns, ref values, paramList, "AccountID", obj.Value.Account.ID);
 
+				// type ID
+				AddColumn(ref columns, ref values, paramList, "TypeID", obj.Value.EdgeType.TypeID);
+
 				// specific fields by object type
 				BuildSpecificFields(obj.Value, ref columns, ref values, paramList);
 
@@ -277,11 +280,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				//AddColumn(ref columns, ref values, paramList, "Parent_tk", creativeDef.Parent.TK);
 				//AddColumn(ref columns, ref values, paramList, "Parent_type", creativeDef.Parent.EdgeType.TypeID);
 			}
-			else
-			{
-				// Type ID is defined in all objects except Ad
-				AddColumn(ref columns, ref values, paramList, "TypeID", edgeObject.EdgeType.TypeID);
-			}
 
 			// fields defined for channel specific objects
 			if (edgeObject is ChannelSpecificObject)
@@ -322,32 +320,31 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					// if edge type is not set in configuration try to set it
 					if (edgeObj.EdgeType == null)
 					{
-						// 1st - according to edge object name in EdgeType table
+						// 1st - accoridng to extra field edge type if exists
+						var dimension = (obj as ObjectDimension);
+						if (dimension != null && dimension.Field != null && dimension.Field.FieldEdgeType != null)
+						{
+							edgeObj.EdgeType = dimension.Field.FieldEdgeType;
+							continue;
+						}
+
+						// 2nd - according to edge object name in EdgeType table
 						var requiredTypeName = edgeObj.GetType().Name;
 						if (EdgeTypes.ContainsKey(requiredTypeName))
 						{
 							edgeObj.EdgeType = EdgeTypes[requiredTypeName];
+							continue;
 						}
-						else
+
+						// 3rd - according to extra field name in EdgeField table (in this case, EdgeType Name = EdgeField Name)
+						if (dimension != null && dimension.Field != null && EdgeTypes.ContainsKey(dimension.Field.Name))
 						{
-							// 2nd - according to extra field name in EdgeField table (in this case, EdgeType Name = EdgeField Name)
-							if (obj is ObjectDimension)
-							{
-								var dimension = (obj as ObjectDimension);
-								if (EdgeTypes.ContainsKey(dimension.Field.Name))
-								{
-									edgeObj.EdgeType = EdgeTypes[dimension.Field.Name];
-								}
-								else
-								{
-									throw new ConfigurationErrorsException(String.Format("Edge type is not set for extra field {0} and cannot be found in EdgeTypes", dimension.Field.Name));
-								}
-							}
-							else
-							{
-								throw new ConfigurationErrorsException(String.Format("Edge type is not set for object {0} and cannot be found in EdgeTypes by object name", requiredTypeName));
-							}
+							edgeObj.EdgeType = EdgeTypes[dimension.Field.Name];
+							continue;
 						}
+						
+						throw new ConfigurationErrorsException(String.Format("Edge type is not set for extra field '{0}', object type '{1}'",
+															   dimension != null && dimension.Field != null ? dimension.Field.Name : String.Empty, requiredTypeName));
 					}
 				}
 			}
