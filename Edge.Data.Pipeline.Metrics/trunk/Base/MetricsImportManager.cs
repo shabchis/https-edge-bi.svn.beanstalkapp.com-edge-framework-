@@ -56,7 +56,7 @@ namespace Edge.Data.Pipeline.Metrics
 		protected override void OnBeginImport()
 		{
 			this._tablePrefix = string.Format("{0}_{1}_{2}_{3}", this.TablePrefixType, this.CurrentDelivery.Account.ID, DateTime.Now.ToString("yyyMMdd_HHmmss"), this.CurrentDelivery.DeliveryID.ToString("N").ToLower());
-			this.CurrentDelivery.Parameters.Add(Consts.DeliveryOutputParameters.TablePerfix, this._tablePrefix);
+			this.CurrentDelivery.Parameters[Consts.DeliveryOutputParameters.TablePerfix] = this._tablePrefix;
 
 			int bufferSize = int.Parse(AppSettings.Get(this, Consts.AppSettings.BufferSize));
 
