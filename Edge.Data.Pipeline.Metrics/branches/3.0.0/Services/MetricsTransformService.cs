@@ -13,7 +13,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		#region Data Members
 		private int _accountId = -1;
-		public Dictionary<EdgeField, EdgeFieldDependencyInfo> Dependencies { get; private set; }
 		#endregion
 
 		#region DoPipelineWork
@@ -23,9 +22,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				int.TryParse(Configuration.Parameters["AccountID"].ToString(), out _accountId);
 			}
-
-			// build object dependencies for identity manager
-			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(_accountId);
 
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
 			var options = new MetricsDeliveryManagerOptions

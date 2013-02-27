@@ -38,7 +38,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// </summary>
 		public void SetExistingObjectsIdentity()
 		{
-			LoadDependencies();
+			// load object dependencies
+			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
 
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
@@ -78,12 +79,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Private Methods
-
-		private void LoadDependencies()
-		{
-			// build object dependencies
-			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
-		}
 
 		/// <summary>
 		/// Prepare SQL command for retrieving object GK from EdgeObjects DB by identity fields
@@ -139,7 +134,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 
 			// update Metrics SQL
-			sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk;\n", GetDeliveryTableName("Metrics"), field.Field.FieldEdgeType.Name));
+			sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk;\n", GetDeliveryTableName("Metrics"), field.Field.Name));
 
 			// combine all SQLs into one sql command
 			sqlCmd.CommandText = String.Join(String.Empty, sqlList);

@@ -106,9 +106,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				// fields defined in object and configured to be stored (according to MD_EdgeField)
 				BuildEdgeObjectFields(obj.Value, ref columns, ref values, paramList);
 
-				// extra fields
-				//BuildExtraFields4Sql(obj.Value, ref columns, ref values, paramList);
-
 				var insertSql = String.Format("INSERT INTO [DBO].[{0}_{1}] \n({2}) \nVALUES \n({3})", tablePrefix, obj.Value.EdgeType.TableName, columns, values);
 				using (var command = new SqlCommand(insertSql, _deliverySqlConnection))
 				{
@@ -228,14 +225,27 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					if (member.Length > 0)
 					{
 						var memberInfo = edgeObject.GetType().GetMember(field.Field.Name)[0];
-						var fieldInfo = memberInfo as FieldInfo;
-						if (fieldInfo != null)
+						var value = (memberInfo is FieldInfo ? (memberInfo as FieldInfo).GetValue(edgeObject) : null) ??
+						          (memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).GetValue(edgeObject, null) : null);
+
+						var type = memberInfo is FieldInfo
+							           ? (memberInfo as FieldInfo).FieldType
+							           : memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).PropertyType : null;
+
+						// edge object
+						if (value is EdgeObject)
 						{
-							var value = fieldInfo.GetValue(edgeObject);
+							var edgeObj = value as EdgeObject;
+							AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.ColumnName), edgeObj.GK);
+							AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.ColumnName), edgeObj.TK);
+							AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.ColumnName), edgeObj.EdgeType.TypeID);
+						}
+						else if (value != null)  // primitive types
+						{
 							// special case for enum value - parse to INT
-							if (fieldInfo.FieldType.BaseType == typeof (Enum))
+							if (type.BaseType == typeof(Enum))
 							{
-								value = (int) Enum.Parse(fieldInfo.FieldType, value.ToString());
+								value = (int)Enum.Parse(type, value.ToString());
 							}
 							AddColumn(ref columns, ref values, paramList, field.ColumnName, value);
 						}
@@ -255,30 +265,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			if (edgeObject is Ad)
 			{
-				var ad = edgeObject as Ad;
 				// destination Url
-				AddColumn(ref columns, ref values, paramList, "DestinationUrl", ad.DestinationUrl);
-
-				// creative
-				AddColumn(ref columns, ref values, paramList, "CreativeDefinition_gk", ad.CreativeDefinition.GK);
-				AddColumn(ref columns, ref values, paramList, "CreativeDefinition_tk", ad.CreativeDefinition.TK);
-				AddColumn(ref columns, ref values, paramList, "CreativeDefinition_type", ad.CreativeDefinition.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "DestinationUrl", (edgeObject as Ad).DestinationUrl);
 			}
 			else if (edgeObject is CreativeDefinition)
 			{
-				var creativeDef = edgeObject as CreativeDefinition;
 				// destination Url
-				AddColumn(ref columns, ref values, paramList, "DestinationUrl", creativeDef.DestinationUrl);
-
-				// creative
-				AddColumn(ref columns, ref values, paramList, "Creative_gk", creativeDef.Creative.GK);
-				AddColumn(ref columns, ref values, paramList, "Creative_tk", creativeDef.Creative.TK);
-				AddColumn(ref columns, ref values, paramList, "Creative_type", creativeDef.Creative.EdgeType.TypeID);
-
-				// ad
-				//AddColumn(ref columns, ref values, paramList, "Parent_gk", creativeDef.Parent.GK);
-				//AddColumn(ref columns, ref values, paramList, "Parent_tk", creativeDef.Parent.TK);
-				//AddColumn(ref columns, ref values, paramList, "Parent_type", creativeDef.Parent.EdgeType.TypeID);
+				AddColumn(ref columns, ref values, paramList, "DestinationUrl", (edgeObject as CreativeDefinition).DestinationUrl);
 			}
 
 			// fields defined for channel specific objects
