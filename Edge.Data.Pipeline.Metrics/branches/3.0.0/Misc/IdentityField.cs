@@ -2,19 +2,31 @@
 
 namespace Edge.Data.Pipeline.Metrics.Misc
 {
-	public class IdentityField
+	public enum DeliveryObjectStatus
+	{
+		New,
+		Unchanged,
+		Modified
+	}
+
+	public class FieldValue
 	{
 		public string FieldName { get; set; }
 		public string Value { get; set; }
+		public bool IsIdentity { get; set; }
 	}
-	public class IdentityObject
-	{
-		public string TK { get; set; }
-		public List<IdentityField> ObjectIdentities { get; set; }
 
-		public IdentityObject()
+	public class DeliveryEdgeObject
+	{
+		public string GK { get; set; }
+		public string TK { get; set; }
+		public DeliveryObjectStatus Status { get; set; }
+
+		public List<FieldValue> FieldList { get; set; }
+
+		public DeliveryEdgeObject()
 		{
-			ObjectIdentities = new List<IdentityField>();
+			FieldList = new List<FieldValue>();
 		}
 	}
 }
