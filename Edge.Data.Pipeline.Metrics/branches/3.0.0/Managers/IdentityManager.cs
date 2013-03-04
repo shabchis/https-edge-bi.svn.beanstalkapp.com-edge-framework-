@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using Edge.Core.Configuration;
+using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Metrics.Services;
@@ -21,6 +23,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		public List<EdgeFieldDependencyInfo> Dependencies { get; set; }
 		public string TablePrefix { get; set; }
 		public int AccountId { get; set; }
+
+		private const string SP_INSERT_NEW_EDGE_OBJECTS = "InsertNewEdgeObjects";
+		private const string SP_UPDATE_EDGE_OBJECTS = "UpdateEdgeObjects";
 		#endregion
 
 		#region Ctor
@@ -34,9 +39,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Public Methods
 
 		/// <summary>
-		/// Set identity of delivery objects: update delivery objects with existing in EdgeObject DB object GKs 
+		/// Identity stage I: update delivery objects with existing in EdgeObject DB object GKs 
+		/// tag Delivery objects by IdentityStatus (New, Modified or Unchanged)
 		/// </summary>
-		public void SetExistingObjectsIdentity()
+		public void IdentifyDeliveryObjects()
 		{
 			// load object dependencies
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
@@ -60,17 +66,48 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 							// TODO: add log GK was found or not found
 							if (!String.IsNullOrEmpty((deliveryObject.GK)))
 							{
-								// update delivery with GK if GK was found by identity fields and set Status accordingly (Modified or Unchanged)
+								// update delivery with GK if GK was found by identity fields and set IdentityStatus accordingly (Modified or Unchanged)
 								updateGkCommand.Parameters["@gk"].Value		= deliveryObject.GK;
 								updateGkCommand.Parameters["@tk"].Value		= deliveryObject.TK;
-								updateGkCommand.Parameters["@status"].Value = deliveryObject.Status;
+								updateGkCommand.Parameters["@identityStatus"].Value = deliveryObject.IdentityStatus;
 								updateGkCommand.ExecuteNonQuery();
 							}
 						}
 					}
+					// drop temp table of EdgeObject by edge type
 				}
 			}
 		}
+		
+		/// <summary>
+		/// Identity stage II: update EdgeObject DB (staging) with edge object from Delivery DB:
+		/// * insert new EdgeObjects --> IdentityStatus = New
+		/// * update modifued EdgeObjects --> IdentityStatus = Modified
+		/// </summary>
+		public void UpdateEdgeObjects(SqlTransaction transaction)
+		{
+			// insert new EdgeObjects from Delivery into EdgeObjects DB
+			using (var insertCmd = SqlUtility.CreateCommand(SP_INSERT_NEW_EDGE_OBJECTS, CommandType.StoredProcedure))
+			{
+				insertCmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", TablePrefix));
+				insertCmd.Connection = _deliverySqlConnection;
+				insertCmd.Transaction = transaction;
+				insertCmd.ExecuteNonQuery();
+			}
+
+			// update exsting EdgeObject with new data (only Modified)
+			using (var updateCmd = SqlUtility.CreateCommand(SP_UPDATE_EDGE_OBJECTS, CommandType.StoredProcedure))
+			{
+				updateCmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", TablePrefix));
+				updateCmd.Connection = _deliverySqlConnection;
+				updateCmd.Transaction = transaction;
+				updateCmd.ExecuteNonQuery();
+			}
+		}
+
+		#endregion
+
+		#region Private Methods
 
 		/// <summary>
 		/// Retrieve EdgeObject according to delivery object ideintity fields to get GK
@@ -92,14 +129,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				{
 					// if found set GK
 					deliveryObject.GK = reader["GK"].ToString();
-					deliveryObject.Status = DeliveryObjectStatus.Unchanged;
+					deliveryObject.IdentityStatus = DeliveryObjectStatus.Unchanged;
 
 					// check if additional fields where changed, if yes --> set status to Modified
 					foreach (var field in deliveryObject.FieldList.Where(x => !x.IsIdentity))
 					{
 						if (field.Value != reader[field.FieldName].ToString())
 						{
-							deliveryObject.Status = DeliveryObjectStatus.Modified;
+							deliveryObject.IdentityStatus = DeliveryObjectStatus.Modified;
 							break;
 						}
 					}
@@ -107,43 +144,49 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 		}
 
-		#endregion
-
-		#region Private Methods
-
 		/// <summary>
-		/// Prepare SQL command for retrieving object GK from EdgeObjects DB by identity fields
+		/// Create temporary table by EdgeType, index it by identity fields and insert all EdgeObjects into it -
+		/// all this for provide fast retrivals and avoid EdgeObject tbale locks
+		/// Prepare SQL command for retrieving object GK from TEMP EdgeObject table by identity fields
 		/// </summary>
 		/// <param name="edgeType"></param>
 		/// <returns></returns>
 		private SqlCommand PrepareSelectEdgeObjectCommand(EdgeType edgeType)
 		{
-			var sqlCmd = new SqlCommand { Connection = ObjectsDbConnection() };
-
 			var selectColumnStr = "GK,";
-			var whereParamsStr = String.Format("TYPEID=@typeId AND ");
-			sqlCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+			var whereParamsStr = String.Empty;
+			var indexesStr = String.Empty;
+			var tempTableName = String.Format("{0}_TEMP", edgeType.Name);
+			
+			var selectCmd = new SqlCommand { Connection = ObjectsDbConnection() };
+			var createTempTableCmd = new SqlCommand { Connection = ObjectsDbConnection() };
+			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
 
 			foreach (var field in edgeType.Fields)
 			{
+				// add columns to SELECT (later check if edge object was updated or not)
+				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.IdentityColumnName);
 				if (field.IsIdentity)
 				{
 					// add identity fields to WHERE
 					whereParamsStr = String.Format("{0}{1}=@{1} AND ", whereParamsStr, field.IdentityColumnName);
-					sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", field.IdentityColumnName), null));
-				}
-				else
-				{
-					// add not identity columns to SELECT (later check if edge object was updated or not)
-					selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.IdentityColumnName);
+					selectCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", field.IdentityColumnName), null));
+
+					// TODO: create index on each identity field
+					indexesStr = String.Format("{0}CREATE INDEX on field {1};\n", indexesStr, field.IdentityColumnName);
 				}
 			}
 
 			selectColumnStr = selectColumnStr.Remove(selectColumnStr.Length - 1, 1);
 			if (whereParamsStr.Length > 5) whereParamsStr = whereParamsStr.Remove(whereParamsStr.Length - 5, 5);
 
-			sqlCmd.CommandText = String.Format("SELECT {0} FROM {1} WHERE {2}", selectColumnStr, edgeType.TableName, whereParamsStr);
-			return sqlCmd;
+			// TODO: create temp table of EdgeObjects
+			createTempTableCmd.CommandText = String.Format("CREATE TABLE {0} INSERT .... SELECT {1} WHERE typeId=@typeId; {2}", 
+											 tempTableName, selectColumnStr, indexesStr);
+			createTempTableCmd.ExecuteNonQuery();
+
+			selectCmd.CommandText = String.Format("SELECT {0} FROM {1} WHERE {2}", selectColumnStr, tempTableName, whereParamsStr);
+			return selectCmd;
 		}
 
 		/// <summary>
@@ -160,11 +203,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			sqlCmd.Parameters.Add(new SqlParameter("@gk", null));
 			sqlCmd.Parameters.Add(new SqlParameter("@tk", null));
 			sqlCmd.Parameters.Add(new SqlParameter("@typeId", field.Field.FieldEdgeType.TypeID));
-			sqlCmd.Parameters.Add(new SqlParameter("@status", null));
+			sqlCmd.Parameters.Add(new SqlParameter("@identityStatus", null));
 
 			var sqlList = new List<string>();
 			// add edge type table update
-			sqlList.Add(String.Format("UPDATE {0} SET GK=@gk, Status=@status WHERE TK=@tk AND TYPEID=@typeId;\n", GetDeliveryTableName(field.Field.FieldEdgeType.TableName)));
+			sqlList.Add(String.Format("UPDATE {0} SET GK=@gk, IdentityStatus=@identityStatus WHERE TK=@tk AND TYPEID=@typeId;\n", GetDeliveryTableName(field.Field.FieldEdgeType.TableName)));
 
 			// create udate SQL for each dependent object 
 			foreach (var dependent in field.DependentFields)

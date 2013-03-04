@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.SqlClient;
+using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Objects;
 
@@ -32,11 +33,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Data Members
 		public string TableName { get; set; }
 
-		readonly SqlConnection _sqlConnection;
-		readonly EdgeObjectsManager _edgeObjectsManger;
+		private readonly SqlConnection _sqlConnection;
+		private readonly EdgeObjectsManager _edgeObjectsManger;
 
-		//readonly Dictionary<string, Column> _columns = new Dictionary<string, Column>();
-
+		private const string SP_FIND_BEST_MATCH_METRICS_TABLE = "FindBestMatchMetricsTable";
+		private const string SP_STAGE_DELIVERY_METRICS = "StageDeliveryMetrics";
 		#endregion
 
 		#region Ctor
@@ -248,79 +249,44 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#endregion
 
 		#region Staging
+
 		/// <summary>
 		/// Search for best match table in staging DB according to delivery table structure
 		/// </summary>
 		/// <param name="deliveryTableName"></param>
+		/// <param name="transaction"></param>
 		/// <returns></returns>
-		public string FindStagingTable(string deliveryTableName)
+		public string FindStagingTable(string deliveryTableName, SqlTransaction transaction)
 		{
-			string stagingTableName = String.Empty;
-			// call stored procedure to find best mathed table for staging
-			//using (var command = SqlUtility.CreateCommand(AppSettings.Get(this, "SP_FindStagingTable"), CommandType.StoredProcedure))
-			//{
-			//	command.Parameters["@templateTable"].Value = deliveryTableName;
-			//	command.Parameters["@templateDB"].Value = ""; //TODO: FROM WHERE DO i TAKE THIS TABLE?
-			//	command.Parameters["@searchDB"].Value = ""; //TODO: FROM WHERE DO i TAKE THIS TABLE?
-
-			//	using (var reader = command.ExecuteReader())
-			//	{
-			//		if (!reader.Read())
-			//			throw new Exception(String.Format("No staging table was found for delivery table {0}", deliveryTableName));
-					
-			//		stagingTableName = reader["TABLE_NAME"].ToString();
-			//	}
-			//}
-			return stagingTableName;
+			using (var cmd = SqlUtility.CreateCommand(SP_FIND_BEST_MATCH_METRICS_TABLE, CommandType.StoredProcedure))
+			{
+				cmd.Connection = _sqlConnection;
+				cmd.Transaction = transaction;
+				cmd.Parameters.AddWithValue("@deviveryTableName", deliveryTableName);
+				var tableName = cmd.ExecuteScalar();
+				if (tableName == null || String.IsNullOrEmpty(tableName.ToString()))
+					throw new Exception(String.Format("No staging table was found for delivery table {0}", deliveryTableName));
+				
+				return tableName.ToString();
+			}
 		}
 
-		public void Staging(string deliveryTable, string stagingTable)
+		/// <summary>
+		/// Call stored procedure to insert delivery metrics data from delivery table into staging table
+		/// </summary>
+		/// <param name="deliveryTableName"></param>
+		/// <param name="stagingTableName"></param>
+		/// <param name="transaction"></param>
+		public void Staging(string deliveryTableName, string stagingTableName, SqlTransaction transaction)
 		{
-			// TODO: should only call store procedure to copy data from delivery to staging
-			//List<Column> cols = _columns.Values.ToList();
-			//var builder = new StringBuilder();
-			//builder.AppendFormat("INSERT INTO {0}\n(", stagingTable);
-			//for (int i = 0; i < cols.Count; i++)
-			//{
-			//	builder.AppendFormat(i != cols.Count - 1 ? "\t{0},\n" : "\t{0})\n", cols[i].Name);
-			//}
-			//builder.Append("\tVALUES (SELECT\n");
-			//for (int i = 0; i < cols.Count; i++)
-			//{
-			//	string colName = cols[i].Name.Contains(EGDE_OBJECTS_SUFFIX) ? "GKS.GK" : string.Format("{0}.{1}", "Metrics", cols[i].Name);
-
-			//	builder.AppendFormat(i != cols.Count - 1 ? "\t{0},\n" : "\t{0})\n", colName);
-			//}
-
-			//builder.Append("\tWHERE (\n");
-			//bool firstFilter = true;
-			//for (int i = 0; i < cols.Count; i++)
-			//{
-			//	string filter = string.Empty;
-			//	if (cols[i].Name.Contains(EGDE_OBJECTS_SUFFIX))
-			//	{
-			//		if (firstFilter)
-			//		{
-			//			filter = string.Format("Metrics.{0}=GKS.Usid\n", cols[i].Name);
-			//			firstFilter = false;
-			//		}
-			//		else
-			//			filter = string.Format("AND Metrics.{0}=GKS.Usid\n", cols[i].Name);
-			//	}
-
-			//	if (i != cols.Count - 1)
-			//	{
-			//		filter = string.IsNullOrEmpty(filter) ? "\t)" : string.Format("\t{0})\n", filter);
-			//	}
-
-			//	if (!string.IsNullOrEmpty(filter))
-			//		builder.Append(filter);
-
-			//}
-			//using (var command = new SqlCommand(builder.ToString(), _sqlConnection))
-			//{
-			//	command.ExecuteNonQuery();
-			//}
+			using (var cmd = SqlUtility.CreateCommand(SP_STAGE_DELIVERY_METRICS, CommandType.StoredProcedure))
+			{
+				cmd.Connection = _sqlConnection;
+				cmd.Transaction = transaction;
+				cmd.Parameters.AddWithValue("@deviveryTableName", deliveryTableName);
+				cmd.Parameters.AddWithValue("@stagingTableName", stagingTableName);
+				cmd.ExecuteNonQuery();
+			}
 		} 
 		#endregion
 	}
