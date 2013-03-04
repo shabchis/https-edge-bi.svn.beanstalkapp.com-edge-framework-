@@ -20,7 +20,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 	{
 		public string GK { get; set; }
 		public string TK { get; set; }
-		public DeliveryObjectStatus Status { get; set; }
+		public DeliveryObjectStatus IdentityStatus { get; set; }
 
 		public List<FieldValue> FieldList { get; set; }
 

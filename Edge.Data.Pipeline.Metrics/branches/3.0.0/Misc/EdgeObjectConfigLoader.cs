@@ -118,7 +118,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 								ID = int.Parse(reader["ID"].ToString()),
 								Name = reader["Name"].ToString(),
 								DataType = reader["DataType"] != DBNull.Value ? (MeasureDataType)int.Parse(reader["DataType"].ToString()) : MeasureDataType.Number,
-								InheritedByDefault = reader["InheritedByDefault"] != DBNull.Value && bool.Parse(reader["InheritedByDefault"].ToString()),
+								//InheritedByDefault = reader["InheritedByDefault"] != DBNull.Value && bool.Parse(reader["InheritedByDefault"].ToString()),
 								Options = reader["Options"] != DBNull.Value ? (MeasureOptions)int.Parse(reader["Options"].ToString()) : MeasureOptions.None,
 							};
 							measures.Add(measure.Name, measure);

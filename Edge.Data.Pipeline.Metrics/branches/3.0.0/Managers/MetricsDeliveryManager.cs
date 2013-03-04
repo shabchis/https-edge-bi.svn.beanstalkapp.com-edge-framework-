@@ -136,7 +136,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
 				// set identity of edge objects in Delivery according to existing objects in EdgeObject DB
-				_identityManager.SetExistingObjectsIdentity();
+				_identityManager.IdentifyDeliveryObjects();
 			}
 			else if (pass == TRANSFORM_PASS_CHECKSUM)
 			{
@@ -169,8 +169,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (String.IsNullOrWhiteSpace(Options.SqlStageCommand))
 				throw new DeliveryManagerException("Options.SqlStageCommand is empty.");
 
-			_deliverySqlConnection = NewDeliveryDbConnection();
 			_deliverySqlConnection.Open();
+
+			_identityManager = new IdentityManager(_deliverySqlConnection);
 
 			_stageTransaction = _deliverySqlConnection.BeginTransaction("Delivery Staging");
 		}
@@ -181,17 +182,23 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			if (pass == STAGING_PASS_OBJECTS)
 			{
-				// OBJECTMANAGER: call object insert SP with identity manager GK creation
+				_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+				_identityManager.AccountId = delivery.Account.ID;
+				
+				// IDENTITYMANAGER: insert new EdgeObjects and update existing from Delivery to EdgeObject DB by IdentityStatus
+				_identityManager.UpdateEdgeObjects(_stageTransaction);
 			}
 			else if (pass == STAGING_PASS_METRICS)
 			{
 				// TABLEMANAGER: find matching staging table and save to delivery parameter
-				var stagingMetricsTableName=_tableManager.FindStagingTable(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				var stagingMetricsTableName=_tableManager.FindStagingTable(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(), 
+											_stageTransaction);
 				CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
 				
-				// TABLEMANAGER: call metrics insert SP with identity manager USID --> GK translation
+				// TABLEMANAGER: insert delivery metrics into staging
 				_tableManager.Staging(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
-					                  CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+					                  CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(),
+									  _stageTransaction);
 			}
 		}
 
