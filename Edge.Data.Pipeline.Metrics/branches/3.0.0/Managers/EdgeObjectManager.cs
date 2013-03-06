@@ -151,8 +151,15 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// go over object composition levels and add objects to flat list
 			while (ContainsKey(level) && this[level] != null && this[level].Count > 0)
 			{
-				// add all objects of this level
-				flatList.AddRange(this[level].Where(obj => obj != null));
+				// add all objects of this level to flat list (check if it not exists already)
+				foreach (var obj in this[level])
+				{
+					var objDim = obj as ObjectDimension;
+					if (objDim == null) continue;
+
+					if (objDim.Field == null || !flatList.Any(x => x is ObjectDimension && ((x as ObjectDimension).Field == objDim.Field))) 
+						flatList.Add(obj);
+				}
 
 				foreach (var obj in this[level])
 				{

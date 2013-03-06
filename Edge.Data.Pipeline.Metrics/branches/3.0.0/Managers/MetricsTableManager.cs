@@ -64,6 +64,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
 
+			SaveMetricsMetadata(flatObjectList);
+
 			var columnList = GetColumnList(flatObjectList, false); // sampe metrics objects are not added to object cache
 
 			CreateTable(columnList);
@@ -97,7 +99,45 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
 				command.ExecuteNonQuery();
 			}
-		} 
+		}
+
+		/// <summary>
+		/// Save current delivery metrics table structure to find best match Metrics table (Staging)
+		/// </summary>
+		/// <param name="flatObjectList"></param>
+		private void SaveMetricsMetadata(IEnumerable<object> flatObjectList)
+		{
+			using (var cmd = new SqlCommand())
+			{
+				cmd.Connection = _sqlConnection;
+				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeTypeID], [MeasureName]) " +
+								  "VALUES (@TableName, @EdgeFieldID, @EdgeTypeID, @MeasureName)";
+
+				cmd.Parameters.Add(new SqlParameter("@TableName", TableName));
+				cmd.Parameters.Add(new SqlParameter("@EdgeFieldID", null));
+				cmd.Parameters.Add(new SqlParameter("@EdgeTypeID", null));
+				cmd.Parameters.Add(new SqlParameter("@MeasureName", null));
+
+				foreach (var obj in flatObjectList)
+				{
+					var dimension = obj as ObjectDimension;
+					if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
+					{
+						cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
+						cmd.Parameters["@EdgeTypeID"].Value = dimension.Field.FieldEdgeType.TypeID;
+						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
+						cmd.ExecuteNonQuery();
+					}
+					else if (obj is KeyValuePair<Measure, double>)
+					{
+						cmd.Parameters["@EdgeFieldID"].Value = DBNull.Value;
+						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
+						cmd.Parameters["@MeasureName"].Value = ((KeyValuePair<Measure, double>)obj).Key.Name;
+						cmd.ExecuteNonQuery();
+					}
+				}
+			}
+		}
 		#endregion
 
 		#region Import metrics
@@ -157,9 +197,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				if (dimension != null && dimension.Value is EdgeObject)
 				{
 					var edgeObj = dimension.Value as EdgeObject;
-					var columnName = dimension.Field != null ? dimension.Field.Name : edgeObj.EdgeType.Name;
 
-					foreach (var column in CreateEdgeObjColumns(edgeObj, columnName).Where(column => !columnDict.ContainsKey(column.Name)))
+					if(dimension.Field == null)
+						throw new ConfigurationErrorsException(String.Format("Dimention does not contain field definition of edge type {0}", edgeObj.EdgeType.Name));
+
+					foreach (var column in CreateEdgeObjColumns(edgeObj, dimension.Field.Name).Where(column => !columnDict.ContainsKey(column.Name)))
 					{
 						columnDict.Add(column.Name, column);
 					}
