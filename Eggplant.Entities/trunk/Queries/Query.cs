@@ -32,6 +32,8 @@ namespace Eggplant.Entities.Queries
 
 		protected List<DbCommand> PreparedCommands { get; private set; }
 		protected int MainCommandResultSetCount { get; private set; }
+		private IEnumerable _batchSource = null;
+		private Action<object> _batchAction = null;
 		
 		internal Query(QueryTemplate<T> template)
 		{
@@ -101,6 +103,16 @@ namespace Eggplant.Entities.Queries
 		public new Query<T> Param<V>(string paramName, V value)
 		{
 			base.Param<V>(paramName, value);
+			return this;
+		}
+
+		public Query<T> Batch<ItemT>(IEnumerable<ItemT> batchSource, Action<Query<T>, ItemT> batchAction)
+		{
+			if (batchAction == null)
+				throw new ArgumentNullException("batchAction");
+
+			_batchSource = batchSource;
+			_batchAction = obj => batchAction(this, (ItemT)obj);
 			return this;
 		}
 
@@ -201,47 +213,61 @@ namespace Eggplant.Entities.Queries
 				// Find associated subqueries
 				Subquery[] subqueries = this.Subqueries.Where(s => s.Command == command).OrderBy(s => s.ResultSetIndex).ToArray();
 
-				// Add parameters to the command object from all subqueries
-				foreach(Subquery subquery in subqueries)
-					foreach (DbParameter param in subquery.DbParameters.Values)
-						command.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+				IEnumerator batchEnumerator = null;
+				if (_batchSource != null)
+					batchEnumerator = _batchSource.GetEnumerator();
 
-				// Execute the command
-				int resultSetIndex = -1;
-				using (DbDataReader reader = command.ExecuteReader())
+				while (batchEnumerator == null || batchEnumerator.MoveNext())
 				{
-					PersistenceAdapter adapter = this.Connection.CreateAdapter(reader);
+					if (batchEnumerator != null)
+						_batchAction(batchEnumerator.Current);
 
-					// TODO: Iterate result set
-					do
+					// Add parameters to the command object from all subqueries
+					foreach (Subquery subquery in subqueries)
+						foreach (DbParameter param in subquery.DbParameters.Values)
+							command.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+
+					// Execute the command
+					int resultSetIndex = -1;
+					using (DbDataReader reader = command.ExecuteReader())
 					{
-						resultSetIndex++;
-						Subquery subquery = subqueries[resultSetIndex];
+						PersistenceAdapter adapter = this.Connection.CreateAdapter(reader);
 
-						MappingContext context = subquery.Mapping.CreateContext(adapter, subquery);
-
-						var results = subquery.Mapping.ApplyAndReturn(context);
-
-						if (subquery.Template.IsRoot)
+						// TODO: Iterate result set
+						do
 						{
-							// Yield results with no buffering only if this is the root subquery and it is the last to be executed
-							if (resultSetIndex == subqueries.Length - 1 && command == this.PreparedCommands[this.PreparedCommands.Count - 1])
+							resultSetIndex++;
+							Subquery subquery = subqueries[resultSetIndex];
+
+							MappingContext context = subquery.Mapping.CreateContext(adapter, subquery);
+
+							var results = subquery.Mapping.ApplyAndReturn(context);
+
+							if (subquery.Template.IsRoot)
 							{
-								foreach (T result in results)
-									yield return result;
+								// Yield results with no buffering only if this is the root subquery and it is the last to be executed
+								if (resultSetIndex == subqueries.Length - 1 && command == this.PreparedCommands[this.PreparedCommands.Count - 1])
+								{
+									foreach (T result in results)
+										yield return result;
+								}
+								else
+								{
+									buffer = ((IEnumerable<T>)results).ToList();
+								}
 							}
 							else
 							{
-								buffer = ((IEnumerable<T>)results).ToList();
+								// This is required in order for the IEnumerable to execute
+								foreach (object result in results) ;
 							}
 						}
-						else
-						{
-							// This is required in order for the IEnumerable to execute
-							foreach (object result in results);
-						}
+						while (reader.NextResult());
 					}
-					while (reader.NextResult());
+
+					// If we are not iterating a batch, just exit
+					if (batchEnumerator == null)
+						break;
 				}
 			}
 
