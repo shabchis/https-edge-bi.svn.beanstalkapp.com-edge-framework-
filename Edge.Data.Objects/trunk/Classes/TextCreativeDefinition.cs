@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Edge.Data.Objects
 {
@@ -12,10 +9,10 @@ namespace Edge.Data.Objects
 			get { return typeof(TextCreative); }
 		}
 
-		//public new TextCreative Creative
-		//{
-		//	get { return (TextCreative)base.Creative; }
-		//	set { base.Creative = value; }
-		//}
+		public new TextCreative Creative
+		{
+			get { return base.Creative as TextCreative; }
+			//set { base.Creative = value; }
+		}
 	}
 }

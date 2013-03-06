@@ -13,10 +13,10 @@ namespace Edge.Data.Objects
 			get { return typeof(CompositeCreative); }
 		}
 
-		public override Creative Creative
+		public new CompositeCreative Creative
 		{
-			get { return (CompositeCreative)base.Creative; }
-			set { base.Creative = value; }
+			get { return base.Creative as CompositeCreative; }
+			//set { base.Creative = value; }
 		}
 
 		public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions
@@ -37,7 +37,7 @@ namespace Edge.Data.Objects
 				yield return dimension;
 			}
 
-			if (Creative != null) yield return new ObjectDimension {Value = Creative};
+			//if (Creative != null) yield return new ObjectDimension {Value = Creative};
 
 			if (CreativeDefinitions == null) yield break;
 			foreach (var definition in CreativeDefinitions)

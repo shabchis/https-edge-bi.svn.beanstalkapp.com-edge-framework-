@@ -16,8 +16,8 @@ namespace Edge.Data.Objects
 
 		public new CompositeCreative Creative
 		{
-			get { return (CompositeCreative)base.Creative; }
-			set { base.Creative = value; }
+			get { return base.Creative as CompositeCreative; }
+			//set { base.Creative = value; }
 		}
 	}
 }
