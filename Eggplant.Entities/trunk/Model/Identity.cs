@@ -37,6 +37,7 @@ namespace Eggplant.Entities.Model
 	public class IdentityDefinition
 	{
 		public readonly IdentityPartDefinition[] PartDefinitions;
+		public Dictionary<IEntityProperty, Func<object, bool>> Constraints = null;
 		private int _hash;
 
 		public IdentityDefinition(params IEntityProperty[] parts)
@@ -49,6 +50,16 @@ namespace Eggplant.Entities.Model
 				this.PartDefinitions[i] = new IdentityPartDefinition(parts[i]);
 
 			_hash = HashingHelper.Hash(this.PartDefinitions);
+		}
+
+		public IdentityDefinition Constrain<T>(IEntityProperty<T> property, Func<T, bool> checkIfValid)
+		{
+			if (this.Constraints == null)
+				this.Constraints = new Dictionary<IEntityProperty, Func<object, bool>>();
+
+			this.Constraints.Add(property, obj => checkIfValid((T)obj));
+
+			return this;
 		}
 
 		public override bool Equals(object obj)
@@ -88,7 +99,6 @@ namespace Eggplant.Entities.Model
 			}
 			return output;
 		}
-
 		
 		public Identity IdentityOf(object obj)
 		{
@@ -97,6 +107,8 @@ namespace Eggplant.Entities.Model
 			{
 				parts[i] = new IdentityPart(this.PartDefinitions[i], this.PartDefinitions[i].Property.GetValue(obj));
 			}
+
+			ValidateConstraints(obj);
 
 			return new Identity(this, parts);
 		}
@@ -115,6 +127,8 @@ namespace Eggplant.Entities.Model
 			{
 				throw new KeyNotFoundException(String.Format("The identity {{{0}}} requires properties that are not available.", this));
 			}
+
+			ValidateConstraints(propertyValues);
 
 			return new Identity(this, parts);
 
@@ -145,7 +159,7 @@ namespace Eggplant.Entities.Model
 					return false;
 			}
 
-			return true;
+			return ValidateConstraints(propertyValues, false);
 		}
 
 		public bool HasValidValues(params object[] values)
@@ -162,6 +176,58 @@ namespace Eggplant.Entities.Model
 
 			return true;
 		}
+
+		private bool ValidateConstraints(IDictionary<IEntityProperty, object> propertyValues, bool throwEx = true)
+		{
+			bool valid = true;
+			foreach (var constraint in this.Constraints)
+			{
+				object val;
+				var validateFunction = constraint.Value;
+				if (!propertyValues.TryGetValue(constraint.Key, out val) || !validateFunction(val))
+				{
+					valid = false;
+					break;
+				}
+			}
+
+			if (!valid && throwEx)
+				throw new IdentityConstraintException("Constraint is not valid.");
+
+			return valid;
+		}
+
+		private bool ValidateConstraints(object obj, bool throwEx = true)
+		{
+			bool valid = true;
+			foreach (var constraint in this.Constraints)
+			{
+				object val = constraint.Key.GetValue(obj);
+				var validateFunction = constraint.Value;
+				if (!validateFunction(val))
+				{
+					valid = false;
+					break;
+				}
+			}
+
+			if (!valid && throwEx)
+				throw new IdentityConstraintException("Constraint is not valid.");
+
+			return valid;
+		}
+	}
+
+	[Serializable]
+	public class IdentityConstraintException : Exception
+	{
+		public IdentityConstraintException() { }
+		public IdentityConstraintException(string message) : base(message) { }
+		public IdentityConstraintException(string message, Exception inner) : base(message, inner) { }
+		protected IdentityConstraintException(
+		  System.Runtime.Serialization.SerializationInfo info,
+		  System.Runtime.Serialization.StreamingContext context)
+			: base(info, context) { }
 	}
 
 	public struct IdentityPart

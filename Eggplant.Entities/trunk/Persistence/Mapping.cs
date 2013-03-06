@@ -164,7 +164,10 @@ namespace Eggplant.Entities.Persistence
 		public Mapping<T> UseMapping(Mapping<T> mapping)
 		{
 			this.BaseMapping = mapping.BaseMapping;
-			this.CacheIdentity = mapping.CacheIdentity;
+
+			if (this.CacheIdentity == null)
+				this.CacheIdentity = mapping.CacheIdentity;
+
 			((List<IMapping>)this.SubMappings).AddRange(mapping.SubMappings);
 
 			return this;
