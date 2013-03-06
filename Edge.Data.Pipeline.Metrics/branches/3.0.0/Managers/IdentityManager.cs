@@ -47,16 +47,20 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// load object dependencies
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
 
+			// TODO: create index on TK fields in Delivery objects tables
+
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
 			{
 				var currentDepth = i;
 				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
+					UpdateObjectDependencies(field.Field);
+
 					var deliveryObjects = GetDeliveryObjects(field.Field.FieldEdgeType);
 					if (deliveryObjects == null) continue;
 
-					using (var selectEdgeObjectCommand = PrepareSelectEdgeObjectCommand(field.Field.FieldEdgeType))
+					using (var selectEdgeObjectCommand = PrepareSelectEdgeObjectCommand(field.Field))
 					using (var updateGkCommand = PrepareUpdateGkCommand(field))
 					{
 						foreach (var deliveryObject in deliveryObjects)
@@ -64,20 +68,21 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 							SetDeliveryObjectByEdgeObject(deliveryObject, selectEdgeObjectCommand);
 
 							// TODO: add log GK was found or not found
-							if (!String.IsNullOrEmpty((deliveryObject.GK)))
+							// update delivery with GKs if GK was found by identity fields and set IdentityStatus accordingly (Modified or Unchanged)
+							if (!String.IsNullOrEmpty(deliveryObject.GK))
 							{
-								// update delivery with GK if GK was found by identity fields and set IdentityStatus accordingly (Modified or Unchanged)
-								updateGkCommand.Parameters["@gk"].Value		= deliveryObject.GK;
-								updateGkCommand.Parameters["@tk"].Value		= deliveryObject.TK;
+								updateGkCommand.Parameters["@gk"].Value = deliveryObject.GK;
+								updateGkCommand.Parameters["@tk"].Value = deliveryObject.TK;
 								updateGkCommand.Parameters["@identityStatus"].Value = deliveryObject.IdentityStatus;
+
 								updateGkCommand.ExecuteNonQuery();
 							}
 						}
 					}
-					// drop temp table of EdgeObject by edge type
 				}
 			}
 		}
+
 		
 		/// <summary>
 		/// Identity stage II: update EdgeObject DB (staging) with edge object from Delivery DB:
@@ -151,39 +156,44 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// </summary>
 		/// <param name="edgeType"></param>
 		/// <returns></returns>
-		private SqlCommand PrepareSelectEdgeObjectCommand(EdgeType edgeType)
+		private SqlCommand PrepareSelectEdgeObjectCommand(EdgeField edgeField)
 		{
 			var selectColumnStr = "GK,";
 			var whereParamsStr = String.Empty;
-			var indexesStr = String.Empty;
-			var tempTableName = String.Format("{0}_TEMP", edgeType.Name);
+			var indexFieldsStr = String.Empty;
+			var tempTableName = String.Format("##TEMP_{0}", edgeField.Name);
 			
 			var selectCmd = new SqlCommand { Connection = ObjectsDbConnection() };
 			var createTempTableCmd = new SqlCommand { Connection = ObjectsDbConnection() };
-			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeField.FieldEdgeType.TypeID));
 
-			foreach (var field in edgeType.Fields)
+			foreach (var field in edgeField.FieldEdgeType.Fields)
 			{
 				// add columns to SELECT (later check if edge object was updated or not)
-				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.IdentityColumnName);
+				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.ColumnNameGK);
 				if (field.IsIdentity)
 				{
 					// add identity fields to WHERE
-					whereParamsStr = String.Format("{0}{1}=@{1} AND ", whereParamsStr, field.IdentityColumnName);
-					selectCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", field.IdentityColumnName), null));
+					whereParamsStr = String.Format("{0}{1}=@{1} AND ", whereParamsStr, field.ColumnNameGK);
+					selectCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", field.ColumnNameGK), null));
 
-					// TODO: create index on each identity field
-					indexesStr = String.Format("{0}CREATE INDEX on field {1};\n", indexesStr, field.IdentityColumnName);
+					indexFieldsStr = String.Format("{0}{1},", indexFieldsStr, field.ColumnNameGK);
 				}
 			}
 
 			selectColumnStr = selectColumnStr.Remove(selectColumnStr.Length - 1, 1);
+			indexFieldsStr = indexFieldsStr.Remove(indexFieldsStr.Length - 1, 1);
 			if (whereParamsStr.Length > 5) whereParamsStr = whereParamsStr.Remove(whereParamsStr.Length - 5, 5);
 
-			// TODO: create temp table of EdgeObjects
-			createTempTableCmd.CommandText = String.Format("CREATE TABLE {0} INSERT .... SELECT {1} WHERE typeId=@typeId; {2}", 
-											 tempTableName, selectColumnStr, indexesStr);
+			// create temp table from EdgeObjectd DB table by type + indexes on Identity fields
+			createTempTableCmd.CommandText = String.Format(@"SELECT {0} INTO {1} FROM {2} WHERE typeId=@typeId; CREATE NONCLUSTERED INDEX [IDX_{1}] ON {1} ({3});", 
+											selectColumnStr,
+											tempTableName,
+											edgeField.FieldEdgeType.TableName, 
+											indexFieldsStr);
+			
 			createTempTableCmd.ExecuteNonQuery();
+			createTempTableCmd.Dispose();
 
 			selectCmd.CommandText = String.Format("SELECT {0} FROM {1} WHERE {2}", selectColumnStr, tempTableName, whereParamsStr);
 			return selectCmd;
@@ -205,19 +215,28 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			sqlCmd.Parameters.Add(new SqlParameter("@typeId", field.Field.FieldEdgeType.TypeID));
 			sqlCmd.Parameters.Add(new SqlParameter("@identityStatus", null));
 
+			//var childsUpdateStr = String.Empty;
+			//foreach (var childField in field.Field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
+			//{
+			//	childsUpdateStr = String.Format(",{0}{1}=@{1}", childsUpdateStr, childField.ColumnNameGK);
+			//	sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", childField.ColumnNameGK), null));
+			//}
+
 			var sqlList = new List<string>();
 			// add edge type table update
-			sqlList.Add(String.Format("UPDATE {0} SET GK=@gk, IdentityStatus=@identityStatus WHERE TK=@tk AND TYPEID=@typeId;\n", GetDeliveryTableName(field.Field.FieldEdgeType.TableName)));
+			sqlList.Add(String.Format("UPDATE {0} SET GK=@gk, IdentityStatus=@identityStatus WHERE TK=@tk AND TYPEID=@typeId;", 
+										GetDeliveryTableName(field.Field.FieldEdgeType.TableName)));
 
+			
 			// create udate SQL for each dependent object 
-			foreach (var dependent in field.DependentFields)
-			{
-				sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk AND {1}_TYPE=@typeId AND TYPEID=@{2}_typeId;\n",
-											GetDeliveryTableName(dependent.Key.FieldEdgeType.TableName),
-											dependent.Value.ColumnName, dependent.Value.Field.Name));
+			//foreach (var dependent in field.DependentFields)
+			//{
+			//	sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk AND {1}_TYPE=@typeId AND TYPEID=@{2}_typeId;\n",
+			//								GetDeliveryTableName(dependent.Key.FieldEdgeType.TableName),
+			//								dependent.Value.ColumnName, dependent.Value.Field.Name));
 
-				sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}_typeId", dependent.Value.Field.Name), dependent.Value.Field.FieldEdgeType.TypeID));
-			}
+			//	sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}_typeId", dependent.Value.Field.Name), dependent.Value.Field.FieldEdgeType.TypeID));
+			//}
 
 			// update Metrics SQL
 			sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk;\n", GetDeliveryTableName("Metrics"), field.Field.Name));
@@ -246,11 +265,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <returns></returns>
 		private IEnumerable<DeliveryEdgeObject> GetDeliveryObjects(EdgeType edgeType)
 		{
-			var columnsStr = String.Empty;
-			foreach (var field in edgeType.Fields)
-			{
-				columnsStr = String.Format("{0}{1},", columnsStr, field.IdentityColumnName);
-			}
+			var columnsStr = edgeType.Fields.Aggregate(String.Empty, (current, field) => String.Format("{0}{1},", current, field.ColumnNameGK));
 			if (columnsStr.Length == 0) return null;
 
 			columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
@@ -272,18 +287,62 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						foreach (var field in edgeType.Fields)
 						{
 							deliveryObj.FieldList.Add(new FieldValue
-							{
-								FieldName = field.IdentityColumnName,
-								Value = reader[field.IdentityColumnName].ToString(),
-								IsIdentity = field.IsIdentity
-							});
-
+								{
+									FieldName = field.ColumnNameGK,
+									IsIdentity = field.IsIdentity,
+									Value = reader[field.ColumnNameGK].ToString()
+								});
 						}
 						deliveryObjects.Add(deliveryObj);
 					}
 				}
 			}
 			return deliveryObjects;
+		}
+
+		/// <summary>
+		/// Before searching for object GKs update all GK of its parent fields 
+		/// (objects it depends on)
+		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
+		/// </summary>
+		/// <param name="field"></param>
+		private void UpdateObjectDependencies(EdgeField field)
+		{
+			// nothitng to do if there are no GK to update
+			if (field.FieldEdgeType.Fields.All(x => x.Field.FieldEdgeType == null)) return;
+
+			var setStr = String.Format("UPDATE {0} SET", GetDeliveryTableName(field.FieldEdgeType.TableName));
+			var fromStr = String.Format("FROM {0}", GetDeliveryTableName(field.FieldEdgeType.TableName));
+			var whereStr = "WHERE ";
+			var paramList = new List<SqlParameter>();
+
+			foreach (var parentField in field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
+			{
+				setStr = String.Format("{0}{1}=@{1},", setStr, parentField.ColumnNameGK);
+				fromStr = String.Format("{0} \nINNER JOIN {1} {2}_table ON {2}_table.{3} = {4}.TK",
+										fromStr,
+										GetDeliveryTableName(field.FieldEdgeType.TableName),
+										field.Name,
+										parentField.ColumnNameTK,
+										GetDeliveryTableName(parentField.Field.FieldEdgeType.TableName));
+				whereStr = String.Format("{0}{1}.TYPEID=@{2}_type AND ",
+										 whereStr,
+										 GetDeliveryTableName(parentField.Field.FieldEdgeType.TableName),
+										 parentField.Field.Name);
+				paramList.Add(new SqlParameter(String.Format("@{0}_type", parentField.Field.Name), parentField.Field.FieldEdgeType.TypeID));
+			}
+			setStr = setStr.Remove(setStr.Length - 1, 1);
+			whereStr = whereStr.Remove(whereStr.Length - 5, 5);
+
+			// perform update
+			using (var cmd = new SqlCommand())
+			{
+				cmd.Connection = _deliverySqlConnection;
+				cmd.CommandText = String.Format("{0}\n{1}\n{2}", setStr, fromStr, whereStr);
+				cmd.Parameters.AddRange(paramList.ToArray());
+
+				cmd.ExecuteNonQuery();
+			}
 		}
 
 		private string GetDeliveryTableName(string tableName)

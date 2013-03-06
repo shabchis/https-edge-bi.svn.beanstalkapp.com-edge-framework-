@@ -8,9 +8,14 @@ namespace Edge.Data.Objects
 		public string ColumnName;
 		public bool IsIdentity;
 
-		public string IdentityColumnName
+		public string ColumnNameGK
 		{
 			get { return Field.FieldEdgeType == null ? ColumnName : String.Format("{0}_gk", ColumnName); }
+		}
+
+		public string ColumnNameTK
+		{
+			get { return Field.FieldEdgeType == null ? ColumnName : String.Format("{0}_tk", ColumnName); }
 		}
 	}
 }
