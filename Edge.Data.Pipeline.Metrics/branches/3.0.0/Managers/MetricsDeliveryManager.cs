@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
@@ -155,7 +154,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/*=========================*/
 
 		SqlTransaction _stageTransaction;
-		//SqlCommand _stageCommand = null;
 		const int STAGING_PASS_OBJECTS = 0;
 		const int STAGING_PASS_METRICS = 1;
 
