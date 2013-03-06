@@ -16,8 +16,8 @@ namespace Edge.Data.Objects
 
 		public new ImageCreative Creative
 		{
-			get { return (ImageCreative)base.Creative; }
-			set { base.Creative = value; }
+			get { return base.Creative as ImageCreative; }
+			//set { base.Creative = value; }
 		}
 	}
 }
