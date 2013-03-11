@@ -2,7 +2,7 @@
 
 namespace Edge.Data.Pipeline.Metrics.Misc
 {
-	public enum DeliveryObjectStatus
+	public enum IdentityStatus
 	{
 		New,
 		Unchanged,
@@ -20,7 +20,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 	{
 		public string GK { get; set; }
 		public string TK { get; set; }
-		public DeliveryObjectStatus IdentityStatus { get; set; }
+		public IdentityStatus IdentityStatus { get; set; }
 
 		public List<FieldValue> FieldList { get; set; }
 

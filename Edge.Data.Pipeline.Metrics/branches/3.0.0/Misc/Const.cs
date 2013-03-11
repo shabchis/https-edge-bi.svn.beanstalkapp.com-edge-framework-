@@ -10,7 +10,7 @@
 			public const string StagingMetricsTableName = "StagingMetricsTableName";
 			public const string CommitMetricsTableName = "CommitMetricsTableName";
 
-			public const string MetricsTableMetadata = "MetricsTableMetadata";
+			public const string TransformTimestamp = "TransformTimestamp";
 		}
 
 		public static class AppSettings
