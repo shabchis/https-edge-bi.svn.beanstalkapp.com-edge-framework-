@@ -132,6 +132,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
 			_identityManager.AccountId = delivery.Account.ID;
 
+			// store timestamp of starting Transform for using it in Staging
+			delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp] = DateTime.Now;
+
 			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
 				// set identity of edge objects in Delivery according to existing objects in EdgeObject DB
@@ -181,6 +184,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (pass == STAGING_PASS_OBJECTS)
 			{
 				_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
+				_identityManager.TransformTimestamp = DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString());
 				_identityManager.AccountId = delivery.Account.ID;
 				
 				// IDENTITYMANAGER: insert new EdgeObjects and update existing from Delivery to EdgeObject DB by IdentityStatus
