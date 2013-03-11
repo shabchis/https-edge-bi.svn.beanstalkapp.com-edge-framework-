@@ -110,11 +110,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			using (var cmd = new SqlCommand())
 			{
 				cmd.Connection = _sqlConnection;
-				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeTypeID], [MeasureName]) " +
-								  "VALUES (@TableName, @EdgeFieldID, @EdgeTypeID, @MeasureName)";
+				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeFieldName], [EdgeTypeID], [MeasureName]) " +
+								  "VALUES (@TableName, @EdgeFieldID, @EdgeFieldName, @EdgeTypeID, @MeasureName)";
 
 				cmd.Parameters.Add(new SqlParameter("@TableName", TableName));
 				cmd.Parameters.Add(new SqlParameter("@EdgeFieldID", null));
+				cmd.Parameters.Add(new SqlParameter("@EdgeFieldName", null));
 				cmd.Parameters.Add(new SqlParameter("@EdgeTypeID", null));
 				cmd.Parameters.Add(new SqlParameter("@MeasureName", null));
 
@@ -124,6 +125,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
 					{
 						cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
+						cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_gk", dimension.Field.Name);
 						cmd.Parameters["@EdgeTypeID"].Value = dimension.Field.FieldEdgeType.TypeID;
 						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
 						cmd.ExecuteNonQuery();
@@ -131,6 +133,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					else if (obj is KeyValuePair<Measure, double>)
 					{
 						cmd.Parameters["@EdgeFieldID"].Value = DBNull.Value;
+						cmd.Parameters["@EdgeFieldName"].Value = DBNull.Value;
 						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
 						cmd.Parameters["@MeasureName"].Value = ((KeyValuePair<Measure, double>)obj).Key.Name;
 						cmd.ExecuteNonQuery();
