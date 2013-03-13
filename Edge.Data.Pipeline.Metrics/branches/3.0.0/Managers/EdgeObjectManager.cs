@@ -4,11 +4,8 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
-using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline.Metrics.Misc;
-using Edge.Data.Pipeline.Metrics.Services;
 using Edge.Data.Pipeline.Objects;
 using System.Configuration;
 
@@ -25,6 +22,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Data Members
 
 		private readonly SqlConnection _deliverySqlConnection;
+		private readonly SqlConnection _objectsSqlConnection;
 
 		// dictionary of objects per level of hierarchy in MetricsUnit
 		private readonly Dictionary<int, List<object>> _objectsByLevel = new Dictionary<int, List<object>>();
@@ -36,9 +34,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		#region Ctor
 
-		public EdgeObjectsManager(SqlConnection deliveryConnection)
+		public EdgeObjectsManager(SqlConnection deliveryConnection, SqlConnection objectsConnectin)
 		{
 			_deliverySqlConnection = deliveryConnection;
+			_objectsSqlConnection = objectsConnectin;
 		}
 		#endregion
 
@@ -67,12 +66,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="tablePrefix"></param>
 		public void CreateDeliveryObjectTables(string tablePrefix)
 		{
-			using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+			using (var cmd = SqlUtility.CreateCommand("MD_ObjectTables_Create", CommandType.StoredProcedure))
 			{
-				var cmd = SqlUtility.CreateCommand("MD_ObjectTables_Create", CommandType.StoredProcedure);
 				cmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", tablePrefix));
-				cmd.Connection = connection;
-				connection.Open();
+				cmd.Connection = _objectsSqlConnection;
 
 				cmd.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
 				cmd.ExecuteNonQuery();

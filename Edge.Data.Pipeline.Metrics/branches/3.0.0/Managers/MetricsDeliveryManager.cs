@@ -17,7 +17,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 	public class MetricsDeliveryManager : DeliveryManager
 	{
 		#region Data Members
-		private SqlConnection _deliverySqlConnection;
+		private readonly SqlConnection _deliverySqlConnection;
+		private readonly SqlConnection _objectsSqlConnection;
 
 		public MetricsDeliveryManagerOptions Options { get; private set; }
 
@@ -44,8 +45,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			Options = options;
 			
 			// create connection and table managers
-			_deliverySqlConnection = NewDeliveryDbConnection();
-			_edgeObjectsManager = new EdgeObjectsManager(_deliverySqlConnection) {EdgeTypes = edgeTypes};
+			_deliverySqlConnection = OpenDbConnection(Consts.ConnectionStrings.Deliveries);
+			_objectsSqlConnection = OpenDbConnection(Consts.ConnectionStrings.Objects);
+
+			_edgeObjectsManager = new EdgeObjectsManager(_deliverySqlConnection, _objectsSqlConnection) {EdgeTypes = edgeTypes};
 			_tableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager);
 		}
 
@@ -59,8 +62,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// set table prefix
 			_tablePrefix = string.Format("{0}_{1}_{2}_{3}", CurrentDelivery.Account.ID, CurrentDelivery.Name, DateTime.Now.ToString("yyyMMdd_HHmmss"), CurrentDelivery.DeliveryID.ToString("N").ToLower());
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix] = _tablePrefix;
-
-			_deliverySqlConnection.Open();
 
 			// create delivery object tables (should be Usid instead of GK)
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
@@ -119,9 +120,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (String.IsNullOrWhiteSpace(Options.SqlTransformCommand))
 				throw new DeliveryManagerException("Options.SqlTransformCommand is empty.");
 
-			_deliverySqlConnection.Open();
-
-			_identityManager = new IdentityManager(_deliverySqlConnection);
+			_identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
@@ -170,11 +169,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (String.IsNullOrWhiteSpace(Options.SqlStageCommand))
 				throw new DeliveryManagerException("Options.SqlStageCommand is empty.");
 
-			_deliverySqlConnection.Open();
+			_identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection);
 
-			_identityManager = new IdentityManager(_deliverySqlConnection);
-
-			_stageTransaction = _deliverySqlConnection.BeginTransaction("Delivery Staging");
+			// TODO: handle transaction on objects?
+			//_stageTransaction = _objectsSqlConnection.BeginTransaction("Delivery Staging");
 		}
 
 		protected override void OnStage(Delivery delivery, int pass)
@@ -232,8 +230,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		protected override void OnBeginRollback()
 		{
-			_deliverySqlConnection = NewDeliveryDbConnection();
-			_deliverySqlConnection.Open();
 			_rollbackTransaction = _deliverySqlConnection.BeginTransaction("Delivery Rollback");
 		}
 
@@ -304,16 +300,27 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Misc
 		/*=========================*/
 
-		SqlConnection NewDeliveryDbConnection()
+		SqlConnection OpenDbConnection(string constConnection)
 		{
-			var connectionString = AppSettings.GetConnectionString(this, Consts.ConnectionStrings.Deliveries);
-			return new SqlConnection(connectionString);
+			var connectionString = AppSettings.GetConnectionString(this, constConnection);
+			var connection = new SqlConnection(connectionString);
+			connection.Open();
+			return connection;
 		}
 
 		protected override void OnDispose()
 		{
 			if (_deliverySqlConnection != null)
+			{
+				_deliverySqlConnection.Close();
 				_deliverySqlConnection.Dispose();
+			}
+
+			if (_objectsSqlConnection != null)
+			{
+				_objectsSqlConnection.Close();
+				_objectsSqlConnection.Dispose();
+			}
 		}
 
 		/*=========================*/

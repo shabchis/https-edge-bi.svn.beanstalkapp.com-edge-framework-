@@ -7,7 +7,7 @@ using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
-using Edge.Data.Pipeline.Metrics.Services;
+using Edge.Data.Pipeline.Metrics.Managers;
 
 namespace Edge.Data.Pipeline.Metrics.Misc
 {
@@ -29,7 +29,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 			var accounts = new Dictionary<string, Account>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
 				{
 					var cmd = SqlUtility.CreateCommand("Account_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
@@ -66,7 +66,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 			var channels = new Dictionary<string, Channel>(StringComparer.CurrentCultureIgnoreCase);
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
 				{
 					var cmd = SqlUtility.CreateCommand("Channel_Get", CommandType.StoredProcedure);
 					cmd.Connection = connection;
@@ -102,7 +102,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 			var measures = new Dictionary<string, Measure>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
 				{
 					var cmd = SqlUtility.CreateCommand("MD_Measure_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
@@ -143,7 +143,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 			var edgeTypes = new Dictionary<string, EdgeType>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
 				{
 					var cmd = SqlUtility.CreateCommand("MD_EdgeType_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
@@ -184,7 +184,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 			var extraFields = new List<ExtraField>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
 				{
 					var cmd = SqlUtility.CreateCommand("MD_EdgeField_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
@@ -224,7 +224,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		{
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects)))
+				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
 				{
 					var cmd = SqlUtility.CreateCommand("MD_EdgeTypeField_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountid);
@@ -295,6 +295,26 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 				dependencies[field].Depth = SetFieldDependencyDepth(field);
 			}
 			return dependencies;
+		}
+
+		/// <summary>
+		/// Get DB type of edge field - TODO: can be generic???
+		/// </summary>
+		/// <param name="field"></param>
+		/// <returns></returns>
+		public static object GetDBFieldType(EdgeTypeField field)
+		{
+			// edge object
+			if (field.Field.FieldEdgeType != null) return SqlDbType.BigInt.ToString();
+
+			// TODO: Amit to remove COLLATE Hebrew_CI_AS (DB definition)
+			if (field.ColumnName.StartsWith("string")) return String.Format("{0}(1000) COLLATE Hebrew_CI_AS", SqlDbType.NVarChar);
+
+			if (field.ColumnName.StartsWith("int")) return SqlDbType.Int.ToString();
+
+			if (field.ColumnName.StartsWith("float")) return String.Format("{0}(18,3)", SqlDbType.Float);
+
+			throw new ConfigurationErrorsException(String.Format("Cannot find DB tpe for column {0} of EdgeField {1}", field.ColumnName, field.Field.Name));
 		}
 		#endregion
 
