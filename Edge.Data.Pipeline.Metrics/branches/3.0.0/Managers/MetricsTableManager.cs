@@ -33,7 +33,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Data Members
 		public string TableName { get; set; }
 
-		private readonly SqlConnection _sqlConnection;
+		private readonly SqlConnection _deliverySqlConnection;
 		private readonly EdgeObjectsManager _edgeObjectsManger;
 
 		private const string SP_FIND_BEST_MATCH_METRICS_TABLE = "FindBestMatchMetricsTable";
@@ -43,7 +43,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Ctor
 		public MetricsTableManager(SqlConnection connection, EdgeObjectsManager edgeObjectsManager)
 		{
-			_sqlConnection = connection;
+			_deliverySqlConnection = connection;
 			_edgeObjectsManger = edgeObjectsManager;
 		} 
 		#endregion
@@ -94,7 +94,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 			builder.Remove(builder.Length - 3, 3);
 			builder.Append(");");
-			using (var command = new SqlCommand(builder.ToString(), _sqlConnection))
+			using (var command = new SqlCommand(builder.ToString(), _deliverySqlConnection))
 			{
 				command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
 				command.ExecuteNonQuery();
@@ -109,7 +109,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			using (var cmd = new SqlCommand())
 			{
-				cmd.Connection = _sqlConnection;
+				cmd.Connection = _deliverySqlConnection;
 				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeFieldName], [EdgeTypeID], [MeasureName]) " +
 								  "VALUES (@TableName, @EdgeFieldID, @EdgeFieldName, @EdgeTypeID, @MeasureName)";
 
@@ -176,7 +176,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
 
 				// prepare and execute INSERT
-				command.Connection = _sqlConnection;
+				command.Connection = _deliverySqlConnection;
 				command.CommandText = String.Format("INSERT INTO {0} ({1}) VALUES ({2});", TableName, columnsStr, valuesStr);
 				command.ExecuteNonQuery();
 			}
@@ -264,6 +264,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				var measure = (KeyValuePair<Measure, double>)obj;
 				clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
 				clmValue = measure.Value;
+				clmType = SqlDbType.Float;
 			}
 			else if (obj is ObjectDimension)
 			{
@@ -305,7 +306,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			using (var cmd = SqlUtility.CreateCommand(SP_FIND_BEST_MATCH_METRICS_TABLE, CommandType.StoredProcedure))
 			{
-				cmd.Connection = _sqlConnection;
+				cmd.Connection = _deliverySqlConnection;
 				cmd.Transaction = transaction;
 				cmd.Parameters.AddWithValue("@deviveryTableName", deliveryTableName);
 				var tableName = cmd.ExecuteScalar();
@@ -326,7 +327,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			using (var cmd = SqlUtility.CreateCommand(SP_STAGE_DELIVERY_METRICS, CommandType.StoredProcedure))
 			{
-				cmd.Connection = _sqlConnection;
+				cmd.Connection = _deliverySqlConnection;
 				cmd.Transaction = transaction;
 				cmd.Parameters.AddWithValue("@deviveryTableName", deliveryTableName);
 				cmd.Parameters.AddWithValue("@stagingTableName", stagingTableName);

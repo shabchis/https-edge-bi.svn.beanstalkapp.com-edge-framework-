@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Misc;
-using Edge.Data.Pipeline.Metrics.Services;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
 {
@@ -18,7 +16,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 	{
 		#region Properties
 		private readonly SqlConnection _deliverySqlConnection;
-		private SqlConnection _objectsSqlConnection;
+		private readonly SqlConnection _objectsSqlConnection;
 
 		public List<EdgeFieldDependencyInfo> Dependencies { get; set; }
 		public string TablePrefix { get; set; }
@@ -30,9 +28,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		#region Ctor
 
-		public IdentityManager(SqlConnection deliveryConnection)
+		public IdentityManager(SqlConnection deliveryConnection, SqlConnection objectsConnection)
 		{
 			_deliverySqlConnection = deliveryConnection;
+			_objectsSqlConnection = objectsConnection;
 		}
 		#endregion
 
@@ -145,7 +144,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			var selectColumnStr = "GK,";
 			var whereParamsStr = String.Empty;
 			var indexFieldsStr = String.Empty;
-			var sideObjectTableName = GetDeliveryTableName(String.Format("_SIDE_{0}", edgeType.Name));
+			var tempObjectTableName = String.Format("##TempEdgeObject_{0}", edgeType.Name);
 
 			var selectCmd = new SqlCommand { Connection = _deliverySqlConnection };
 			var createTempTableCmd = new SqlCommand { Connection = _deliverySqlConnection };
@@ -170,22 +169,21 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (whereParamsStr.Length > 5) whereParamsStr = whereParamsStr.Remove(whereParamsStr.Length - 5, 5);
 
 			// create temp table from EdgeObjectd DB table by edge type + indexes on Identity fields
-			createTempTableCmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{5}')
+			createTempTableCmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM TEMPDB.INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{1}')
 										BEGIN
 											SELECT {0} INTO {1} FROM [EdgeObjects].[dbo].{2} WHERE typeId=@typeId; 
 											CREATE NONCLUSTERED INDEX [IDX_{4}] ON {1} ({3});
 										END",
 											selectColumnStr,
-											sideObjectTableName,
+											tempObjectTableName,
 											edgeType.TableName,
 											indexFieldsStr,
-											edgeType.Name,
-											String.Format("{0}__SIDE_{1}", TablePrefix, edgeType.Name));
+											edgeType.Name);
 
 			createTempTableCmd.ExecuteNonQuery();
 			createTempTableCmd.Dispose();
 
-			selectCmd.CommandText = String.Format("SELECT {0} FROM {1} WHERE {2}", selectColumnStr, sideObjectTableName, whereParamsStr);
+			selectCmd.CommandText = String.Format("SELECT {0} FROM {1} WHERE {2}", selectColumnStr, tempObjectTableName, whereParamsStr);
 			return selectCmd;
 		}
 
@@ -199,10 +197,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <returns></returns>
 		private SqlCommand PrepareUpdateGkCommand(EdgeFieldDependencyInfo field)
 		{
-			var sqlCmd = new SqlCommand { Connection = _deliverySqlConnection };
-
-			sqlCmd.CommandText = String.Format("UPDATE {0} \nSET GK=@gk, IdentityStatus=@identityStatus \nWHERE TK=@tk AND TYPEID=@typeId",
-												GetDeliveryTableName(field.Field.FieldEdgeType.TableName));
+			var sqlCmd = new SqlCommand
+				{
+					Connection = _deliverySqlConnection,
+					CommandText = String.Format("UPDATE {0} \nSET GK=@gk, IdentityStatus=@identityStatus \nWHERE TK=@tk AND TYPEID=@typeId",
+												GetDeliveryTableName(field.Field.FieldEdgeType.TableName))
+				};
 
 			sqlCmd.Parameters.Add(new SqlParameter("@gk", null));
 			sqlCmd.Parameters.Add(new SqlParameter("@tk", null));
@@ -210,48 +210,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			sqlCmd.Parameters.Add(new SqlParameter("@identityStatus", null));
 
 			return sqlCmd;
-
-			//var childsUpdateStr = String.Empty;
-			//foreach (var childField in field.Field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
-			//{
-			//	childsUpdateStr = String.Format(",{0}{1}=@{1}", childsUpdateStr, childField.ColumnNameGK);
-			//	sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", childField.ColumnNameGK), null));
-			//}
-
-			//var sqlList = new List<string>();
-			//// add edge type table update
-			//sqlList.Add(String.Format("UPDATE {0} SET GK=@gk, IdentityStatus=@identityStatus WHERE TK=@tk AND TYPEID=@typeId;", 
-			//							GetDeliveryTableName(field.Field.FieldEdgeType.TableName)));
-
-
-			// create udate SQL for each dependent object 
-			//foreach (var dependent in field.DependentFields)
-			//{
-			//	sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk AND {1}_TYPE=@typeId AND TYPEID=@{2}_typeId;\n",
-			//								GetDeliveryTableName(dependent.Key.FieldEdgeType.TableName),
-			//								dependent.Value.ColumnName, dependent.Value.Field.Name));
-
-			//	sqlCmd.Parameters.Add(new SqlParameter(String.Format("@{0}_typeId", dependent.Value.Field.Name), dependent.Value.Field.FieldEdgeType.TypeID));
-			//}
-
-			// update Metrics SQL
-			//sqlList.Add(String.Format("UPDATE {0} SET {1}_GK=@gk WHERE {1}_TK=@tk;\n", GetDeliveryTableName("Metrics"), field.Field.Name));
-
-			// combine all SQLs into one sql command
-			//sqlCmd.CommandText = String.Join(String.Empty, sqlList);
-
-			//return sqlCmd;
-		}
-
-		private SqlConnection ObjectsDbConnection()
-		{
-			if (_objectsSqlConnection == null)
-			{
-				var connectionString = AppSettings.GetConnectionString(typeof(MetricsProcessorServiceBase), Consts.ConnectionStrings.Objects);
-				_objectsSqlConnection = new SqlConnection(connectionString);
-				_objectsSqlConnection.Open();
-			}
-			return _objectsSqlConnection;
 		}
 
 		/// <summary>
@@ -344,7 +302,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		private string GetDeliveryTableName(string tableName)
 		{
-			return String.Format("[dbo].[{0}_{1}]", TablePrefix, tableName);
+			return String.Format("[EdgeDeliveries].[dbo].[{0}_{1}]", TablePrefix, tableName);
 		}
 
 		#endregion
@@ -372,11 +330,16 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				{
 					UpdateObjectDependencies(field.Field);
 
-					SyncLastChangesWithLock(field.Field.FieldEdgeType);
+					if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Unchanged, true))
+					{
+						SyncLastChangesWithLock(field.Field.FieldEdgeType);
 
-					UpdateExistingEdgeObjectsByDelivery(field.Field.FieldEdgeType);
+						if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Modified))
+							UpdateExistingEdgeObjectsByDelivery(field.Field.FieldEdgeType);
 
-					InsertNewEdgeObjects(field.Field.FieldEdgeType);
+						if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
+							InsertNewEdgeObjects(field.Field.FieldEdgeType);
+					}
 				}
 			}
 
@@ -385,61 +348,117 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			{
 				metricsCmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", TablePrefix));
 				metricsCmd.Connection = _deliverySqlConnection;
-				metricsCmd.Transaction = transaction;
 				metricsCmd.ExecuteNonQuery();
 			}
 		}
 
+		/// <summary>
+		/// Check if delivery contains changes by EdgeType
+		/// </summary>
+		/// <param name="edgeType"></param>
+		/// <param name="status"></param>
+		/// <param name="isNot"></param>
+		/// <returns></returns>
+		private bool DeliveryContainsChanges(EdgeType edgeType, IdentityStatus status, bool isNot = false)
+		{
+			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
+			{
+				cmd.CommandText = String.Format("SELECT Count(*) Count FROM {0} WHERE IdentityStatus {1} @identityStatus AND TYPEID=@typeId", 
+												GetDeliveryTableName(edgeType.TableName),
+												isNot ? "<>" : "=");
+				cmd.Parameters.AddWithValue("@identityStatus", (int)status);
+				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
+
+				using (var reader = cmd.ExecuteReader())
+				{
+					if (reader.Read()) return int.Parse(reader["Count"].ToString()) > 0;
+				}
+			}
+			return false;
+		}
+
 		private void InsertNewEdgeObjects(EdgeType edgeType)
 		{
-			var fieldsStr = String.Empty;
+			if (edgeType.Fields.Count == 0) return;
+
+			var fieldsStr = "LASTUPDATED,TYPEID,ACCOUNTID,";
+			var createfieldsStr = "GK BIGINT,";
+			var whereStr = "TYPEID=@typeId AND ";
+			var outputStr = "INSERTED.GK,";
 			foreach (var field in edgeType.Fields)
 			{
 				fieldsStr = String.Format("{0}{1},{2}", fieldsStr, field.ColumnNameGK, 
 										  field.Field.FieldEdgeType != null ? 
 										  String.Format("{0}_tk,", field.ColumnName) : String.Empty);
+				if (field.IsIdentity)
+				{
+					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDBFieldType(field));
+					whereStr = String.Format("{0}{2}.{1}=#TEMP.{1} AND ", whereStr, field.ColumnNameGK, GetDeliveryTableName(edgeType.TableName));
+					outputStr = String.Format("{0}INSERTED.{1},", outputStr, field.ColumnNameGK);
+				}
 			}
-
-			if (fieldsStr.Length == 0) return;
-
+			
 			fieldsStr = fieldsStr.Remove(fieldsStr.Length - 1, 1);
+			createfieldsStr = createfieldsStr.Remove(createfieldsStr.Length - 1, 1);
+			outputStr = outputStr.Remove(outputStr.Length - 1, 1);
+			whereStr = whereStr.Remove(whereStr.Length - 5, 5);
+
 			// in one command insert new EdgeObjects and update delivery objects with inserted GKs by TK- hope will work
-			using (var cmd = new SqlCommand {Connection = ObjectsDbConnection()})
+			using (var cmd = new SqlCommand {Connection = _objectsSqlConnection})
 			{
-				cmd.CommandText = String.Format(@"CREATE TABLE #TEMP (GL BIGINT, TK NVARCHAR(50) 
-												  INSERT INTO {0} ({1})
-												  OUTPUT INSERTED.PID, [EdgeDeliveries].{2}.TK INTO #TEMP
-												  SELECT {1} FROM [EdgeDeliveries].{2} 
-												  WHERE TYPEID=@typeId AND IDENTITYSTATUS=0;
-												UPDATE {2} SET GK=#TEMP.GK, IDENTITYSTATUS=1 FROM #TEMP WHERE TK=#TEMP.TK AND TYPEID=@typeId",
+				cmd.CommandText = String.Format(@"CREATE TABLE #TEMP ({0})
+												  INSERT INTO {1} ({2})
+												  OUTPUT {5} INTO #TEMP
+												  SELECT @{2} FROM {3} 
+												  WHERE TYPEID=@typeId AND IDENTITYSTATUS=@newStatus;
+
+												UPDATE {3} SET GK=#TEMP.GK, IDENTITYSTATUS=@unchangesStatus FROM #TEMP, {3} WHERE {4}",
+
+											createfieldsStr,
 											edgeType.TableName, 
 											fieldsStr,
-											GetDeliveryTableName(edgeType.TableName));
+											GetDeliveryTableName(edgeType.TableName),
+											whereStr,
+											outputStr);
+
 				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
+				cmd.Parameters.AddWithValue("@lastUpdated", DateTime.Now);
+				cmd.Parameters.AddWithValue("@newStatus", (int)IdentityStatus.New);
+				cmd.Parameters.AddWithValue("@unchangesStatus", (int)IdentityStatus.Unchanged);
+
 				cmd.ExecuteNonQuery();
 			}
 		}
 
 		/// <summary>
 		/// Update existing EdgeObject by modified objects from Delivery
+		/// set Delivery objects to Unchanged after updating EdgeObjects
 		/// </summary>
 		/// <param name="edgeType"></param>
 		private void UpdateExistingEdgeObjectsByDelivery(EdgeType edgeType)
 		{
-			var updateFieldStr = String.Empty;
+			var updateFieldStr = "LASTUPDATED=@lastUpdated,";
 			foreach (var field in edgeType.Fields.Where(x => !x.IsIdentity))
 			{
-				updateFieldStr = String.Format("{0}{1}=deliveryTable.{1},", updateFieldStr, field.ColumnNameGK);
+				updateFieldStr = String.Format("{0}{1}=delivery.{1},", updateFieldStr, field.ColumnNameGK);
 			}
 			if (updateFieldStr.Length == 0) return;
 
 			updateFieldStr = updateFieldStr.Remove(updateFieldStr.Length - 1, 1);
-			using (var cmd = new SqlCommand { Connection = ObjectsDbConnection() })
+			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
-				cmd.CommandText = String.Format("UPDATE {0} \nSET {1} \nFROM {2} deliveryTable \nWHERE GK=deliveryTable.GK AND deliveryTable.IdentityStatus=2",
+				cmd.CommandText = String.Format(@"UPDATE {0} SET {1} FROM {2} delivery 
+												  WHERE {0}.GK=delivery.GK AND delivery.IdentityStatus=@modifiedStatus AND delivery.TYPEID=@typeId;
+												  UPDATE {2} SET IDENTITYSTATUS=@unchangedStatus WHERE TYPEID=@typeId AND IDENTITYSTATUS=@modifiedStatus",
 												edgeType.TableName,
 												updateFieldStr,
 												GetDeliveryTableName(edgeType.TableName));
+
+				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
+				cmd.Parameters.AddWithValue("@lastUpdated", DateTime.Now);
+				cmd.Parameters.AddWithValue("@modifiedStatus", (int)IdentityStatus.Modified);
+				cmd.Parameters.AddWithValue("@unchangedStatus", (int)IdentityStatus.Unchanged);
+
 				cmd.ExecuteNonQuery();
 			}
 		}
@@ -452,6 +471,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private void SyncLastChangesWithLock(EdgeType edgeType)
 		{
 			var updatedObjects = GetLastUpdatedEdgeObjects(edgeType);
+			if (updatedObjects == null || updatedObjects.Count == 0) return;
+
 			using (var updateCmd = PrepareSyncDeliveryObjectsCommand(edgeType))
 			{
 				foreach (var obj in updatedObjects)
@@ -486,14 +507,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return cmd;
 		}
 
-		private IEnumerable<DeliveryEdgeObject> GetLastUpdatedEdgeObjects(EdgeType edgeType)
+		private IList<DeliveryEdgeObject> GetLastUpdatedEdgeObjects(EdgeType edgeType)
 		{
 			var deltaObjectList = new List<DeliveryEdgeObject>();
 
 			var selectColumnStr = edgeType.Fields.Aggregate("SELECT GK,", (current, field) => String.Format("{0}{1},", current, field.ColumnNameGK));
 			selectColumnStr = selectColumnStr.Remove(selectColumnStr.Length - 1, 1);
 
-			using (var cmd = new SqlCommand { Connection = ObjectsDbConnection() })
+			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
 				cmd.CommandText = String.Format("{0} FROM {1} WHERE TYPEID=@typeId AND LASTUPDATED > @timestamp", selectColumnStr, edgeType.TableName);
 				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
