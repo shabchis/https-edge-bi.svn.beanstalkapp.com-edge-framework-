@@ -28,7 +28,7 @@ namespace Edge.Data.Objects
 
 			var templateString = new StringBuilder();
 			Assembly asm = Assembly.GetExecutingAssembly();
-			using (StreamReader reader = new StreamReader(asm.GetManifestResourceStream(@"Edge.Data.Objects.Queries." + fileName)))
+			using (StreamReader reader = new StreamReader(asm.GetManifestResourceStream(@"Edge.Data.Objects.Mappings." + fileName)))
 			{
 				bool readingTemplate = false;
 				

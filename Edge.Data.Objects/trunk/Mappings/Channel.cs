@@ -34,7 +34,7 @@ namespace Edge.Data.Objects
 					from Channel 
 					where @channelID = -1 or ID = @channelID
 					", init => init
-						 .DbParam("@channelID", query => query.Param<int>("channelID"))
+						 .DbParamFromParam("@channelID", "channelID")
 				)
 				.Param<int>("channelID", required: false, defaultValue: -1)
 			;

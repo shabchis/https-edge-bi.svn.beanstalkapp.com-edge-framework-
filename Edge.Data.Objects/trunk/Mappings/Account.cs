@@ -13,7 +13,7 @@ namespace Edge.Data.Objects
 		public static class Mappings
 		{
 			public static Mapping<Account> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Account>(account => account
-				.Identity(Account.Identities.Default)
+				.Identity(Account.Identities.Default) // TODO: move this to query
 				.Map<int>(Account.Properties.ID, "ID")
 				.Map<string>(Account.Properties.Name, "Name")
 				.Map<AccountStatus>(Account.Properties.Status, "Status")
@@ -33,14 +33,17 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<Account> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Account>(Mappings.Default)
-				.RootSubquery(@"
-					select *
-					from Account 
-					where @accountID = -1 or ID = @accountID or ParentAccountID = @accountID
-					", init => init
-						 .DbParam("@accountID", query => query.Param<int>("accountID"))
+				.RootSubquery(EdgeObjectsUtility.GetEdgeTemplate("Account.sql", "Get"), init => init
+					.DbParamFromParam("@accountID", "accountID")
 				)
 				.Param<int>("accountID", required: false)
+			;
+
+			public static QueryTemplate<Nothing> Save = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Nothing>()
+				.RootSubquery(EdgeObjectsUtility.GetEdgeTemplate("Account.sql", "Save"), init => init
+					.DbParamsFromMap(Account.Mappings.Default, "account")
+				)
+				.Param<Account>("account", required: true)
 			;
 		}
 
@@ -55,6 +58,22 @@ namespace Edge.Data.Objects
 				return results;
 			else
 				return results.Where(account => account.ParentAccount == null);
+		}
+
+		public static void Save(Account account, PersistenceConnection connection = null)
+		{
+			Queries.Save.Start()
+				.Param<Account>("account", account)
+				.Connect(connection)
+				.Execute();
+		}
+
+		public static void Save(IEnumerable<Account> accounts, PersistenceConnection connection = null)
+		{
+			Queries.Save.Start()
+				.Batch<Account>(accounts, "account")
+				.Connect(connection)
+				.Execute();
 		}
 	}
 }

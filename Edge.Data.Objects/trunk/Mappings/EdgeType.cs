@@ -47,6 +47,38 @@ namespace Edge.Data.Objects
 				)
 			);
 
+			public static Mapping<EdgeType> DefaultOut = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
+				.Map<int>(EdgeType.Properties.TypeID, "TypeID")
+				.Map<EdgeType>(EdgeType.Properties.BaseEdgeType, baseEdgeType => baseEdgeType
+					.Map<int>(EdgeType.Properties.TypeID, "BaseTypeID")
+				)
+				.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
+					.Do(context => context.SetField("ClrType", context.Target.AssemblyQualifiedName))
+				)
+				.Map<string>(EdgeType.Properties.Name, "Name")
+				.Map<string>(EdgeType.Properties.TableName, "TableName")
+				.Map<bool>(EdgeType.Properties.IsAbstract, "IsAbstract")
+				.Map<Account>(EdgeType.Properties.Account, account => account
+					.Map<int>(Account.Properties.ID, "AccountID")
+				)
+				.Map<Channel>(EdgeType.Properties.Channel, channel => channel
+					.Map<int>(Channel.Properties.ID, "ChannelID")
+				)
+
+				.MapListFromSubquery<EdgeType, EdgeTypeField>(EdgeType.Properties.Fields, "EdgeTypeFields",
+					parent => parent
+						.Identity(EdgeType.Identities.Default)
+						.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
+					,
+					item => item
+						.Map<EdgeField>(EdgeTypeField.Properties.Field, field => field
+							.UseMapping(EdgeField.Mappings.Default)
+						)
+						.Map<string>(EdgeTypeField.Properties.ColumnName, "ColumnName")
+						.Map<bool>(EdgeTypeField.Properties.IsIdentity, "IsIdentity")
+				)
+			);
+
 		}
 
 		public static class Queries
@@ -59,8 +91,11 @@ namespace Edge.Data.Objects
 						AccountID in (-1, @accountID) and
 						ChannelID in (-1, @channelID)
 				", init => init
-					.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
-					.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
+					.BeforeExecute(sq =>
+						{
+							var account = sq.Param<Account>("account"); sq.DbParamSet("@accountID", account == null ? -1 : account.ID);
+							var channel = sq.Param<Channel>("channel"); sq.DbParamSet("@channelID", channel == null ? -1 : channel.ID);
+						})
 				)
 				.Subquery("EdgeTypeFields", @"
 					select
@@ -83,8 +118,11 @@ namespace Edge.Data.Objects
 						types.AccountID in (-1, @accountID) and
 						types.ChannelID in (-1, @channelID)
 				", init => init
-					.DbParam("@accountID", query => query.Param<Account>("account") == null ? -1 : query.Param<Account>("account").ID)
-					.DbParam("@channelID", query => query.Param<Channel>("channel") == null ? -1 : query.Param<Channel>("channel").ID)
+					.BeforeExecute(sq =>
+					{
+						var account = sq.Param<Account>("account"); sq.DbParamSet("@accountID", account == null ? -1 : account.ID);
+						var channel = sq.Param<Channel>("channel"); sq.DbParamSet("@channelID", channel == null ? -1 : channel.ID);
+					})
 				)
 				.Param<Account>("account", required: false)
 				.Param<Channel>("channel", required: false)
