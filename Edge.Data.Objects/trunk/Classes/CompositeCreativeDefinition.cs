@@ -23,9 +23,9 @@ namespace Edge.Data.Objects
 		{
 			get
 			{
-				if (ExtraFields == null) return null;
+				if (Fields == null) return null;
 
-				return ExtraFields.Where(x => x.Key is CompositePartField && x.Value is SingleCreativeDefinition)
+				return Fields.Where(x => x.Key is CompositePartField && x.Value is SingleCreativeDefinition)
 								  .ToDictionary(x => x.Key as CompositePartField, x => x.Value as SingleCreativeDefinition);
 			}
 		}

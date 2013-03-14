@@ -152,6 +152,7 @@ namespace Edge.Data.Objects
 			
 		}
 
+		/*
 		public static class Queries
 		{
 			//public Query<Measure> GetByName = new Query<Measure>()
@@ -164,18 +165,19 @@ namespace Edge.Data.Objects
 					EdgeObjectsUtility.GetEdgeTemplate("EdgeObject.sql", "EdgeObject.GetByGK.Root"),
 					subquery => subquery
 						.ConditionalColumn("AccountID", EdgeObject.Properties.Account)
-						.DbParam("@objectType", query => query.Param<Type>("objectType").FullName)
-						.DbParam("@gk", query => query.Param<long>("gk"))
+						//.DbParam("@objectType", query => query.Param<Type>("objectType").FullName)
+						//.DbParam("@gk", query => query.Param<long>("gk"))
 					)
 
 				.Subquery("Connections",
 					EdgeObjectsUtility.GetEdgeTemplate("EdgeObject.sql", "EdgeObject.GetByGK.Connections"),
 					subquery => subquery
-						.DbParam("@objectType", query => query.Param<Type>("objectType").FullName)
-						.DbParam("@objectGK", query => query.Param<long>("gk"))
+						//.DbParam("@objectType", query => query.Param<Type>("objectType").FullName)
+						//.DbParam("@objectGK", query => query.Param<long>("gk"))
 					)
 
 			;
 		}
+		*/
 	}
 }

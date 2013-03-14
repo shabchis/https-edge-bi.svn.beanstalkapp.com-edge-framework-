@@ -9,12 +9,12 @@ namespace Edge.Data.Objects
 		public Account Account;
 		public EdgeType EdgeType;
 		
-		public Dictionary<EdgeField, object> ExtraFields;
+		public Dictionary<EdgeField, object> Fields;
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
-			if (ExtraFields == null) yield break;
-			foreach (var field in ExtraFields)
+			if (Fields == null) yield break;
+			foreach (var field in Fields)
 			{
 				yield return new ObjectDimension {Field = field.Key, Value = field.Value};
 			}

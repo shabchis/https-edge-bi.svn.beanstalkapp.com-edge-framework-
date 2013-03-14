@@ -1,68 +1,46 @@
 ﻿-- # -------------------------------------
--- # TEMPLATE Measure.Queries.Get
+-- # TEMPLATE GetInstances
 
-select *
-from
+select * from
 (
 	select
-			this.ID												as ID
-			,isnull(this.Name,			base.Name)				as Name
-			,isnull(this.DisplayName,	base.DisplayName)		as DisplayName
-			,isnull(this.AccountID,		base.AccountID)			as AccountID
-			,isnull(this.ChannelID,		base.ChannelID)			as ChannelID
-			,isnull(this.StringFormat,	base.StringFormat)		as StringFormat
-			,base.DataType										as DataType
-			,base.Options										as Options
+		ISNULL(b_ID, a_ID) as ID,
+		ISNULL(b_AccountID, a_AccountID) as AccountID,
+		ISNULL(b_Name, a_Name) as Name,
+		ISNULL(b_DataType, a_DataType) as DataType,
+		ISNULL(b_DisplayName, a_DisplayName) as DisplayName,
+		ISNULL(b_StringFormat, a_StringFormat) as StringFormat,
+		CASE bitwiseOr WHEN 1 THEN ISNULL(a_Options,0) | ISNULL(b_Options,0) ELSE ISNULL(b_Options, ISNULL(a_Options,0)) END as Options,
+		CASE when a_ID is not null and b_ID is not null then CAST(1 as bit) else CAST(0 as bit) END as IsInstance
 	from
-		Measure this
-		left outer join Measure base on 
-			base.AccountID = -1 and
-			base.MeasureID <> this.MeasureID and
-			base.MeasureID = this.BaseMeasureID
-	where
-		(
-			-- if a specific measure is specified, get it
-			@measureID is null or this.MeasureID = @measureID
-		)
-		and
-		(
-			-- if a specific channel is specified, get it
-			@channelID is null or this.ChannelID = -1 or this.ChannelID = @channelID 
-		)
-		and
-		(
-			(
-				-- if account is global, get all globals
-				@accountID = -1 and this.AccountID = -1
-			)
-			or
-			(
-				-- else if its not global:
-				@accountID <> -1 and
-				(
-					(
-						-- get either measures assigned to this account...
-						this.AccountID = @accountID
-					)
-					or
-					(
-						-- or, global measures that are not BO and that are not overriden by this account
-						this.AccountID = -1 and
-						(
-							@includeBase = 1 or
-							this.MeasureID not in
-							(
-								select distinct BaseMeasureID
-								from Measure
-								where AccountID = @accountID
-							)
-						)
-					)
-				)
-			)
-		)
-) as m
+	(
+		select
+			a.ID as a_ID, a.AccountID as a_AccountID, a.Name as a_Name, a.DataType as a_DataType, a.DisplayName as a_DisplayName, a.StringFormat as a_StringFormat, a.Options as a_Options, ISNULL(a.OptionsOverride,1) as bitwiseOr,
+			b.ID as b_ID, b.AccountID as b_AccountID, b.Name as b_Name, b.DataType as b_DataType, b.DisplayName as b_DisplayName, b.StringFormat as b_StringFormat, b.Options as b_Options
+		from
+			MD_Measure a
+			left outer join MD_Measure b on
+				b.AccountID = @accountID and b.Name = a.Name
+		where
+			a.AccountID = -1
 
--- #FILTER
+		union all
 
--- #SORTING
+		select
+			a.ID as a_ID, a.AccountID as a_AccountID, a.Name as a_Name, a.DataType as a_DataType, a.DisplayName as a_DisplayName, a.StringFormat as a_StringFormat, a.Options as a_Options, 0 as bitwiseOr,
+			b.ID as b_ID, b.AccountID as b_AccountID, b.Name as b_Name, b.DataType as b_DataType, b.DisplayName as b_DisplayName, b.StringFormat as b_StringFormat, b.Options as b_Options
+		from
+			MD_Measure b
+			left outer join MD_Measure a on
+				a.AccountID = -1 and a.Name = b.Name
+		where
+			b.AccountID = @accountID and a.ID is null
+	) as joined
+) as instances
+
+where
+	(@operator = 1 and @flags & Options >= @flags) or
+	(@operator = 0 and @flags & Options > 0) or
+	(@operator = -1 and @flags & Options = 0)
+;
+
