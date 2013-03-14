@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data;
+using Eggplant.Entities.Persistence;
 
 namespace Eggplant.Entities.Queries
 {
@@ -32,6 +33,7 @@ namespace Eggplant.Entities.Queries
 			param.Value = value;
 		}
 
+		/*
 		internal void DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)
 		{
 			this.DbParameters[name] = new DbParameter()
@@ -42,6 +44,7 @@ namespace Eggplant.Entities.Queries
 				Size = size
 			};
 		}
+		*/
 
 		public V Param<V>(string paramName)
 		{
@@ -80,7 +83,7 @@ namespace Eggplant.Entities.Queries
 	{
 		public string Name;
 		public object Value;
-		public Func<Query, object> ValueFunction;
+		//public Func<Query, object> ValueFunction;
 		public DbType? DbType;
 		public int? Size;
 
@@ -90,7 +93,7 @@ namespace Eggplant.Entities.Queries
 			{
 				Name = this.Name,
 				Value = this.Value,
-				ValueFunction = this.ValueFunction,
+				//ValueFunction = this.ValueFunction,
 				DbType = this.DbType,
 				Size = this.Size
 			};

@@ -12,12 +12,13 @@ namespace Eggplant.Entities.Queries
 {
 	public class SubqueryTemplate: QueryTemplateBase
 	{
-
 		public bool IsStandalone { get; set; }
 		public QueryTemplate Template { get; internal set; }
 		public string Name { get; set; }
 		public string CommandText { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
+		internal List<Action<Subquery>> ActionsBefore = new List<Action<Subquery>>();
+		internal List<Action<Subquery>> ActionsAfter = new List<Action<Subquery>>();
 
 		public SubqueryTemplate(EntitySpace space): base(space)
 		{
@@ -71,15 +72,40 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public new SubqueryTemplate DbParam(string name, object value, DbType? dbType = null, int? size = null)
+		public new SubqueryTemplate DbParamDefine(string name, object defaultValue, DbType? dbType = null, int? size = null)
 		{
-			base.DbParam(name, value, dbType, size);
+			base.DbParam(name, defaultValue, dbType, size);
 			return this;
 		}
 
-		public new SubqueryTemplate DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)
+		public SubqueryTemplate DbParamFromParam(string name, string sourceParamName, object nullValue = null, DbType? dbType = null, int? size = null)
 		{
-			base.DbParam(name, valueFunc, dbType, size);
+			this.DbParam(name, null, dbType, size);
+			BeforeExecute(sq => sq.DbParamFromParam(name, sourceParamName, nullValue));
+			return this;
+		}
+
+		public SubqueryTemplate DbParamsFromMap(IMapping mapToUse, object sourceValue)
+		{
+			this.BeforeExecute(sq => sq.DbParamsFromMap(mapToUse, sourceValue));
+			return this;
+		}
+
+		public SubqueryTemplate DbParamsFromMap(IMapping mapToUse, string sourceParamName)
+		{
+			this.BeforeExecute(sq => sq.DbParamsFromMap(mapToUse, sourceParamName));
+			return this;
+		}
+
+		public SubqueryTemplate BeforeExecute(Action<Subquery> action)
+		{
+			this.ActionsBefore.Add(action);
+			return this;
+		}
+
+		public SubqueryTemplate AfterExecute(Action<Subquery> action)
+		{
+			this.ActionsAfter.Add(action);
 			return this;
 		}
 	}

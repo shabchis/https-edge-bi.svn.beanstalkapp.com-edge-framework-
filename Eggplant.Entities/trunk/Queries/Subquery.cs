@@ -63,11 +63,27 @@ namespace Eggplant.Entities.Queries
 			return (Subquery)base.Sort(property, order);
 		}
 
-		public new Subquery DbParam(string name, object value, DbType? dbType = null, int? size = null)
+		public Subquery DbParamSet(string name, object value, DbType? dbType = null, int? size = null)
 		{
-			ThrowIfRoot();
 			base.DbParam(name, value, dbType, size);
 			return this;
+		}
+
+		public Subquery DbParamFromParam(string name, string sourceParamName, object nullValue = null, DbType? dbType = null, int? size = null)
+		{
+			object val = this.Parameters[sourceParamName].Value ?? nullValue;
+			return this.DbParamSet(name, val, dbType, size);
+		}
+
+
+		public Subquery DbParamsFromMap(IMapping mapToUse, string sourceParamName)
+		{
+			return this.DbParamsFromMap(mapToUse, this.Parameters[sourceParamName].Value);
+		}
+
+		public Subquery DbParamsFromMap(IMapping mapToUse, object sourceValue)
+		{
+			throw new NotImplementedException();
 		}
 
 		public new Subquery Param<V>(string paramName, V value)

@@ -80,12 +80,15 @@
     <Compile Include="Persistence\MappingContext.cs" />
     <Compile Include="Persistence\Mappings\InlineMapping.cs" />
     <Compile Include="Persistence\Mappings\SubqueryMapping.cs" />
+    <Compile Include="Persistence\PersistenceAction.cs" />
     <Compile Include="Persistence\PersistenceConnection.cs" />
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Persistence\Mappings\PropertyMapping.cs" />
     <Compile Include="Persistence\Mappings\VariableMapping.cs" />
     <Compile Include="Persistence\PersistenceAdapter.cs" />
     <Compile Include="Persistence\SqlServer\SqlDataReaderAdapter.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceAction.cs" />
+    <Compile Include="Persistence\SqlServer\SqlQueryData.cs" />
     <Compile Include="Persistence\SqlServer\SqlServerPersistenceStore.cs" />
     <Compile Include="Queries\Enums.cs" />
     <Compile Include="Queries\Exceptions.cs" />
@@ -96,6 +99,7 @@
     <Compile Include="Queries\QueryTemplateBase.cs" />
     <Compile Include="Queries\Subquery.cs" />
     <Compile Include="Queries\SubqueryTemplate.cs" />
+    <Compile Include="Queries\Nothing.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
