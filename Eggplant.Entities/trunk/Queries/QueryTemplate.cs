@@ -72,18 +72,6 @@ namespace Eggplant.Entities.Queries
 			return subqueryTemplate;
 		}
 
-		public new QueryTemplate<T> DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)
-		{
-			base.DbParam(name, valueFunc, dbType, size);
-			return this;
-		}
-
-		public new QueryTemplate<T> DbParam(string name, object value, DbType? dbType = null, int? size = null)
-		{
-			base.DbParam(name, value, dbType, size);
-			return this;
-		}
-
 		public new QueryTemplate<T> Param<V>(string paramName, bool required = true, V defaultValue = default(V), V emptyValue = default(V))
 		{
 			base.Param<V>(paramName, required, defaultValue, emptyValue);

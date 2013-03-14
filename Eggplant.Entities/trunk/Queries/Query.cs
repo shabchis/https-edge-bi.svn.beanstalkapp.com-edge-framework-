@@ -106,6 +106,11 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
+		public Query<T> Batch<ItemT>(IEnumerable<ItemT> batchSource, string paramName)
+		{
+			return this.Batch<ItemT>(batchSource, (q, item) => q.Param<ItemT>(paramName, item));
+		}
+
 		public Query<T> Batch<ItemT>(IEnumerable<ItemT> batchSource, Action<Query<T>, ItemT> batchAction)
 		{
 			if (batchAction == null)
@@ -225,7 +230,7 @@ namespace Eggplant.Entities.Queries
 					// Add parameters to the command object from all subqueries
 					foreach (Subquery subquery in subqueries)
 						foreach (DbParameter param in subquery.DbParameters.Values)
-							command.Parameters[param.Name].Value = param.ValueFunction != null ? param.ValueFunction(this) : param.Value;
+							command.Parameters[param.Name].Value = /*param.ValueFunction != null ? param.ValueFunction(this) :*/ param.Value;
 
 					// Execute the command
 					int resultSetIndex = -1;
