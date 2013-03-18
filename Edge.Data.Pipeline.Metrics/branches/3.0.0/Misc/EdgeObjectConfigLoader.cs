@@ -22,19 +22,15 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// Load specific account or all accounts if account id = -1
 		/// </summary>
-		/// <param name="accountId"></param>
-		/// <returns></returns>
-		public static Dictionary<string, Account> LoadAccounts(int accountId)
+		public static Dictionary<string, Account> LoadAccounts(int accountId, SqlConnection connection)
 		{
 			var accounts = new Dictionary<string, Account>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+				using (var cmd = SqlUtility.CreateCommand("Account_Get", CommandType.StoredProcedure))
 				{
-					var cmd = SqlUtility.CreateCommand("Account_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.Connection = connection;
-					connection.Open();
 
 					using (var reader = cmd.ExecuteReader())
 					{
@@ -61,16 +57,14 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// Load channels by account (all if account id = -1)
 		/// </summary>
 		/// <returns></returns>
-		public static Dictionary<string, Channel> LoadChannels()
+		public static Dictionary<string, Channel> LoadChannels(SqlConnection connection)
 		{
 			var channels = new Dictionary<string, Channel>(StringComparer.CurrentCultureIgnoreCase);
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+				using (var cmd = SqlUtility.CreateCommand("Channel_Get", CommandType.StoredProcedure))
 				{
-					var cmd = SqlUtility.CreateCommand("Channel_Get", CommandType.StoredProcedure);
 					cmd.Connection = connection;
-					connection.Open();
 					using (var reader = cmd.ExecuteReader())
 					{
 						while (reader.Read())
@@ -95,19 +89,15 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// Load measures by account
 		/// </summary>
-		/// <param name="accountId"></param>
-		/// <returns></returns>
-		public static Dictionary<string, Measure> LoadMeasures(int accountId)
+		public static Dictionary<string, Measure> LoadMeasures(int accountId, SqlConnection connection)
 		{
 			var measures = new Dictionary<string, Measure>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+				using (var cmd = SqlUtility.CreateCommand("MD_Measure_Get", CommandType.StoredProcedure))
 				{
-					var cmd = SqlUtility.CreateCommand("MD_Measure_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.Connection = connection;
-					connection.Open();
 
 					using (var reader = cmd.ExecuteReader())
 					{
@@ -136,19 +126,15 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// load edge types by account
 		/// </summary>
-		/// <param name="accountId"></param>
-		/// <returns></returns>
-		public static Dictionary<string, EdgeType> LoadEdgeTypes(int accountId)
+		public static Dictionary<string, EdgeType> LoadEdgeTypes(int accountId, SqlConnection connection)
 		{
 			var edgeTypes = new Dictionary<string, EdgeType>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+				using (var cmd = SqlUtility.CreateCommand("MD_EdgeType_Get", CommandType.StoredProcedure))
 				{
-					var cmd = SqlUtility.CreateCommand("MD_EdgeType_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.Connection = connection;
-					connection.Open();
 
 					using (var reader = cmd.ExecuteReader())
 					{
@@ -176,20 +162,15 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// Load edge fields by account + set edge type for each field
 		/// </summary>
-		/// <param name="accountId"></param>
-		/// <param name="edgeTypes"></param>
-		/// <returns></returns>
-		public static List<ExtraField> LoadEdgeFields(int accountId, Dictionary<string, EdgeType> edgeTypes)
+		public static List<ExtraField> LoadEdgeFields(int accountId, Dictionary<string, EdgeType> edgeTypes, SqlConnection connection)
 		{
 			var extraFields = new List<ExtraField>();
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+				using (var cmd = SqlUtility.CreateCommand("MD_EdgeField_Get", CommandType.StoredProcedure))
 				{
-					var cmd = SqlUtility.CreateCommand("MD_EdgeField_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.Connection = connection;
-					connection.Open();
 
 					using (var reader = cmd.ExecuteReader())
 					{
@@ -217,19 +198,14 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// Set relationships between edge fields and edge types (many-2-many) according to account id
 		/// </summary>
-		/// <param name="accountid"></param>
-		/// <param name="edgeTypes"></param>
-		/// <param name="extraFields"></param>
-		public static void SetEdgeTypeEdgeFieldRelation(int accountid, Dictionary<string, EdgeType> edgeTypes, List<ExtraField> extraFields)
+		public static void SetEdgeTypeEdgeFieldRelation(int accountid, Dictionary<string, EdgeType> edgeTypes, List<ExtraField> extraFields, SqlConnection connection)
 		{
 			try
 			{
-				using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+				using (var cmd = SqlUtility.CreateCommand("MD_EdgeTypeField_Get", CommandType.StoredProcedure))
 				{
-					var cmd = SqlUtility.CreateCommand("MD_EdgeTypeField_Get", CommandType.StoredProcedure);
 					cmd.Parameters.AddWithValue("@accountID", accountid);
 					cmd.Connection = connection;
-					connection.Open();
 
 					using (var reader = cmd.ExecuteReader())
 					{
@@ -274,13 +250,11 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// Build dependencies of edge objects: 
 		/// for each edge field: dependency depth level, list of parents with relevant column name and indication for identity
 		/// </summary>
-		/// <param name="accountId"></param>
-		/// <returns></returns>
-		public static Dictionary<EdgeField, EdgeFieldDependencyInfo> GetEdgeObjectDependencies(int accountId)
+		public static Dictionary<EdgeField, EdgeFieldDependencyInfo> GetEdgeObjectDependencies(int accountId, SqlConnection connection)
 		{
-			var edgeTypes = LoadEdgeTypes(accountId);
-			var edgeFields = LoadEdgeFields(accountId, edgeTypes);
-			SetEdgeTypeEdgeFieldRelation(accountId, edgeTypes, edgeFields);
+			var edgeTypes = LoadEdgeTypes(accountId, connection);
+			var edgeFields = LoadEdgeFields(accountId, edgeTypes, connection);
+			SetEdgeTypeEdgeFieldRelation(accountId, edgeTypes, edgeFields, connection);
 
 			// build object dependencies: child with parent list
 			var dependencies = edgeFields.Where(f => f.FieldEdgeType != null).ToDictionary(f => f as EdgeField, f => new EdgeFieldDependencyInfo { Field = f });
@@ -300,9 +274,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// Get DB type of edge field - TODO: can be generic???
 		/// </summary>
-		/// <param name="field"></param>
-		/// <returns></returns>
-		public static object GetDBFieldType(EdgeTypeField field)
+		public static object GetDbFieldType(EdgeTypeField field)
 		{
 			// edge object
 			if (field.Field.FieldEdgeType != null) return SqlDbType.BigInt.ToString();

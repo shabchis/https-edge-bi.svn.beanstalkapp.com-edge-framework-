@@ -44,7 +44,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		public void IdentifyDeliveryObjects()
 		{
 			// load object dependencies
-			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
+			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
 
 			// TODO: create index on TK fields in Delivery objects tables
 
@@ -356,7 +356,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		public void UpdateEdgeObjects(SqlTransaction transaction)
 		{
 			// load object dependencies
-			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId).Values.ToList();
+			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
 
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
@@ -429,7 +429,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				fieldsStr = String.Format("{0}{1},", fieldsStr, field.ColumnNameGK);
 				if (field.IsIdentity)
 				{
-					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDBFieldType(field));
+					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDbFieldType(field));
 					whereStr = String.Format("{0}{2}.{1}=#TEMP.{1} AND ", whereStr, field.ColumnNameGK, GetDeliveryTableName(edgeType.TableName));
 					outputStr = String.Format("{0}INSERTED.{1},", outputStr, field.ColumnNameGK);
 				}

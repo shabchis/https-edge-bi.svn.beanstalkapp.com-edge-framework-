@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
+using Edge.Core.Configuration;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Mapping;
 using Edge.Data.Pipeline.Metrics.Managers;
@@ -37,12 +39,19 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 
 			// load definitions from DB
-			Accounts	= EdgeObjectConfigLoader.LoadAccounts(_accountId);
-			Channels	= EdgeObjectConfigLoader.LoadChannels();
-			Measures	= EdgeObjectConfigLoader.LoadMeasures(_accountId);
-			EdgeTypes   = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId);
-			ExtraFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes);
-			EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, ExtraFields);
+			using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+			{
+				connection.Open();
+
+				Accounts = EdgeObjectConfigLoader.LoadAccounts(_accountId, connection);
+				Channels = EdgeObjectConfigLoader.LoadChannels(connection);
+				Measures = EdgeObjectConfigLoader.LoadMeasures(_accountId, connection);
+				EdgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId, connection);
+				ExtraFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes, connection);
+				EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, ExtraFields, connection);
+
+				connection.Close();
+			}
 
 			// Load mapping configuration
 			Mappings.ExternalMethods.Add("GetChannel", new Func<dynamic, Channel>(GetChannel));
