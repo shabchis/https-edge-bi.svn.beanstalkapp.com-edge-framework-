@@ -260,6 +260,42 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
 		/// </summary>
 		/// <param name="field"></param>
+		private void UpdateObjectDependencies1(EdgeField field)
+		{
+			// nothitng to do if there are no GK to update
+			if (field.FieldEdgeType.Fields.All(x => x.Field.FieldEdgeType == null)) return;
+
+			var sql = String.Empty;
+			var mainTableName = GetDeliveryTableName(field.FieldEdgeType.TableName);
+			var paramList = new List<SqlParameter> { new SqlParameter("@typeId", field.FieldEdgeType.TypeID) };
+
+			// seperate update command for each dependency (like FK)
+			foreach (var parentField in field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
+			{
+				var tempParentTableName = String.Format("##TempDelivery_{0}", parentField.Field.Name);
+
+				sql = String.Format("{0}UPDATE {1} SET {3}_GK={2}.GK FROM {2} WHERE {1}.TYPEID=@typeId AND {1}.{3}_TK={2}.TK;\n",
+									sql, 
+									mainTableName,
+									tempParentTableName, 
+									parentField.ColumnName);
+			}
+			// perform update
+			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
+			{
+				cmd.CommandText = sql;
+				cmd.Parameters.AddRange(paramList.ToArray());
+
+				cmd.ExecuteNonQuery();
+			}
+		}
+
+		/// <summary>
+		/// Before searching for object GKs update all GK of its parent fields 
+		/// (objects it depends on)
+		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
+		/// </summary>
+		/// <param name="field"></param>
 		private void UpdateObjectDependencies(EdgeField field)
 		{
 			// nothitng to do if there are no GK to update
@@ -340,6 +376,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
 							InsertNewEdgeObjects(field.Field.FieldEdgeType);
 					}
+					CreateTempGkTkTable4Field(field.Field);
 				}
 			}
 
@@ -381,15 +418,15 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			if (edgeType.Fields.Count == 0) return;
 
-			var fieldsStr = "LASTUPDATED,TYPEID,ACCOUNTID,";
 			var createfieldsStr = "GK BIGINT,";
 			var whereStr = "TYPEID=@typeId AND ";
 			var outputStr = "INSERTED.GK,";
+			var fieldsStr = String.Format("LASTUPDATED,TYPEID,ACCOUNTID,{0}", 
+							edgeType.ClrType.IsSubclassOf(typeof(ChannelSpecificObject)) ? "CHANNELID," : String.Empty);
+
 			foreach (var field in edgeType.Fields)
 			{
-				fieldsStr = String.Format("{0}{1},{2}", fieldsStr, field.ColumnNameGK, 
-										  field.Field.FieldEdgeType != null ? 
-										  String.Format("{0}_tk,", field.ColumnName) : String.Empty);
+				fieldsStr = String.Format("{0}{1},", fieldsStr, field.ColumnNameGK);
 				if (field.IsIdentity)
 				{
 					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDBFieldType(field));
