@@ -17,7 +17,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 	public class MetricsDeliveryManager : DeliveryManager
 	{
 		#region Data Members
-		private readonly SqlConnection _deliverySqlConnection;
+		public readonly SqlConnection _deliverySqlConnection;
 		private readonly SqlConnection _objectsSqlConnection;
 
 		public MetricsDeliveryManagerOptions Options { get; private set; }
