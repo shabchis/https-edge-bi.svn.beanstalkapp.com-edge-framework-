@@ -414,6 +414,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			return false;
 		}
 
+		/// <summary>
+		/// Insert new EdgeObjects, generate GK and update GK according to identity fields in Deliveru tables 
+		/// for later UpdateDependencies
+		/// </summary>
+		/// <param name="edgeType"></param>
 		private void InsertNewEdgeObjects(EdgeType edgeType)
 		{
 			if (edgeType.Fields.Count == 0) return;
@@ -500,12 +505,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 		}
 
+		// TODO: to be removed!!!
 		/// <summary>
 		/// Update delivery with the last changes in EdgeObjects by Transform timestamp 
 		/// with Lock in order to avoid meanwhile EdgeObjects updates
 		/// </summary>
 		/// <param name="edgeType"></param>
-		private void SyncLastChangesWithLock(EdgeType edgeType)
+		private void SyncLastChangesWithLock1(EdgeType edgeType)
 		{
 			var updatedObjects = GetLastUpdatedEdgeObjects(edgeType);
 			if (updatedObjects == null || updatedObjects.Count == 0) return;
@@ -523,6 +529,39 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					}
 				}
 				updateCmd.ExecuteNonQuery();
+			}
+		}
+
+		/// <summary>
+		/// Sync last changes in EdgeObject DB with Delivery using Lock (TODO):
+		/// create TEMP table for Delta changes in EdgeObjects, 
+		/// update delivery object to unchanged if exists in Delta by identity fields
+		/// </summary>
+		/// <param name="edgeType"></param>
+		private void SyncLastChangesWithLock(EdgeType edgeType)
+		{
+			var selectStr = String.Empty;
+			var whereStr = String.Empty;
+			foreach (var field in edgeType.Fields.Where(x => x.IsIdentity))
+			{
+				selectStr = String.Format("{0}{1},", selectStr, field.ColumnNameGK);
+				whereStr = String.Format("{0} #DELTA.{1}={2}.{1} AND ", whereStr, field.ColumnNameGK, GetDeliveryTableName(edgeType.TableName));
+			}
+
+			selectStr = selectStr.Remove(selectStr.Length - 1, 1);
+			whereStr = whereStr.Remove(whereStr.Length - 5, 5);
+
+			using (var cmd = new SqlCommand {Connection = _objectsSqlConnection})
+			{
+				cmd.CommandText = String.Format(@"SELECT GK,{0} INTO #DELTA FROM {1} WHERE TYPEID=@typeId AND LASTUPDATED > @timestamp;
+												  UPDATE {2} SET GK=#DELTA.GK, IDENTITYSTATUS=@identityStatus FROM #DELTA WHERE {3};", 
+												selectStr, edgeType.TableName, GetDeliveryTableName(edgeType.TableName), whereStr);
+
+				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
+				cmd.Parameters.AddWithValue("@timestamp", TransformTimestamp);
+				cmd.Parameters.AddWithValue("@identityStatus", (int)IdentityStatus.Unchanged);
+
+				cmd.ExecuteNonQuery();
 			}
 		}
 
