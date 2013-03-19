@@ -14,10 +14,10 @@ namespace Edge.Data.Objects
 			get { return typeof(ImageCreative); }
 		}
 
-		public new ImageCreative Creative
-		{
-			get { return base.Creative as ImageCreative; }
-			//set { base.Creative = value; }
-		}
+		//public ImageCreative Creative
+		//{
+		//	get { return base.Creative as ImageCreative; }
+		//	set { base.Creative = value; }
+		//}
 	}
 }

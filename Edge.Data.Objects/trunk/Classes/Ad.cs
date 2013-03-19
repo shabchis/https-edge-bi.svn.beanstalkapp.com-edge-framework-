@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Edge.Data.Objects
@@ -8,17 +9,7 @@ namespace Edge.Data.Objects
 		public string DestinationUrl;
 
 		public List<TargetDefinition> TargetDefinitions;
-		public CreativeDefinition CreativeDefinition
-		{
-			get
-			{
-				if (Fields == null) return null;
-
-				return Fields.Where(x => x.Key.Name == typeof(CreativeDefinition).Name && x.Value is CreativeDefinition)
-					              .Select(x => x.Value as CreativeDefinition)
-								  .FirstOrDefault();
-			}
-		}
+		public CreativeDefinition CreativeDefinition;
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
@@ -29,13 +20,14 @@ namespace Edge.Data.Objects
 
 			if (CreativeDefinition != null) yield return new ObjectDimension
 			{
-				Field = this.EdgeType["CreativeDefinition"],
+				Field = this.EdgeType[String.Format("{0}_CreativeDefinition", this.EdgeType.Name)],
 				Value = CreativeDefinition
 			};
 
 			if (TargetDefinitions == null) yield break;
 			foreach (var target in TargetDefinitions)
 			{
+				// TODO: set edge field for Traget definition, may be should be dictionary
 				yield return new ObjectDimension {Value = target};
 			}
 		}
