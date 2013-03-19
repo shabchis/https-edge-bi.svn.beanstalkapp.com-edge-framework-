@@ -22,7 +22,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public Dictionary<string, Channel>    Channels { get; private set; }
 		public Dictionary<string, Measure>    Measures { get; private set; }
 		public Dictionary<string, EdgeType>   EdgeTypes { get; private set; }
-		public List<ExtraField> ExtraFields { get; private set; }
+		public List<EdgeField> EdgeFields { get; private set; }
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
 		private int _accountId = -1;
@@ -47,8 +47,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				Channels = EdgeObjectConfigLoader.LoadChannels(connection);
 				Measures = EdgeObjectConfigLoader.LoadMeasures(_accountId, connection);
 				EdgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId, connection);
-				ExtraFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes, connection);
-				EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, ExtraFields, connection);
+				EdgeFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes, connection);
+				EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, EdgeFields, connection);
 
 				connection.Close();
 			}
@@ -58,9 +58,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
 			Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
 			Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
-			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, EdgeField>(GetExtraField));
-			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, EdgeField>(GetCompositePartField));
-			Mappings.ExternalMethods.Add("GetTargetField", new Func<dynamic, EdgeField>(GetTargetField));
+			Mappings.ExternalMethods.Add("GetEdgeField", new Func<dynamic, EdgeField>(GetEdgeField));
+			Mappings.ExternalMethods.Add("GetExtraField", new Func<dynamic, ExtraField>(GetExtraField));
+			Mappings.ExternalMethods.Add("GetCompositePartField", new Func<dynamic, CompositePartField>(GetCompositePartField));
+			Mappings.ExternalMethods.Add("GetTargetField", new Func<dynamic, TargetField>(GetTargetField));
 			Mappings.ExternalMethods.Add("GetEdgeType", new Func<dynamic, EdgeType>(GetEdgeType));
 			Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
 			Mappings.ExternalMethods.Add("GetObjectByEdgeType", new Func<dynamic, EdgeObject>(GetObjectByEdgeType));
@@ -71,6 +72,25 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.Compile();
 		}
  
+		/// <summary>
+		/// Delegate to set EdgeType of object during the mapping (only for EdgeObject or Dictionary of EdgeObjects)
+		/// </summary>
+		/// <param name="obj"></param>
+		protected void SetEdgeType(object obj)
+		{
+			if (obj is EdgeObject)
+			{
+				(obj as EdgeObject).EdgeType = GetEdgeType(obj.GetType().Name);
+			}
+			else if (obj is KeyValuePair<object, object>)
+			{
+				var pair = (KeyValuePair<object, object>)obj;
+				if (pair.Key is EdgeField && pair.Value is EdgeObject)
+				{
+					(pair.Value as EdgeObject).EdgeType = (pair.Key as EdgeField).FieldEdgeType;
+				}
+			}
+		}
 		#endregion
 
 		#region Scriptable methods
@@ -113,38 +133,39 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return type;
 		}
 
-		public EdgeField GetExtraField(dynamic fieldName)
+		public EdgeField GetEdgeField(dynamic fieldName)
 		{
 			var strFieldName = (string) fieldName;
 
-			var field = ExtraFields.FirstOrDefault(x => x.Name == strFieldName);
+			var field = EdgeFields.FirstOrDefault(x => x.Name == strFieldName);
 			if (field == null)
 				throw new MappingException(String.Format("Unknown edge field '{0}'", strFieldName));
 			return field;
 		}
 
-		public EdgeField GetCompositePartField(dynamic fieldName)
+		public ExtraField GetExtraField(dynamic fieldName)
 		{
-			var field = GetExtraField(fieldName);
-			return new CompositePartField
-				{
-					FieldID = field.FieldID,
-					Name = field.Name,
-					DisplayName = field.DisplayName,
-					FieldEdgeType = field.FieldEdgeType
-				};
+			return GetEdgeFieldOfType(fieldName, typeof(ExtraField));
 		}
 
-		public EdgeField GetTargetField(dynamic fieldName)
+		public CompositePartField GetCompositePartField(dynamic fieldName)
 		{
-			var field = GetExtraField(fieldName);
-			return new TargetField
-			{
-				FieldID = field.FieldID,
-				Name = field.Name,
-				DisplayName = field.DisplayName,
-				FieldEdgeType = field.FieldEdgeType
-			};
+			return GetEdgeFieldOfType(fieldName, typeof(CompositePartField));
+		}
+
+		public TargetField GetTargetField(dynamic fieldName)
+		{
+			return GetEdgeFieldOfType(fieldName, typeof(TargetField));
+		}
+
+		private EdgeField GetEdgeFieldOfType(dynamic fieldName, Type type)
+		{
+			var strFieldName = (string)fieldName;
+
+			var field = EdgeFields.FirstOrDefault(x => x.GetType() == type && x.Name == strFieldName);
+			if (field == null)
+				throw new MappingException(String.Format("Cannot find field '{0}' if type '{1}'", strFieldName, type.ToString()));
+			return field;
 		}
 
 		public Measure GetMeasure(dynamic name)
