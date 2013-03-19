@@ -27,7 +27,11 @@ namespace Edge.Data.Objects
 				yield return dimension;
 			}
 
-			//if (CreativeDefinition != null) yield return new ObjectDimension {Value = CreativeDefinition};
+			if (CreativeDefinition != null) yield return new ObjectDimension
+			{
+				Field = this.EdgeType["CreativeDefinition"],
+				Value = CreativeDefinition
+			};
 
 			if (TargetDefinitions == null) yield break;
 			foreach (var target in TargetDefinitions)
