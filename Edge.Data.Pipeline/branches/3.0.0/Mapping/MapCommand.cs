@@ -461,6 +461,10 @@ namespace Edge.Data.Pipeline.Mapping
 			// .......................................
 			// Trickle down
 
+			if (this.Root.OnMappingApplied != null)
+				this.Root.OnMappingApplied(nextTarget);
+
+
 			base.OnApply(nextTarget, context);
 		}
 
