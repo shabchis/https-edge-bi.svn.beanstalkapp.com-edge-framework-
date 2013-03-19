@@ -21,7 +21,7 @@ namespace Eggplant.Entities.Persistence
 		public MappingContext ParentContext { get; private set; }
 		
 		//public EntitySpace EntitySpace { get; private set; }
-		public EntityCacheManager Cache { get; private set; }
+		public EntityCache Cache { get; private set; }
 		public object Target { get { return GetTarget(); } set { SetTarget(value); } }
 		public Type TargetType { get; set; }
 

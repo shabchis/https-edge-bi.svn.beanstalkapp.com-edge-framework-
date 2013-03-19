@@ -9,7 +9,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<TextCreative> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<TextCreative>()
+			public static Mapping<TextCreative> Default = EdgeUtility.EntitySpace.CreateMapping<TextCreative>()
 				.Inherit(SingleCreative.Mappings.Default)
 				.Map<TextCreativeType>(TextCreative.Properties.TextType, "int_Field1")
 				.Map<string>(TextCreative.Properties.Text, "string_Field1")

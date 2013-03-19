@@ -19,6 +19,7 @@ namespace Eggplant.Entities.Persistence
 		public abstract object GetField(string field);
 		public abstract void SetField(string field, object value);
 		public abstract void Dispose();
+		public abstract bool NextResultSet();
 
 		public abstract bool Read();
 	}

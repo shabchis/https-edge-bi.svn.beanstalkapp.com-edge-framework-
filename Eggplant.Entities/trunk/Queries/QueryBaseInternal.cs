@@ -10,41 +10,23 @@ namespace Eggplant.Entities.Queries
 	public abstract class QueryBaseInternal
 	{
 		public Dictionary<string, QueryParameter> Parameters { get; private set; }
-		internal Dictionary<string, DbParameter> DbParameters { get; private set; }
+		internal Dictionary<string, PersistenceParameter> PersistenceParameters { get; private set; }
 
 		public QueryBaseInternal()
 		{
-			this.DbParameters = new Dictionary<string, DbParameter>();
+			this.PersistenceParameters = new Dictionary<string, PersistenceParameter>();
 			this.Parameters = new Dictionary<string, QueryParameter>();
 		}
 
-		internal void DbParam(string name, object value, DbType? dbType = null, int? size = null)
+		internal void PersistenceParam(string name, object value, PersistenceParameterOptions options)
 		{
-			DbParameter param;
-			if (dbType != null || size != null || !this.DbParameters.TryGetValue(name, out param))
+			PersistenceParameter param;
+			if (options != null || !this.PersistenceParameters.TryGetValue(name, out param))
 			{
-				this.DbParameters[name] = param = new DbParameter()
-				{
-					Name = name,
-					DbType = dbType,
-					Size = size
-				};
+				this.PersistenceParameters[name] = param = new PersistenceParameter(name, value, options);
 			}
 			param.Value = value;
 		}
-
-		/*
-		internal void DbParam(string name, Func<Query, object> valueFunc, DbType? dbType = null, int? size = null)
-		{
-			this.DbParameters[name] = new DbParameter()
-			{
-				Name = name,
-				ValueFunction = valueFunc,
-				DbType = dbType,
-				Size = size
-			};
-		}
-		*/
 
 		public V Param<V>(string paramName)
 		{
@@ -53,50 +35,6 @@ namespace Eggplant.Entities.Queries
 				throw new ArgumentException(String.Format("Parameter '{0}' is not defined.", paramName), "paramName");
 
 			return (V) param.Value;
-		}
-	}
-
-	public class QueryParameter
-	{
-		public string Name;
-		public Type ParameterType;
-		public bool IsRequired;
-		public object DefaultValue;
-		public object EmptyValue;
-		public object Value;
-
-		public QueryParameter Clone()
-		{
-			return new QueryParameter()
-			{
-				Name = this.Name,
-				ParameterType = this.ParameterType,
-				IsRequired = this.IsRequired,
-				DefaultValue = this.DefaultValue,
-				EmptyValue = this.EmptyValue,
-				Value = this.Value
-			};
-		}
-	}
-
-	public class DbParameter
-	{
-		public string Name;
-		public object Value;
-		//public Func<Query, object> ValueFunction;
-		public DbType? DbType;
-		public int? Size;
-
-		public DbParameter Clone()
-		{
-			return new DbParameter()
-			{
-				Name = this.Name,
-				Value = this.Value,
-				//ValueFunction = this.ValueFunction,
-				DbType = this.DbType,
-				Size = this.Size
-			};
 		}
 	}
 }

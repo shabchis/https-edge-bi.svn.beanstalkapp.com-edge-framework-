@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<Measure> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Measure>()
+			public static Mapping<Measure> Default = EdgeUtility.EntitySpace.CreateMapping<Measure>()
 				.Map<int>(Measure.Properties.ID, "ID")
 				.Map<Account>(Measure.Properties.Account, account => account
 					.Map<int>(Account.Properties.ID, "AccountID")
@@ -37,24 +37,19 @@ namespace Edge.Data.Objects
 
 		public static class Queries
 		{
-			public static QueryTemplate<Measure> GetInstances = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Measure>(
-				EdgeObjectsUtility.EntitySpace.CreateMapping<Measure>()
+			public static QueryTemplate<Measure> GetInstances = EdgeUtility.EntitySpace.CreateQueryTemplate<Measure>(
+				EdgeUtility.EntitySpace.CreateMapping<Measure>()
 					.Identity(Identities.ByName)
 					.UseMapping(Measure.Mappings.Default)
 				)
-				.RootSubquery(EdgeObjectsUtility.GetEdgeTemplate("Measure.sql", "GetInstances"), subquery => subquery
-					.BeforeExecute(sq => {
-						sq
-							.DbParamSet("@accountID", sq.Param<Account>("account") == null ? -1 : sq.Param<Account>("account").ID)
-						;
-
-						FlagsQuery? options = sq.Param<FlagsQuery?>("options");
-						sq
-							.DbParamSet("@operator", options == null ? FlagsOperator.ContainsAny : options.Value.Operator)
-							.DbParamSet("@flags", options == null ? 0 : options.Value.Value)
-						;
-
-					})
+				.RootSubquery(EdgeUtility.GetPersistenceAction("Measure.sql", "GetInstances"), subquery => subquery
+					.PersistenceParam("@accountID", fromQueryParam: "account", convertQueryParam: EdgeUtility.ConvertAccountToID)
+					.PersistenceParam("@operator", fromQueryParam: "options", convertQueryParam:
+						options => options == null ? FlagsOperator.ContainsAny : ((FlagsQuery?)options).Value.Operator
+					)
+					.PersistenceParam("@flags", fromQueryParam: "options", convertQueryParam:
+						options => options == null ? 0 : ((FlagsQuery?)options).Value.Value
+					)
 				)
 				.Param<Account>("account", required: false)
 				.Param<FlagsQuery?>("options", required: false)
@@ -67,6 +62,11 @@ namespace Edge.Data.Objects
 				.Param<Account>("account", account)
 				.Param<FlagsQuery?>("options", options)
 				.Execute();
+		}
+
+		public static IEnumerable<Measure> GetInstances(int accountID, FlagsQuery? options = null, PersistenceConnection connection = null)
+		{
+			return GetInstances(new Account() { ID = accountID }, options, connection);
 		}
 	}
 }

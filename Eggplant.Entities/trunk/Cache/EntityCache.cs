@@ -7,7 +7,7 @@ using Eggplant.Entities.Model;
 
 namespace Eggplant.Entities.Cache
 {
-	public class EntityCacheManager
+	public class EntityCache
 	{
 		Dictionary<IdentityDefinition, EntityCacheTable> _caches = new Dictionary<IdentityDefinition,EntityCacheTable>();
 

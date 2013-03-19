@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<CompositeCreative> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<CompositeCreative>(creative => creative
+			public static Mapping<CompositeCreative> Default = EdgeUtility.EntitySpace.CreateMapping<CompositeCreative>(creative => creative
 				.Inherit(Creative.Mappings.Default)
 
 				/*

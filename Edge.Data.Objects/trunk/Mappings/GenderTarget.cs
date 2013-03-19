@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<GenderTarget> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<GenderTarget>()
+			public static Mapping<GenderTarget> Default = EdgeUtility.EntitySpace.CreateMapping<GenderTarget>()
 				.Inherit(Target.Mappings.Default)
 				.Map<Gender>(GenderTarget.Properties.Gender, "int_Field1")
 			;

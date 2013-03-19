@@ -30,8 +30,8 @@ namespace Eggplant.Entities.Queries
 	{
 		public QueryTemplate<T> Template { get; internal set; }
 
-		protected List<DbCommand> PreparedCommands { get; private set; }
-		protected int MainCommandResultSetCount { get; private set; }
+		protected List<PersistenceAction> PersistenceActions { get; private set; }
+		private int _resultSetCount = 0;
 		private IEnumerable _batchSource = null;
 		private Action<object> _batchAction = null;
 		
@@ -40,9 +40,9 @@ namespace Eggplant.Entities.Queries
 			this.Template = template;
 			this.EntitySpace = template.EntitySpace;
 
-			foreach (DbParameter parameter in template.DbParameters.Values)
+			foreach (PersistenceParameter parameter in template.PersistenceParameters.Values)
 			{
-				this.DbParameters.Add(parameter.Name, parameter.Clone());
+				this.PersistenceParameters.Add(parameter.Name, parameter.Clone());
 			}
 
 			foreach (QueryParameter parameter in template.Parameters.Values)
@@ -125,59 +125,41 @@ namespace Eggplant.Entities.Queries
 		{
 			// ----------------------------------------
 			// Prepare SQL commands
-			var mainCommandText = new StringBuilder();
-			DbCommand mainCommand = store.NewDbCommand();
-			this.PreparedCommands = new List<DbCommand>();
+			//var mainCommandText = new StringBuilder();
+			//DbCommand mainCommand = store.NewDbCommand();
+			PersistenceAction mainAction = store.NewPersistenceAction();
+			this.PersistenceActions = new List<PersistenceAction>();
 			
 			foreach (Subquery subquery in this.Subqueries)
 			{
 				if (!subquery.IsPrepared)
 					subquery.Prepare();
 
-				// Apply subquery SQL to command object
 				if (subquery.Template.IsStandalone && !subquery.Template.IsRoot)
 				{
-					subquery.Command = store.NewDbCommand(subquery.PreparedCommandText);
-					this.PreparedCommands.Add(subquery.Command);
+					// Standalone subquery, use its prepared action as-is
+					this.PersistenceActions.Add(subquery.PersistenceAction);
 				}
 				else
 				{
-					subquery.Command = mainCommand;
+					// Chain the subquery action
+					mainAction.Append(subquery.PersistenceAction);
+					subquery.PersistenceAction = mainAction;
 
-					mainCommandText.Append(subquery.PreparedCommandText);
-					if (!subquery.PreparedCommandText.Trim().EndsWith(";"))
-						mainCommandText.Append(";");
-
-					this.MainCommandResultSetCount++;
-					subquery.ResultSetIndex = MainCommandResultSetCount;
+					_resultSetCount++;
+					subquery.ResultSetIndex = _resultSetCount;
 				}
 
 				// Add parameters to the command object
-				foreach (DbParameter param in subquery.DbParameters.Values)
+				foreach (PersistenceParameter param in subquery.PersistenceParameters.Values)
 				{
-					System.Data.Common.DbParameter p = store.NewDbParameter(param.Name);// param.ValueFunction != null ? param.ValueFunction(this) : param.Value
-
-					if (param.Size != null)
-						p.Size = param.Size.Value;
-					if (param.DbType != null)
-						p.DbType = param.DbType.Value;
-
-					
-					if (subquery.Command.Parameters.Contains(p.ParameterName))
-					{
-						System.Data.Common.DbParameter existing = subquery.Command.Parameters[p.ParameterName];
-						if (existing.Size != p.Size || existing.DbType != p.DbType)
-							throw new QueryTemplateException(String.Format("Parameter conflict: '{0}' is declared more than once but with different options.", p.ParameterName));
-					}
-					else
-						subquery.Command.Parameters.Add(p);
+					subquery.PersistenceAction.ApplyParameter(param);
 				}
 			}
 
 			// ----------------------------------------
 			// Finalize the main command object
-			mainCommand.CommandText = mainCommandText.ToString();
-			this.PreparedCommands.Insert(0, mainCommand);
+			this.PersistenceActions.Insert(0, mainAction);
 
 			this.IsPrepared = true;
 		}
@@ -208,15 +190,14 @@ namespace Eggplant.Entities.Queries
 			if (!this.IsPrepared)
 				this.Prepare(this.Connection.Store);
 
-			DbConnection conn = this.Connection.DbConnection;
 			List<T> buffer = null;
 
-			foreach (DbCommand command in this.PreparedCommands)
+			foreach (PersistenceAction action in this.PersistenceActions)
 			{
-				command.Connection = conn;
+				action.Connection = this.Connection;
 
-				// Find associated subqueries
-				Subquery[] subqueries = this.Subqueries.Where(s => s.Command == command).OrderBy(s => s.ResultSetIndex).ToArray();
+				// Find associated subqueries and order them by result set index
+				Subquery[] subqueries = this.Subqueries.Where(s => s.PersistenceAction == action).OrderBy(s => s.ResultSetIndex).ToArray();
 
 				IEnumerator batchEnumerator = null;
 				if (_batchSource != null)
@@ -227,18 +208,21 @@ namespace Eggplant.Entities.Queries
 					if (batchEnumerator != null)
 						_batchAction(batchEnumerator.Current);
 
-					// Add parameters to the command object from all subqueries
+					// Add parameters to the action from all subqueries
 					foreach (Subquery subquery in subqueries)
-						foreach (DbParameter param in subquery.DbParameters.Values)
-							command.Parameters[param.Name].Value = /*param.ValueFunction != null ? param.ValueFunction(this) :*/ param.Value;
+					{
+						foreach (var before in subquery.Template.DelegatesBefore)
+							before(subquery);
+
+						foreach (PersistenceParameter param in subquery.PersistenceParameters.Values)
+							action.ApplyParameter(param);
+					}
 
 					// Execute the command
-					int resultSetIndex = -1;
-					using (DbDataReader reader = command.ExecuteReader())
+					int resultSetIndex = 0;
+					using (PersistenceAdapter adapter = action.Execute())
 					{
-						PersistenceAdapter adapter = this.Connection.CreateAdapter(reader);
-
-						// TODO: Iterate result set
+						// TODO: Iterate result set of each persistence action
 						do
 						{
 							resultSetIndex++;
@@ -251,7 +235,7 @@ namespace Eggplant.Entities.Queries
 							if (subquery.Template.IsRoot)
 							{
 								// Yield results with no buffering only if this is the root subquery and it is the last to be executed
-								if (resultSetIndex == subqueries.Length - 1 && command == this.PreparedCommands[this.PreparedCommands.Count - 1])
+								if (resultSetIndex == subqueries.Length - 1 && action == this.PersistenceActions[this.PersistenceActions.Count - 1])
 								{
 									foreach (T result in results)
 										yield return result;
@@ -267,7 +251,14 @@ namespace Eggplant.Entities.Queries
 								foreach (object result in results) ;
 							}
 						}
-						while (reader.NextResult());
+						while (adapter.NextResultSet());
+					}
+
+					// Wrap up
+					foreach (Subquery subquery in subqueries)
+					{
+						foreach (var after in subquery.Template.DelegatesAfter)
+							after(subquery);
 					}
 
 					// If we are not iterating a batch, just exit

@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<PlacementTarget> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<PlacementTarget>()
+			public static Mapping<PlacementTarget> Default = EdgeUtility.EntitySpace.CreateMapping<PlacementTarget>()
 				.Inherit(Target.Mappings.Default)
 				.Map<PlacementType>(PlacementTarget.Properties.PlacementType, "int_Field1")
 				.Map<string>(PlacementTarget.Properties.Value, "string_Field1")

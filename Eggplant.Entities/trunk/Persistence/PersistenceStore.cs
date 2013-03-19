@@ -31,25 +31,6 @@ namespace Eggplant.Entities.Persistence
 			return connection;
 		}
 
-		public abstract DbParameter NewDbParameter(string name);
-		public abstract DbCommand NewDbCommand(string commandText = null, CommandType commandType = CommandType.Text);
-		public abstract PersistenceAdapter CreateAdapter(PersistenceConnection connection, DbDataReader reader);
-
-		/*
-		public static PersistenceStore LoadFromConfiguration(string configurationName)
-		{
-			throw new NotImplementedException();
-		}
-
-		public static PersistenceStore LoadXml(XmlReader xml, bool closeReader = false)
-		{
-			throw new NotImplementedException();
-		}
-
-		public static PersistenceStore LoadXml(string xml)
-		{
-			return LoadXml(new XmlTextReader(new StringReader(xml)), true);
-		}
-		*/
+		public abstract PersistenceAction NewPersistenceAction();
 	}
 }

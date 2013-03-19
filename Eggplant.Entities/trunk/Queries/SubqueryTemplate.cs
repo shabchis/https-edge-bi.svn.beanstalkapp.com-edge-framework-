@@ -15,10 +15,10 @@ namespace Eggplant.Entities.Queries
 		public bool IsStandalone { get; set; }
 		public QueryTemplate Template { get; internal set; }
 		public string Name { get; set; }
-		public string CommandText { get; set; }
+		public PersistenceAction PersistenceAction { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
-		internal List<Action<Subquery>> ActionsBefore = new List<Action<Subquery>>();
-		internal List<Action<Subquery>> ActionsAfter = new List<Action<Subquery>>();
+		internal List<Action<Subquery>> DelegatesBefore = new List<Action<Subquery>>();
+		internal List<Action<Subquery>> DelegatesAfter = new List<Action<Subquery>>();
 
 		public SubqueryTemplate(EntitySpace space): base(space)
 		{
@@ -36,6 +36,45 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
+		public new SubqueryTemplate PersistenceParam(string name, object defaultValue, PersistenceParameterOptions options = null)
+		{
+			base.PersistenceParam(name, defaultValue, options);
+			return this;
+		}
+
+		public SubqueryTemplate PersistenceParam(string name, string fromQueryParam, Func<object,object> convertQueryParam = null, PersistenceParameterOptions options = null)
+		{
+			this.PersistenceParam(name, null, options);
+			BeforeExecute(sq => sq.PersistenceParam(name, fromQueryParam, convertQueryParam));
+			return this;
+		}
+
+		public SubqueryTemplate PersistenceParamMap(IMapping mapToUse, object sourceValue)
+		{
+			this.BeforeExecute(sq => sq.PersistenceParamMap(mapToUse, sourceValue));
+			return this;
+		}
+
+		public SubqueryTemplate PersistenceParamMap(IMapping mapToUse, string queryParamSource)
+		{
+			this.BeforeExecute(sq => sq.PersistenceParamMap(mapToUse, queryParamSource));
+			return this;
+		}
+
+		public SubqueryTemplate BeforeExecute(Action<Subquery> action)
+		{
+			this.DelegatesBefore.Add(action);
+			return this;
+		}
+
+		public SubqueryTemplate AfterExecute(Action<Subquery> action)
+		{
+			this.DelegatesAfter.Add(action);
+			return this;
+		}
+
+		#region Condition columns - not fully implemented
+		/*
 		public SubqueryTemplate ConditionalColumn(string column, IEntityProperty mappedProperty)
 		{
 			return ConditionalColumn(column, column, mappedProperty);
@@ -71,43 +110,8 @@ namespace Eggplant.Entities.Queries
 
 			return this;
 		}
-
-		public new SubqueryTemplate DbParamDefine(string name, object defaultValue, DbType? dbType = null, int? size = null)
-		{
-			base.DbParam(name, defaultValue, dbType, size);
-			return this;
-		}
-
-		public SubqueryTemplate DbParamFromParam(string name, string sourceParamName, object nullValue = null, DbType? dbType = null, int? size = null)
-		{
-			this.DbParam(name, null, dbType, size);
-			BeforeExecute(sq => sq.DbParamFromParam(name, sourceParamName, nullValue));
-			return this;
-		}
-
-		public SubqueryTemplate DbParamsFromMap(IMapping mapToUse, object sourceValue)
-		{
-			this.BeforeExecute(sq => sq.DbParamsFromMap(mapToUse, sourceValue));
-			return this;
-		}
-
-		public SubqueryTemplate DbParamsFromMap(IMapping mapToUse, string sourceParamName)
-		{
-			this.BeforeExecute(sq => sq.DbParamsFromMap(mapToUse, sourceParamName));
-			return this;
-		}
-
-		public SubqueryTemplate BeforeExecute(Action<Subquery> action)
-		{
-			this.ActionsBefore.Add(action);
-			return this;
-		}
-
-		public SubqueryTemplate AfterExecute(Action<Subquery> action)
-		{
-			this.ActionsAfter.Add(action);
-			return this;
-		}
+		*/
+		#endregion
 	}
 
 	public class SubqueryConditionalColumn
@@ -116,32 +120,6 @@ namespace Eggplant.Entities.Queries
 		public string ColumnSyntax;
 		public IEntityProperty MappedProperty;
 		public Func<Subquery, bool> Condition;
-	}
-
-	public class SubqueryRelationship
-	{
-		public List<SubqueryRelationshipField> Fields;
-
-		public SubqueryRelationship Field(string child, string parent)
-		{
-			if (Fields == null)
-				Fields = new List<SubqueryRelationshipField>();
-
-			this.Fields.Add(new SubqueryRelationshipField(child, parent));
-			return this;
-		}
-	}
-
-	public struct SubqueryRelationshipField
-	{
-		public string ChildField;
-		public string ParentField;
-
-		public SubqueryRelationshipField(string child, string parent)
-		{
-			ChildField = child;
-			ParentField = parent;
-		}
 	}
 
 }

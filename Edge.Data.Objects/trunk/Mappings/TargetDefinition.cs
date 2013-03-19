@@ -9,7 +9,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<TargetDefinition> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<TargetDefinition>()
+			public static Mapping<TargetDefinition> Default = EdgeUtility.EntitySpace.CreateMapping<TargetDefinition>()
 				.Inherit(EdgeObject.Mappings.Default)
 				.Map<Target>(TargetDefinition.Properties.Target, target => target
 					.MapEdgeObject("TargetGK", "TargetTypeID", "TargetClrType")

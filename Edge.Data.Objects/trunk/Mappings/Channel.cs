@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<Channel> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Channel>(account => account
+			public static Mapping<Channel> Default = EdgeUtility.EntitySpace.CreateMapping<Channel>(account => account
 				.Identity(Channel.Identities.Default)
 				.Map<int>(Channel.Properties.ID, "ID")
 				.Map<string>(Channel.Properties.Name, "Name")
@@ -28,13 +28,9 @@ namespace Edge.Data.Objects
 
 		public static class Queries
 		{
-			public static QueryTemplate<Channel> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Channel>(Mappings.Default)
-				.RootSubquery(@"
-					select *
-					from Channel 
-					where @channelID = -1 or ID = @channelID
-					", init => init
-						 .DbParamFromParam("@channelID", "channelID")
+			public static QueryTemplate<Channel> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<Channel>(Mappings.Default)
+				.RootSubquery(EdgeUtility.GetPersistenceAction("Channel.sql", "Get"), init => init
+					.PersistenceParam("@channelID", fromQueryParam: "channelID")
 				)
 				.Param<int>("channelID", required: false, defaultValue: -1)
 			;

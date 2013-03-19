@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<ChannelSpecificObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<ChannelSpecificObject>(edgeObject => edgeObject
+			public static Mapping<ChannelSpecificObject> Default = EdgeUtility.EntitySpace.CreateMapping<ChannelSpecificObject>(edgeObject => edgeObject
 
 				.Inherit(EdgeObject.Mappings.Default)
 
