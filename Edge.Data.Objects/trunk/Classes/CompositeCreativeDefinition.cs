@@ -6,29 +6,18 @@ namespace Edge.Data.Objects
 {
 	public partial class CompositeCreativeDefinition : CreativeDefinition
 	{
-		//public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions;
+		public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions;
 
 		protected override Type CreativeType
 		{
 			get { return typeof(CompositeCreative); }
 		}
 
-		public new CompositeCreative Creative
-		{
-			get { return base.Creative as CompositeCreative; }
-			//set { base.Creative = value; }
-		}
-
-		public Dictionary<CompositePartField, SingleCreativeDefinition> CreativeDefinitions
-		{
-			get
-			{
-				if (Fields == null) return null;
-
-				return Fields.Where(x => x.Key is CompositePartField && x.Value is SingleCreativeDefinition)
-								  .ToDictionary(x => x.Key as CompositePartField, x => x.Value as SingleCreativeDefinition);
-			}
-		}
+		//public CompositeCreative Creative
+		//{
+		//	get { return base.Creative as CompositeCreative; }
+		//	set { base.Creative = value; }
+		//}
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
@@ -36,8 +25,6 @@ namespace Edge.Data.Objects
 			{
 				yield return dimension;
 			}
-
-			//if (Creative != null) yield return new ObjectDimension {Value = Creative};
 
 			if (CreativeDefinitions == null) yield break;
 			foreach (var definition in CreativeDefinitions)

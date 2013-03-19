@@ -9,10 +9,10 @@ namespace Edge.Data.Objects
 			get { return typeof(TextCreative); }
 		}
 
-		public new TextCreative Creative
-		{
-			get { return base.Creative as TextCreative; }
-			//set { base.Creative = value; }
-		}
+		//public TextCreative Creative
+		//{
+		//	get { return base.Creative as TextCreative; }
+		//	set { base.Creative = value; }
+		//}
 	}
 }

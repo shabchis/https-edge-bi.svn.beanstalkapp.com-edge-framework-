@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Edge.Data.Objects
 {
@@ -19,7 +20,11 @@ namespace Edge.Data.Objects
 			{
 				yield return dimension;
 			}
-			if (Target != null) yield return new ObjectDimension {Value = Target};
+			if (Target != null) yield return new ObjectDimension 
+			{
+				Field = this.EdgeType[String.Format("{0}_Target", this.EdgeType.Name)],
+				Value = Target
+			};
 		}
 	}
 }
