@@ -162,9 +162,9 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		/// <summary>
 		/// Load edge fields by account + set edge type for each field
 		/// </summary>
-		public static List<ExtraField> LoadEdgeFields(int accountId, Dictionary<string, EdgeType> edgeTypes, SqlConnection connection)
+		public static List<EdgeField> LoadEdgeFields(int accountId, Dictionary<string, EdgeType> edgeTypes, SqlConnection connection)
 		{
-			var extraFields = new List<ExtraField>();
+			var edgeFields = new List<EdgeField>();
 			try
 			{
 				using (var cmd = SqlUtility.CreateCommand("MD_EdgeField_Get", CommandType.StoredProcedure))
@@ -176,14 +176,22 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 					{
 						while (reader.Read())
 						{
-							var field = new ExtraField
+							EdgeField field = null;
+							Type type = Type.GetType(reader["FieldType"].ToString());
+							if (type == null) 
+								field = new SystemField();
+							else
+								field = Activator.CreateInstance(type) as EdgeField;
+
+							if (field != null)
 							{
-								FieldID = int.Parse(reader["FieldID"].ToString()),
-								Name = reader["Name"].ToString(),
-								DisplayName = reader["DisplayName"].ToString(),
-								FieldEdgeType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["FieldTypeID"].ToString())),
-							};
-							extraFields.Add(field);
+								field.FieldID = int.Parse(reader["FieldID"].ToString());
+								field.Name = reader["Name"].ToString();
+								field.DisplayName = reader["DisplayName"].ToString();
+								field.FieldEdgeType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["FieldTypeID"].ToString()));
+
+								edgeFields.Add(field);
+							}
 						}
 					}
 				}
@@ -192,13 +200,13 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 			{
 				throw new Exception("Error while trying to get extra fields from DB", ex);
 			}
-			return extraFields;
+			return edgeFields;
 		}
 
 		/// <summary>
 		/// Set relationships between edge fields and edge types (many-2-many) according to account id
 		/// </summary>
-		public static void SetEdgeTypeEdgeFieldRelation(int accountid, Dictionary<string, EdgeType> edgeTypes, List<ExtraField> extraFields, SqlConnection connection)
+		public static void SetEdgeTypeEdgeFieldRelation(int accountid, Dictionary<string, EdgeType> edgeTypes, List<EdgeField> edgeFields, SqlConnection connection)
 		{
 			try
 			{
@@ -219,7 +227,7 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 							if (parentType == null)
 								throw new ConfigurationErrorsException(String.Format("Configuration error: Unknown parent edge type {0} while loading edge type fields", parentTypeId));
 
-							var field = extraFields.FirstOrDefault(x => x.FieldID == fieldtId);
+							var field = edgeFields.FirstOrDefault(x => x.FieldID == fieldtId);
 							if (field == null)
 								throw new ConfigurationErrorsException(String.Format("Configuration error: Unknown edge field {0} while loading edge type fields", fieldtId));
 

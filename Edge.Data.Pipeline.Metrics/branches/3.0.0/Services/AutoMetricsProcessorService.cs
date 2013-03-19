@@ -81,7 +81,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetExtraField};
+				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField};
 				MetricsMappings.Apply(CurrentMetricsUnit);	
 				return CurrentMetricsUnit;
 			}
@@ -94,7 +94,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		protected void ProcessMetrics()
 		{
 			// fill the metrics using mapping
-			CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetExtraField };
+			CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField };
 			MetricsMappings.Apply(CurrentMetricsUnit);
 
 			var signature = new Signature();
@@ -152,6 +152,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			ReaderAdapter = (ReaderAdapter)Activator.CreateInstance(readerAdapterType);
 
 			Mappings.OnFieldRequired = ReaderAdapter.GetField;
+			Mappings.OnMappingApplied = SetEdgeType;
 
 			if (!Mappings.Objects.TryGetValue(typeof(MetricsUnit), out MetricsMappings))
 				throw new MappingConfigurationException("Missing mapping definition for GenericMetricsUnit.", "Object");

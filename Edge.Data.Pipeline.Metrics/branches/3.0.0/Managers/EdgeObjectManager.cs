@@ -211,16 +211,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// get the list of configured fields in MD_EdgeFields according to the object type
 			foreach (var field in edgeObject.EdgeType.Fields)
 			{
-				if (field.Field is ExtraField && edgeObject.ExtraFields != null && edgeObject.ExtraFields.ContainsKey(field.Field as ExtraField))
+				// add extra field column
+				var edgeFieldObj = edgeObject.GetObjectDimensions().Where(x => x.Field == field.Field).Select(x => x.Value).FirstOrDefault() as EdgeObject;
+				if (edgeFieldObj != null)
 				{
-					// add extra field column
-					var extraFieldObj = edgeObject.ExtraFields[field.Field as ExtraField] as EdgeObject;
-					if (extraFieldObj != null)
-					{
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.ColumnName), extraFieldObj.GK);
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.ColumnName), extraFieldObj.TK);
-						AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.ColumnName), extraFieldObj.EdgeType.TypeID);
-					}
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.ColumnName), edgeFieldObj.GK);
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.ColumnName), edgeFieldObj.TK);
+					AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.ColumnName), edgeFieldObj.EdgeType.TypeID);
 				}
 				else
 				{
@@ -230,11 +227,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					{
 						var memberInfo = edgeObject.GetType().GetMember(field.Field.Name)[0];
 						var value = (memberInfo is FieldInfo ? (memberInfo as FieldInfo).GetValue(edgeObject) : null) ??
-						          (memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).GetValue(edgeObject, null) : null);
+									(memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).GetValue(edgeObject, null) : null);
 
 						var type = memberInfo is FieldInfo
-							           ? (memberInfo as FieldInfo).FieldType
-							           : memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).PropertyType : null;
+										? (memberInfo as FieldInfo).FieldType
+										: memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).PropertyType : null;
 
 						// edge object
 						if (value is EdgeObject)
@@ -290,8 +287,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		/// <summary>
 		/// Normalize flat object list to set:
-		/// 1. Account and Channel to all objects according to Metrics unit definition
-		/// 2. EdgeType according to object type name or extra field name
+		/// Account and Channel to all objects according to Metrics unit definition
 		/// </summary>
 		/// <param name="flatObjectList"></param>
 		/// <param name="metricsUnit"></param>
@@ -313,35 +309,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					if (edgeObj is ChannelSpecificObject)
 					{
 						(edgeObj as ChannelSpecificObject).Channel = metricsUnit.Channel;
-					}
-					// if edge type is not set in configuration try to set it
-					if (edgeObj.EdgeType == null)
-					{
-						// 1st - accoridng to extra field edge type if exists
-						var dimension = (obj as ObjectDimension);
-						if (dimension != null && dimension.Field != null && dimension.Field.FieldEdgeType != null)
-						{
-							edgeObj.EdgeType = dimension.Field.FieldEdgeType;
-							continue;
-						}
-
-						// 2nd - according to edge object name in EdgeType table
-						var requiredTypeName = edgeObj.GetType().Name;
-						if (EdgeTypes.ContainsKey(requiredTypeName))
-						{
-							edgeObj.EdgeType = EdgeTypes[requiredTypeName];
-							continue;
-						}
-
-						// 3rd - according to extra field name in EdgeField table (in this case, EdgeType Name = EdgeField Name)
-						if (dimension != null && dimension.Field != null && EdgeTypes.ContainsKey(dimension.Field.Name))
-						{
-							edgeObj.EdgeType = EdgeTypes[dimension.Field.Name];
-							continue;
-						}
-						
-						throw new ConfigurationErrorsException(String.Format("Edge type is not set for extra field '{0}', object type '{1}'",
-															   dimension != null && dimension.Field != null ? dimension.Field.Name : String.Empty, requiredTypeName));
 					}
 				}
 			}
