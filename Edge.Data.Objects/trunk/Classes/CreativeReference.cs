@@ -26,9 +26,9 @@ namespace Edge.Data.Objects
 		{
 			get
 			{
-				if (ExtraFields == null) return null;
+				if (Fields == null) return null;
 
-				return ExtraFields.Where(x => x.Value is Creative)
+				return Fields.Where(x => x.Value is Creative)
 								  .Select(x => x.Value as Creative)
 								  .FirstOrDefault();
 			}
