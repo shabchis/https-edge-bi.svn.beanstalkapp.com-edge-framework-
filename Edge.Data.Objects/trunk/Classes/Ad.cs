@@ -12,9 +12,9 @@ namespace Edge.Data.Objects
 		{
 			get
 			{
-				if (ExtraFields == null) return null;
+				if (Fields == null) return null;
 
-				return ExtraFields.Where(x => x.Key.Name == typeof(CreativeDefinition).Name && x.Value is CreativeDefinition)
+				return Fields.Where(x => x.Key.Name == typeof(CreativeDefinition).Name && x.Value is CreativeDefinition)
 					              .Select(x => x.Value as CreativeDefinition)
 								  .FirstOrDefault();
 			}
