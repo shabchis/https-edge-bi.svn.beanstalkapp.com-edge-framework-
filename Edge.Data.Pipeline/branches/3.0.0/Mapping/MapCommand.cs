@@ -261,11 +261,6 @@ namespace Edge.Data.Pipeline.Mapping
 					return;
 			}
 
-			//if (this.MapCommands != null && this.MapCommands.Count > 0)
-			//{
-			//	this.ValueType = MapCommands[0].TargetType;
-			//}
-
 			// .......................................
 			// Process inner read commands only
 			foreach (ReadCommand read in this.ReadCommands)
@@ -275,10 +270,7 @@ namespace Edge.Data.Pipeline.Mapping
 			// Apply mapping operation
 
 			object nextTarget = target;
-
-			// Check condition
 			
-
 			if (this.TargetMember != null)
 			{
 				PropertyInfo property = this.TargetMember is PropertyInfo ? (PropertyInfo)this.TargetMember : null;
@@ -349,6 +341,8 @@ namespace Edge.Data.Pipeline.Mapping
 					// Types might be compatible, just try to assign it
 					value = output;
 				}
+
+				object appliedValueToNotifyAbout = value;
 
 				// .......................................
 				// Check for indexers
@@ -428,6 +422,8 @@ namespace Edge.Data.Pipeline.Mapping
 
 					PropertyInfo itemProp = collectionType.GetProperty("Item");
 					itemProp.SetValue(collection, value, new object[]{indexer});
+
+					appliedValueToNotifyAbout = new KeyValuePair<object, object>(indexer, value);
 				}
 				else
 				{
@@ -455,15 +451,14 @@ namespace Edge.Data.Pipeline.Mapping
 				}
 
 				nextTarget = value;
+
+				if (this.Root.OnMappingApplied != null)
+					this.Root.OnMappingApplied(appliedValueToNotifyAbout);
 			}
 
 
 			// .......................................
 			// Trickle down
-
-			if (this.Root.OnMappingApplied != null)
-				this.Root.OnMappingApplied(nextTarget);
-
 
 			base.OnApply(nextTarget, context);
 		}
