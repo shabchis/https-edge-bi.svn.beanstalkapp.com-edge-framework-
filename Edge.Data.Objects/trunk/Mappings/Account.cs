@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<Account> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Account>(account => account
+			public static Mapping<Account> Default = EdgeUtility.EntitySpace.CreateMapping<Account>(account => account
 				.Identity(Account.Identities.Default) // TODO: move this to query
 				.Map<int>(Account.Properties.ID, "ID")
 				.Map<string>(Account.Properties.Name, "Name")
@@ -32,16 +32,16 @@ namespace Edge.Data.Objects
 
 		public static class Queries
 		{
-			public static QueryTemplate<Account> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Account>(Mappings.Default)
-				.RootSubquery(EdgeObjectsUtility.GetEdgeTemplate("Account.sql", "Get"), init => init
-					.DbParamFromParam("@accountID", "accountID")
+			public static QueryTemplate<Account> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<Account>(Mappings.Default)
+				.RootSubquery(EdgeUtility.GetPersistenceAction("Account.sql", "Get"), init => init
+					.PersistenceParam("@accountID", fromQueryParam: "accountID")
 				)
 				.Param<int>("accountID", required: false)
 			;
 
-			public static QueryTemplate<Nothing> Save = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<Nothing>()
-				.RootSubquery(EdgeObjectsUtility.GetEdgeTemplate("Account.sql", "Save"), init => init
-					.DbParamsFromMap(Account.Mappings.Default, "account")
+			public static QueryTemplate<Nothing> Save = EdgeUtility.EntitySpace.CreateQueryTemplate<Nothing>()
+				.RootSubquery(EdgeUtility.GetPersistenceAction("Account.sql", "Save"), init => init
+					.PersistenceParamMap(Account.Mappings.Default, "account")
 				)
 				.Param<Account>("account", required: true)
 			;

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Queries;
+using Eggplant.Entities.Persistence.SqlServer;
+using System.Data;
 
 namespace Edge.Data.Objects
 {
@@ -11,7 +13,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<EdgeType> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
+			public static Mapping<EdgeType> Default = EdgeUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
 				.Identity(EdgeType.Identities.Default)
 				.Map<int>(EdgeType.Properties.TypeID, "TypeID")
 				.Map<EdgeType>(EdgeType.Properties.BaseEdgeType, baseEdgeType => baseEdgeType
@@ -47,82 +49,18 @@ namespace Edge.Data.Objects
 				)
 			);
 
-			public static Mapping<EdgeType> DefaultOut = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeType>(edgeType => edgeType
-				.Map<int>(EdgeType.Properties.TypeID, "TypeID")
-				.Map<EdgeType>(EdgeType.Properties.BaseEdgeType, baseEdgeType => baseEdgeType
-					.Map<int>(EdgeType.Properties.TypeID, "BaseTypeID")
-				)
-				.Map<Type>(EdgeType.Properties.ClrType, clrType => clrType
-					.Do(context => context.SetField("ClrType", context.Target.AssemblyQualifiedName))
-				)
-				.Map<string>(EdgeType.Properties.Name, "Name")
-				.Map<string>(EdgeType.Properties.TableName, "TableName")
-				.Map<bool>(EdgeType.Properties.IsAbstract, "IsAbstract")
-				.Map<Account>(EdgeType.Properties.Account, account => account
-					.Map<int>(Account.Properties.ID, "AccountID")
-				)
-				.Map<Channel>(EdgeType.Properties.Channel, channel => channel
-					.Map<int>(Channel.Properties.ID, "ChannelID")
-				)
-
-				.MapListFromSubquery<EdgeType, EdgeTypeField>(EdgeType.Properties.Fields, "EdgeTypeFields",
-					parent => parent
-						.Identity(EdgeType.Identities.Default)
-						.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
-					,
-					item => item
-						.Map<EdgeField>(EdgeTypeField.Properties.Field, field => field
-							.UseMapping(EdgeField.Mappings.Default)
-						)
-						.Map<string>(EdgeTypeField.Properties.ColumnName, "ColumnName")
-						.Map<bool>(EdgeTypeField.Properties.IsIdentity, "IsIdentity")
-				)
-			);
-
 		}
 
 		public static class Queries
 		{
-			public static QueryTemplate<EdgeType> Get = EdgeObjectsUtility.EntitySpace.CreateQueryTemplate<EdgeType>(Mappings.Default)
-				.RootSubquery(@"
-					select *
-					from MD_EdgeType
-					where
-						AccountID in (-1, @accountID) and
-						ChannelID in (-1, @channelID)
-				", init => init
-					.BeforeExecute(sq =>
-						{
-							var account = sq.Param<Account>("account"); sq.DbParamSet("@accountID", account == null ? -1 : account.ID);
-							var channel = sq.Param<Channel>("channel"); sq.DbParamSet("@channelID", channel == null ? -1 : channel.ID);
-						})
+			public static QueryTemplate<EdgeType> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<EdgeType>(Mappings.Default)
+				.RootSubquery(EdgeUtility.GetPersistenceAction("EdgeType.sql", "Get"), init => init
+					.PersistenceParam("@accountID", fromQueryParam: "account", convertQueryParam: EdgeUtility.ConvertAccountToID)
+					.PersistenceParam("@channelID", fromQueryParam: "channel", convertQueryParam: EdgeUtility.ConvertChannelToID)
 				)
-				.Subquery("EdgeTypeFields", @"
-					select
-						types.TypeID as ParentTypeID,
-						fields.FieldID as FieldID,
-						fields.FieldType as FieldType,
-						fields.Name as Name,
-						typeFields.ColumnName as ColumnName,
-						typeFields.IsIdentity as IsIdentity
-					from
-						MD_EdgeType as types
-						inner join MD_EdgeTypeField as typeFields on
-							typeFields.ParentTypeID in (-1, types.TypeID)
-						inner join MD_EdgeField as fields on
-							fields.FieldID = typeFields.FieldID and
-							fields.AccountID in (-1, types.AccountID) and
-							fields.ChannelID in (-1, types.ChannelID)
-
-					where
-						types.AccountID in (-1, @accountID) and
-						types.ChannelID in (-1, @channelID)
-				", init => init
-					.BeforeExecute(sq =>
-					{
-						var account = sq.Param<Account>("account"); sq.DbParamSet("@accountID", account == null ? -1 : account.ID);
-						var channel = sq.Param<Channel>("channel"); sq.DbParamSet("@channelID", channel == null ? -1 : channel.ID);
-					})
+				.Subquery("EdgeTypeFields", EdgeUtility.GetPersistenceAction("EdgeType.sql", "Get/EdgeTypeFields"), init => init
+					.PersistenceParam("@accountID", fromQueryParam: "account", convertQueryParam: EdgeUtility.ConvertAccountToID)
+					.PersistenceParam("@channelID", fromQueryParam: "channel", convertQueryParam: EdgeUtility.ConvertChannelToID)
 				)
 				.Param<Account>("account", required: false)
 				.Param<Channel>("channel", required: false)

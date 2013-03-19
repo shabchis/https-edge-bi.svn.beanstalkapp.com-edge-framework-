@@ -47,6 +47,8 @@ namespace Eggplant.Entities.Queries
 			get { return _filter; }
 			set
 			{
+				throw new NotImplementedException("Filtering not yet implemented in this version.");
+				/*
 				if (value != null && value.Length > 0)
 				{
 					object[] copied = new object[value.Length];
@@ -60,6 +62,7 @@ namespace Eggplant.Entities.Queries
 				}
 
 				_filter = value;
+				*/
 			}
 		}
 

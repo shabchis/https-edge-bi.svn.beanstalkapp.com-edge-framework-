@@ -11,7 +11,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 	{
 		SqlDataReader _reader;
 
-		public SqlDataReaderAdapter(PersistenceConnection connection, SqlDataReader reader): base(connection)
+		public SqlDataReaderAdapter(SqlPersistenceConnection connection, SqlDataReader reader): base(connection)
 		{
 			_reader = reader;
 		}
@@ -53,6 +53,11 @@ namespace Eggplant.Entities.Persistence.SqlServer
 		public override bool Read()
 		{
 			return _reader.Read();
+		}
+
+		public override bool NextResultSet()
+		{
+			return _reader.NextResult();
 		}
 	}
 }

@@ -87,7 +87,7 @@
     <Compile Include="Classes\GenderTarget.cs" />
     <Compile Include="Classes\KeywordTarget.cs" />
     <Compile Include="Classes\PlacementTarget.cs" />
-    <Compile Include="EdgeObjectsUtility.cs" />
+    <Compile Include="EdgeUtility.cs" />
     <Compile Include="Flags.cs" />
     <Compile Include="Identities\EdgeField.cs" />
     <Compile Include="Identities\EdgeType.cs" />
@@ -259,7 +259,9 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <Content Include="Mappings\Account.sql" />
+    <EmbeddedResource Include="Mappings\Account.sql" />
+    <EmbeddedResource Include="Mappings\Channel.sql" />
+    <EmbeddedResource Include="Mappings\EdgeType.sql" />
     <Content Include="Mappings\EdgeObject.sql" />
     <EmbeddedResource Include="Mappings\Measure.sql" />
   </ItemGroup>

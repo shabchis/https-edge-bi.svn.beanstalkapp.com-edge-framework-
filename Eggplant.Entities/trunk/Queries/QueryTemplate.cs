@@ -37,27 +37,25 @@ namespace Eggplant.Entities.Queries
 			return new Query<T>(this);
 		}
 
-
-
-		public QueryTemplate<T> RootSubquery(string commandText, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> RootSubquery(PersistenceAction action, Action<SubqueryTemplate> inner = null)
 		{
-			SubqueryTemplate root = SubqueryInit(null, commandText, inner);
+			SubqueryTemplate root = SubqueryInit(null, action, inner);
 			this.RootSubqueryTemplate = root;
 			return this;
 		}
 
-		public QueryTemplate<T> Subquery(string resultSetName, string commandText, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> Subquery(string resultSetName, PersistenceAction action, Action<SubqueryTemplate> inner = null)
 		{
-			SubqueryInit(resultSetName, commandText, inner);
+			SubqueryInit(resultSetName, action, inner);
 			return this;
 		}
 
-		private SubqueryTemplate SubqueryInit(string resultSetName, string commandText, Action<SubqueryTemplate> inner)
+		private SubqueryTemplate SubqueryInit(string resultSetName, PersistenceAction action, Action<SubqueryTemplate> inner)
 		{
 			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{
 				Name = resultSetName,
-				CommandText = commandText,
+				PersistenceAction = action,
 				Template = this
 			};
 

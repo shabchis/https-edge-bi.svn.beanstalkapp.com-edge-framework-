@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<CompositePartField> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<CompositePartField>()
+			public static Mapping<CompositePartField> Default = EdgeUtility.EntitySpace.CreateMapping<CompositePartField>()
 				.Inherit(EdgeField.Mappings.Default)
 				.Map<Channel>(CompositePartField.Properties.Channel, channel => channel
 					.Do(context => context.NullIf<int>("ChannelID", id => id == -1))

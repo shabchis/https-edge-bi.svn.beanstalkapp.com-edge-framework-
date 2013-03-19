@@ -9,19 +9,23 @@ using System.Text.RegularExpressions;
 using Eggplant.Entities.Queries;
 using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Model;
+using Eggplant.Entities.Persistence.SqlServer;
 
 namespace Edge.Data.Objects
 {
-	public static class EdgeObjectsUtility
+	public static class EdgeUtility
 	{
 		public static EntitySpace EntitySpace { get; private set; }
 
-		static EdgeObjectsUtility()
+		static EdgeUtility()
 		{
-			EdgeObjectsUtility.EntitySpace = new EntitySpace();
+			EdgeUtility.EntitySpace = new EntitySpace();
 		}
 
-		public static string GetEdgeTemplate(string fileName, string templateName)
+		public static readonly Func<object, object> ConvertAccountToID = ac => ac == null ? -1 : ((Account)ac).ID;
+		public static readonly Func<object, object> ConvertChannelToID = ch => ch == null ? -1 : ((Channel)ch).ID;
+
+		public static SqlPersistenceAction GetPersistenceAction(string fileName, string templateName)
 		{
 			const string tplSeparatorPattern = @"^--\s*#\s*TEMPLATE\s+(.*)$";
 			Regex tplSeparatorRegex = new Regex(tplSeparatorPattern, RegexOptions.Singleline);
@@ -55,7 +59,7 @@ namespace Edge.Data.Objects
 			if (templateString.Length == 0)
 				throw new Exception("Template not found in resource.");
 
-			return templateString.ToString();
+			return new SqlPersistenceAction(templateString.ToString(), System.Data.CommandType.Text);
 		}
 
 		#region ParseEdgeTemplate (disabled)

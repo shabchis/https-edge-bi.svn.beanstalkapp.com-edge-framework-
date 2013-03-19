@@ -15,9 +15,7 @@ namespace Eggplant.Entities.Queries
 		public Query ParentQuery { get; private set; }
 		public SubqueryTemplate Template { get; private set; }
 		public ISubqueryMapping Mapping { get; private set; }
-		public string PreparedCommandText { get; protected set; }
-		
-		internal DbCommand Command { get; set; }
+		public PersistenceAction PersistenceAction { get; internal set; }
 		internal int ResultSetIndex { get; set; }
 
 		internal Subquery(Query parent, SubqueryTemplate template, ISubqueryMapping mapping)
@@ -26,11 +24,17 @@ namespace Eggplant.Entities.Queries
 			this.Template = template;
 			this.Mapping = mapping;
 
-			foreach (DbParameter parameter in template.DbParameters.Values)
-				this.DbParameters.Add(parameter.Name, parameter.Clone());
+			// Take persistence parameters from the subquery template only, but...
+			foreach (PersistenceParameter parameter in template.PersistenceParameters.Values)
+				this.PersistenceParameters.Add(parameter.Name, parameter.Clone());
 
-			foreach (QueryParameter parameter in template.Parameters.Values)
+			// Query parameters are inherited from the root query.
+			foreach (QueryParameter parameter in template.Template.Parameters.Values)
 				this.Parameters.Add(parameter.Name, parameter.Clone());
+
+			// However, they might be overridden by the subquery template, so use the indexer here.
+			foreach (QueryParameter parameter in template.Parameters.Values)
+				this.Parameters[parameter.Name] = parameter.Clone();
 		}
 
 		public override PersistenceConnection Connection
@@ -63,25 +67,26 @@ namespace Eggplant.Entities.Queries
 			return (Subquery)base.Sort(property, order);
 		}
 
-		public Subquery DbParamSet(string name, object value, DbType? dbType = null, int? size = null)
+		public new Subquery PersistenceParam(string name, object value, PersistenceParameterOptions options = null)
 		{
-			base.DbParam(name, value, dbType, size);
+			base.PersistenceParam(name, value, options);
 			return this;
 		}
 
-		public Subquery DbParamFromParam(string name, string sourceParamName, object nullValue = null, DbType? dbType = null, int? size = null)
+		public Subquery PersistenceParam(string name, string fromQueryParam, Func<object,object> convertQueryParam = null, PersistenceParameterOptions options = null)
 		{
-			object val = this.Parameters[sourceParamName].Value ?? nullValue;
-			return this.DbParamSet(name, val, dbType, size);
+			object val = this.Parameters[fromQueryParam].Value;
+			if (convertQueryParam != null)
+				val = convertQueryParam(val);
+			return this.PersistenceParam(name, val, options);
 		}
 
-
-		public Subquery DbParamsFromMap(IMapping mapToUse, string sourceParamName)
+		public Subquery PersistenceParamMap(IMapping mapToUse, string fromQueryParam)
 		{
-			return this.DbParamsFromMap(mapToUse, this.Parameters[sourceParamName].Value);
+			return this.PersistenceParamMap(mapToUse, this.Parameters[fromQueryParam].Value);
 		}
 
-		public Subquery DbParamsFromMap(IMapping mapToUse, object sourceValue)
+		public Subquery PersistenceParamMap(IMapping mapToUse, object fromObject)
 		{
 			throw new NotImplementedException();
 		}
@@ -147,7 +152,7 @@ namespace Eggplant.Entities.Queries
 			;
 			*/
 
-			this.PreparedCommandText = this.Template.CommandText;
+			this.PersistenceAction = this.Template.PersistenceAction.Clone();
 			this.IsPrepared = true;
 		}
 

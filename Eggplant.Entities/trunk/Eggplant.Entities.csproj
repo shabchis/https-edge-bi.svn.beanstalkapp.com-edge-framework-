@@ -65,7 +65,7 @@
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cache\EntityCacheManager.cs" />
+    <Compile Include="Cache\EntityCache.cs" />
     <Compile Include="Cache\EntityCacheTable.cs" />
     <Compile Include="Cache\EntityCacheEntry.cs" />
     <Compile Include="EntitySpace.cs" />
@@ -82,19 +82,23 @@
     <Compile Include="Persistence\Mappings\SubqueryMapping.cs" />
     <Compile Include="Persistence\PersistenceAction.cs" />
     <Compile Include="Persistence\PersistenceConnection.cs" />
+    <Compile Include="Persistence\PersistenceParameter.cs" />
     <Compile Include="Persistence\PersistenceStore.cs" />
     <Compile Include="Persistence\Mappings\PropertyMapping.cs" />
     <Compile Include="Persistence\Mappings\VariableMapping.cs" />
     <Compile Include="Persistence\PersistenceAdapter.cs" />
     <Compile Include="Persistence\SqlServer\SqlDataReaderAdapter.cs" />
     <Compile Include="Persistence\SqlServer\SqlPersistenceAction.cs" />
-    <Compile Include="Persistence\SqlServer\SqlQueryData.cs" />
-    <Compile Include="Persistence\SqlServer\SqlServerPersistenceStore.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceConnection.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceParameterOptions.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceStore.cs" />
+    <Compile Include="Persistence\SqlServer\SqlUtility.cs" />
     <Compile Include="Queries\Enums.cs" />
     <Compile Include="Queries\Exceptions.cs" />
     <Compile Include="Queries\Query.cs" />
     <Compile Include="Queries\QueryBase.cs" />
     <Compile Include="Queries\QueryBaseInternal.cs" />
+    <Compile Include="Queries\QueryParameter.cs" />
     <Compile Include="Queries\QueryTemplate.cs" />
     <Compile Include="Queries\QueryTemplateBase.cs" />
     <Compile Include="Queries\Subquery.cs" />

@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<StringValue> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<StringValue>()
+			public static Mapping<StringValue> Default = EdgeUtility.EntitySpace.CreateMapping<StringValue>()
 				.Inherit(ChannelSpecificObject.Mappings.Default)
 				.Map<string>(StringValue.Properties.Value, "string_Field1")
 			;

@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<KeywordTarget> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<KeywordTarget>()
+			public static Mapping<KeywordTarget> Default = EdgeUtility.EntitySpace.CreateMapping<KeywordTarget>()
 				.Inherit(Target.Mappings.Default)
 				.Map<KeywordMatchType>(KeywordTarget.Properties.MatchType, "int_Field1")
 			;

@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<ExtraField> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<ExtraField>()
+			public static Mapping<ExtraField> Default = EdgeUtility.EntitySpace.CreateMapping<ExtraField>()
 				.Inherit(EdgeField.Mappings.Default)
 				.Map<Account>(ExtraField.Properties.Account, account => account
 					.Do(context => context.NullIf<int>("AccountID", id => id == -1))

@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<ImageCreative> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<ImageCreative>(creative => creative
+			public static Mapping<ImageCreative> Default = EdgeUtility.EntitySpace.CreateMapping<ImageCreative>(creative => creative
 				.Inherit(SingleCreative.Mappings.Default)
 
 				//.Map<string>(ImageCreative.Properties.ImageUrl, "string_Field1")

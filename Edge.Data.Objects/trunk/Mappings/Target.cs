@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public new static class Mappings
 		{
-			public static Mapping<Target> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<Target>()
+			public static Mapping<Target> Default = EdgeUtility.EntitySpace.CreateMapping<Target>()
 				.Inherit(EdgeObject.Mappings.Default)
 			;
 		}

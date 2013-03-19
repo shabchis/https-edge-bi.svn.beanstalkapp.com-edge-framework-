@@ -12,7 +12,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<EdgeObject> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeObject>(edgeObject => edgeObject
+			public static Mapping<EdgeObject> Default = EdgeUtility.EntitySpace.CreateMapping<EdgeObject>(edgeObject => edgeObject
 
 				.Map<long>(EdgeObject.Properties.GK, "GK")
 				.Map<EdgeType>(EdgeObject.Properties.EdgeType, edgeType => edgeType

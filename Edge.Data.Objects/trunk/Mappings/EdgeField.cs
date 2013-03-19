@@ -10,7 +10,7 @@ namespace Edge.Data.Objects
 	{
 		public static class Mappings
 		{
-			public static Mapping<EdgeField> Default = EdgeObjectsUtility.EntitySpace.CreateMapping<EdgeField>()
+			public static Mapping<EdgeField> Default = EdgeUtility.EntitySpace.CreateMapping<EdgeField>()
 				.Type(field: "FieldType")
 				.Identity(EdgeField.Identities.Default)
 				.Map<int>(EdgeField.Properties.FieldID, "FieldID")
