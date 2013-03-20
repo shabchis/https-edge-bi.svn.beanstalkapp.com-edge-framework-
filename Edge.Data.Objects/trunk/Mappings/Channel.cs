@@ -29,7 +29,7 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<Channel> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<Channel>(Mappings.Default)
-				.RootSubquery(EdgeUtility.GetPersistenceAction("Channel.sql", "Get"), init => init
+				.RootSubquery(EdgeUtility.GetSql<Channel>("Get"), init => init
 					.PersistenceParam("@channelID", fromQueryParam: "channelID")
 				)
 				.Param<int>("channelID", required: false, defaultValue: -1)

@@ -25,14 +25,15 @@ namespace Edge.Data.Objects
 		public static readonly Func<object, object> ConvertAccountToID = ac => ac == null ? -1 : ((Account)ac).ID;
 		public static readonly Func<object, object> ConvertChannelToID = ch => ch == null ? -1 : ((Channel)ch).ID;
 
-		public static SqlPersistenceAction GetPersistenceAction(string fileName, string templateName)
+		public static SqlPersistenceAction GetSql<T>(string templateName)
 		{
 			const string tplSeparatorPattern = @"^--\s*#\s*TEMPLATE\s+(.*)$";
 			Regex tplSeparatorRegex = new Regex(tplSeparatorPattern, RegexOptions.Singleline);
 
 			var templateString = new StringBuilder();
 			Assembly asm = Assembly.GetExecutingAssembly();
-			using (StreamReader reader = new StreamReader(asm.GetManifestResourceStream(@"Edge.Data.Objects.Mappings." + fileName)))
+			//using (StreamReader reader = new StreamReader(asm.GetManifestResourceStream(@"Edge.Data.Objects.Mappings." + fileName)))
+			using (StreamReader reader = new StreamReader(asm.GetManifestResourceStream(typeof(T).FullName)))
 			{
 				bool readingTemplate = false;
 				

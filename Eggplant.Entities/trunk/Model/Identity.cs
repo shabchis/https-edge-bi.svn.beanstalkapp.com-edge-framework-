@@ -180,19 +180,22 @@ namespace Eggplant.Entities.Model
 		private bool ValidateConstraints(IDictionary<IEntityProperty, object> propertyValues, bool throwEx = true)
 		{
 			bool valid = true;
-			foreach (var constraint in this.Constraints)
+			if (this.Constraints != null)
 			{
-				object val;
-				var validateFunction = constraint.Value;
-				if (!propertyValues.TryGetValue(constraint.Key, out val) || !validateFunction(val))
+				foreach (var constraint in this.Constraints)
 				{
-					valid = false;
-					break;
+					object val;
+					var validateFunction = constraint.Value;
+					if (!propertyValues.TryGetValue(constraint.Key, out val) || !validateFunction(val))
+					{
+						valid = false;
+						break;
+					}
 				}
-			}
 
-			if (!valid && throwEx)
-				throw new IdentityConstraintException("Constraint is not valid.");
+				if (!valid && throwEx)
+					throw new IdentityConstraintException("Constraint is not valid.");
+			}
 
 			return valid;
 		}
@@ -200,19 +203,22 @@ namespace Eggplant.Entities.Model
 		private bool ValidateConstraints(object obj, bool throwEx = true)
 		{
 			bool valid = true;
-			foreach (var constraint in this.Constraints)
+			if (this.Constraints != null)
 			{
-				object val = constraint.Key.GetValue(obj);
-				var validateFunction = constraint.Value;
-				if (!validateFunction(val))
+				foreach (var constraint in this.Constraints)
 				{
-					valid = false;
-					break;
+					object val = constraint.Key.GetValue(obj);
+					var validateFunction = constraint.Value;
+					if (!validateFunction(val))
+					{
+						valid = false;
+						break;
+					}
 				}
-			}
 
-			if (!valid && throwEx)
-				throw new IdentityConstraintException("Constraint is not valid.");
+				if (!valid && throwEx)
+					throw new IdentityConstraintException("Constraint is not valid.");
+			}
 
 			return valid;
 		}

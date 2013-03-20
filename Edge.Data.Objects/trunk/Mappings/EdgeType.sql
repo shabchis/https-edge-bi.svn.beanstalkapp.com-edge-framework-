@@ -1,7 +1,15 @@
 ﻿-- # -------------------------------------
 -- # TEMPLATE Get
 
-select *
+select
+	TypeID,
+	BaseTypeID,
+	ClrType,
+	Name,
+	IsAbstract,
+	TableName,
+	AccountID,
+	ChannelID
 from MD_EdgeType
 where
 	AccountID in (-1, @accountID) and
