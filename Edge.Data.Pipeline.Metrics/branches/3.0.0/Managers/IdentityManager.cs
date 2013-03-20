@@ -91,7 +91,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
 			{
-				cmd.CommandText = String.Format("SELECT GK, TK INTO ##TempDelivery_{0} FROM {1} WHERE TYPEID=@typeId ",
+				cmd.CommandText = String.Format(@"SELECT GK, TK INTO ##TempDelivery_{0} FROM {1} WHERE TYPEID=@typeId;
+												  CREATE NONCLUSTERED INDEX [IDX_{0}_TK] ON ##TempDelivery_{0} (TK);",
 												field.Name, GetDeliveryTableName(field.FieldEdgeType.TableName));
 				cmd.Parameters.AddWithValue("@typeId", field.FieldEdgeType.TypeID);
 				cmd.ExecuteNonQuery();
