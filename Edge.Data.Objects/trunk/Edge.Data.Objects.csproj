@@ -257,13 +257,24 @@
       <Name>Eggplant.Entities</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <EmbeddedResource Include="Mappings\Account.sql" />
-    <EmbeddedResource Include="Mappings\Channel.sql" />
-    <EmbeddedResource Include="Mappings\EdgeType.sql" />
-    <Content Include="Mappings\EdgeObject.sql" />
-    <EmbeddedResource Include="Mappings\Measure.sql" />
+    <EmbeddedResource Include="Mappings\Account.sql">
+      <DependentUpon>Account.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Mappings\Channel.sql">
+      <DependentUpon>Channel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mappings\EdgeType.sql">
+      <DependentUpon>EdgeType.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mappings\EdgeObject.sql">
+      <DependentUpon>EdgeObject.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mappings\Measure.sql">
+      <DependentUpon>Measure.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />

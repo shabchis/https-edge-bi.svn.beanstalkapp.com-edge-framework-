@@ -124,9 +124,8 @@ namespace Eggplant.Entities.Queries
 		public void Prepare(PersistenceStore store)
 		{
 			// ----------------------------------------
-			// Prepare SQL commands
-			//var mainCommandText = new StringBuilder();
-			//DbCommand mainCommand = store.NewDbCommand();
+			// Prepare persistence commands
+
 			PersistenceAction mainAction = store.NewPersistenceAction();
 			this.PersistenceActions = new List<PersistenceAction>();
 			
@@ -146,8 +145,8 @@ namespace Eggplant.Entities.Queries
 					mainAction.Append(subquery.PersistenceAction);
 					subquery.PersistenceAction = mainAction;
 
-					_resultSetCount++;
 					subquery.ResultSetIndex = _resultSetCount;
+					_resultSetCount++;
 				}
 
 				// Add parameters to the command object
@@ -225,7 +224,6 @@ namespace Eggplant.Entities.Queries
 						// TODO: Iterate result set of each persistence action
 						do
 						{
-							resultSetIndex++;
 							Subquery subquery = subqueries[resultSetIndex];
 
 							MappingContext context = subquery.Mapping.CreateContext(adapter, subquery);
@@ -250,6 +248,7 @@ namespace Eggplant.Entities.Queries
 								// This is required in order for the IEnumerable to execute
 								foreach (object result in results) ;
 							}
+							resultSetIndex++;
 						}
 						while (adapter.NextResultSet());
 					}

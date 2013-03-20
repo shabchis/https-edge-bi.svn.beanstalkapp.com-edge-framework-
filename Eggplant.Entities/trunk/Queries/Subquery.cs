@@ -28,9 +28,11 @@ namespace Eggplant.Entities.Queries
 			foreach (PersistenceParameter parameter in template.PersistenceParameters.Values)
 				this.PersistenceParameters.Add(parameter.Name, parameter.Clone());
 
+			/*
 			// Query parameters are inherited from the root query.
 			foreach (QueryParameter parameter in template.Template.Parameters.Values)
 				this.Parameters.Add(parameter.Name, parameter.Clone());
+			*/
 
 			// However, they might be overridden by the subquery template, so use the indexer here.
 			foreach (QueryParameter parameter in template.Parameters.Values)
@@ -75,7 +77,12 @@ namespace Eggplant.Entities.Queries
 
 		public Subquery PersistenceParam(string name, string fromQueryParam, Func<object,object> convertQueryParam = null, PersistenceParameterOptions options = null)
 		{
-			object val = this.Parameters[fromQueryParam].Value;
+			QueryParameter param;
+			if (!this.Parameters.TryGetValue(fromQueryParam, out param))
+				if (!this.ParentQuery.Parameters.TryGetValue(fromQueryParam, out param))
+					throw new KeyNotFoundException(String.Format("Parameter '{0}' could not be found in either the query or the subquery.", fromQueryParam));
+
+			object val = param.Value;
 			if (convertQueryParam != null)
 				val = convertQueryParam(val);
 			return this.PersistenceParam(name, val, options);

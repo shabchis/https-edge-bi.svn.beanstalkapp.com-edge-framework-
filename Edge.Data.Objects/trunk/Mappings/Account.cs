@@ -33,14 +33,14 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<Account> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<Account>(Mappings.Default)
-				.RootSubquery(EdgeUtility.GetPersistenceAction("Account.sql", "Get"), init => init
+				.RootSubquery(EdgeUtility.GetSql<Account>("Get"), init => init
 					.PersistenceParam("@accountID", fromQueryParam: "accountID")
 				)
 				.Param<int>("accountID", required: false)
 			;
 
 			public static QueryTemplate<Nothing> Save = EdgeUtility.EntitySpace.CreateQueryTemplate<Nothing>()
-				.RootSubquery(EdgeUtility.GetPersistenceAction("Account.sql", "Save"), init => init
+				.RootSubquery(EdgeUtility.GetSql<Account>("Save"), init => init
 					.PersistenceParamMap(Account.Mappings.Default, "account")
 				)
 				.Param<Account>("account", required: true)

@@ -54,11 +54,11 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<EdgeType> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<EdgeType>(Mappings.Default)
-				.RootSubquery(EdgeUtility.GetPersistenceAction("EdgeType.sql", "Get"), init => init
+				.RootSubquery(EdgeUtility.GetSql<EdgeType>("Get"), init => init
 					.PersistenceParam("@accountID", fromQueryParam: "account", convertQueryParam: EdgeUtility.ConvertAccountToID)
 					.PersistenceParam("@channelID", fromQueryParam: "channel", convertQueryParam: EdgeUtility.ConvertChannelToID)
 				)
-				.Subquery("EdgeTypeFields", EdgeUtility.GetPersistenceAction("EdgeType.sql", "Get/EdgeTypeFields"), init => init
+				.Subquery("EdgeTypeFields", EdgeUtility.GetSql<EdgeType>("Get/EdgeTypeFields"), init => init
 					.PersistenceParam("@accountID", fromQueryParam: "account", convertQueryParam: EdgeUtility.ConvertAccountToID)
 					.PersistenceParam("@channelID", fromQueryParam: "channel", convertQueryParam: EdgeUtility.ConvertChannelToID)
 				)

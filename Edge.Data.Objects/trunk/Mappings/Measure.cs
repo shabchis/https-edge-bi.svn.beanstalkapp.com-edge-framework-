@@ -42,7 +42,7 @@ namespace Edge.Data.Objects
 					.Identity(Identities.ByName)
 					.UseMapping(Measure.Mappings.Default)
 				)
-				.RootSubquery(EdgeUtility.GetPersistenceAction("Measure.sql", "GetInstances"), subquery => subquery
+				.RootSubquery(EdgeUtility.GetSql<Measure>("GetInstances"), subquery => subquery
 					.PersistenceParam("@accountID", fromQueryParam: "account", convertQueryParam: EdgeUtility.ConvertAccountToID)
 					.PersistenceParam("@operator", fromQueryParam: "options", convertQueryParam:
 						options => options == null ? FlagsOperator.ContainsAny : ((FlagsQuery?)options).Value.Operator
