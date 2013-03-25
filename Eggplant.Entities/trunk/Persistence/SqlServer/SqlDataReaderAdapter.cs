@@ -11,8 +11,12 @@ namespace Eggplant.Entities.Persistence.SqlServer
 	{
 		SqlDataReader _reader;
 
-		public SqlDataReaderAdapter(SqlPersistenceConnection connection, SqlDataReader reader): base(connection)
+		public SqlDataReaderAdapter(SqlPersistenceAction action, MappingDirection mappingDirection, SqlDataReader reader)
+			: base(action, mappingDirection)
 		{
+			if (mappingDirection != Persistence.MappingDirection.Inbound)
+				throw new ArgumentException("mappingDirection");
+
 			_reader = reader;
 		}
 
@@ -50,7 +54,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			_reader.Dispose();
 		}
 
-		public override bool Read()
+		public override bool NextResult()
 		{
 			return _reader.Read();
 		}

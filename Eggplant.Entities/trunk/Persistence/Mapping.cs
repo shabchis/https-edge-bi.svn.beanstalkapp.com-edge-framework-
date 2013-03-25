@@ -59,35 +59,52 @@ namespace Eggplant.Entities.Persistence
 			{
 				context.Target = function(context);
 			}));
-
 		}
 
-		public Mapping<T> Do(Action<MappingContext<T>> action)
+		public Mapping<T> Do(Action<MappingContext<T>> function)
 		{
-			this.SubMappings.Add(new ActionMapping<T>(this) { Action = action });
+			this.SubMappings.Add(new FunctionMapping<T>(this) { Function = function });
 			return this;
 		}
 
 		public Mapping<T> Type(string field)
 		{
-			return this.Type(context => context.GetField<Type>(field, t => {
-				Type type = null;
-				if (t != null)
+			return this.Type(context =>
 				{
-					if (t is string && !String.IsNullOrWhiteSpace((string)t))
-						type = System.Type.GetType((string)t);
-					if (type == null)
-						throw new MappingException(String.Format("Type information cannot be retrieved from the field '{0}' with the value is '{1}'.", field, t == null ? null : t));
-				}
-				return type;
-			}));
+					if (context.Direction == MappingDirection.Inbound)
+					{
+						return context.GetField<Type>(field, t =>
+						{
+							Type type = null;
+							if (t != null)
+							{
+								if (t is string && !String.IsNullOrWhiteSpace((string)t))
+									type = System.Type.GetType((string)t);
+								if (type == null)
+									throw new MappingException(String.Format("Type information cannot be retrieved from the field '{0}' with the value is '{1}'.", field, t == null ? null : t));
+							}
+							return type;
+						});
+					}
+					else if (context.Direction == MappingDirection.Outbound)
+					{
+						Type t = context.Target.GetType();
+						context.SetField(field,t.AssemblyQualifiedName);
+						return t;
+					}
+					else
+						throw new InvalidOperationException();
+				});
 		}
 
 		public Mapping<T> Type(Func<MappingContext<T>, Type> function)
 		{
 			return this.Do(new Action<MappingContext<T>>(context =>
 			{
-				context.TargetType = function(context);
+				if (context.Direction == MappingDirection.Inbound)
+					context.TargetType = function(context);
+				else
+					function(context);
 			}));
 
 		}
@@ -105,8 +122,14 @@ namespace Eggplant.Entities.Persistence
 			return this.Map<V>(variable, mapping => mapping
 				.Do(context =>
 				{
-					if (context.HasField(field))
+					if (!context.HasField(field))
+						return;
+					if (context.Direction == MappingDirection.Inbound)
 						context.Target = context.GetField<V>(field);
+					else if (context.Direction == MappingDirection.Outbound)
+						context.SetField(field, context.Target);
+					else
+						throw new InvalidOperationException();
 				})
 			);
 		}
@@ -119,13 +142,17 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
-		public Mapping<T> Map<V>(IEntityProperty<V> property, string field, Func<object, V> convertFunc = null)
+		public Mapping<T> Map<V>(IEntityProperty<V> property, string field, Func<object, V> convertIn = null, Func<V, object> convertOut = null)
 		{
 			return this.Map<V>(property, mapping => mapping
 				.Do(context =>
 				{
-					if (context.HasField(field))
-						context.Target = context.GetField<V>(field, convertFunc);
+					if (!context.HasField(field))
+						return;
+					if (context.Direction == MappingDirection.Inbound)
+						context.Target = context.GetField<V>(field, convertIn);
+					else if (context.Direction == MappingDirection.Outbound)
+						context.SetField(field, convertOut == null ? context.Target : convertOut(context.Target));
 				})
 			);
 		}
@@ -145,18 +172,6 @@ namespace Eggplant.Entities.Persistence
 			return this.Subquery<object>(subqueryName, init);
 		}
 
-		public Mapping<T> Inline<V>(Action<InlineMapping<V>> init)
-		{
-			var inlineMapping = new InlineMapping<V>(this);
-			this.SubMappings.Add(inlineMapping);
-			init(inlineMapping);
-			return this;
-		}
-
-		public Mapping<T> Inline(Action<InlineMapping<object>> init)
-		{
-			return this.Inline<object>(init);
-		}
 
 		/// <summary>
 		/// Import another mapping's settings

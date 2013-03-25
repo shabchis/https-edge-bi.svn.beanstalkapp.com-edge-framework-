@@ -50,17 +50,20 @@ namespace Eggplant.Entities.Queries
 
 			// Find relevant subqueries
 			var subqueryNames = new Dictionary<string, ISubqueryMapping>();
-			Action<IMapping> findSubqueryNames = null; findSubqueryNames = m =>
+			if (template.Mapping != null)
 			{
-				foreach (IMapping subMapping in m.SubMappings)
+				Action<IMapping> findSubqueryNames = null; findSubqueryNames = m =>
 				{
-					if (subMapping is ISubqueryMapping)
-						subqueryNames.Add(((ISubqueryMapping)subMapping).SubqueryName, (ISubqueryMapping)subMapping);
-					else
-						findSubqueryNames(subMapping);
-				}
-			};
-			findSubqueryNames(template.Mapping);
+					foreach (IMapping subMapping in m.SubMappings)
+					{
+						if (subMapping is ISubqueryMapping)
+							subqueryNames.Add(((ISubqueryMapping)subMapping).SubqueryName, (ISubqueryMapping)subMapping);
+						else
+							findSubqueryNames(subMapping);
+					}
+				};
+				findSubqueryNames(template.Mapping);
+			}
 
 			// Create subquery objects from templates
 			foreach (SubqueryTemplate subquerytpl in template.SubqueryTemplates)
@@ -219,15 +222,13 @@ namespace Eggplant.Entities.Queries
 
 					// Execute the command
 					int resultSetIndex = 0;
-					using (PersistenceAdapter adapter = action.Execute())
+					using (PersistenceAdapter adapter = action.GetAdapter(PersistenceAdapterPurpose.Results, MappingDirection.Inbound))
 					{
 						// TODO: Iterate result set of each persistence action
 						do
 						{
 							Subquery subquery = subqueries[resultSetIndex];
-
 							MappingContext context = subquery.Mapping.CreateContext(adapter, subquery);
-
 							var results = subquery.Mapping.ApplyAndReturn(context);
 
 							if (subquery.Template.IsRoot)

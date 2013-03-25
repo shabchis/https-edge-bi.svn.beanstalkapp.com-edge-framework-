@@ -23,6 +23,7 @@ select
 	types.TypeID as ParentTypeID,
 	fields.FieldID as FieldID,
 	fields.FieldType as FieldType,
+	fields.FieldTypeID as FieldTypeID,
 	fields.Name as Name,
 	typeFields.ColumnName as ColumnName,
 	typeFields.IsIdentity as IsIdentity

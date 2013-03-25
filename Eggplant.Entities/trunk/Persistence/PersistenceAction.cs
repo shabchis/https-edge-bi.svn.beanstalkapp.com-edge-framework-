@@ -23,9 +23,9 @@ namespace Eggplant.Entities.Persistence
 		public abstract PersistenceAction Clone();
 
 		/// <summary>
-		/// Executes the action and returns a result adapter.
+		/// 
 		/// </summary>
-		public abstract PersistenceAdapter Execute();
+		public abstract PersistenceAdapter GetAdapter(PersistenceAdapterPurpose purpose, MappingDirection mappingDirection);
 
 		/// <summary>
 		/// Applies the value and options of an action parameter to the underlying implementation.

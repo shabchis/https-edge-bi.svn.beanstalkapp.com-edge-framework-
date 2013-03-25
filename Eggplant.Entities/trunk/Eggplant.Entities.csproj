@@ -73,7 +73,7 @@
     <Compile Include="Model\EntityDefinition.cs" />
     <Compile Include="Model\EntityProperty.cs" />
     <Compile Include="Model\Identity.cs" />
-    <Compile Include="Persistence\Mappings\ActionMapping.cs" />
+    <Compile Include="Persistence\Mappings\FunctionMapping.cs" />
     <Compile Include="Persistence\Enums.cs" />
     <Compile Include="Persistence\IMapping.cs" />
     <Compile Include="Persistence\Mapping.cs" />
@@ -88,6 +88,7 @@
     <Compile Include="Persistence\Mappings\VariableMapping.cs" />
     <Compile Include="Persistence\PersistenceAdapter.cs" />
     <Compile Include="Persistence\SqlServer\SqlDataReaderAdapter.cs" />
+    <Compile Include="Persistence\SqlServer\SqlParameterAdapter.cs" />
     <Compile Include="Persistence\SqlServer\SqlPersistenceAction.cs" />
     <Compile Include="Persistence\SqlServer\SqlPersistenceConnection.cs" />
     <Compile Include="Persistence\SqlServer\SqlPersistenceParameterOptions.cs" />
