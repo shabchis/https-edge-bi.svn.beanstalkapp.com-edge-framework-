@@ -13,7 +13,6 @@ namespace Eggplant.Entities.Persistence
 	public abstract class MappingContext
 	{
 		//public Query Query { get; internal set; }
-		//public MappingDirection Direction { get; internal set; }
 
 		public PersistenceAdapter Adapter { get; private set; }
 		public IMapping CurrentMapping { get; internal set; }
@@ -21,9 +20,12 @@ namespace Eggplant.Entities.Persistence
 		public MappingContext ParentContext { get; private set; }
 		
 		//public EntitySpace EntitySpace { get; private set; }
-		public EntityCache Cache { get; private set; }
+		public EntityCache Cache { get { return this.Adapter.Action.Connection.Cache; } }
+		public MappingDirection Direction { get { return this.Adapter.MappingDirection; } }
 		public object Target { get { return GetTarget(); } set { SetTarget(value); } }
+		
 		public Type TargetType { get; set; }
+		
 
 		internal bool DoBreak { get; private set; }
 
@@ -34,7 +36,6 @@ namespace Eggplant.Entities.Persistence
 		internal MappingContext(PersistenceAdapter adapter, Subquery subquery, IMapping mapping, MappingContext parentContext = null)
 		{
 			this.Adapter = adapter;
-			this.Cache = adapter.Connection.Cache;
 			this.ParentContext = parentContext;
 			this.CurrentSubquery = subquery;
 			this.CurrentMapping = mapping;

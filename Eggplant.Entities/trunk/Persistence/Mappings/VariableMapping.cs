@@ -36,9 +36,9 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (VariableMapping<T>)base.Set(function);
 		}
-		public new VariableMapping<T> Do(Action<MappingContext<T>> action)
+		public new VariableMapping<T> Do(Action<MappingContext<T>> function)
 		{
-			return (VariableMapping<T>)base.Do(action);
+			return (VariableMapping<T>)base.Do(function);
 		}
 		public new VariableMapping<T> Map<V>(string variable, Action<VariableMapping<V>> init)
 		{
@@ -63,14 +63,6 @@ namespace Eggplant.Entities.Persistence
 		public new VariableMapping<T> Subquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
 			return (VariableMapping<T>)base.Subquery(subqueryName, init);
-		}
-		public new VariableMapping<T> Inline<V>(Action<InlineMapping<V>> init)
-		{
-			return (VariableMapping<T>)base.Inline<V>(init);
-		}
-		public new VariableMapping<T> Inline(Action<InlineMapping<object>> init)
-		{
-			return (VariableMapping<T>)base.Inline(init);
 		}
 
 		// =========================

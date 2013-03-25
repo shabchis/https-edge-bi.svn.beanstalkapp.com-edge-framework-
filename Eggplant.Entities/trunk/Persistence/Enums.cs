@@ -7,7 +7,6 @@ namespace Eggplant.Entities.Persistence
 {
 	public enum MappingDirection
 	{
-		Both,
 		Inbound,
 		Outbound
 	}

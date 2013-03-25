@@ -10,6 +10,7 @@ using Eggplant.Entities.Queries;
 using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Persistence.SqlServer;
+using System.Data;
 
 namespace Edge.Data.Objects
 {
@@ -24,6 +25,18 @@ namespace Edge.Data.Objects
 
 		public static readonly Func<object, object> ConvertAccountToID = ac => ac == null ? -1 : ((Account)ac).ID;
 		public static readonly Func<object, object> ConvertChannelToID = ch => ch == null ? -1 : ((Channel)ch).ID;
+
+		public static SqlPersistenceParameterOptions ParamOptions(SqlDbType? dbType = null, int? size = null)
+		{
+			if (dbType == null && size == null)
+				return null;
+
+			return new SqlPersistenceParameterOptions()
+			{
+				SqlDbType = dbType,
+				Size = size
+			};
+		}
 
 		public static SqlPersistenceAction GetSql<T>(string templateName)
 		{

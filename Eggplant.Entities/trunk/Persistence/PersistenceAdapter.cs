@@ -8,11 +8,13 @@ namespace Eggplant.Entities.Persistence
 {
 	public abstract class PersistenceAdapter: IDisposable
 	{
-		public PersistenceConnection Connection { get; private set; }
+		public PersistenceAction Action { get; private set; }
+		public MappingDirection MappingDirection { get; private set; }
 
-		public PersistenceAdapter(PersistenceConnection connection)
+		public PersistenceAdapter(PersistenceAction action, MappingDirection mappingDirection)
 		{
-			this.Connection = connection;
+			this.Action = action;
+			this.MappingDirection = mappingDirection;
 		}
 
 		public abstract bool HasField(string field);
@@ -20,7 +22,12 @@ namespace Eggplant.Entities.Persistence
 		public abstract void SetField(string field, object value);
 		public abstract void Dispose();
 		public abstract bool NextResultSet();
+		public abstract bool NextResult();
+	}
 
-		public abstract bool Read();
+	public enum PersistenceAdapterPurpose
+	{
+		Results,
+		Parameters
 	}
 }

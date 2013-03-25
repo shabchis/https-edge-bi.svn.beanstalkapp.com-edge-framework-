@@ -23,7 +23,7 @@ namespace Eggplant.Entities.Persistence
 
 		public IEnumerable<T> ApplyAndReturn(MappingContext<T> context)
 		{
-			while (context.Adapter.Read())
+			while (context.Adapter.NextResult())
 			{
 				((IMapping)this).InnerApply(context);
 				if (context.Target != null)
@@ -80,14 +80,6 @@ namespace Eggplant.Entities.Persistence
 		public new SubqueryMapping<T> Subquery(string subqueryName, Action<SubqueryMapping<object>> init)
 		{
 			return (SubqueryMapping<T>)base.Subquery(subqueryName, init);
-		}
-		public new SubqueryMapping<T> Inline<V>(Action<InlineMapping<V>> init)
-		{
-			return (SubqueryMapping<T>)base.Inline<V>(init);
-		}
-		public new SubqueryMapping<T> Inline(Action<InlineMapping<object>> init)
-		{
-			return (SubqueryMapping<T>)base.Inline(init);
 		}
 
 		// =========================

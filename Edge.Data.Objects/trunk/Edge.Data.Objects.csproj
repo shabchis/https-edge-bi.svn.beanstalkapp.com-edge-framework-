@@ -89,8 +89,6 @@
     <Compile Include="Classes\PlacementTarget.cs" />
     <Compile Include="EdgeUtility.cs" />
     <Compile Include="Flags.cs" />
-    <Compile Include="Identities\EdgeField.cs" />
-    <Compile Include="Identities\EdgeType.cs" />
     <Compile Include="Mappings\Account.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -275,6 +273,11 @@
     <EmbeddedResource Include="Mappings\Measure.sql">
       <DependentUpon>Measure.cs</DependentUpon>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Mappings\EdgeField.sql">
+      <DependentUpon>EdgeField.cs</DependentUpon>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />

@@ -77,10 +77,7 @@ namespace Eggplant.Entities.Queries
 
 		public Subquery PersistenceParam(string name, string fromQueryParam, Func<object,object> convertQueryParam = null, PersistenceParameterOptions options = null)
 		{
-			QueryParameter param;
-			if (!this.Parameters.TryGetValue(fromQueryParam, out param))
-				if (!this.ParentQuery.Parameters.TryGetValue(fromQueryParam, out param))
-					throw new KeyNotFoundException(String.Format("Parameter '{0}' could not be found in either the query or the subquery.", fromQueryParam));
+			QueryParameter param = GetQueryParam(fromQueryParam);
 
 			object val = param.Value;
 			if (convertQueryParam != null)
@@ -90,12 +87,17 @@ namespace Eggplant.Entities.Queries
 
 		public Subquery PersistenceParamMap(IMapping mapToUse, string fromQueryParam)
 		{
-			return this.PersistenceParamMap(mapToUse, this.Parameters[fromQueryParam].Value);
+			QueryParameter param = GetQueryParam(fromQueryParam);
+			return this.PersistenceParamMap(mapToUse, param.Value);
 		}
 
 		public Subquery PersistenceParamMap(IMapping mapToUse, object fromObject)
 		{
-			throw new NotImplementedException();
+			// TODO: add mapping direction to all param functions, dont' assume outbound
+			MappingContext context = mapToUse.CreateContext(this.PersistenceAction.GetAdapter(PersistenceAdapterPurpose.Parameters, MappingDirection.Outbound), this);
+			mapToUse.Apply(context);
+
+			return this;
 		}
 
 		public new Subquery Param<V>(string paramName, V value)
@@ -103,6 +105,15 @@ namespace Eggplant.Entities.Queries
 			ThrowIfRoot();
 			base.Param<V>(paramName, value);
 			return this;
+		}
+
+		private QueryParameter GetQueryParam(string paramName)
+		{
+			QueryParameter param;
+			if (!this.Parameters.TryGetValue(paramName, out param))
+				if (!this.ParentQuery.Parameters.TryGetValue(paramName, out param))
+					throw new KeyNotFoundException(String.Format("Parameter '{0}' could not be found in either the query or the subquery.", paramName));
+			return param;
 		}
 
 		internal void Prepare()

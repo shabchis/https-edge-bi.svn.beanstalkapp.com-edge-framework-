@@ -6,6 +6,7 @@ using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Queries;
 using Eggplant.Entities.Persistence.SqlServer;
 using System.Data;
+using Eggplant.Entities.Model;
 
 namespace Edge.Data.Objects
 {
@@ -49,6 +50,11 @@ namespace Edge.Data.Objects
 				)
 			);
 
+		}
+
+		public static class Identities
+		{
+			public static IdentityDefinition Default = new IdentityDefinition(EdgeType.Properties.TypeID);
 		}
 
 		public static class Queries

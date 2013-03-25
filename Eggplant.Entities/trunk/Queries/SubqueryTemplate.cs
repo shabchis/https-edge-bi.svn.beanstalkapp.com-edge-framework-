@@ -49,15 +49,15 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public SubqueryTemplate PersistenceParamMap(IMapping mapToUse, object sourceValue)
+		public SubqueryTemplate PersistenceParamMap(IMapping mapToUse, object fromObject)
 		{
-			this.BeforeExecute(sq => sq.PersistenceParamMap(mapToUse, sourceValue));
+			this.BeforeExecute(sq => sq.PersistenceParamMap(mapToUse, fromObject));
 			return this;
 		}
 
-		public SubqueryTemplate PersistenceParamMap(IMapping mapToUse, string queryParamSource)
+		public SubqueryTemplate PersistenceParamMap(IMapping mapToUse, string fromQueryParam)
 		{
-			this.BeforeExecute(sq => sq.PersistenceParamMap(mapToUse, queryParamSource));
+			this.BeforeExecute(sq => sq.PersistenceParamMap(mapToUse, fromQueryParam));
 			return this;
 		}
 

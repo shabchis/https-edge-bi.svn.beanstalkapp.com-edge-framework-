@@ -62,14 +62,6 @@ namespace Eggplant.Entities.Persistence
 		{
 			return (PropertyMapping<T>)base.Subquery(subqueryName, init);
 		}
-		public new PropertyMapping<T> Inline<V>(Action<InlineMapping<V>> init)
-		{
-			return (PropertyMapping<T>)base.Inline<V>(init);
-		}
-		public new PropertyMapping<T> Inline(Action<InlineMapping<object>> init)
-		{
-			return (PropertyMapping<T>)base.Inline(init);
-		}
 
 
 		// =========================

@@ -81,10 +81,19 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			};
 		}
 
-		public override PersistenceAdapter Execute()
+		
+		public override PersistenceAdapter GetAdapter(PersistenceAdapterPurpose purpose, MappingDirection mappingDirection)
 		{
+			/*
 			this.Command.Connection = this.Connection.DbConnection;
-			return new SqlDataReaderAdapter(this.Connection, this.Command.ExecuteReader());
+
+			if (adapterType == PersistenceAdapterType.ResultSet)
+				return new SqlDataReaderAdapter(this, this.Command.ExecuteReader());
+			else if (adapterType == PersistenceAdapterType.Parameters)
+				return new SqlParameterAdapter(this);
+			else
+			*/
+				throw new NotImplementedException();
 		}
 	}
 }
