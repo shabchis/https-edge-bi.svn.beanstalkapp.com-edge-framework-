@@ -42,10 +42,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Managers\IdentityManager.cs" />
-    <Compile Include="Misc\EdgeFieldDependencyInfo.cs" />
-    <Compile Include="Misc\EdgeObjectConfigLoader.cs" />
-    <Compile Include="Misc\DeliveryEdgeObject.cs" />
     <Compile Include="Misc\Options.cs" />
     <Compile Include="Managers\EdgeObjectManager.cs" />
     <Compile Include="Managers\MetricsTableManager.cs" />
@@ -70,6 +66,10 @@
     <ProjectReference Include="..\..\..\Edge.Data.Objects\trunk\Edge.Data.Objects.csproj">
       <Project>{9BC787C7-C269-476B-A87C-E345E7DB9E23}</Project>
       <Name>Edge.Data.Objects</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Edge.Data.Pipeline.Metrics.Indentity\trunk\Edge.Data.Pipeline.Metrics.Indentity.csproj">
+      <Project>{66c46dde-68b3-4d4f-bab0-b2b35fb6cb3e}</Project>
+      <Name>Edge.Data.Pipeline.Metrics.Indentity</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Edge.Data.Pipeline\branches\3.0.0\Edge.Data.Pipeline.csproj">
       <Project>{53391A99-E8CA-4262-A8E0-5F05A1CC6608}</Project>

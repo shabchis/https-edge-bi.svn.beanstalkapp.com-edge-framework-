@@ -5,6 +5,7 @@ using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Mapping;
+using Edge.Data.Pipeline.Metrics.Indentity;
 using Edge.Data.Pipeline.Metrics.Managers;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;

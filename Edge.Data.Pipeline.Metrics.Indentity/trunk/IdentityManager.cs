@@ -386,6 +386,9 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			foreach (var field in edgeType.Fields)
 			{
 				fieldsStr = String.Format("{0}{1},", fieldsStr, field.ColumnNameGK);
+				if (field.Field.FieldEdgeType != null)
+					fieldsStr = String.Format("{0}{1}_type,", fieldsStr, field.ColumnName);
+
 				if (field.IsIdentity)
 				{
 					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDbFieldType(field));
