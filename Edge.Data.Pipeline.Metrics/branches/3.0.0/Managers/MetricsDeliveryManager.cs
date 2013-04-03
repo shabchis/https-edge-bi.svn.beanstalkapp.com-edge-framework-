@@ -114,19 +114,15 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		protected override void OnBeginTransform()
 		{
-			if (String.IsNullOrWhiteSpace(Options.SqlTransformCommand))
-				throw new DeliveryManagerException("Options.SqlTransformCommand is empty.");
-
-			_identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection);
 		}
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			if (_identityManager == null)
-				throw new ConfigurationErrorsException("Identity manager is not created! Please call onBeginTransform() first");
-			
-			_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
-			_identityManager.AccountId = delivery.Account.ID;
+			_identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection)
+				{
+					TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString(),
+					AccountId = delivery.Account.ID
+				};
 
 			// store timestamp of starting Transform for using it in Staging
 			delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp] = DateTime.Now;

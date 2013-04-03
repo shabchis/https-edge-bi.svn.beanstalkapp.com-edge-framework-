@@ -22,10 +22,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
+			var identityInDebug =  Configuration.Parameters.ContainsKey("IdentityInDebug") && Configuration.Parameters.Get<bool>("IdentityInDebug", false);
 			var options = new MetricsDeliveryManagerOptions
 			{
 				SqlTransformCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlTransformCommand),
-				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold)
+				ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold),
+				IdentityInDebug = identityInDebug
 			};
 
 			using (var importManager = new MetricsDeliveryManager(InstanceID, options: options))
