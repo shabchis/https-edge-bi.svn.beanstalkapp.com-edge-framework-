@@ -9,6 +9,9 @@ using Edge.Data.Pipeline.Metrics.Managers;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 using Edge.Data.Pipeline.Services;
+using Eggplant.Entities.Cache;
+using Eggplant.Entities.Persistence;
+using Eggplant.Entities.Persistence.SqlServer;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
@@ -38,19 +41,29 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				int.TryParse(Configuration.Parameters["AccountID"].ToString(), out _accountId);
 			}
 
+			var store = new SqlPersistenceStore { ConnectionString = AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects) };
+			var cache = new EntityCache();
+
 			// load definitions from DB
-			using (var connection = new SqlConnection(AppSettings.GetConnectionString(typeof(MetricsDeliveryManager), Consts.ConnectionStrings.Objects)))
+			using (var connection = store.ConnectThread() as SqlPersistenceConnection)
 			{
-				connection.Open();
+				connection.Cache = cache;
 
-				Accounts = EdgeObjectConfigLoader.LoadAccounts(_accountId, connection);
-				Channels = EdgeObjectConfigLoader.LoadChannels(connection);
-				Measures = EdgeObjectConfigLoader.LoadMeasures(_accountId, connection);
-				EdgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId, connection);
-				EdgeFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes, connection);
-				EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, EdgeFields, connection);
+				Accounts = Account.Get().ToDictionary(x => x.Name, x => x);
+				Channels = Channel.Get().ToDictionary(x => x.Name, x => x);
+				Measures = Measure.GetInstances(_accountId).ToDictionary(x => x.Name, x => x);
 
-				connection.Close();
+				// TODO: temporary load edge types and fields using ConfigLoader, to replace by Cache
+				EdgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId, connection.DbConnection); 
+				EdgeFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes, connection.DbConnection);
+				EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, EdgeFields, connection.DbConnection);
+
+				//EdgeTypes = EdgeType.Get().ToDictionary(x => x.Name, x => x);
+				//EdgeFields = new List<EdgeField>();
+				//foreach (var field in EdgeTypes.Values.SelectMany(type => type.Fields.Where(field => !EdgeFields.Contains(field.Field))))
+				//{
+				//	EdgeFields.Add(field.Field);
+				//}
 			}
 
 			// Load mapping configuration

@@ -36,8 +36,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private readonly SqlConnection _deliverySqlConnection;
 		private readonly EdgeObjectsManager _edgeObjectsManger;
 
-		private const string SP_FIND_BEST_MATCH_METRICS_TABLE = "FindBestMatchMetricsTable";
-		private const string SP_STAGE_DELIVERY_METRICS = "StageDeliveryMetrics";
+		private const string SP_FIND_BEST_MATCH_METRICS_TABLE = "EdgeStaging.dbo.sp_BestMatch";
+		private const string SP_STAGE_DELIVERY_METRICS = "EdgeStaging.dbo.sp_MetrixStaging";
 		#endregion
 
 		#region Ctor
@@ -299,21 +299,21 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <summary>
 		/// Search for best match table in staging DB according to delivery table structure
 		/// </summary>
-		/// <param name="deliveryTableName"></param>
-		/// <param name="transaction"></param>
 		/// <returns></returns>
-		public string FindStagingTable(string deliveryTableName, SqlTransaction transaction)
+		public string FindStagingTable()
 		{
 			using (var cmd = SqlUtility.CreateCommand(SP_FIND_BEST_MATCH_METRICS_TABLE, CommandType.StoredProcedure))
 			{
 				cmd.Connection = _deliverySqlConnection;
-				cmd.Transaction = transaction;
-				cmd.Parameters.AddWithValue("@deviveryTableName", deliveryTableName);
-				var tableName = cmd.ExecuteScalar();
-				if (tableName == null || String.IsNullOrEmpty(tableName.ToString()))
-					throw new Exception(String.Format("No staging table was found for delivery table {0}", deliveryTableName));
-				
-				return tableName.ToString();
+				var tableNameParam = new SqlParameter { ParameterName = "@BestMatch", Size = 1000, Direction = ParameterDirection.Output };
+				cmd.Parameters.Add(tableNameParam);
+				cmd.Parameters.AddWithValue("@InputTable", TableName);
+				cmd.ExecuteNonQuery();
+
+				if (tableNameParam.Value == null || String.IsNullOrEmpty(tableNameParam.Value.ToString()))
+					throw new Exception(String.Format("No staging table was found for delivery table {0}", TableName));
+
+				return tableNameParam.Value.ToString();
 			}
 		}
 
@@ -322,15 +322,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// </summary>
 		/// <param name="deliveryTableName"></param>
 		/// <param name="stagingTableName"></param>
-		/// <param name="transaction"></param>
-		public void Staging(string deliveryTableName, string stagingTableName, SqlTransaction transaction)
+		public void Stage(string deliveryTableName, string stagingTableName)
 		{
 			using (var cmd = SqlUtility.CreateCommand(SP_STAGE_DELIVERY_METRICS, CommandType.StoredProcedure))
 			{
 				cmd.Connection = _deliverySqlConnection;
-				cmd.Transaction = transaction;
-				cmd.Parameters.AddWithValue("@deviveryTableName", deliveryTableName);
-				cmd.Parameters.AddWithValue("@stagingTableName", stagingTableName);
+				cmd.Parameters.AddWithValue("@FromTable", deliveryTableName);
+				cmd.Parameters.AddWithValue("@ToTable", stagingTableName);
 				cmd.ExecuteNonQuery();
 			}
 		} 
