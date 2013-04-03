@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Data.SqlTypes;
 using Edge.Core.Configuration;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
+using Edge.Data.Pipeline.Metrics.Indentity;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 
@@ -25,7 +27,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private string _tablePrefix;
 		private readonly MetricsTableManager _metricsTableManager;
 		private readonly EdgeObjectsManager _edgeObjectsManager;
-		private IdentityManager _identityManager;
 		#endregion
 
 		#region Constructors
@@ -118,19 +119,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		protected override void OnTransform(Delivery delivery, int pass)
 		{
-			_identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection)
-				{
-					TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString(),
-					AccountId = delivery.Account.ID
-				};
-
-			// store timestamp of starting Transform for using it in Staging
-			delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp] = DateTime.Now;
-
 			if (pass == TRANSFORM_PASS_IDENTITY)
 			{
+				// store timestamp of starting Transform for using it in Staging
+				delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp] = DateTime.Now;
+				
 				// set identity of edge objects in Delivery according to existing objects in EdgeObject DB
-				_identityManager.IdentifyDeliveryObjects();
+				Identify(1, delivery);
 			}
 			else if (pass == TRANSFORM_PASS_CHECKSUM)
 			{
@@ -159,11 +154,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		protected override void OnBeginStage()
 		{
-			if (String.IsNullOrWhiteSpace(Options.SqlStageCommand))
-				throw new DeliveryManagerException("Options.SqlStageCommand is empty.");
-
-			_identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection);
-
 			// TODO: handle transaction on objects?
 			//_stageTransaction = _objectsSqlConnection.BeginTransaction("Delivery Staging");
 		}
@@ -174,12 +164,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			if (pass == STAGING_PASS_OBJECTS)
 			{
-				_identityManager.TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString();
-				_identityManager.TransformTimestamp = DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString());
-				_identityManager.AccountId = delivery.Account.ID;
-				
 				// IDENTITYMANAGER: insert new EdgeObjects and update existing from Delivery to EdgeObject DB by IdentityStatus
-				_identityManager.UpdateEdgeObjects(_stageTransaction);
+				Identify(2, delivery);
 			}
 			else if (pass == STAGING_PASS_METRICS)
 			{
@@ -286,6 +272,44 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		#region Misc
 		/*=========================*/
+
+		/// <summary>
+		/// Help function to execute Identity stages:
+		/// stage 1 - identify delivery object by existing Edge Objects
+		/// stage 2 - insert new and update odified Edge Objects by delivery objects
+		/// DEBUG (Options): execute Identity Manager .NET code
+		/// REAL: execute SQl CLR wich executes Identity Manager .NET code in DB
+		/// </summary>
+		protected void Identify(int identityStage, Delivery delivery)
+		{
+			// for Debug only - execute Identity Manager in .NET
+			if (Options.IdentityInDebug)
+			{
+				var identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection)
+				{
+					TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString(),
+					TransformTimestamp = DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()),
+					AccountId = delivery.Account.ID
+				};
+
+				if (identityStage == 1) identityManager.IdentifyDeliveryObjects();
+				else if (identityStage == 2) identityManager.UpdateEdgeObjects();
+			}
+			// to be executed in real scenario - execure SQL CLR
+			else
+			{
+				var spName = identityStage == 1 ? "EdgeObjects.dbo.IdentityI" : "EdgeObjects.dbo.IdentityII";
+				using (var cmd = SqlUtility.CreateCommand(spName, CommandType.StoredProcedure))
+				{
+					cmd.Connection = _objectsSqlConnection;
+					cmd.Parameters.AddWithValue("@accoutId", delivery.Account.ID);
+					cmd.Parameters.AddWithValue("@deliveryTablePrefix", delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString());
+					cmd.Parameters.AddWithValue("@identity1Timestamp", DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()));
+					
+					cmd.ExecuteNonQuery();
+				}
+			}
+		}
 
 		SqlConnection OpenDbConnection(string constConnection)
 		{
