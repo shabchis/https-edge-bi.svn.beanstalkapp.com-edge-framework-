@@ -17,13 +17,13 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 	public class MetricsDeliveryManager : DeliveryManager
 	{
 		#region Data Members
-		public readonly SqlConnection _deliverySqlConnection;
+		private readonly SqlConnection _deliverySqlConnection;
 		private readonly SqlConnection _objectsSqlConnection;
 
 		public MetricsDeliveryManagerOptions Options { get; private set; }
 
 		private string _tablePrefix;
-		private readonly MetricsTableManager _tableManager;
+		private readonly MetricsTableManager _metricsTableManager;
 		private readonly EdgeObjectsManager _edgeObjectsManager;
 		private IdentityManager _identityManager;
 		#endregion
@@ -49,7 +49,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_objectsSqlConnection = OpenDbConnection(Consts.ConnectionStrings.Objects);
 
 			_edgeObjectsManager = new EdgeObjectsManager(_deliverySqlConnection, _objectsSqlConnection) {EdgeTypes = edgeTypes};
-			_tableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager);
+			_metricsTableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager);
 		}
 
 		#endregion
@@ -67,15 +67,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
 			
 			// create metrics table using metrics table manager and sample metrics
-			_tableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
+			_metricsTableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
 			
-			// store table name and table metadata in delivery
-			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = _tableManager.TableName;
+			// store delivery and staging (best match) table names in delivery
+			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = _metricsTableManager.TableName;
+			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = _metricsTableManager.FindStagingTable();
 			
-			
-			// TODO: to remove mark - meanwhile exception on edge field mapping (?)
-			//CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.MetricsTableMetadata] = tableMetadata;
-
 			// CHECKSUMMANAGER: setup
 
 			// MAPPER: setup bulks for objects and metrics
@@ -85,7 +82,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			EnsureBeginImport();
 
-			_tableManager.ImportMetrics(metrics);
+			_metricsTableManager.ImportMetrics(metrics);
 		}
 
 		protected override void OnEndImport()
@@ -190,15 +187,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 			else if (pass == STAGING_PASS_METRICS)
 			{
-				// TABLEMANAGER: find matching staging table and save to delivery parameter
-				var stagingMetricsTableName=_tableManager.FindStagingTable(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(), 
-											_stageTransaction);
-				CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = stagingMetricsTableName;
-				
 				// TABLEMANAGER: insert delivery metrics into staging
-				_tableManager.Staging(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
-					                  CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(),
-									  _stageTransaction);
+				_metricsTableManager.Stage(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
+										   CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
 			}
 		}
 

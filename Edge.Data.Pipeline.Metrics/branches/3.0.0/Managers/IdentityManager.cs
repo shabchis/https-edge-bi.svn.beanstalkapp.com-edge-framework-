@@ -46,8 +46,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// load object dependencies
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
 
-			// TODO: create index on TK fields in Delivery objects tables
-
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
 			{
@@ -261,42 +259,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
 		/// </summary>
 		/// <param name="field"></param>
-		private void UpdateObjectDependencies1(EdgeField field)
-		{
-			// nothitng to do if there are no GK to update
-			if (field.FieldEdgeType.Fields.All(x => x.Field.FieldEdgeType == null)) return;
-
-			var sql = String.Empty;
-			var mainTableName = GetDeliveryTableName(field.FieldEdgeType.TableName);
-			var paramList = new List<SqlParameter> { new SqlParameter("@typeId", field.FieldEdgeType.TypeID) };
-
-			// seperate update command for each dependency (like FK)
-			foreach (var parentField in field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
-			{
-				var tempParentTableName = String.Format("##TempDelivery_{0}", parentField.Field.Name);
-
-				sql = String.Format("{0}UPDATE {1} SET {3}_GK={2}.GK FROM {2} WHERE {1}.TYPEID=@typeId AND {1}.{3}_TK={2}.TK;\n",
-									sql, 
-									mainTableName,
-									tempParentTableName, 
-									parentField.ColumnName);
-			}
-			// perform update
-			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
-			{
-				cmd.CommandText = sql;
-				cmd.Parameters.AddRange(paramList.ToArray());
-
-				cmd.ExecuteNonQuery();
-			}
-		}
-
-		/// <summary>
-		/// Before searching for object GKs update all GK of its parent fields 
-		/// (objects it depends on)
-		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
-		/// </summary>
-		/// <param name="field"></param>
 		private void UpdateObjectDependencies(EdgeField field)
 		{
 			// nothitng to do if there are no GK to update
@@ -379,14 +341,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					}
 					CreateTempGkTkTable4Field(field.Field);
 				}
-			}
-
-			// call SP for find best match table and insert delivery metrics into staging
-			using (var metricsCmd = SqlUtility.CreateCommand(SP_STAGE_METRICS, CommandType.StoredProcedure))
-			{
-				metricsCmd.Parameters.AddWithValue("@TablePrefix", string.Format("{0}_", TablePrefix));
-				metricsCmd.Connection = _deliverySqlConnection;
-				metricsCmd.ExecuteNonQuery();
 			}
 		}
 
@@ -506,33 +460,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 		}
 
-		// TODO: to be removed!!!
-		/// <summary>
-		/// Update delivery with the last changes in EdgeObjects by Transform timestamp 
-		/// with Lock in order to avoid meanwhile EdgeObjects updates
-		/// </summary>
-		/// <param name="edgeType"></param>
-		private void SyncLastChangesWithLock1(EdgeType edgeType)
-		{
-			var updatedObjects = GetLastUpdatedEdgeObjects(edgeType);
-			if (updatedObjects == null || updatedObjects.Count == 0) return;
-
-			using (var updateCmd = PrepareSyncDeliveryObjectsCommand(edgeType))
-			{
-				foreach (var obj in updatedObjects)
-				{
-					updateCmd.Parameters["@gk"].Value = obj.GK;
-					updateCmd.Parameters["@identityStatus"].Value = (int)IdentityStatus.Unchanged;
-
-					foreach (var identityField in obj.FieldList.Where(x => x.IsIdentity))
-					{
-						updateCmd.Parameters[String.Format("@{0}", identityField.FieldName)].Value = identityField.Value;
-					}
-				}
-				updateCmd.ExecuteNonQuery();
-			}
-		}
-
 		/// <summary>
 		/// Sync last changes in EdgeObject DB with Delivery using Lock (TODO):
 		/// create TEMP table for Delta changes in EdgeObjects, 
@@ -566,57 +493,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			}
 		}
 
-		private SqlCommand PrepareSyncDeliveryObjectsCommand(EdgeType edgeType)
-		{
-			var cmd = new SqlCommand { Connection = _deliverySqlConnection };
-			var whereStr = String.Format("WHERE TYPEID=@typeId AND ");
-
-			foreach (var field in edgeType.Fields.Where(x => x.IsIdentity))
-			{
-				whereStr = String.Format("{0}{1}=@{1} AND ", whereStr, field.ColumnNameGK);
-				cmd.Parameters.AddWithValue(String.Format("@{0}", field.ColumnNameGK), null);
-			}
-			whereStr = whereStr.Remove(whereStr.Length - 5, 5);
-
-			cmd.CommandText = String.Format("UPDATE {0} \nSET GK=@gk, IDENTITYSTATUS=@identityStatus \nWHERE {1}",
-											GetDeliveryTableName(edgeType.TableName),
-											whereStr);
-			return cmd;
-		}
-
-		private IList<DeliveryEdgeObject> GetLastUpdatedEdgeObjects(EdgeType edgeType)
-		{
-			var deltaObjectList = new List<DeliveryEdgeObject>();
-
-			var selectColumnStr = edgeType.Fields.Aggregate("SELECT GK,", (current, field) => String.Format("{0}{1},", current, field.ColumnNameGK));
-			selectColumnStr = selectColumnStr.Remove(selectColumnStr.Length - 1, 1);
-
-			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
-			{
-				cmd.CommandText = String.Format("{0} FROM {1} WHERE TYPEID=@typeId AND LASTUPDATED > @timestamp", selectColumnStr, edgeType.TableName);
-				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
-				cmd.Parameters.AddWithValue("@timestamp", TransformTimestamp);
-
-				using (var reader = cmd.ExecuteReader())
-				{
-					while (reader.Read())
-					{
-						var obj = new DeliveryEdgeObject { GK = reader["GK"].ToString() };
-						foreach (var field in edgeType.Fields)
-						{
-							obj.FieldList.Add(new FieldValue
-								{
-									FieldName = field.ColumnNameGK,
-									IsIdentity = field.IsIdentity,
-									Value = reader[field.ColumnNameGK].ToString()
-								});
-						}
-						deltaObjectList.Add(obj);
-					}
-				}
-			}
-			return deltaObjectList;
-		} 
 		#endregion
 	}
 }
