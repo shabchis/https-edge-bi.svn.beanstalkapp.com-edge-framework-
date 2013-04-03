@@ -49,16 +49,21 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			{
 				connection.Cache = cache;
 
-				Accounts = Account.Get().ToDictionary(x => x.Name, x => x);
-				Channels = Channel.Get().ToDictionary(x => x.Name, x => x);
-				Measures = Measure.GetInstances(_accountId).ToDictionary(x => x.Name, x => x);
-
 				// TODO: temporary load edge types and fields using ConfigLoader, to replace by Cache
-				EdgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId, connection.DbConnection); 
+				Accounts = EdgeObjectConfigLoader.LoadAccounts(_accountId, connection.DbConnection);
+				Channels = EdgeObjectConfigLoader.LoadChannels(connection.DbConnection);
+				Measures = EdgeObjectConfigLoader.LoadMeasures(_accountId, connection.DbConnection);
+
+				EdgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(_accountId, connection.DbConnection);
 				EdgeFields = EdgeObjectConfigLoader.LoadEdgeFields(_accountId, EdgeTypes, connection.DbConnection);
 				EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(_accountId, EdgeTypes, EdgeFields, connection.DbConnection);
 
-				//EdgeTypes = EdgeType.Get().ToDictionary(x => x.Name, x => x);
+				//Accounts = Account.Get().ToDictionary(x => x.Name, x => x);
+				//Channels = Channel.Get().ToDictionary(x => x.Name, x => x);
+				//Measures = Measure.GetInstances(_accountId).ToDictionary(x => x.Name, x => x);
+				
+				//EdgeTypes = EdgeType.Get(Accounts.Where(x => x.Value.ID == _accountId).Select(x => x.Value).FirstOrDefault()).ToDictionary(x => x.Name, x => x);
+				//EdgeFields = EdgeField.Get().ToList();
 				//EdgeFields = new List<EdgeField>();
 				//foreach (var field in EdgeTypes.Values.SelectMany(type => type.Fields.Where(field => !EdgeFields.Contains(field.Field))))
 				//{
