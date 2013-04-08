@@ -312,8 +312,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// * sync last changes according transform timestamp
 		/// * update modified EdgeObjects --> IdentityStatus = Modified
 		/// * insert new EdgeObjects --> IdentityStatus = New
-		/// * find best match staging table
-		/// * insert delivery metrics into staging metrics table
 		/// </summary>
 		public void UpdateEdgeObjects()
 		{

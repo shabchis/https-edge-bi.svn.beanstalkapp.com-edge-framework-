@@ -154,7 +154,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					var objDim = obj as ObjectDimension;
 					if (objDim == null) continue;
 
-					if (objDim.Field == null || !flatList.Any(x => x is ObjectDimension && ((x as ObjectDimension).Field == objDim.Field))) 
+					if (objDim.Field == null || !flatList.Any(  x => x is ObjectDimension && 
+															  ((x as ObjectDimension).Field == objDim.Field ||	// check if object already added by field definition
+															   (x as ObjectDimension).Value == objDim.Value)	// check if object already added by object value 
+															 ))													// (for example creative ref in creative definition should not be added, already added in composite creative)
 						flatList.Add(obj);
 				}
 
