@@ -122,11 +122,27 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				foreach (var obj in flatObjectList)
 				{
 					var dimension = obj as ObjectDimension;
-					if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
+					if (dimension != null && dimension.Value is ConstEdgeField)
 					{
+						cmd.Parameters["@EdgeFieldID"].Value = DBNull.Value;
+						cmd.Parameters["@EdgeFieldName"].Value = (dimension.Value as ConstEdgeField).Name;
+						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
+						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
+						cmd.ExecuteNonQuery();
+					}
+					else if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
+					{
+						// GK field
 						cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
 						cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_gk", dimension.Field.Name);
 						cmd.Parameters["@EdgeTypeID"].Value = dimension.Field.FieldEdgeType.TypeID;
+						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
+						cmd.ExecuteNonQuery();
+						
+						// type field
+						cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
+						cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_type", dimension.Field.Name);
+						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
 						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
 						cmd.ExecuteNonQuery();
 					}
