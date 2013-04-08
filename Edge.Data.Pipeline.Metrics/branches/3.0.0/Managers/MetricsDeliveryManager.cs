@@ -291,7 +291,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				{
 					TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString(),
 					TransformTimestamp = DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()),
-					AccountId = delivery.Account.ID
+					AccountId = delivery.Account.ID, 
+					CreateNewEdgeObjects = Options.CreateNewEdgeObjects
 				};
 
 				if (identityStage == 1) identityManager.IdentifyDeliveryObjects();
@@ -307,6 +308,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					cmd.Parameters.AddWithValue("@accoutId", delivery.Account.ID);
 					cmd.Parameters.AddWithValue("@deliveryTablePrefix", delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString());
 					cmd.Parameters.AddWithValue("@identity1Timestamp", DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()));
+					cmd.Parameters.AddWithValue("@createNewEdgeObjects", Options.CreateNewEdgeObjects);
 					
 					cmd.ExecuteNonQuery();
 				}
