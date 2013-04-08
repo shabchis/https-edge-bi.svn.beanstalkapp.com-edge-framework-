@@ -284,7 +284,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (obj is KeyValuePair<Measure, double>)
 			{
 				var measure = (KeyValuePair<Measure, double>)obj;
-				clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+				//clmName = measure.Key.DataType == MeasureDataType.Currency ? string.Format("{0}_Converted", measure.Key.Name) : measure.Key.Name;
+				clmName = measure.Key.Name;
 				clmValue = measure.Value;
 				clmType = SqlDbType.Float;
 			}

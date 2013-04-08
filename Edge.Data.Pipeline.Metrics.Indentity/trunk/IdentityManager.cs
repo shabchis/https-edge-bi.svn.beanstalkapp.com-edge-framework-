@@ -19,7 +19,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		public string TablePrefix { get; set; }
 		public int AccountId { get; set; }
 		public DateTime TransformTimestamp { get; set; }
-
+		public bool CreateNewEdgeObjects { get; set; }
 		#endregion
 
 		#region Ctor
@@ -28,6 +28,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			_deliverySqlConnection = deliveryConnection;
 			_objectsSqlConnection = objectsConnection;
+			CreateNewEdgeObjects = true;
 		}
 		#endregion
 
@@ -333,7 +334,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 						if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Modified))
 							UpdateExistingEdgeObjectsByDelivery(field.Field.FieldEdgeType);
 
-						if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
+						if (CreateNewEdgeObjects && DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
 							InsertNewEdgeObjects(field.Field.FieldEdgeType);
 					}
 					CreateTempGkTkTable4Field(field.Field);
