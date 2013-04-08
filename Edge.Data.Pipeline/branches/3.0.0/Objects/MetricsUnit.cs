@@ -74,8 +74,8 @@ namespace Edge.Data.Pipeline.Objects
 		/// <returns></returns>
 		public IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
-			if (Account != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = Account.GetType().Name, Value = Account.ID, Type = typeof(int) } };
-			if (Channel != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = Channel.GetType().Name, Value = Channel.ID, Type = typeof(int) } };
+			if (Account != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = "AccountID", Value = Account.ID, Type = typeof(int) } };
+			if (Channel != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = "ChannelID", Value = Channel.ID, Type = typeof(int) } };
 
 			yield return new ObjectDimension { Value = new ConstEdgeField { Name = "TimePeriodStart", Value = TimePeriodStart, Type = typeof(DateTime) } };
 			yield return new ObjectDimension { Value = new ConstEdgeField { Name = "TimePeriodEnd", Value = TimePeriodEnd, Type = typeof(DateTime) } };
