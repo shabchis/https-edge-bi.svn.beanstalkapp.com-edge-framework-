@@ -357,7 +357,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			{
 				cmd.Connection = _deliverySqlConnection;
 				cmd.Parameters.AddWithValue("@FromTable", deliveryTableName);
-				cmd.Parameters.AddWithValue("@ToTable", stagingTableName);
+				cmd.Parameters.AddWithValue("@ToTable", String.Format("[dbo].[{0}]", stagingTableName));
 				cmd.ExecuteNonQuery();
 			}
 		} 
