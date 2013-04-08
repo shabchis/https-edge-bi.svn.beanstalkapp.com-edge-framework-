@@ -60,6 +60,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <returns></returns>
 		public void CreateDeliveryMetricsTable(string tablePrefix, MetricsUnit metricsUnit)
 		{
+			// no need to create metrics table if there are only dimensions no measures (import objects only)
+			if (metricsUnit.MeasureValues == null) return;
+
 			TableName = string.Format("[DBO].[{0}_Metrics]", tablePrefix);
 
 			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
@@ -122,15 +125,16 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				foreach (var obj in flatObjectList)
 				{
 					var dimension = obj as ObjectDimension;
-					if (dimension != null && dimension.Value is ConstEdgeField)
-					{
-						cmd.Parameters["@EdgeFieldID"].Value = DBNull.Value;
-						cmd.Parameters["@EdgeFieldName"].Value = (dimension.Value as ConstEdgeField).Name;
-						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
-						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
-						cmd.ExecuteNonQuery();
-					}
-					else if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
+					//if (dimension != null && dimension.Value is ConstEdgeField)
+					//{
+					//	cmd.Parameters["@EdgeFieldID"].Value = DBNull.Value;
+					//	cmd.Parameters["@EdgeFieldName"].Value = (dimension.Value as ConstEdgeField).Name;
+					//	cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
+					//	cmd.Parameters["@MeasureName"].Value = DBNull.Value;
+					//	cmd.ExecuteNonQuery();
+					//}
+					//else 
+					if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
 					{
 						// GK field
 						cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
@@ -170,7 +174,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			var columnList = GetColumnList(flatObjectList);
 
-			ImportMetricsData(columnList);
+			// no need to import metrics if there are only dimensions no measures (import objects only)
+			if (metricsUnit.MeasureValues != null)
+				ImportMetricsData(columnList);
 		}
 
 		private void ImportMetricsData(IEnumerable<Column> columnList)
@@ -318,6 +324,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <returns></returns>
 		public string FindStagingTable()
 		{
+			// nothing to do if there is no metrics table (import objects only)
+			if (String.IsNullOrEmpty(TableName)) return null;
+
 			using (var cmd = SqlUtility.CreateCommand(SP_FIND_BEST_MATCH_METRICS_TABLE, CommandType.StoredProcedure))
 			{
 				cmd.Connection = _deliverySqlConnection;
@@ -340,6 +349,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="stagingTableName"></param>
 		public void Stage(string deliveryTableName, string stagingTableName)
 		{
+			// nothing to do if there is no metrics table (import objects only)
+			if (String.IsNullOrEmpty(deliveryTableName) || String.IsNullOrEmpty(stagingTableName)) return;
+
 			using (var cmd = SqlUtility.CreateCommand(SP_STAGE_DELIVERY_METRICS, CommandType.StoredProcedure))
 			{
 				cmd.Connection = _deliverySqlConnection;

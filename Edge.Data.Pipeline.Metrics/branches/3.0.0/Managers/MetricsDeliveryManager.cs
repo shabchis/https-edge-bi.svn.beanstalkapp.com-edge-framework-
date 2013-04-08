@@ -168,8 +168,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			else if (pass == STAGING_PASS_METRICS)
 			{
 				// TABLEMANAGER: insert delivery metrics into staging
-				_metricsTableManager.Stage(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
-										   CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				if (CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] != null &&
+					CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] != null)
+				{
+					_metricsTableManager.Stage(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(),
+											   CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
+				}
 			}
 		}
 
