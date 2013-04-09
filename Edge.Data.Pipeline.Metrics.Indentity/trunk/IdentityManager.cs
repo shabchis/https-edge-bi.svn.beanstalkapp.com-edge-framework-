@@ -21,7 +21,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 	public class IdentityManager
 	{
 		#region Properties
-		private readonly SqlConnection _deliverySqlConnection;
 		private readonly SqlConnection _objectsSqlConnection;
 		private SqlCommand _logCommand;
 
@@ -34,13 +33,12 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 		#region Ctor
 
-		public IdentityManager(SqlConnection deliveryConnection, SqlConnection objectsConnection, SqlConnection systemConnection)
+		public IdentityManager(SqlConnection objectsConnection)
 		{
-			_deliverySqlConnection = deliveryConnection;
-			_objectsSqlConnection  = objectsConnection;
-			CreateNewEdgeObjects   = true;
+			_objectsSqlConnection = objectsConnection;
+			CreateNewEdgeObjects  = true;
 
-			PrepareLogCommand(systemConnection);
+			PrepareLogCommand();
 		}
 		#endregion
 
@@ -108,7 +106,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// <param name="field"></param>
 		private void CreateTempGkTkTable4Field(EdgeField field)
 		{
-			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
+			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
 				cmd.CommandText = String.Format(@"SELECT GK, TK INTO ##TempDelivery_{0} FROM {1} WHERE TYPEID=@typeId;
 												  CREATE NONCLUSTERED INDEX [IDX_{0}_TK] ON ##TempDelivery_{0} (TK);",
@@ -164,8 +162,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var indexFieldsStr = String.Empty;
 			var tempObjectTableName = String.Format("##TempEdgeObject_{0}", edgeType.Name);
 
-			var selectCmd = new SqlCommand { Connection = _deliverySqlConnection };
-			var createTempTableCmd = new SqlCommand { Connection = _deliverySqlConnection };
+			var selectCmd = new SqlCommand { Connection = _objectsSqlConnection };
+			var createTempTableCmd = new SqlCommand { Connection = _objectsSqlConnection };
 			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
 
 			foreach (var field in edgeType.Fields)
@@ -189,7 +187,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			// create temp table from EdgeObjectd DB table by edge type + indexes on Identity fields
 			createTempTableCmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM TEMPDB.INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{1}')
 										BEGIN
-											SELECT {0} INTO {1} FROM [EdgeObjects].[dbo].{2} WHERE typeId=@typeId; 
+											SELECT {0} INTO {1} FROM {2} WHERE typeId=@typeId; 
 											CREATE NONCLUSTERED INDEX [IDX_{4}] ON {1} ({3});
 										END",
 											selectColumnStr,
@@ -217,7 +215,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			var sqlCmd = new SqlCommand
 			{
-				Connection = _deliverySqlConnection,
+				Connection = _objectsSqlConnection,
 				CommandText = String.Format("UPDATE {0} \nSET GK=@gk, IdentityStatus=@identityStatus \nWHERE TK=@tk AND TYPEID=@typeId",
 											GetDeliveryTableName(field.Field.FieldEdgeType.TableName))
 			};
@@ -243,7 +241,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
 
 			var deliveryObjects = new List<DeliveryEdgeObject>();
-			using (var command = new SqlCommand { Connection = _deliverySqlConnection })
+			using (var command = new SqlCommand { Connection = _objectsSqlConnection })
 			{
 				command.CommandText = String.Format("SELECT TK, {0} FROM {1} WHERE TYPEID = @typeId",
 														columnsStr,
@@ -309,7 +307,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			if (whereStr.Length > 4) whereStr = whereStr.Remove(whereStr.Length - 5, 5);
 
 			// perform update
-			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
+			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
 				cmd.CommandText = String.Format("{0}\n{1}\n{2}", setStr, fromStr, whereStr);
 				cmd.Parameters.AddRange(paramList.ToArray());
@@ -389,7 +387,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// <returns></returns>
 		private bool DeliveryContainsChanges(EdgeType edgeType, IdentityStatus status, bool isNot = false)
 		{
-			using (var cmd = new SqlCommand { Connection = _deliverySqlConnection })
+			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
 				cmd.CommandText = String.Format("SELECT Count(*) Count FROM {0} WHERE IdentityStatus {1} @identityStatus AND TYPEID=@typeId",
 												GetDeliveryTableName(edgeType.TableName),
@@ -537,14 +535,14 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		#endregion
 
 		#region Logs
-		private void PrepareLogCommand(SqlConnection systemConnection)
+		private void PrepareLogCommand()
 		{
 			if (_logCommand != null) return;
 
 			_logCommand = new SqlCommand
 			{
-				Connection = systemConnection,
-				CommandText = @"INSERT INTO Log_v3 ([DateRecorded],[MachineName],[ProcessID],[Source],[ContextInfo],[MessageType],[Message],[ServiceInstanceID],[ServiceProfileID],[IsException],[ExceptionDetails]) 
+				Connection = _objectsSqlConnection,
+				CommandText = @"INSERT INTO [EdgeSystem].[dbo].[Log_v3] ([DateRecorded],[MachineName],[ProcessID],[Source],[ContextInfo],[MessageType],[Message],[ServiceInstanceID],[ServiceProfileID],[IsException],[ExceptionDetails]) 
 									VALUES (@dateRecorded, @machineName, @processID, @source, @contextInfo, @messageType, @message, @serviceInstanceID, @serviceProfileID, @isException, @exceptionDetails)"
 			};
 
