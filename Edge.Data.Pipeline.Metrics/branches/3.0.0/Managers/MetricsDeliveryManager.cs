@@ -20,7 +20,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Data Members
 		private readonly SqlConnection _deliverySqlConnection;
 		private readonly SqlConnection _objectsSqlConnection;
-		private readonly SqlConnection _systemSqlConnection;
 
 		private string _tablePrefix;
 		private readonly MetricsTableManager _metricsTableManager;
@@ -50,7 +49,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// create connection and table managers
 			_deliverySqlConnection = OpenDbConnection(Consts.ConnectionStrings.Deliveries);
 			_objectsSqlConnection  = OpenDbConnection(Consts.ConnectionStrings.Objects);
-			_systemSqlConnection   = OpenDbConnection(Consts.ConnectionStrings.System);
 
 			_edgeObjectsManager = new EdgeObjectsManager(_deliverySqlConnection, _objectsSqlConnection) {EdgeTypes = edgeTypes};
 			_metricsTableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager);
@@ -298,7 +296,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// for Debug only - execute Identity Manager in .NET
 			if (Options.IdentityInDebug)
 			{
-				var identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection, _systemSqlConnection)
+				var identityManager = new IdentityManager(_objectsSqlConnection)
 				{
 					TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString(),
 					TransformTimestamp = DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()),
@@ -345,11 +343,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			{
 				_objectsSqlConnection.Close();
 				_objectsSqlConnection.Dispose();
-			}
-			if (_systemSqlConnection != null)
-			{
-				_systemSqlConnection.Close();
-				_systemSqlConnection.Dispose();
 			}
 		}
 
