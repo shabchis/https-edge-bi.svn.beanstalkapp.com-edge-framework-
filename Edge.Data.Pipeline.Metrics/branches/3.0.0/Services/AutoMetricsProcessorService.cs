@@ -2,6 +2,7 @@
 using System.Configuration;
 using System.Linq;
 using Edge.Core.Services;
+using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Mapping;
 using Edge.Data.Pipeline.Metrics.Managers;
@@ -45,11 +46,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// Import data
 			using (ReaderAdapter)
 			{
-				using (ImportManager = new MetricsDeliveryManager(InstanceID, EdgeTypes, _importManagerOptions))
+				using (ImportManager = new MetricsDeliveryManager(InstanceID, EdgeTypes, _importManagerOptions) {OnLog = Log})
 				{
 					// create objects tables and metrics table according to sample metrics
 					ImportManager.BeginImport(Delivery, GetSampleMetrics());
-
+					Log("ImportManager.BeginImport() executed successfully", LogMessageType.Debug);
+					
 					// open delivery file
 					using (var stream = _deliveryFile.OpenContents(compression: _compression))
 					{
@@ -67,6 +69,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 							Log("Could Not read data from file!, check file mapping and configuration", Core.Utilities.LogMessageType.Warning);
 
 						ImportManager.EndImport();
+						Log("ImportManager.EndImport() executed successfully", LogMessageType.Debug);
 					}
 				}
 			}
