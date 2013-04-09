@@ -8,6 +8,7 @@ using Edge.Data.Objects;
 using Edge.Data.Pipeline.Metrics.Indentity;
 using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
+using LogMessageType = Edge.Core.Utilities.LogMessageType;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
 {
@@ -19,12 +20,15 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		#region Data Members
 		private readonly SqlConnection _deliverySqlConnection;
 		private readonly SqlConnection _objectsSqlConnection;
-
-		public MetricsDeliveryManagerOptions Options { get; private set; }
+		private readonly SqlConnection _systemSqlConnection;
 
 		private string _tablePrefix;
 		private readonly MetricsTableManager _metricsTableManager;
 		private readonly EdgeObjectsManager _edgeObjectsManager;
+
+		public MetricsDeliveryManagerOptions Options { get; private set; }
+		public Action<string, LogMessageType> OnLog { get; set; }
+
 		#endregion
 
 		#region Constructors
@@ -45,7 +49,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			
 			// create connection and table managers
 			_deliverySqlConnection = OpenDbConnection(Consts.ConnectionStrings.Deliveries);
-			_objectsSqlConnection = OpenDbConnection(Consts.ConnectionStrings.Objects);
+			_objectsSqlConnection  = OpenDbConnection(Consts.ConnectionStrings.Objects);
+			_systemSqlConnection   = OpenDbConnection(Consts.ConnectionStrings.System);
 
 			_edgeObjectsManager = new EdgeObjectsManager(_deliverySqlConnection, _objectsSqlConnection) {EdgeTypes = edgeTypes};
 			_metricsTableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager);
@@ -64,14 +69,20 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 			// create delivery object tables (should be Usid instead of GK)
 			_edgeObjectsManager.CreateDeliveryObjectTables(_tablePrefix);
+
+			Log(String.Format("Delivery object tables created for delivery {0}", CurrentDelivery.DeliveryID));
 			
 			// create metrics table using metrics table manager and sample metrics
 			_metricsTableManager.CreateDeliveryMetricsTable(_tablePrefix, sampleMetrics);
-			
+
+			Log(String.Format("Delivery Metrics table '{0}' created for delivery {1}", _metricsTableManager.TableName, CurrentDelivery.DeliveryID));
+
 			// store delivery and staging (best match) table names in delivery
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] = _metricsTableManager.TableName;
 			CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] = _metricsTableManager.FindStagingTable();
-			
+
+			Log(String.Format("Best match metrics table is '{0}' for delivery {1}", CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName], CurrentDelivery.DeliveryID));
+
 			// CHECKSUMMANAGER: setup
 
 			// MAPPER: setup bulks for objects and metrics
@@ -287,7 +298,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			// for Debug only - execute Identity Manager in .NET
 			if (Options.IdentityInDebug)
 			{
-				var identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection)
+				var identityManager = new IdentityManager(_deliverySqlConnection, _objectsSqlConnection, _systemSqlConnection)
 				{
 					TablePrefix = delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString(),
 					TransformTimestamp = DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()),
@@ -298,7 +309,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				if (identityStage == 1) identityManager.IdentifyDeliveryObjects();
 				else if (identityStage == 2) identityManager.UpdateEdgeObjects();
 			}
-			// to be executed in real scenario - execure SQL CLR
+			// to be executed in real scenario - execute SQL CLR (DB stored procedure that executes .NET code of Identity Manager)
 			else
 			{
 				var spName = identityStage == 1 ? "EdgeObjects.dbo.IdentityI" : "EdgeObjects.dbo.IdentityII";
@@ -330,12 +341,21 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				_deliverySqlConnection.Close();
 				_deliverySqlConnection.Dispose();
 			}
-
 			if (_objectsSqlConnection != null)
 			{
 				_objectsSqlConnection.Close();
 				_objectsSqlConnection.Dispose();
 			}
+			if (_systemSqlConnection != null)
+			{
+				_systemSqlConnection.Close();
+				_systemSqlConnection.Dispose();
+			}
+		}
+
+		protected void Log(string msg, LogMessageType logType = LogMessageType.Debug)
+		{
+			if (OnLog != null) OnLog(msg, logType);
 		}
 
 		/*=========================*/
