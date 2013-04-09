@@ -6,6 +6,15 @@ using Edge.Data.Objects;
 
 namespace Edge.Data.Pipeline.Metrics.Indentity
 {
+	public enum LogMessageType
+	{
+		Verbose = 0,
+		Information = 1,
+		Warning = 5,
+		Error = 7,
+		Debug = 8
+	};
+
 	/// <summary>
 	/// Identity manager - set delivery objects GK according to identity fields
 	/// </summary>
@@ -14,6 +23,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		#region Properties
 		private readonly SqlConnection _deliverySqlConnection;
 		private readonly SqlConnection _objectsSqlConnection;
+		private SqlCommand _logCommand;
 
 		public List<EdgeFieldDependencyInfo> Dependencies { get; set; }
 		public string TablePrefix { get; set; }
@@ -24,11 +34,13 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 		#region Ctor
 
-		public IdentityManager(SqlConnection deliveryConnection, SqlConnection objectsConnection)
+		public IdentityManager(SqlConnection deliveryConnection, SqlConnection objectsConnection, SqlConnection systemConnection)
 		{
 			_deliverySqlConnection = deliveryConnection;
-			_objectsSqlConnection = objectsConnection;
-			CreateNewEdgeObjects = true;
+			_objectsSqlConnection  = objectsConnection;
+			CreateNewEdgeObjects   = true;
+
+			PrepareLogCommand(systemConnection);
 		}
 		#endregion
 
@@ -42,17 +54,25 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			// load object dependencies
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
+			Log("IdentifyDeliveryObjects:: EdgeObjects dependencies loaded");
 
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
 			{
 				var currentDepth = i;
+				Log(String.Format("IdentifyDeliveryObjects:: dependency depth={0}", currentDepth));
+
 				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
+					Log(String.Format("IdentifyDeliveryObjects:: starting identify field '{0}'", field.Field.Name));
 					UpdateObjectDependencies(field.Field);
 
 					var deliveryObjects = GetDeliveryObjects(field.Field.FieldEdgeType);
-					if (deliveryObjects == null) continue;
+					if (deliveryObjects == null)
+					{
+						Log(String.Format("IdentifyDeliveryObjects:: there are no objects for field '{0}' of type '{1}'", field.Field.Name, field.Field.FieldEdgeType.Name));
+						continue;
+					}
 
 					using (var selectEdgeObjectCommand = PrepareSelectEdgeObjectCommand(field.Field.FieldEdgeType))
 					using (var updateGkCommand = PrepareUpdateGkCommand(field))
@@ -61,7 +81,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 						{
 							SetDeliveryObjectByEdgeObject(deliveryObject, selectEdgeObjectCommand);
 
-							// TODO: add log GK was found or not found
 							// update delivery with GKs if GK was found by identity fields and set IdentityStatus accordingly (Modified or Unchanged)
 							if (!String.IsNullOrEmpty(deliveryObject.GK))
 							{
@@ -70,9 +89,14 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 								updateGkCommand.Parameters["@identityStatus"].Value = deliveryObject.IdentityStatus;
 
 								updateGkCommand.ExecuteNonQuery();
+								Log(String.Format("IdentifyDeliveryObjects:: GK={0} was updated for {2} with TK={1}, identity status={3}",
+												  deliveryObject.GK, deliveryObject.TK, field.Field.Name, deliveryObject.IdentityStatus));
 							}
+							else
+								Log(String.Format("IdentifyDeliveryObjects:: GK={0} was not found for {2} with TK={1}", deliveryObject.GK, deliveryObject.TK, field.Field.Name));
 						}
 						CreateTempGkTkTable4Field(field.Field);
+						Log(String.Format("IdentifyDeliveryObjects:: Temp GK-TK table was created for {0}", field.Field.Name));
 					}
 				}
 			}
@@ -98,8 +122,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// Retrieve EdgeObject according to delivery object ideintity fields to get GK
 		/// if found, check if additional fields were changed and set Status to accordingly
 		/// </summary>
-		/// <param name="deliveryObject"></param>
-		/// <param name="selectEdgeObjectCommand"></param>
 		private void SetDeliveryObjectByEdgeObject(DeliveryEdgeObject deliveryObject, SqlCommand selectEdgeObjectCommand)
 		{
 			// set identity fields parameters values to retrieve relevant edge object
@@ -294,6 +316,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 				cmd.ExecuteNonQuery();
 			}
+			Log(String.Format("UpdateObjectDependencies:: dependencies updated for field '{0}'", field.Name));
 		}
 
 		private string GetDeliveryTableName(string tableName)
@@ -318,25 +341,40 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			// load object dependencies
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
+			Log("UpdateEdgeObjects:: EdgeObjects dependencies loaded");
 
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			for (int i = 0; i <= maxDependecyDepth; i++)
 			{
 				var currentDepth = i;
+				Log(String.Format("UpdateEdgeObjects:: dependency depth={0}", currentDepth));
+
 				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
+					Log(String.Format("UpdateEdgeObjects:: starting update field '{0}'", field.Field.Name));
 					UpdateObjectDependencies(field.Field);
 
 					if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Unchanged, true))
 					{
+						Log(String.Format("UpdateEdgeObjects:: delivery contains changes of {0}, starting sync", field.Field.Name));
+						
 						SyncLastChangesWithLock(field.Field.FieldEdgeType);
 
 						if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Modified))
+						{
 							UpdateExistingEdgeObjectsByDelivery(field.Field.FieldEdgeType);
+							Log(String.Format("UpdateEdgeObjects:: update modified object of type '{0}'", field.Field.FieldEdgeType));
+						}
 
 						if (CreateNewEdgeObjects && DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
+						{
 							InsertNewEdgeObjects(field.Field.FieldEdgeType);
+							Log(String.Format("UpdateEdgeObjects:: insert new objects of type '{0}'", field.Field.FieldEdgeType));
+						}
 					}
+					else
+						Log(String.Format("UpdateEdgeObjects:: delivery doen't contain changes of {0}, nothing to sync", field.Field.Name));
+
 					CreateTempGkTkTable4Field(field.Field);
 				}
 			}
@@ -496,7 +534,44 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				cmd.ExecuteNonQuery();
 			}
 		}
+		#endregion
 
+		#region Logs
+		private void PrepareLogCommand(SqlConnection systemConnection)
+		{
+			if (_logCommand != null) return;
+
+			_logCommand = new SqlCommand
+			{
+				Connection = systemConnection,
+				CommandText = @"INSERT INTO Log_v3 ([DateRecorded],[MachineName],[ProcessID],[Source],[ContextInfo],[MessageType],[Message],[ServiceInstanceID],[ServiceProfileID],[IsException],[ExceptionDetails]) 
+									VALUES (@dateRecorded, @machineName, @processID, @source, @contextInfo, @messageType, @message, @serviceInstanceID, @serviceProfileID, @isException, @exceptionDetails)"
+			};
+
+			_logCommand.Parameters.AddWithValue("@dateRecorded", DateTime.Now);
+			_logCommand.Parameters.AddWithValue("@machineName", "(null)");
+			_logCommand.Parameters.AddWithValue("@processID", 0);
+			_logCommand.Parameters.AddWithValue("@source", "Identity Manager");
+			_logCommand.Parameters.AddWithValue("@contextInfo", "(null)");
+			_logCommand.Parameters.AddWithValue("@messageType", LogMessageType.Debug);
+			_logCommand.Parameters.AddWithValue("@message", String.Empty);
+			_logCommand.Parameters.AddWithValue("@serviceInstanceID", DBNull.Value);
+			_logCommand.Parameters.AddWithValue("@serviceProfileID", DBNull.Value);
+			_logCommand.Parameters.AddWithValue("@isException", false);
+			_logCommand.Parameters.AddWithValue("@exceptionDetails", DBNull.Value);
+		}
+
+		public void Log(string msg, LogMessageType logType = LogMessageType.Debug)
+		{
+			if (_logCommand == null) return;
+
+			_logCommand.Parameters["@dateRecorded"].Value = DateTime.Now;
+			_logCommand.Parameters["@messageType"].Value = (int)logType;
+			_logCommand.Parameters["@message"].Value = msg;
+			_logCommand.Parameters["@isException"].Value = logType == LogMessageType.Error;
+
+			_logCommand.ExecuteNonQuery();
+		} 
 		#endregion
 	}
 }
