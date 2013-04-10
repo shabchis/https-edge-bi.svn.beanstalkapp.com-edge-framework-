@@ -97,6 +97,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			// insert all objects into DB
 			_edgeObjectsManager.ImportObjects(_tablePrefix);
+
+			foreach(var output in CurrentDelivery.Outputs)
+				output.Status = DeliveryOutputStatus.Imported;
 		}
 
 		protected void EnsureBeginImport()
@@ -133,6 +136,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				
 				// set identity of edge objects in Delivery according to existing objects in EdgeObject DB
 				Identify(1, delivery);
+
+				foreach (var output in delivery.Outputs)
+					output.Status = DeliveryOutputStatus.Transformed;
 			}
 			else if (pass == TRANSFORM_PASS_CHECKSUM)
 			{
@@ -191,7 +197,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			if (_stageTransaction != null)
 			{
 				if (ex == null)
+				{
 					_stageTransaction.Commit();
+					foreach (var output in CurrentDelivery.Outputs)
+						output.Status = DeliveryOutputStatus.Staged;
+				}
 				else
 					_stageTransaction.Rollback();
 			}
