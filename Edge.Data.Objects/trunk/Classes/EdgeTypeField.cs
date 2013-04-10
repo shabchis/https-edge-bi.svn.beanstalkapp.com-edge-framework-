@@ -17,5 +17,10 @@ namespace Edge.Data.Objects
 		{
 			get { return Field.FieldEdgeType == null ? ColumnName : String.Format("{0}_tk", ColumnName); }
 		}
+
+		public string FieldNameGK
+		{
+			get { return Field.FieldEdgeType == null ? Field.Name : String.Format("{0}_gk", Field.Name); }
+		} 
 	}
 }
