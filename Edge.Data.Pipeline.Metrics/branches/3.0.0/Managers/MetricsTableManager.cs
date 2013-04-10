@@ -37,7 +37,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		private readonly EdgeObjectsManager _edgeObjectsManger;
 
 		private const string SP_FIND_BEST_MATCH_METRICS_TABLE = "EdgeStaging.dbo.sp_BestMatch";
-		private const string SP_STAGE_DELIVERY_METRICS = "EdgeStaging.dbo.sp_MetrixStaging";
+		private const string SP_STAGE_DELIVERY_METRICS = "EdgeStaging.dbo.sp_MetricsStaging";
 		#endregion
 
 		#region Ctor
@@ -144,11 +144,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						cmd.ExecuteNonQuery();
 						
 						// type field
-						cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
-						cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_type", dimension.Field.Name);
-						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
-						cmd.Parameters["@MeasureName"].Value = DBNull.Value;
-						cmd.ExecuteNonQuery();
+						//cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
+						//cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_type", dimension.Field.Name);
+						//cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
+						//cmd.Parameters["@MeasureName"].Value = DBNull.Value;
+						//cmd.ExecuteNonQuery();
 					}
 					else if (obj is KeyValuePair<Measure, double>)
 					{
