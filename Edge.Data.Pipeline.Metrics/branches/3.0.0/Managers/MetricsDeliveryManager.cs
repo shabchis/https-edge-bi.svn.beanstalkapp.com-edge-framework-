@@ -51,7 +51,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			_objectsSqlConnection  = OpenDbConnection(Consts.ConnectionStrings.Objects);
 
 			_edgeObjectsManager = new EdgeObjectsManager(_deliverySqlConnection, _objectsSqlConnection) {EdgeTypes = edgeTypes};
-			_metricsTableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager);
+			_metricsTableManager = new MetricsTableManager(_deliverySqlConnection, _edgeObjectsManager) { EdgeTypes = edgeTypes };
 		}
 
 		#endregion
