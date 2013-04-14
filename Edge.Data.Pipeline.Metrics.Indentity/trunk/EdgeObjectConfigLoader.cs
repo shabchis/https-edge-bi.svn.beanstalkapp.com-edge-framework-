@@ -145,8 +145,12 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 								TypeID = int.Parse(reader["TypeID"].ToString()),
 								Name = reader["Name"].ToString(),
 								TableName = reader["TableName"].ToString(),
-								ClrType = Type.GetType(String.Format("{0}, {1}", reader["ClrType"], assemblyFullName)) // TODO: check how to get type from class & dll name
+								ClrType = Type.GetType(String.Format("{0}, {1}", reader["ClrType"], assemblyFullName)), // TODO: check how to get type from class & dll name
+								
 							};
+							int baseTypeId;
+							if (int.TryParse(reader["BaseTypeID"].ToString(), out baseTypeId))
+								type.BaseEdgeType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == baseTypeId);
 							edgeTypes.Add(type.Name, type);
 						}
 					}
@@ -296,6 +300,28 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 			throw new Exception(String.Format("Cannot find DB tpe for column {0} of EdgeField {1}", field.ColumnName, field.Field.Name));
 		}
+
+		/// <summary>
+		/// Find all inheritors (child types) for source edge type for falt Metrics and Objects tables
+		/// </summary>
+		/// <param name="sourceType"></param>
+		/// <param name="edgeTypes"></param>
+		/// <returns></returns>
+		public static IList<EdgeType> FindEdgeTypeInheritors(EdgeType sourceType, Dictionary<string, EdgeType> edgeTypes)
+		{
+			var outList = new List<EdgeType>();
+			AddTypeInheritorsRecursively(sourceType, edgeTypes, outList);
+			return outList;
+		}
+
+		private static void AddTypeInheritorsRecursively(EdgeType edgeType, Dictionary<string, EdgeType> edgeTypes, ICollection<EdgeType> list)
+		{
+			if (!list.Contains(edgeType)) list.Add(edgeType);
+			foreach (var currType in edgeTypes.Values.Where(x => x.BaseEdgeType == edgeType))
+			{
+				AddTypeInheritorsRecursively(currType, edgeTypes, list);
+			}
+		}
 		#endregion
 
 		#region Private Methods
@@ -330,7 +356,5 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			}
 		} 
 		#endregion
-
-		
 	}
 }
