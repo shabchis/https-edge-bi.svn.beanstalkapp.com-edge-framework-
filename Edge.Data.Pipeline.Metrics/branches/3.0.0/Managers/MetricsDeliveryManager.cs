@@ -186,7 +186,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				if (CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] != null &&
 					CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] != null)
 				{
-					_metricsTableManager.Stage(CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(),
+					_metricsTableManager.Stage(delivery.Account.ID, CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(),
 											   CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString());
 				}
 			}
