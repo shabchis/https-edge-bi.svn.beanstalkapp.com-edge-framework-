@@ -59,7 +59,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		public static string GetMetricsView(int accountId, string tableName, SqlConnection connection)
 		{
 			var selectStr = String.Empty;
-			var fromStr = String.Format("\t{0} AS Metrics\n", tableName);
+			var fromStr = String.Format("\t[EdgeDeliveries].{0} AS Metrics\n", tableName);
 			var whereStr = String.Empty;
 			var tablePrefix = tableName.ToLower().Replace("_metrics]", "").Replace("[dbo].[", "");
 
@@ -97,6 +97,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					"No data relevant data in MD_MetricsMetadata" :
 					String.Format("SELECT\n{0}\nFROM\n{1}WHERE\n{2}", selectStr.Remove(selectStr.Length - 2, 2), fromStr, whereStr.Remove(whereStr.Length - 5, 5));
 		}
+		
 		private static string GetTableName(string tablePrefix, string tableName)
 		{
 			return String.Format("[EdgeDeliveries].[dbo].[{0}_{1}]", tablePrefix, tableName);
