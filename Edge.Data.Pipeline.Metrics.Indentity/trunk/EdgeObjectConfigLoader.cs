@@ -296,47 +296,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 			throw new Exception(String.Format("Cannot find DB tpe for column {0} of EdgeField {1}", field.ColumnName, field.Field.Name));
 		}
-
-		/// <summary>
-		/// Per each type combine flat SELECT fields by real names in Metrics 
-		/// </summary>
-		/// <param name="accountId"></param>
-		/// <param name="connection"></param>
-		/// <param name="pipe">Pipe to send SQL rows reply</param>
-		public static void GetObjectsView(int accountId, SqlConnection connection, SqlPipe pipe)
-		{
-			// load configuration
-			var edgeTypes = LoadEdgeTypes(accountId, connection);
-			var edgeFields = LoadEdgeFields(accountId, edgeTypes, connection);
-			SetEdgeTypeEdgeFieldRelation(accountId, edgeTypes, edgeFields, connection);
-
-			// prepare result record
-			var record = new SqlDataRecord(new[] 
-			{	
-				new SqlMetaData("TypeID", SqlDbType.Int), 
-				new SqlMetaData("Name", SqlDbType.NVarChar, 50),
-				new SqlMetaData("Select", SqlDbType.NVarChar, 1000)
-			});
-			pipe.SendResultsStart(record);
-
-			foreach (var type in edgeTypes.Values.Where(x => x.IsAbstract == false))
-			{
-				// prepare type fields SELECT
-				var fieldsStr = type.Fields.Aggregate(String.Empty, (current, field) => String.Format("{0}{1} AS {2}, ", current, field.ColumnNameGK, field.FieldNameGK));
-				if (fieldsStr.Length <= 0) continue;
-
-				fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
-				var select = String.Format("SELECT {0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
-
-				// set report and and it
-				record.SetInt32 (0, type.TypeID);
-				record.SetString(1, type.Name);
-				record.SetString(2, select);
-
-				pipe.SendResultsRow(record);
-			}
-			pipe.SendResultsEnd();
-		}
 		#endregion
 
 		#region Private Methods
@@ -371,5 +330,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			}
 		} 
 		#endregion
+
+		
 	}
 }
