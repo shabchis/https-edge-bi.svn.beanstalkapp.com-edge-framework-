@@ -346,9 +346,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <summary>
 		/// Call stored procedure to insert delivery metrics data from delivery table into staging table
 		/// </summary>
-		/// <param name="deliveryTableName"></param>
-		/// <param name="stagingTableName"></param>
-		public void Stage(string deliveryTableName, string stagingTableName)
+		public void Stage(int accountId, string deliveryTableName, string stagingTableName)
 		{
 			// nothing to do if there is no metrics table (import objects only)
 			if (String.IsNullOrEmpty(deliveryTableName) || String.IsNullOrEmpty(stagingTableName)) return;
@@ -356,6 +354,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			using (var cmd = SqlUtility.CreateCommand(SP_STAGE_DELIVERY_METRICS, CommandType.StoredProcedure))
 			{
 				cmd.Connection = _deliverySqlConnection;
+				cmd.Parameters.AddWithValue("@AccountId", accountId);
 				cmd.Parameters.AddWithValue("@FromTable", deliveryTableName);
 				cmd.Parameters.AddWithValue("@ToTable", String.Format("[dbo].[{0}]", stagingTableName));
 				cmd.ExecuteNonQuery();
