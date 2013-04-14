@@ -41,6 +41,7 @@
     <Compile Include="DeliveryEdgeObject.cs" />
     <Compile Include="EdgeFieldDependencyInfo.cs" />
     <Compile Include="EdgeObjectConfigLoader.cs" />
+    <Compile Include="EdgeViewer.cs" />
     <Compile Include="IdentityManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
