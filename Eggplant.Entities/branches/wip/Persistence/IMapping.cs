@@ -47,8 +47,6 @@ namespace Eggplant.Entities.Persistence
 	public interface ISubqueryMapping : IMapping
 	{
 		string SubqueryName { get; }
-
-		IEnumerable ApplyAndReturn(MappingContext context);
 	}
 
 	public interface IInlineMapping : IMapping

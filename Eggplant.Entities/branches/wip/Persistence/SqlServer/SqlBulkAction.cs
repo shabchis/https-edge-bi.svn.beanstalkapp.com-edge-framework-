@@ -12,7 +12,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 		public int BatchSize {get; set;}
 		public SqlBulkCopyOptions BulkCopyOptions { get; set; }
 
-		public new SqlBulkAction(string tableName, int batchSize, SqlBulkCopyOptions bulkCopyOptions = SqlBulkCopyOptions.Default)
+		public SqlBulkAction(string tableName, int batchSize, SqlBulkCopyOptions bulkCopyOptions = SqlBulkCopyOptions.Default)
 		{
 			this.TableName = tableName;
 			this.BatchSize = batchSize;

@@ -10,56 +10,9 @@ namespace Eggplant.Entities.Persistence
 	public class SubqueryMapping<T>: Mapping<T>, ISubqueryMapping
 	{
 		public string SubqueryName { get; set; }
-		public Func<IEnumerable<T>> SourceFunction { get; set; }
 
 		internal SubqueryMapping(IMapping parent, EntitySpace space = null): base(parent, space)
 		{
-		}
-
-		public override void Apply(MappingContext<T> context)
-		{
-			ApplyAndReturn(context);
-		}
-
-		public IEnumerable<T> ApplyAndReturn(MappingContext<T> context)
-		{
-			if (context.Direction == MappingDirection.Inbound)
-			{
-				while (context.Adapter.NextInboundRow())
-				{
-					((IMapping)this).InnerApply(context);
-					if (context.Target != null)
-						yield return context.Target;
-					context.Reset();
-				}
-			}
-			else if (context.Direction == MappingDirection.Outbound)
-			{
-				IEnumerator enumerator = null;
-				if (context.Target is IEnumerable)
-					enumerator = ((IEnumerable)context.Target).GetEnumerator();
-
-				while (enumerator == null || enumerator.MoveNext())
-				{
-					context.Adapter.NextOutboundRow();
-					((IMapping)this).InnerApply(context);
-					context.Adapter.SubmitOutboundRow();
-					context.Reset();
-
-					// if we didn't really need this while loop, just break
-					if (enumerator == null)
-						break;
-				}
-
-				yield break;
-			}
-			else
-				yield break;
-		}
-
-		IEnumerable ISubqueryMapping.ApplyAndReturn(MappingContext context)
-		{
-			return this.ApplyAndReturn((MappingContext<T>)context);
 		}
 
 		public override string ToString()
