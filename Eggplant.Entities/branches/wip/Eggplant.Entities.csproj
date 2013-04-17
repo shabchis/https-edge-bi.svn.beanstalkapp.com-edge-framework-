@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{AD4B53AD-B28A-4E90-9483-E2F7C8E6D436}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Eggplant.Entities</RootNamespace>
+    <AssemblyName>Eggplant.Entities</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccProvider>
+    </SccProvider>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <UpgradeBackupLocation />
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Eggplant.Entities.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.XML" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Eggplant.Entities.snk" />
+    <None Include="Properties\AssemblyInfo.cs.template" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Cache\EntityCache.cs" />
+    <Compile Include="Cache\EntityCacheTable.cs" />
+    <Compile Include="Cache\EntityCacheEntry.cs" />
+    <Compile Include="EntitySpace.cs" />
+    <Compile Include="Exceptions.cs" />
+    <Compile Include="Model\EntityDefinition.cs" />
+    <Compile Include="Model\EntityProperty.cs" />
+    <Compile Include="Model\Identity.cs" />
+    <Compile Include="Persistence\Mappings\FunctionMapping.cs" />
+    <Compile Include="Persistence\Enums.cs" />
+    <Compile Include="Persistence\IMapping.cs" />
+    <Compile Include="Persistence\Mapping.cs" />
+    <Compile Include="Persistence\MappingContext.cs" />
+    <Compile Include="Persistence\Mappings\InlineMapping.cs" />
+    <Compile Include="Persistence\Mappings\SubqueryMapping.cs" />
+    <Compile Include="Persistence\PersistenceAction.cs" />
+    <Compile Include="Persistence\PersistenceConnection.cs" />
+    <Compile Include="Persistence\PersistenceParameter.cs" />
+    <Compile Include="Persistence\PersistenceStore.cs" />
+    <Compile Include="Persistence\Mappings\PropertyMapping.cs" />
+    <Compile Include="Persistence\Mappings\VariableMapping.cs" />
+    <Compile Include="Persistence\PersistenceAdapter.cs" />
+    <Compile Include="Persistence\SqlServer\SqlBulkAction.cs" />
+    <Compile Include="Persistence\SqlServer\SqlBulkAdapter.cs" />
+    <Compile Include="Persistence\SqlServer\SqlCommandAdapter.cs" />
+    <Compile Include="Persistence\SqlServer\SqlCommandAction.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceConnection.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceParameterOptions.cs" />
+    <Compile Include="Persistence\SqlServer\SqlPersistenceStore.cs" />
+    <Compile Include="Persistence\SqlServer\SqlUtility.cs" />
+    <Compile Include="Queries\Enums.cs" />
+    <Compile Include="Queries\Exceptions.cs" />
+    <Compile Include="Queries\Query.cs" />
+    <Compile Include="Queries\QueryBase.cs" />
+    <Compile Include="Queries\QueryBaseInternal.cs" />
+    <Compile Include="Queries\QueryInput.cs" />
+    <Compile Include="Queries\QueryResponse.cs" />
+    <Compile Include="Queries\QueryTemplate.cs" />
+    <Compile Include="Queries\QueryTemplateBase.cs" />
+    <Compile Include="Queries\Subquery.cs" />
+    <Compile Include="Queries\SubqueryTemplate.cs" />
+    <Compile Include="Queries\Nothing.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+  <Target Name="BeforeCompile">
+    <SvnVersion LocalPath=".">
+      <Output TaskParameter="Revision" PropertyName="SvnRevision" />
+    </SvnVersion>
+    <FormatVersion Version="1.0.0.%2a" Revision="$(SvnRevision)">
+      <Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
+    </FormatVersion>
+  </Target>
+  <PropertyGroup>
+    <PreBuildEvent>subwcrev.exe "$(ProjectDir)." "$(ProjectDir)Properties\AssemblyInfo.cs.template" "$(ProjectDir)Properties\AssemblyInfo.cs"</PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>
