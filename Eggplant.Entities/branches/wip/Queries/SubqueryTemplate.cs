@@ -51,43 +51,22 @@ namespace Eggplant.Entities.Queries
 			// Define it
 			this.Param(paramName, null, direction, options);
 
-			if (direction.HasFlag(MappingDirection.Outbound))
+			BeforeExecute(sq =>
 			{
-				BeforeExecute(sq =>
-				{
-					QueryInput p = sq.GetQueryInput(inputName);
-					sq.Param(paramName, convertOut == null ? p.Value : convertOut(p.Value));
-				});
-			}
-
-			if (direction.HasFlag(MappingDirection.In))
-			{
-				AfterExecute(sq =>
-				{
-					object value = sq.Param(paramName);
-					sq.GetQueryInput(inputName).Value = convertIn == null ? value : convertIn(value);
-				});
-			}
-			
+				QueryInput p = sq.GetQueryInput(inputName);
+				sq.Param(paramName, convertOut == null ? p.Value : convertOut(p.Value));
+			});
+						
 			return this;
 		}
 
 		public SubqueryTemplate ParamsFromMappedValue(object valueToMap, IMapping mapToUse)//, PersistenceDirection direction = PersistenceDirection.Out)
 		{
-			if (direction.HasFlag(MappingDirection.Outbound))
+			this.BeforeExecute(sq =>
 			{
-				this.BeforeExecute(sq =>
-				{
-					throw new NotImplementedException("ParamsFromMappedValue out");
-				});
-			}
-			if (direction.HasFlag(MappingDirection.In))
-			{
-				this.AfterExecute(sq =>
-				{
-					throw new NotImplementedException("ParamsFromMappedValue in");
-				});
-			}
+				throw new NotImplementedException("ParamsFromMappedValue out");
+			});
+			
 			return this;
 		}
 
@@ -95,15 +74,14 @@ namespace Eggplant.Entities.Queries
 		{
 			//if (direction.HasFlag(PersistenceDirection.Out))
 			//{
-				this.BeforeExecute(sq =>
-				{
-					PersistenceAdapter adapter = null; // TODO: what adapter??
-					MappingContext context = mapToUse.CreateContext(adapter, sq, MappingDirection.Outbound);
-					context.Target = sq.Inputs[inputNameToMap].Value;
-					mapToUse.Apply(context);
-					foreach (var field in context.Fields)
-						adapter.SetInboundField(field.Key, field.Value);
-				});
+				//this.BeforeExecute(sq =>
+				//{
+				//    MappingContext context = mapToUse.CreateContext(adapter, sq, MappingDirection.Outbound);
+				//    context.Target = sq.Inputs[inputNameToMap].Value;
+				//    mapToUse.Apply(context);
+				//    foreach (var field in context.Fields)
+				//        adapter.SetInboundField(field.Key, field.Value);
+				//});
 			//}
 			//if (direction.HasFlag(PersistenceDirection.In))
 			//{

@@ -144,7 +144,7 @@ namespace Eggplant.Entities.Queries
 					mainAction.Append(subquery.PersistenceAction);
 					subquery.PersistenceAction = mainAction;
 
-					subquery.ResultSetIndex = _resultSetCount;
+					subquery.InboundSetIndex = _resultSetCount;
 					_resultSetCount++;
 				}
 			}
@@ -171,12 +171,7 @@ namespace Eggplant.Entities.Queries
 			return this;
 		}
 
-		public QueryResponse<T> Execute()
-		{
-			throw new NotImplementedException();
-		}
-
-		public IEnumerable<T> ExecuteWithResults()
+		public IEnumerable<T> Execute()
 		{
 			if (this.Connection == null)
 			{
@@ -189,8 +184,6 @@ namespace Eggplant.Entities.Queries
 
 			// Buffer to hold results when processing subqueries
 			List<T> buffer = null;
-
-			var response = new QueryResponse<T>();
 
 			// Holds adapters for each action
 			var adapters = new Dictionary<PersistenceAction, PersistenceAdapter>();
@@ -208,63 +201,83 @@ namespace Eggplant.Entities.Queries
 			{
 				foreach (PersistenceAction action in this.PersistenceActions)
 				{
-					// Find associated subqueries and order them by result set index
-					Subquery[] subqueries = this.Subqueries.Where(s => s.PersistenceAction == action).OrderBy(s => s.ResultSetIndex).ToArray();
-
 					// Get an adapter - reuse an existing one if available
 					PersistenceAdapter adapter = null;
 					if (!adapters.TryGetValue(action, out adapter) || !adapter.IsReusable)
 					{
 						// Close the existing one since it is not reusable
 						if (adapter != null)
-							adapter.Close();
+							adapter.End();
 
 						adapters[action] = adapter = action.GetAdapter();
 					}
 
-					// Add parameters to the action from all subqueries
-					foreach (Subquery subquery in subqueries)
-					{
-						foreach (var before in subquery.Template.DelegatesBefore)
-							before(subquery);
-					}
+					// Find associated subqueries and order them by inbound set index
+					Subquery[] subqueries = this.Subqueries.Where(s => s.PersistenceAction == action).OrderBy(s => s.InboundSetIndex).ToArray();
 
-					// Iterate results
-					int resultSetIndex = 0;
-					do
-					{
-						Subquery subquery = subqueries[resultSetIndex];
-						MappingContext context = subquery.Mapping.CreateContext(adapter, subquery, MappingDirection.Inbound);
-						var results = subquery.Mapping.ApplyAndReturn(context);
+					//// Stuff to do before executing
+					//foreach (Subquery subquery in subqueries)
+					//{
+					//    foreach (var before in subquery.Template.DelegatesBefore)
+					//        before(subquery);
+					//}
 
-						if (subquery.Template.IsRoot)
+					// Begin processing
+					adapter.Begin();
+
+					bool done = false;
+					while (!done)
+					{
+						adapter.NextOutboundRow();
+
+						// Each subquery associated with this action must map its outbound fields
+						foreach (Subquery subquery in subqueries)
 						{
-							// Yield results with no buffering only if this is the root subquery and it is the last to be executed
-							if (resultSetIndex == subqueries.Length - 1 && action == this.PersistenceActions[this.PersistenceActions.Count - 1])
+							// Map the fields and indicate wheter we are done sending outbound rows
+							done &= subquery.MapOutboundRow(outboundContext);
+						}
+						
+						// Submit the entire row
+						adapter.SubmitOutboundRow();
+
+						// Not every outbound row will result in inbound rows, but when it does, iterate them
+						while (adapter.NextInboundSet())
+						{
+							Subquery subquery = subqueries[adapter.InboundSetIndex];
+							MappingContext inboundContext = subquery.Mapping.CreateContext(adapter, subquery, MappingDirection.Inbound);
+
+							// Process each row as it comes in
+							while (adapter.NextInboundRow())
 							{
-								foreach (T result in results)
-									yield return result;
-							}
-							else
-							{
-								buffer = ((IEnumerable<T>)results).ToList();
+								subquery.Mapping.Apply(inboundContext);
+								var result = (T)inboundContext.Target;
+
+								// Inbound rows on the root query need to be transformed into results
+								if (subquery.Template.IsRoot)
+								{
+									// Yield results with no buffering only if this is the root subquery and it is the last to be executed
+									if (adapter.InboundSetIndex == subqueries.Length - 1 && action == this.PersistenceActions[this.PersistenceActions.Count - 1])
+									{
+										yield return result;
+									}
+									else
+									{
+										buffer.Add((T)inboundContext.Target);
+									}
+								}
+								inboundContext.Reset();
 							}
 						}
-						else
-						{
-							// This is required in order for the IEnumerable to execute
-							foreach (object result in results) ;
-						}
-						resultSetIndex++;
 					}
-					while (adapter.NextResultSet());
 
-					// Wrap up
-					foreach (Subquery subquery in subqueries)
-					{
-						foreach (var after in subquery.Template.DelegatesAfter)
-							after(subquery);
-					}
+					adapter.End();
+
+					//// Stuff to do after executing
+					//foreach (Subquery subquery in subqueries)
+					//{
+					//    foreach (var after in subquery.Template.DelegatesAfter)
+					//        after(subquery);
+					//}
 
 					// If we are not iterating a batch, just exit
 					if (batchEnumerator == null)

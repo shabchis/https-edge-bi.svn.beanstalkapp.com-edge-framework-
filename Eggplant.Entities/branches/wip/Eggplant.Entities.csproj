@@ -101,7 +101,6 @@
     <Compile Include="Queries\QueryBase.cs" />
     <Compile Include="Queries\QueryBaseInternal.cs" />
     <Compile Include="Queries\QueryInput.cs" />
-    <Compile Include="Queries\QueryResponse.cs" />
     <Compile Include="Queries\QueryTemplate.cs" />
     <Compile Include="Queries\QueryTemplateBase.cs" />
     <Compile Include="Queries\Subquery.cs" />

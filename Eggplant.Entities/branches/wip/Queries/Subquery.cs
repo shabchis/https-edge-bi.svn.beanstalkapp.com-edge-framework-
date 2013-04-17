@@ -16,7 +16,7 @@ namespace Eggplant.Entities.Queries
 		public SubqueryTemplate Template { get; private set; }
 		public ISubqueryMapping Mapping { get; private set; }
 		public PersistenceAction PersistenceAction { get; internal set; }
-		internal int ResultSetIndex { get; set; }
+		internal int InboundSetIndex { get; set; }
 
 		internal Subquery(Query parent, SubqueryTemplate template, ISubqueryMapping mapping)
 		{
