@@ -115,14 +115,15 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			using (var cmd = new SqlCommand())
 			{
 				cmd.Connection = _deliverySqlConnection;
-				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeFieldName], [EdgeTypeID], [MeasureName]) " +
-								  "VALUES (@TableName, @EdgeFieldID, @EdgeFieldName, @EdgeTypeID, @MeasureName)";
+				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeFieldName], [EdgeTypeID], [MeasureName], [IsChildField]) " +
+								  "VALUES (@TableName, @EdgeFieldID, @EdgeFieldName, @EdgeTypeID, @MeasureName, @IsChildField)";
 
 				cmd.Parameters.Add(new SqlParameter("@TableName", TableName));
 				cmd.Parameters.Add(new SqlParameter("@EdgeFieldID", null));
 				cmd.Parameters.Add(new SqlParameter("@EdgeFieldName", null));
 				cmd.Parameters.Add(new SqlParameter("@EdgeTypeID", null));
 				cmd.Parameters.Add(new SqlParameter("@MeasureName", null));
+				cmd.Parameters.Add(new SqlParameter("@IsChildField", 0));
 
 				foreach (var obj in flatObjectList)
 				{
@@ -132,11 +133,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						// GK field and all its childs if exist
 						foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(dimension.Field.FieldEdgeType, EdgeTypes))
 						{
-							var fieldName = childType == dimension.Field.FieldEdgeType ? dimension.Field.Name : String.Format("{0}_{1}", childType.Name, dimension.Field.Name);
+							var fieldName = childType == dimension.Field.FieldEdgeType ? dimension.Field.Name : String.Format("{0}_{1}", dimension.Field.Name, childType.Name);
 							cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
 							cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_gk", fieldName);
 							cmd.Parameters["@EdgeTypeID"].Value = childType.TypeID;
 							cmd.Parameters["@MeasureName"].Value = DBNull.Value;
+							cmd.Parameters["@IsChildField"].Value = childType != dimension.Field.FieldEdgeType;
 							cmd.ExecuteNonQuery();
 						}
 					}
@@ -146,6 +148,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						cmd.Parameters["@EdgeFieldName"].Value = DBNull.Value;
 						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
 						cmd.Parameters["@MeasureName"].Value = ((KeyValuePair<Measure, double>)obj).Key.Name;
+						cmd.Parameters["@IsChildField"].Value = 0;
 						cmd.ExecuteNonQuery();
 					}
 				}
