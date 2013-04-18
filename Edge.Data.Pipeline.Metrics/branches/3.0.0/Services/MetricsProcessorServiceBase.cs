@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Data.Objects;
@@ -11,7 +10,6 @@ using Edge.Data.Pipeline.Metrics.Misc;
 using Edge.Data.Pipeline.Objects;
 using Edge.Data.Pipeline.Services;
 using Eggplant.Entities.Cache;
-using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Persistence.SqlServer;
 
 namespace Edge.Data.Pipeline.Metrics.Services
@@ -90,7 +88,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			
 			Mappings.Compile();
 		}
- 
+		#endregion
+
+		#region Protected Methods
 		/// <summary>
 		/// Delegate to set EdgeType of object during the mapping (only for EdgeObject or Dictionary of EdgeObjects)
 		/// </summary>
@@ -109,6 +109,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 					(pair.Value as EdgeObject).EdgeType = (pair.Key as EdgeField).FieldEdgeType;
 				}
 			}
+		}
+		protected virtual MetricsUnit GetSampleMetrics()
+		{
+			return null;
 		}
 		#endregion
 

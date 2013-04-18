@@ -48,7 +48,7 @@ namespace Edge.Data.Pipeline
 		/// <summary>
 		/// Once it is downloaded, gets the location of the file in the FileManager-managed storage.
 		/// </summary>
-		public string Location { get; internal set; }
+		public string Location { get; set; }
 
 		/// <summary>
 		/// Gets the date the delivery file was created.

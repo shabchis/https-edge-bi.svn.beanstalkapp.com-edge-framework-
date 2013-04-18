@@ -7,6 +7,7 @@ namespace Edge.Data.Objects
 {
 	public partial class KeywordTarget : Target
 	{
+		public string Value;
 		public KeywordMatchType MatchType;
 	}
 

@@ -76,7 +76,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			return ServiceOutcome.Success;
 		}
 
-		protected MetricsUnit GetSampleMetrics()
+		protected override MetricsUnit GetSampleMetrics()
 		{
 			try
 			{
