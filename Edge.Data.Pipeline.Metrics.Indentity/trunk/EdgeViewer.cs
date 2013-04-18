@@ -47,7 +47,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(field.Field.FieldEdgeType, edgeTypes))
 					{
 						if (childType == field.Field.FieldEdgeType) continue;
-						fieldsStr = String.Format("{0}{1} AS {2}_{3}, ", fieldsStr, field.ColumnNameGK, childType.Name, field.FieldNameGK);
+						fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK, field.Field.Name, childType.Name);
 					}
 				}
 				if (fieldsStr.Length <= 0) continue;
@@ -77,7 +77,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var tablePrefix = tableName.ToLower().Replace("_metrics]", "").Replace("[dbo].[", "");
 
 			var edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(accountId, connection);
-			var sql = String.Format("SELECT EdgeFieldName, EdgeTypeID, MeasureName FROM [EdgeDeliveries].[dbo].[MD_MetricsMetadata] WHERE TABLENAME='{0}'", tableName);
+			var sql = String.Format("SELECT EdgeFieldName, EdgeTypeID, MeasureName FROM [EdgeDeliveries].[dbo].[MD_MetricsMetadata] WHERE TABLENAME='{0}' AND IsChildField = 0", tableName);
 			
 			using (var cmd = new SqlCommand(sql, connection))
 			{
@@ -94,12 +94,15 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 							foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(edgeType, edgeTypes))
 							{
-								var childFieldName = childType == edgeType ? fieldName : String.Format("{0}_{1}", childType.Name, fieldName);
-
-								selectStr = String.Format("{0}\t{1}.GK AS {2}_gk, Metrics.{1}_type AS {2}_type,\n", selectStr, fieldName, childFieldName);
-								fromStr = String.Format("{0}\tINNER JOIN {1} AS {2} ON Metrics.{3}_tk={2}.TK\n",
+								var childFieldName = childType == edgeType ? fieldName : String.Format("{0}_{1}", fieldName, childType.Name);
+								
+								selectStr = String.Format("{0}\t{1}.GK AS {2}_gk, {3} AS {2}_type,\n", selectStr, fieldName, childFieldName, childType.TypeID);
+								if (childType == edgeType)
+								{
+									fromStr = String.Format("{0}\tINNER JOIN {1} AS {2} ON Metrics.{3}_tk={2}.TK\n",
 														fromStr, GetTableName(tablePrefix, childType.TableName), childFieldName, fieldName);
-								//whereStr = String.Format("{0}\t{1}.TYPEID={2} AND\n", whereStr, childFieldName, childType.TypeID);
+									//whereStr = String.Format("{0}\t{1}.TYPEID={2} AND\n", whereStr, childFieldName, childType.TypeID);
+								}
 							}
 						}
 							// add measure fields
