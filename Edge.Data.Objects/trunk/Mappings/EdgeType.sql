@@ -40,3 +40,107 @@ where
 	types.AccountID in (-1, @accountID) and
 	types.ChannelID in (-1, @channelID)
 ;
+
+-- # -------------------------------------
+-- # TEMPLATE Save
+
+merge MD_EdgeType target
+using
+	(select
+		@TypeID,
+		@BaseTypeID,
+		@ClrType,
+		@Name,
+		@IsAbstract,
+		@TableName,
+		@AccountID,
+		@ChannelID
+	)
+	AS source
+	(
+		TypeID,
+		BaseTypeID,
+		ClrType,
+		Name,
+		IsAbstract,
+		TableName,
+		AccountID,
+		ChannelID
+	)
+on
+	target.TypeID = source.TypeID
+when matched then
+	update set
+		BaseTypeID = source.BaseTypeID,
+		ClrType = source.ClrType,
+		Name = source.Name,
+		IsAbstract = source.IsAbstract,
+		TableName = source.TableName,
+		AccountID = source.AccountID,
+		ChannelID = source.ChannelID
+when not matched then
+	insert
+	(
+		BaseTypeID,
+		ClrType,
+		Name,
+		IsAbstract,
+		TableName,
+		AccountID,
+		ChannelID
+	)
+	values
+	(
+		source.BaseTypeID,
+		source.ClrType,
+		source.Name,
+		source.IsAbstract,
+		source.TableName,
+		source.AccountID,
+		source.ChannelID
+	)
+;
+
+-- # -------------------------------------
+-- # TEMPLATE Save/EdgeTypeFields
+
+merge MD_EdgeTypeField target
+using
+	(select
+		@ParentTypeID,
+		@FieldID,
+		@ColumnName,
+		@IsIdentity
+	)
+	as source
+	(
+		ParentTypeID,
+		FieldID,
+		ColumnName,
+		IsIdentity
+	)
+on
+	target.ParentTypeID = source.ParentTypeID and
+	target.FieldID = source.FieldID
+when matched then
+	update set
+		ColumnName = source.ColumnName,
+		IsIdentity = source.IsIdentity
+when not matched by target then
+	insert
+	(
+		ParentTypeID,
+		FieldID,
+		ColumnName,
+		IsIdentity
+	)
+	values
+	(
+		source.ParentTypeID,
+		source.FieldID,
+		source.ColumnName,
+		source.IsIdentity
+	)
+when not matched by source then
+	delete
+;

@@ -51,15 +51,15 @@ namespace Edge.Data.Objects
 						options => options == null ? 0 : ((FlagsQuery?)options).Value.Value
 					)
 				)
-				.Param<Account>("account", required: false)
-				.Param<FlagsQuery?>("options", required: false)
+				.Input<Account>("account", required: false)
+				.Input<FlagsQuery?>("options", required: false)
 			;
 		}
 
 		public static IEnumerable<Measure> GetInstances(Account account = null, FlagsQuery? options = null, PersistenceConnection connection = null)
 		{
 			return Measure.Queries.GetInstances.Start()
-				.Param<Account>("account", account)
+				.Input<Account>("account", account)
 				.Param<FlagsQuery?>("options", options)
 				.Execute();
 		}

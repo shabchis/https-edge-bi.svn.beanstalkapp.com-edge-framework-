@@ -22,7 +22,10 @@ namespace Edge.Data.Objects
 				.Map<EdgeType>(EdgeField.Properties.FieldEdgeType, edgeType => edgeType
 					.Identity(EdgeType.Identities.Default)
 					.Map<int>(EdgeType.Properties.TypeID, "FieldTypeID")
-					.Map<Type>(EdgeType.Properties.ClrType, "FieldClrType", typeName => Type.GetType(typeName.ToString()))
+					.Map<Type>(EdgeType.Properties.ClrType, "FieldClrType",
+						convertIn: EdgeUtility.Conversions.TypeConvertIn,
+						convertOut: EdgeUtility.Conversions.TypeConvertOut
+					)
 				)
 			;
 		}
@@ -35,15 +38,15 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<EdgeField> GetByID = EdgeUtility.EntitySpace.CreateQueryTemplate<EdgeField>(Mappings.Default)
-				.Param<int>("fieldID")
+				.Input<int>("fieldID")
 				.RootSubquery(EdgeUtility.GetSql<EdgeField>("GetByID"), init => init
 					.PersistenceParam("@fieldID", fromQueryParam: "fieldID")
 				)
 			;
 
 			public static QueryTemplate<EdgeField> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<EdgeField>(Mappings.Default)
-				.Param<int>("accountID", required: false, defaultValue: -1)
-				.Param<int>("channelID", required: false, defaultValue: -1)
+				.Input<int>("accountID", required: false, defaultValue: -1)
+				.Input<int>("channelID", required: false, defaultValue: -1)
 				.RootSubquery(EdgeUtility.GetSql<EdgeField>("Get"), init => init
 					.PersistenceParam("@accountID", fromQueryParam: "accountID")
 					.PersistenceParam("@channelID", fromQueryParam: "channel")
@@ -55,7 +58,7 @@ namespace Edge.Data.Objects
 		public static EdgeField Get(int fieldID, PersistenceConnection connection = null)
 		{
 			return Queries.GetByID.Start()
-				.Param<int>("fieldID", fieldID)
+				.Input<int>("fieldID", fieldID)
 				.Connect(connection)
 				.Execute()
 				.FirstOrDefault()
@@ -65,7 +68,7 @@ namespace Edge.Data.Objects
 		public static IEnumerable<EdgeField> Get(int accountID = -1, int channelID = -1, PersistenceConnection connection = null)
 		{
 			return Queries.Get.Start()
-				.Param<int>("accountID", accountID)
+				.Input<int>("accountID", accountID)
 				.Param<int>("channelID", channelID)
 				.Connect(connection)
 				.Execute()

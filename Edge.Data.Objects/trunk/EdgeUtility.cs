@@ -23,8 +23,13 @@ namespace Edge.Data.Objects
 			EdgeUtility.EntitySpace = new EntitySpace();
 		}
 
-		public static readonly Func<object, object> ConvertAccountToID = ac => ac == null ? -1 : ((Account)ac).ID;
-		public static readonly Func<object, object> ConvertChannelToID = ch => ch == null ? -1 : ((Channel)ch).ID;
+		public static class Conversions
+		{
+			public static readonly Func<object, object> ConvertAccountToID = ac => ac == null ? -1 : ((Account)ac).ID;
+			public static readonly Func<object, object> ConvertChannelToID = ch => ch == null ? -1 : ((Channel)ch).ID;
+			public static readonly Func<object, Type> TypeConvertIn = val => val == null ? null : Type.GetType((string)val);
+			public static readonly Func<Type, object> TypeConvertOut = type => type == null ? null : type.AssemblyQualifiedName;
+		}
 
 		public static SqlPersistenceParameterOptions ParamOptions(SqlDbType? dbType = null, int? size = null)
 		{
@@ -38,7 +43,7 @@ namespace Edge.Data.Objects
 			};
 		}
 
-		public static SqlPersistenceAction GetSql<T>(string templateName)
+		public static SqlCommandAction GetSql<T>(string templateName)
 		{
 			const string tplSeparatorPattern = @"^--\s*#\s*TEMPLATE\s+(.*)$";
 			Regex tplSeparatorRegex = new Regex(tplSeparatorPattern, RegexOptions.Singleline);
@@ -73,7 +78,7 @@ namespace Edge.Data.Objects
 			if (templateString.Length == 0)
 				throw new Exception("Template not found in resource.");
 
-			return new SqlPersistenceAction(templateString.ToString(), System.Data.CommandType.Text);
+			return new SqlCommandAction(templateString.ToString(), System.Data.CommandType.Text);
 		}
 
 		#region ParseEdgeTemplate (disabled)
@@ -245,7 +250,7 @@ namespace Edge.Data.Objects
 		{
 			if (condition(context.GetField<V>(idField)))
 			{
-				context.Target = null;
+				context.MappedValue = null;
 				context.Break();
 			}
 		}
@@ -309,7 +314,7 @@ namespace Edge.Data.Objects
 						l.Add(item);
 
 						// This has no real value but helps makes sense of this cruel world
-						context.Target = item;
+						context.MappedValue = item;
 					})
 				)
 			);
