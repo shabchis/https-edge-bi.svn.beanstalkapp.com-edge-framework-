@@ -12,6 +12,7 @@ namespace Eggplant.Entities.Queries
 {
 	public class SubqueryTemplate: QueryTemplateBase
 	{
+		public bool IsBatched { get; set; }
 		public bool IsStandalone { get; set; }
 		public QueryTemplate Template { get; internal set; }
 		public string Name { get; set; }

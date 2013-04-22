@@ -29,8 +29,8 @@ namespace Eggplant.Entities.Persistence
 		public abstract bool HasOutboundField(string field);
 		public abstract object GetOutboundField(string field);
 		public abstract void SetOutboundField(string field, object value);
-		public abstract void NextOutboundRow();
-		public abstract void SubmitOutboundRow();
+		public abstract void BeginOutboundRow();
+		public abstract void EndOutboundRow();
 
 		public abstract bool NextInboundSet();
 		public abstract bool NextInboundRow();

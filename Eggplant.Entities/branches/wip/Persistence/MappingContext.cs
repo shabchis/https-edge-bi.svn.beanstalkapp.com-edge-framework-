@@ -19,14 +19,14 @@ namespace Eggplant.Entities.Persistence
 		public MappingDirection Direction { get; private set; }
 		
 		public EntityCache Cache { get { return this.Adapter.Connection.Cache; } }
-		public object Target { get { return GetTarget(); } set { SetTarget(value); } }
+		public object MappedValue { get { return GetMappedValue(); } set { SetMappedValue(value); } }
 		
-		public Type TargetType { get; set; }
+		public Type MappedValueType { get; set; }
 
 		internal bool DoBreak { get; private set; }
 
-		object _target;
-		internal bool IsTargetSet { get; private set; }
+		object _mappedValue;
+		internal bool IsMappedValueSet { get; private set; }
 		Dictionary<string, object> _vars;
 
 		internal MappingContext(PersistenceAdapter adapter, Subquery subquery, IMapping mapping, MappingDirection direction, MappingContext parentContext = null)
@@ -45,9 +45,9 @@ namespace Eggplant.Entities.Persistence
 		/// </summary>
 		internal void Reset()
 		{
-			_target = null;
-			this.TargetType = null;
-			this.IsTargetSet = false;
+			_mappedValue = null;
+			this.MappedValueType = null;
+			this.IsMappedValueSet = false;
 			this.DoBreak = false;
 
 			// Inherit vars from base, if present
@@ -109,15 +109,15 @@ namespace Eggplant.Entities.Persistence
 				return convert(val);
 		}
 
-		protected virtual object GetTarget()
+		protected virtual object GetMappedValue()
 		{
-			return _target;
+			return _mappedValue;
 		}
 
-		protected virtual void SetTarget(object target)
+		protected virtual void SetMappedValue(object mappedValue)
 		{
-			_target = target;
-			this.IsTargetSet = true;
+			_mappedValue = mappedValue;
+			this.IsMappedValueSet = true;
 		}
 
 		/// <summary>
@@ -131,7 +131,7 @@ namespace Eggplant.Entities.Persistence
 
 	public class MappingContext<T> : MappingContext
 	{
-		public new T Target { get { return (T)base.Target; } set { base.Target = value; } }
+		public new T MappedValue { get { return (T)base.MappedValue; } set { base.MappedValue = value; } }
 
 		internal MappingContext(PersistenceAdapter adapter, Subquery subquery, Mapping<T> mapping, MappingDirection direction) :
 			base(adapter, subquery, mapping, direction, null)
@@ -143,12 +143,12 @@ namespace Eggplant.Entities.Persistence
 		{
 		}
 
-		protected override void SetTarget(object target)
+		protected override void SetMappedValue(object mappedValue)
 		{
-			if (!(target is T) && !(typeof(T).IsClass && target == null ))
-				throw new MappingException(String.Format("The mapping context expects a target of type {0}.", typeof(T).FullName));
+			if (!(mappedValue is T) && !(typeof(T).IsClass && mappedValue == null ))
+				throw new MappingException(String.Format("The mapping context expects a value of type {0}.", typeof(T).FullName));
 
-			base.SetTarget(target);
+			base.SetMappedValue(mappedValue);
 		}
 	}
 }

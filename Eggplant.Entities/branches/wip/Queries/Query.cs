@@ -228,7 +228,7 @@ namespace Eggplant.Entities.Queries
 					bool done = false;
 					while (!done)
 					{
-						adapter.NextOutboundRow();
+						adapter.BeginOutboundRow();
 
 						// Each subquery associated with this action must map its outbound fields
 						foreach (Subquery subquery in subqueries)
@@ -238,7 +238,7 @@ namespace Eggplant.Entities.Queries
 						}
 						
 						// Submit the entire row
-						adapter.SubmitOutboundRow();
+						adapter.EndOutboundRow();
 
 						// Not every outbound row will result in inbound rows, but when it does, iterate them
 						while (adapter.NextInboundSet())
@@ -250,7 +250,7 @@ namespace Eggplant.Entities.Queries
 							while (adapter.NextInboundRow())
 							{
 								subquery.Mapping.Apply(inboundContext);
-								var result = (T)inboundContext.Target;
+								var result = (T)inboundContext.MappedValue;
 
 								// Inbound rows on the root query need to be transformed into results
 								if (subquery.Template.IsRoot)
@@ -262,7 +262,7 @@ namespace Eggplant.Entities.Queries
 									}
 									else
 									{
-										buffer.Add((T)inboundContext.Target);
+										buffer.Add((T)inboundContext.MappedValue);
 									}
 								}
 								inboundContext.Reset();

@@ -37,30 +37,32 @@ namespace Eggplant.Entities.Queries
 			return new Query<T>(this);
 		}
 
-		public QueryTemplate<T> RootSubquery(PersistenceAction action, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> RootSubquery(PersistenceAction action, Action<SubqueryTemplate> inner = null, bool standalone = false)
 		{
-			SubqueryTemplate root = SubqueryInit(null, action, inner);
+			SubqueryTemplate root = SubqueryInit(null, action, inner, true, standalone);
 			this.RootSubqueryTemplate = root;
 			return this;
 		}
 
-		public QueryTemplate<T> Subquery(string resultSetName, PersistenceAction action, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> Subquery(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner = null, bool batched = false, bool standalone = false)
 		{
-			SubqueryInit(resultSetName, action, inner);
+			SubqueryInit(subqueryName, action, inner, batched, standalone);
 			return this;
 		}
 
-		private SubqueryTemplate SubqueryInit(string resultSetName, PersistenceAction action, Action<SubqueryTemplate> inner)
+		private SubqueryTemplate SubqueryInit(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner, bool batched, bool standalone)
 		{
 			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{
-				Name = resultSetName,
+				Name = subqueryName,
 				PersistenceAction = action,
-				Template = this
+				Template = this,
+				IsBatched = batched,
+				IsStandalone = standalone
 			};
 
-			if (this.SubqueryTemplates.Any(p => p.Name == resultSetName))
-				throw new QueryTemplateException("Cannot add subquery template with a result set name that is already included.");
+			if (this.SubqueryTemplates.Any(p => p.Name == subqueryName))
+				throw new QueryTemplateException("A subquery with the same name is already included in the query template.");
 
 			this.SubqueryTemplates.Add(subqueryTemplate);
 

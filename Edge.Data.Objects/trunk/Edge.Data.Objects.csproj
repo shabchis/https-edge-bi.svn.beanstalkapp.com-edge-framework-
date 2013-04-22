@@ -119,6 +119,7 @@
     <Compile Include="Mappings\EdgeType.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Mappings\EdgeTypeField.cs" />
     <Compile Include="Mappings\ExtraField.cs">
       <SubType>Code</SubType>
     </Compile>
