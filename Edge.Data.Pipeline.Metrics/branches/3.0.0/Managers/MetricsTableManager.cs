@@ -231,7 +231,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				else
 				{
 					var column = CreateColumn(obj);
-					if (!columnDict.ContainsKey(column.Name))
+					if (column != null && !columnDict.ContainsKey(column.Name))
 						columnDict.Add(column.Name, column);
 				}
 			}
@@ -292,6 +292,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					clmType = Convert2DbType(field.Type);
 					isNullable = true;
 				}
+				else return null;
 			}
 			else
 				throw new ArgumentException(String.Format("Unknown object type '{0}' for creating metrics columns", obj.GetType()));
