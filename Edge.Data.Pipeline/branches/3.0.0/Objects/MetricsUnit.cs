@@ -36,17 +36,17 @@ namespace Edge.Data.Pipeline.Objects
 			set
 			{
 				if (Dimensions == null) Dimensions = new Dictionary<EdgeField, object>();
-				if (GetEdgeField != null)
+				if (GetEdgeField == null)
+					throw new ArgumentException("GetEdgeField delegate is not set for metrics unit! Use new MetricsUnit {GetEdgeField = GetEdgeField}");
+
+				var edgeField = GetEdgeField(typeof(Ad).Name);
+				if (Dimensions.ContainsKey(edgeField))
 				{
-					var edgeField = GetEdgeField(typeof(Ad).Name);
-					if (Dimensions.ContainsKey(edgeField))
-					{
-						Dimensions[edgeField] = value;
-					}
-					else
-					{
-						Dimensions.Add(edgeField, value);
-					}
+					Dimensions[edgeField] = value;
+				}
+				else
+				{
+					Dimensions.Add(edgeField, value);
 				}
 			}
 		}
