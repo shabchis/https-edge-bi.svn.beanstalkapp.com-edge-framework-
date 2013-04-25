@@ -146,7 +146,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 								Name = reader["Name"].ToString(),
 								TableName = reader["TableName"].ToString(),
 								ClrType = Type.GetType(String.Format("{0}, {1}", reader["ClrType"], assemblyFullName)), // TODO: check how to get type from class & dll name
-								
+								IsAbstract = bool.Parse(reader["IsAbstract"].ToString())
 							};
 							int baseTypeId;
 							if (int.TryParse(reader["BaseTypeID"].ToString(), out baseTypeId))
@@ -302,7 +302,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		}
 
 		/// <summary>
-		/// Find all inheritors (child types) for source edge type for falt Metrics and Objects tables
+		/// Find all inheritors (child types) for source edge type for flat Metrics and Objects tables
+		/// except of absract types
 		/// </summary>
 		/// <param name="sourceType"></param>
 		/// <param name="edgeTypes"></param>
@@ -316,7 +317,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 		private static void AddTypeInheritorsRecursively(EdgeType edgeType, Dictionary<string, EdgeType> edgeTypes, ICollection<EdgeType> list)
 		{
-			if (!list.Contains(edgeType)) list.Add(edgeType);
+			if (!list.Contains(edgeType) && !edgeType.IsAbstract) list.Add(edgeType);
 			foreach (var currType in edgeTypes.Values.Where(x => x.BaseEdgeType == edgeType))
 			{
 				AddTypeInheritorsRecursively(currType, edgeTypes, list);
