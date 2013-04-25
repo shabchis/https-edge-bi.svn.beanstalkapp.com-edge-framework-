@@ -96,7 +96,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							{
 								var childFieldName = childType == edgeType ? fieldName : String.Format("{0}_{1}", fieldName, childType.Name);
 								
-								selectStr = String.Format("{0}\t{1}.GK AS {2}_gk, {3} AS {2}_type,\n", selectStr, fieldName, childFieldName, childType.TypeID);
+								//selectStr = String.Format("{0}\t{1}.GK AS {2}_gk, {3} AS {2}_type,\n", selectStr, fieldName, childFieldName, childType.TypeID);
+								selectStr = String.Format("{0}\t{1}.GK AS {2}_gk,\n", selectStr, fieldName, childFieldName);
 								if (childType == edgeType)
 								{
 									fromStr = String.Format("{0}\tINNER JOIN {1} AS {2} ON Metrics.{3}_tk={2}.TK\n",
