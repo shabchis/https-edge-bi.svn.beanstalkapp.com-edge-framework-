@@ -21,10 +21,14 @@ namespace Edge.Data.Objects
 			{
 				yield return dimension;
 			}
-			if (Target != null) yield return new ObjectDimension {Value = Target};
+			if (Target != null) yield return new ObjectDimension
+				{
+					Field = EdgeType[String.Format("{0}_Target", EdgeType.Name)],
+					Value = Target
+				};
 			if (TargetDefinition != null) yield return new ObjectDimension 
 			{
-				Field = this.EdgeType[String.Format("{0}_TargetDefinition", this.EdgeType.Name)],
+				Field = EdgeType[String.Format("{0}_TargetDefinition", EdgeType.Name)],
 				Value = TargetDefinition
 			};
 		}
