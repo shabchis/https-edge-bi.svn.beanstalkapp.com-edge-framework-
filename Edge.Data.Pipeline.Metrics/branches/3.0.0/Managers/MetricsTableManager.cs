@@ -255,9 +255,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			columnName = String.IsNullOrEmpty(columnName) ? obj.EdgeType.Name : columnName;
 
 			// add 3 columns: GK (to be set later in Identify stage), TK (temp key) and type (from EdgeTypes)
-			columnList.Add(new Column { Name = String.Format("{0}_gk", columnName), Value = obj.GK });
-			columnList.Add(new Column { Name = String.Format("{0}_tk", columnName), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500 });
-			columnList.Add(new Column { Name = String.Format("{0}_type", columnName), Value = obj.EdgeType.TypeID, DbType = SqlDbType.Int });
+			columnList.Add(new Column { Name = String.Format("{0}_gk", columnName), Value = obj.GK, Nullable = true});
+			columnList.Add(new Column { Name = String.Format("{0}_tk", columnName), Value = obj.TK, DbType = SqlDbType.NVarChar, Size = 500, Nullable = true });
+			columnList.Add(new Column { Name = String.Format("{0}_type", columnName), Value = obj.EdgeType.TypeID, DbType = SqlDbType.Int, Nullable = true });
 
 			return columnList;
 		}
@@ -269,10 +269,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <returns></returns>
 		private Column CreateColumn(object obj)
 		{
-			string clmName = null;
-			object clmValue = null;
+			string clmName;
+			object clmValue;
 			var isNullable = false;
-			var clmType = SqlDbType.BigInt;
+			SqlDbType clmType;
 
 			if (obj is KeyValuePair<Measure, double>)
 			{
@@ -297,7 +297,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			else
 				throw new ArgumentException(String.Format("Unknown object type '{0}' for creating metrics columns", obj.GetType()));
 
-			return new Column { Name = clmName, Value = clmValue, DbType = clmType, Nullable = isNullable };
+			return new Column { Name = clmName, Value = clmValue, DbType = clmType, Nullable = isNullable, Size = clmType == SqlDbType.NVarChar ? 100 : 0};
 		}
 
 		private static SqlDbType Convert2DbType(Type type)
