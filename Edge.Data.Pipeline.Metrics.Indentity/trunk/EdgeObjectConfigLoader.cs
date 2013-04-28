@@ -318,7 +318,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		private static void AddTypeInheritorsRecursively(EdgeType edgeType, Dictionary<string, EdgeType> edgeTypes, ICollection<EdgeType> list)
 		{
 			if (!list.Contains(edgeType) && !edgeType.IsAbstract) list.Add(edgeType);
-			foreach (var currType in edgeTypes.Values.Where(x => x.BaseEdgeType == edgeType))
+			foreach (var currType in edgeTypes.Values.Where(x => x.BaseEdgeType != null && x.BaseEdgeType.TypeID == edgeType.TypeID))
 			{
 				AddTypeInheritorsRecursively(currType, edgeTypes, list);
 			}
