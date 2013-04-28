@@ -224,34 +224,44 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				}
 				else
 				{
-					// try to get field by reflection by configured edge field name
-					var member = edgeObject.GetType().GetMember(field.Field.Name);
-					if (member.Length > 0)
+					// 1st try to get field from extra fields by name
+					if (edgeObject.Fields != null && edgeObject.Fields.FirstOrDefault(x => x.Key.Name == field.Field.Name).Key != null)
 					{
-						var memberInfo = edgeObject.GetType().GetMember(field.Field.Name)[0];
-						var value = (memberInfo is FieldInfo ? (memberInfo as FieldInfo).GetValue(edgeObject) : null) ??
-									(memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).GetValue(edgeObject, null) : null);
-
-						var type = memberInfo is FieldInfo
-										? (memberInfo as FieldInfo).FieldType
-										: memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).PropertyType : null;
-
-						// edge object
-						if (value is EdgeObject)
+						var extraField = edgeObject.Fields.FirstOrDefault(x => x.Key.Name == field.Field.Name);
+						AddColumn(ref columns, ref values, paramList, field.ColumnName, extraField.Value);
+					}
+					else
+					{
+						// try to get field by reflection by configured edge field name
+						var member = edgeObject.GetType().GetMember(field.Field.Name);
+						if (member.Length > 0)
 						{
-							var edgeObj = value as EdgeObject;
-							AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.ColumnName), edgeObj.GK);
-							AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.ColumnName), edgeObj.TK);
-							AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.ColumnName), edgeObj.EdgeType.TypeID);
-						}
-						else if (value != null)  // primitive types
-						{
-							// special case for enum value - parse to INT
-							if (type.BaseType == typeof(Enum))
+							var memberInfo = edgeObject.GetType().GetMember(field.Field.Name)[0];
+							var value = (memberInfo is FieldInfo ? (memberInfo as FieldInfo).GetValue(edgeObject) : null) ??
+							            (memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).GetValue(edgeObject, null) : null);
+
+							var type = memberInfo is FieldInfo
+								           ? (memberInfo as FieldInfo).FieldType
+								           : memberInfo is PropertyInfo ? (memberInfo as PropertyInfo).PropertyType : null;
+
+							// edge object
+							if (value is EdgeObject)
 							{
-								value = (int)Enum.Parse(type, value.ToString());
+								var edgeObj = value as EdgeObject;
+								AddColumn(ref columns, ref values, paramList, String.Format("{0}_gk", field.ColumnName), edgeObj.GK);
+								AddColumn(ref columns, ref values, paramList, String.Format("{0}_tk", field.ColumnName), edgeObj.TK);
+								AddColumn(ref columns, ref values, paramList, String.Format("{0}_type", field.ColumnName),
+								          edgeObj.EdgeType.TypeID);
 							}
-							AddColumn(ref columns, ref values, paramList, field.ColumnName, value);
+							else if (value != null) // primitive types
+							{
+								// special case for enum value - parse to INT
+								if (type.BaseType == typeof (Enum))
+								{
+									value = (int) Enum.Parse(type, value.ToString());
+								}
+								AddColumn(ref columns, ref values, paramList, field.ColumnName, value);
+							}
 						}
 					}
 				}
