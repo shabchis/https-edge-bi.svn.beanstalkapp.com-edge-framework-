@@ -23,12 +23,21 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		#region Properties
 		private readonly SqlConnection _objectsSqlConnection;
 		private SqlCommand _logCommand;
+		private Dictionary<string, EdgeType> _edgeTypes;
 
 		public List<EdgeFieldDependencyInfo> Dependencies { get; set; }
 		public string TablePrefix { get; set; }
 		public int AccountId { get; set; }
 		public DateTime TransformTimestamp { get; set; }
 		public bool CreateNewEdgeObjects { get; set; }
+
+		public Dictionary<string, EdgeType> EdgeTypes
+		{
+			get 
+			{
+				return _edgeTypes ?? (_edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(AccountId, _objectsSqlConnection));
+			}
+		}
 		#endregion
 
 		#region Ctor
@@ -68,6 +77,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					var deliveryObjects = GetDeliveryObjects(field.Field.FieldEdgeType);
 					if (deliveryObjects == null)
 					{
+						CreateTempGkTkTable4Field(field.Field.FieldEdgeType); // even if there are no objects from temp table
 						Log(String.Format("IdentifyDeliveryObjects:: there are no objects for field '{0}' of type '{1}'", field.Field.Name, field.Field.FieldEdgeType.Name));
 						continue;
 					}
@@ -93,7 +103,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							else
 								Log(String.Format("IdentifyDeliveryObjects:: GK={0} was not found for {2} with TK={1}", deliveryObject.GK, deliveryObject.TK, field.Field.Name));
 						}
-						CreateTempGkTkTable4Field(field.Field);
+						CreateTempGkTkTable4Field(field.Field.FieldEdgeType);
 						Log(String.Format("IdentifyDeliveryObjects:: Temp GK-TK table was created for {0}", field.Field.Name));
 					}
 				}
@@ -103,15 +113,20 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// <summary>
 		/// Create temporary table which contains GK, TK mapping of updated object type in Delivery
 		/// </summary>
-		/// <param name="field"></param>
-		private void CreateTempGkTkTable4Field(EdgeField field)
+		private void CreateTempGkTkTable4Field(EdgeType edgeType)
 		{
+			// do not create table for abstract objects
+			if (edgeType.IsAbstract) return;
+
 			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
-				cmd.CommandText = String.Format(@"SELECT GK, TK INTO ##TempDelivery_{0} FROM {1} WHERE TYPEID=@typeId;
-												  CREATE NONCLUSTERED INDEX [IDX_{0}_TK] ON ##TempDelivery_{0} (TK);",
-												field.Name, GetDeliveryTableName(field.FieldEdgeType.TableName));
-				cmd.Parameters.AddWithValue("@typeId", field.FieldEdgeType.TypeID);
+				cmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM TEMPDB.INFORMATION_SCHEMA.TABLES where TABLE_NAME = '##TempDelivery_{0}')
+													BEGIN
+														SELECT GK, TK INTO ##TempDelivery_{0} FROM {1} WHERE TYPEID=@typeId;
+														CREATE NONCLUSTERED INDEX [IDX_{0}_TK] ON ##TempDelivery_{0} (TK);
+													END",
+												edgeType.Name, GetDeliveryTableName(edgeType.TableName));
+				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
 				cmd.ExecuteNonQuery();
 			}
 		}
@@ -157,6 +172,9 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// <returns></returns>
 		private SqlCommand PrepareSelectEdgeObjectCommand(EdgeType edgeType)
 		{
+			if (!edgeType.Fields.Any(x => x.IsIdentity))
+				throw new Exception(String.Format("There are no identity fields defined for type {0}", edgeType.Name));
+			
 			var selectColumnStr = "GK,";
 			var whereParamsStr = String.Empty;
 			var indexFieldsStr = String.Empty;
@@ -165,6 +183,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var selectCmd = new SqlCommand { Connection = _objectsSqlConnection };
 			var createTempTableCmd = new SqlCommand { Connection = _objectsSqlConnection };
 			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+
 
 			foreach (var field in edgeType.Fields)
 			{
@@ -282,34 +301,27 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			if (field.FieldEdgeType.Fields.All(x => x.Field.FieldEdgeType == null)) return;
 
 			var mainTableName = GetDeliveryTableName(field.FieldEdgeType.TableName);
-			var setStr = String.Format("UPDATE {0} \nSET ", mainTableName);
-			var fromStr = "FROM ";
-			var whereStr = String.Format("WHERE {0}.TYPEID=@typeId AND ", mainTableName);
 			var paramList = new List<SqlParameter> { new SqlParameter("@typeId", field.FieldEdgeType.TypeID) };
+			var cmdStr = String.Empty;
 
 			foreach (var parentField in field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
 			{
-				var tempParentTableName = String.Format("##TempDelivery_{0}", parentField.Field.Name);
-
-				fromStr = String.Format("{0} {1},", fromStr, tempParentTableName);
-				setStr = String.Format("{0} {1}={2}.GK,",
-										setStr,
-										parentField.ColumnNameGK,
-										tempParentTableName);
-				whereStr = String.Format("{0}{1}.{2}={3}.TK AND ",
-										 whereStr,
-										 mainTableName,
-										 parentField.ColumnNameTK,
-										 tempParentTableName);
+				foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(parentField.Field.FieldEdgeType, EdgeTypes))
+				{
+					var tempParentTableName = String.Format("##TempDelivery_{0}", childType.Name);
+					cmdStr = String.Format("{0}UPDATE {1} SET {3}={2}.GK FROM {2} WHERE {1}.TYPEID=@typeId AND {1}.{4}={2}.TK;\n\n",
+											cmdStr,		
+											mainTableName,
+											tempParentTableName,
+											parentField.ColumnNameGK,
+											parentField.ColumnNameTK);
+				}
 			}
-			if (fromStr.Length > 0) fromStr = fromStr.Remove(fromStr.Length - 1, 1);
-			if (setStr.Length > 0) setStr = setStr.Remove(setStr.Length - 1, 1);
-			if (whereStr.Length > 4) whereStr = whereStr.Remove(whereStr.Length - 5, 5);
-
+			
 			// perform update
 			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
-				cmd.CommandText = String.Format("{0}\n{1}\n{2}", setStr, fromStr, whereStr);
+				cmd.CommandText = cmdStr;
 				cmd.Parameters.AddRange(paramList.ToArray());
 
 				cmd.ExecuteNonQuery();
@@ -373,7 +385,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					else
 						Log(String.Format("UpdateEdgeObjects:: delivery doen't contain changes of {0}, nothing to sync", field.Field.Name));
 
-					CreateTempGkTkTable4Field(field.Field);
+					CreateTempGkTkTable4Field(field.Field.FieldEdgeType);
 				}
 			}
 		}
@@ -509,6 +521,10 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			var selectStr = String.Empty;
 			var whereStr = String.Empty;
+
+			if (!edgeType.Fields.Any(x => x.IsIdentity))
+				throw new Exception(String.Format("There are no identity fields defined for type {0}", edgeType.Name));
+
 			foreach (var field in edgeType.Fields.Where(x => x.IsIdentity))
 			{
 				selectStr = String.Format("{0}{1},", selectStr, field.ColumnNameGK);
