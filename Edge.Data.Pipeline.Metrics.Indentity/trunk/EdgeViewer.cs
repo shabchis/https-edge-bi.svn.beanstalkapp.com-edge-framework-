@@ -73,11 +73,10 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			var selectStr = String.Empty;
 			var fromStr = String.Format("\t[EdgeDeliveries].{0} AS Metrics\n", tableName);
-			//var whereStr = String.Empty;
 			var tablePrefix = tableName.ToLower().Replace("_metrics]", "").Replace("[dbo].[", "");
 
 			var edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(accountId, connection);
-			var sql = String.Format("SELECT EdgeFieldName, EdgeTypeID, MeasureName FROM [EdgeDeliveries].[dbo].[MD_MetricsMetadata] WHERE TABLENAME='{0}' AND IsChildField = 0", tableName);
+			var sql = String.Format("SELECT EdgeFieldName, ParentFieldName, EdgeTypeID, MeasureName FROM [EdgeDeliveries].[dbo].[MD_MetricsMetadata] WHERE TABLENAME='{0}'", tableName);
 			
 			using (var cmd = new SqlCommand(sql, connection))
 			{
@@ -88,23 +87,15 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 						// add dimension field (JOIN according TK to find GK and WHERE by type ID)
 						if (!String.IsNullOrEmpty(reader["EdgeFieldName"].ToString()))
 						{
-							var fieldName = reader["EdgeFieldName"].ToString().Replace("_gk", "");
 							var edgeType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["EdgeTypeID"].ToString()));
-							if (edgeType == null) continue;
+							if (edgeType == null) continue; 
+							
+							var fieldName = reader["EdgeFieldName"].ToString().Replace("_gk", "");
+							var parentFieldName = reader["ParentFieldName"].ToString().Replace("_gk", "");
 
-							foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(edgeType, edgeTypes))
-							{
-								var childFieldName = childType == edgeType ? fieldName : String.Format("{0}_{1}", fieldName, childType.Name);
-								
-								//selectStr = String.Format("{0}\t{1}.GK AS {2}_gk, {3} AS {2}_type,\n", selectStr, fieldName, childFieldName, childType.TypeID);
-								selectStr = String.Format("{0}\t{1}.GK AS {2}_gk,\n", selectStr, fieldName, childFieldName);
-								if (childType == edgeType)
-								{
-									fromStr = String.Format("{0}\tINNER JOIN {1} AS {2} ON Metrics.{3}_tk={2}.TK\n",
-														fromStr, GetTableName(tablePrefix, childType.TableName), childFieldName, fieldName);
-									//whereStr = String.Format("{0}\t{1}.TYPEID={2} AND\n", whereStr, childFieldName, childType.TypeID);
-								}
-							}
+							selectStr = String.Format("{0}\t{1}.GK AS {1}_gk,\n", selectStr, fieldName);
+							fromStr = String.Format("{0}\tINNER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n",
+														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName);
 						}
 							// add measure fields
 						else if (!String.IsNullOrEmpty(reader["MeasureName"].ToString()))
@@ -118,7 +109,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			return selectStr.Length == 0  ?
 					"No data relevant data in MD_MetricsMetadata" :
 					String.Format("SELECT\n{0}\nFROM\n{1}", selectStr.Remove(selectStr.Length - 2, 2), fromStr);
-					//String.Format("SELECT\n{0}\nFROM\n{1}WHERE\n{2}", selectStr.Remove(selectStr.Length - 2, 2), fromStr, whereStr.Remove(whereStr.Length - 5, 5));
 		}
 		
 		private static string GetTableName(string tablePrefix, string tableName)
