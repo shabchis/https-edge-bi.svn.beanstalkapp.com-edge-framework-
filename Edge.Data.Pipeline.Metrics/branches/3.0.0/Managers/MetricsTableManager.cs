@@ -115,15 +115,15 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			using (var cmd = new SqlCommand())
 			{
 				cmd.Connection = _deliverySqlConnection;
-				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeFieldName], [EdgeTypeID], [MeasureName], [IsChildField]) " +
-								  "VALUES (@TableName, @EdgeFieldID, @EdgeFieldName, @EdgeTypeID, @MeasureName, @IsChildField)";
+				cmd.CommandText = "INSERT INTO DBO.MD_MetricsMetadata ([TableName], [EdgeFieldID], [EdgeFieldName], [EdgeTypeID], [MeasureName], [ParentFieldName]) " +
+								  "VALUES (@TableName, @EdgeFieldID, @EdgeFieldName, @EdgeTypeID, @MeasureName, @ParentFieldName)";
 
 				cmd.Parameters.Add(new SqlParameter("@TableName", TableName));
 				cmd.Parameters.Add(new SqlParameter("@EdgeFieldID", null));
 				cmd.Parameters.Add(new SqlParameter("@EdgeFieldName", null));
 				cmd.Parameters.Add(new SqlParameter("@EdgeTypeID", null));
 				cmd.Parameters.Add(new SqlParameter("@MeasureName", null));
-				cmd.Parameters.Add(new SqlParameter("@IsChildField", 0));
+				cmd.Parameters.Add(new SqlParameter("@ParentFieldName", null));
 
 				foreach (var obj in flatObjectList)
 				{
@@ -138,7 +138,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 							cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_gk", fieldName);
 							cmd.Parameters["@EdgeTypeID"].Value = childType.TypeID;
 							cmd.Parameters["@MeasureName"].Value = DBNull.Value;
-							cmd.Parameters["@IsChildField"].Value = childType != dimension.Field.FieldEdgeType;
+							cmd.Parameters["@ParentFieldName"].Value = String.Format("{0}_gk", dimension.Field.Name);
 							cmd.ExecuteNonQuery();
 						}
 					}
@@ -148,7 +148,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						cmd.Parameters["@EdgeFieldName"].Value = DBNull.Value;
 						cmd.Parameters["@EdgeTypeID"].Value = DBNull.Value;
 						cmd.Parameters["@MeasureName"].Value = ((KeyValuePair<Measure, double>)obj).Key.Name;
-						cmd.Parameters["@IsChildField"].Value = 0;
+						cmd.Parameters["@ParentFieldName"].Value = DBNull.Value;
 						cmd.ExecuteNonQuery();
 					}
 				}
