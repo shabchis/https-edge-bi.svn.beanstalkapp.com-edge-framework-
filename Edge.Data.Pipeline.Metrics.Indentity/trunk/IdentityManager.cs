@@ -140,7 +140,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			// set identity fields parameters values to retrieve relevant edge object
 			foreach (var identity in deliveryObject.FieldList.Where(x => x.IsIdentity))
 			{
-				selectEdgeObjectCommand.Parameters[String.Format("@{0}", identity.FieldName)].Value = identity.Value;
+				selectEdgeObjectCommand.Parameters[String.Format("@{0}", identity.FieldName)].Value = !String.IsNullOrEmpty(identity.Value) ? (object)identity.Value : DBNull.Value;
 			}
 
 			using (var reader = selectEdgeObjectCommand.ExecuteReader())
@@ -191,9 +191,10 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.ColumnNameGK);
 				if (field.IsIdentity)
 				{
-					// add identity fields to WHERE
-					whereParamsStr = String.Format("{0}{1}=@{1} AND ", whereParamsStr, field.ColumnNameGK);
-					selectCmd.Parameters.Add(new SqlParameter(String.Format("@{0}", field.ColumnNameGK), null));
+					// add identity fields to WHERE (some fields could be null when using edge type inheritance)
+					whereParamsStr = String.Format("{0}(@{1} IS NULL OR {1} IS NULL OR {1}= @{1}) AND ", whereParamsStr, field.ColumnNameGK);
+					var param = new SqlParameter(String.Format("@{0}", field.ColumnNameGK), null) { IsNullable = true };
+					selectCmd.Parameters.Add(param);
 
 					indexFieldsStr = String.Format("{0}{1},", indexFieldsStr, field.ColumnNameGK);
 				}
@@ -439,7 +440,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				if (field.IsIdentity)
 				{
 					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDbFieldType(field));
-					whereStr = String.Format("{0}{2}.{1}=#TEMP.{1} AND ", whereStr, field.ColumnNameGK, GetDeliveryTableName(edgeType.TableName));
+					whereStr = String.Format("{0}({2}.{1}=#TEMP.{1} OR {2}.{1} IS NULL) AND ", whereStr, field.ColumnNameGK, GetDeliveryTableName(edgeType.TableName));
 					outputStr = String.Format("{0}INSERTED.{1},", outputStr, field.ColumnNameGK);
 				}
 			}
