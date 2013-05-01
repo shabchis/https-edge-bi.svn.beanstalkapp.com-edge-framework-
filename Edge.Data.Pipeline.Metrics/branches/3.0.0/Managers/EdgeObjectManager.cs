@@ -7,7 +7,6 @@ using System.Reflection;
 using Edge.Core.Utilities;
 using Edge.Data.Objects;
 using Edge.Data.Pipeline.Objects;
-using System.Configuration;
 
 namespace Edge.Data.Pipeline.Metrics.Managers
 {
