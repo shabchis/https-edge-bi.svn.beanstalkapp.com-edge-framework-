@@ -324,6 +324,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				using (var cmd = SqlUtility.CreateCommand(spName, CommandType.StoredProcedure))
 				{
 					cmd.Connection = _objectsSqlConnection;
+					cmd.CommandTimeout = 300;
 					cmd.Parameters.AddWithValue("@accoutId", delivery.Account.ID);
 					cmd.Parameters.AddWithValue("@deliveryTablePrefix", delivery.Parameters[Consts.DeliveryHistoryParameters.TablePerfix].ToString());
 					cmd.Parameters.AddWithValue("@identity1Timestamp", DateTime.Parse(delivery.Parameters[Consts.DeliveryHistoryParameters.TransformTimestamp].ToString()));
