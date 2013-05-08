@@ -1,0 +1,298 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{9BC787C7-C269-476B-A87C-E345E7DB9E23}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Edge.Data.Objects</RootNamespace>
+    <AssemblyName>Edge.Data.Objects</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Edge.Data.Objects.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Classes\Account.cs" />
+    <Compile Include="Classes\Ad.cs" />
+    <Compile Include="Classes\ChannelSpecificObject.cs" />
+    <Compile Include="Classes\CompositeCreative.cs" />
+    <Compile Include="Classes\CompositeCreativeDefinition.cs" />
+    <Compile Include="Classes\CompositeCreativeMatch.cs" />
+    <Compile Include="Classes\CompositePartField.cs" />
+    <Compile Include="Classes\EdgeTypeField.cs" />
+    <Compile Include="Classes\ExtraField.cs" />
+    <Compile Include="Classes\ObjectDimension.cs" />
+    <Compile Include="Classes\SingleCreativeDefinition.cs" />
+    <Compile Include="Classes\SingleCreativeMatch.cs" />
+    <Compile Include="Classes\SystemField.cs" />
+    <Compile Include="Classes\TargetField.cs" />
+    <Compile Include="Classes\TextCreativeDefinition.cs" />
+    <Compile Include="Classes\TextCreativeMatch.cs" />
+    <Compile Include="Classes\CreativeReference.cs" />
+    <Compile Include="Classes\ImageCreativeMatch.cs" />
+    <Compile Include="Classes\ImageCreativeDefinition.cs" />
+    <Compile Include="Classes\CreativeMatch.cs" />
+    <Compile Include="Classes\CreativeDefinition.cs" />
+    <Compile Include="Classes\EdgeField.cs" />
+    <Compile Include="Classes\TargetDefinition.cs" />
+    <Compile Include="Classes\EdgeObject.cs" />
+    <Compile Include="Classes\EdgeType.cs" />
+    <Compile Include="Classes\Campaign.cs" />
+    <Compile Include="Classes\Channel.cs" />
+    <Compile Include="Classes\Creative.cs" />
+    <Compile Include="Classes\ImageCreative.cs" />
+    <Compile Include="Classes\SingleCreative.cs" />
+    <Compile Include="Classes\TextCreative.cs" />
+    <Compile Include="Classes\Currency.cs" />
+    <Compile Include="Classes\LandingPage.cs" />
+    <Compile Include="Classes\Measure.cs" />
+    <Compile Include="Classes\StringValue.cs" />
+    <Compile Include="Classes\Target.cs" />
+    <Compile Include="Classes\TargetMatch.cs" />
+    <Compile Include="Classes\AgeTarget.cs" />
+    <Compile Include="Classes\GenderTarget.cs" />
+    <Compile Include="Classes\KeywordTarget.cs" />
+    <Compile Include="Classes\PlacementTarget.cs" />
+    <Compile Include="EdgeUtility.cs" />
+    <Compile Include="Flags.cs" />
+    <Compile Include="Mappings\Account.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Ad.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Channel.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\ChannelSpecificObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\CompositeCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\CompositePartField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Creative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\EdgeField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\EdgeObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\EdgeType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\EdgeTypeField.cs" />
+    <Compile Include="Mappings\ExtraField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\GenderTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\ImageCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\KeywordTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Measure.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\PlacementTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\SingleCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\StringValue.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\Target.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\TargetDefinition.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\TargetMatch.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Mappings\TextCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Account.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Ad.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\AgeTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Campaign.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Channel.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ChannelSpecificObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\CompositeCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\CompositeCreativeDefinition.cs" />
+    <Compile Include="Model\CompositeCreativeMatch.cs" />
+    <Compile Include="Model\CompositePartField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeTypeField.cs" />
+    <Compile Include="Model\Creative.cs" />
+    <Compile Include="Model\CreativeDefinition.cs" />
+    <Compile Include="Model\CreativeMatch.cs" />
+    <Compile Include="Model\CreativeReference.cs" />
+    <Compile Include="Model\Currency.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\CurrencyRate.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\EdgeType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ExtraField.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\GenderTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ImageCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\ImageCreativeDefinition.cs" />
+    <Compile Include="Model\ImageCreativeMatch.cs" />
+    <Compile Include="Model\KeywordTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\LandingPage.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\Measure.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\PlacementTarget.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\SingleCreative.cs" />
+    <Compile Include="Model\SingleCreativeDefinition.cs" />
+    <Compile Include="Model\SingleCreativeMatch.cs" />
+    <Compile Include="Model\StringValue.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\SystemField.cs" />
+    <Compile Include="Model\Target.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TargetDefinition.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TargetField.cs" />
+    <Compile Include="Model\TargetMatch.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TextCreative.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model\TextCreativeDefinition.cs" />
+    <Compile Include="Model\TextCreativeMatch.cs" />
+    <None Include="Edge.Data.Objects.snk" />
+    <None Include="Properties\AssemblyInfo.cs.template" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Eggplant.Entities\trunk\Eggplant.Entities.csproj">
+      <Project>{AD4B53AD-B28A-4E90-9483-E2F7C8E6D436}</Project>
+      <Name>Eggplant.Entities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Mappings\Account.sql">
+      <DependentUpon>Account.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Mappings\Channel.sql">
+      <DependentUpon>Channel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mappings\EdgeType.sql">
+      <DependentUpon>EdgeType.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mappings\EdgeObject.sql">
+      <DependentUpon>EdgeObject.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mappings\Measure.sql">
+      <DependentUpon>Measure.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Mappings\EdgeField.sql">
+      <DependentUpon>EdgeField.cs</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+  <Target Name="BeforeCompile">
+    <SvnVersion LocalPath=".">
+      <Output TaskParameter="Revision" PropertyName="SvnRevision" />
+    </SvnVersion>
+    <FormatVersion Version="3.0.0.%2a" Revision="$(SvnRevision)">
+      <Output TaskParameter="OutputVersion" PropertyName="ApplicationVersion" />
+    </FormatVersion>
+  </Target>
+  <PropertyGroup>
+    <PreBuildEvent>subwcrev.exe "$(ProjectDir)." "$(ProjectDir)Properties\AssemblyInfo.cs.template" "$(ProjectDir)Properties\AssemblyInfo.cs"</PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>
