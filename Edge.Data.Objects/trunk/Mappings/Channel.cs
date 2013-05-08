@@ -32,7 +32,7 @@ namespace Edge.Data.Objects
 				.RootSubquery(EdgeUtility.GetSql<Channel>("Get"), init => init
 					.PersistenceParam("@channelID", fromQueryParam: "channelID")
 				)
-				.Input<int>("channelID", required: false, defaultValue: -1)
+				.Param<int>("channelID", required: false, defaultValue: -1)
 			;
 		}
 
@@ -46,7 +46,7 @@ namespace Edge.Data.Objects
 		public static Channel Get(int channelID, PersistenceConnection connection = null)
 		{
 			var results = Queries.Get.Start()
-				.Input<int>("channelID", channelID)
+				.Param<int>("channelID", channelID)
 				.Connect(connection)
 				.Execute();
 

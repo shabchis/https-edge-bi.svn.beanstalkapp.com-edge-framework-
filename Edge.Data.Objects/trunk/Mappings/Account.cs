@@ -5,8 +5,6 @@ using System.Text;
 using Eggplant.Entities.Persistence;
 using Eggplant.Entities.Queries;
 using Eggplant.Entities.Model;
-using Eggplant.Entities.Persistence.SqlServer;
-using System.Data.SqlClient;
 
 namespace Edge.Data.Objects
 {
@@ -35,31 +33,24 @@ namespace Edge.Data.Objects
 		public static class Queries
 		{
 			public static QueryTemplate<Account> Get = EdgeUtility.EntitySpace.CreateQueryTemplate<Account>(Mappings.Default)
-				.Input<int>("accountID", required: false)
 				.RootSubquery(EdgeUtility.GetSql<Account>("Get"), init => init
-					.ParamFromInput("@accountID", "accountID")
+					.PersistenceParam("@accountID", fromQueryParam: "accountID")
 				)
+				.Param<int>("accountID", required: false)
 			;
 
 			public static QueryTemplate<Nothing> Save = EdgeUtility.EntitySpace.CreateQueryTemplate<Nothing>()
-				.Input<Account>("account", required: true)
 				.RootSubquery(EdgeUtility.GetSql<Account>("Save"), init => init
-					.ParamsFromMappedInput(Account.Mappings.Default, "account")
+					.PersistenceParamMap(Account.Mappings.Default, fromQueryParam: "account")
 				)
-			;
-
-			public static QueryTemplate<Nothing> SaveBulk = EdgeUtility.EntitySpace.CreateQueryTemplate<Nothing>()
-				.Input<Account>("account", required: true)
-				.RootSubquery(new SqlBulkAction("Account", 20), init => init
-					.ParamsFromMappedInput(Account.Mappings.Default, "account")
-				)
+				.Param<Account>("account", required: true)
 			;
 		}
 
 		public static IEnumerable<Account> Get(int accountID = -1, bool flat = false, PersistenceConnection connection = null)
 		{
 			var results = Queries.Get.Start()
-				.Input<int>("accountID", accountID)
+				.Param<int>("accountID", accountID)
 				.Connect(connection)
 				.Execute();
 
@@ -72,7 +63,7 @@ namespace Edge.Data.Objects
 		public static void Save(Account account, PersistenceConnection connection = null)
 		{
 			Queries.Save.Start()
-				.Input<Account>("account", account)
+				.Param<Account>("account", account)
 				.Connect(connection)
 				.Execute();
 		}
@@ -80,7 +71,7 @@ namespace Edge.Data.Objects
 		public static void Save(IEnumerable<Account> accounts, PersistenceConnection connection = null)
 		{
 			Queries.Save.Start()
-				.Input<Account>("account", accounts)
+				.Batch<Account>(accounts, "account")
 				.Connect(connection)
 				.Execute();
 		}
