@@ -61,6 +61,10 @@ namespace Edge.Data.Objects
 				.Map<string>(EdgeType.Properties.Name, "Name")
 				.Map<List<EdgeTypeField>>(EdgeType.Properties.Fields, fields => fields
 					.Subquery<EdgeTypeField>("EdgeTypeFields", subquery => subquery
+						
+						.WhenOutbound(outbound => outbound
+							.Enumerate(context => fields.FromContext(context))
+						)
 
 						.Map<EdgeField>(EdgeTypeField.Properties.Field, field => field
 							.UseMapping(EdgeField.Mappings.Default)
@@ -76,9 +80,33 @@ namespace Edge.Data.Objects
 							.Do(context => context.GetVariable<EdgeType>("parent").Fields.Add(context.MappedValue))
 						)
 
-						.WhenOutbound(outbound => outbound
-							.Enumerate(context => fields.FromContext(context).AsEnumerable())
-						)
+						
+					)
+				)
+				.Map<List<EdgeTypeField>>(EdgeType.Properties.Fields, fields => fields
+
+					.Subquery<EdgeTypeField, EdgeType>("EdgeTypeFields",
+						list => list.AsEnumerable(),
+
+						subquery => subquery
+							.Parent<EdgeType>(edgeType, parent => parent
+								.Map<EdgeType>("parent", parent => parent
+									.Identity(EdgeType.Identities.Default)
+									.Map<int>(EdgeType.Properties.TypeID, "ParentTypeID")
+								)
+							)
+
+							.Map<EdgeField>(EdgeTypeField.Properties.Field, field => field
+								.UseMapping(EdgeField.Mappings.Default)
+							)
+							.Map<string>(EdgeTypeField.Properties.ColumnName, "ColumnName")
+							.Map<bool>(EdgeTypeField.Properties.IsIdentity, "IsIdentity")
+
+							.WhenInbound(inbound => inbound
+								.Do(context => fields.FromContext(context).Add(context.MappedValue))
+							)
+
+
 					)
 				)
 				.MapSubquery<List<EdgeTypeField>, EdgeTypeField>(EdgeType.Properties.Fields, "EdgeTypeFields", fields => fields

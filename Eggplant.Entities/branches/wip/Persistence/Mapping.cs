@@ -30,7 +30,7 @@ namespace Eggplant.Entities.Persistence
 		public IdentityDefinition CacheIdentity { get; set; }
 		public MappingDirection Direction { get; set; }
 
-		private MappingDirection _inlineDirection = MappingDirection.Both;
+		private MappingDirection _shorthandDirection = MappingDirection.Inbound | MappingDirection.Outbound;
 
 		// ===================================
 		// General
@@ -45,10 +45,10 @@ namespace Eggplant.Entities.Persistence
 		/// </summary>
 		public Mapping<T> WhenInbound(Action<Mapping<T>> inboundOnlyMappings)
 		{
-			MappingDirection prev = _inlineDirection;
-			_inlineDirection = MappingDirection.Inbound;
+			MappingDirection prev = _shorthandDirection;
+			_shorthandDirection = MappingDirection.Inbound;
 			inboundOnlyMappings(this);
-			_inlineDirection = prev;
+			_shorthandDirection = prev;
 			return this;
 		}
 
@@ -57,10 +57,10 @@ namespace Eggplant.Entities.Persistence
 		/// </summary>
 		public Mapping<T> WhenOutbound(Action<Mapping<T>> outboundOnlyMappings)
 		{
-			MappingDirection prev = _inlineDirection;
-			_inlineDirection = MappingDirection.Outbound;
+			MappingDirection prev = _shorthandDirection;
+			_shorthandDirection = MappingDirection.Outbound;
 			outboundOnlyMappings(this);
-			_inlineDirection = prev;
+			_shorthandDirection = prev;
 			return this;
 		}
 
@@ -90,7 +90,7 @@ namespace Eggplant.Entities.Persistence
 
 		public Mapping<T> Do(Action<MappingContext<T>> function)
 		{
-			this.SubMappings.Add(new FunctionMapping<T>(this) { Direction = _inlineDirection, Function = function });
+			this.SubMappings.Add(new FunctionMapping<T>(this) { Direction = _shorthandDirection, Function = function });
 			return this;
 		}
 
@@ -138,7 +138,7 @@ namespace Eggplant.Entities.Persistence
 
 		public Mapping<T> Map<V>(string variable, Action<VariableMapping<V>> init)
 		{
-			var submapping = new VariableMapping<V>(this) {Direction = _inlineDirection, Variable = variable };
+			var submapping = new VariableMapping<V>(this) {Direction = _shorthandDirection, Variable = variable };
 			this.SubMappings.Add(submapping);
 			init(submapping);
 			return this;
@@ -163,7 +163,7 @@ namespace Eggplant.Entities.Persistence
 
 		public Mapping<T> Map<V>(IEntityProperty<V> property, Action<PropertyMapping<V>> init)
 		{
-			var submapping = new PropertyMapping<V>(this) { Direction = _inlineDirection, Property = property };
+			var submapping = new PropertyMapping<V>(this) { Direction = _shorthandDirection, Property = property };
 			this.SubMappings.Add(submapping);
 			init(submapping);
 			return this;
@@ -186,7 +186,7 @@ namespace Eggplant.Entities.Persistence
 
 		public Mapping<T> Subquery<V>(string subqueryName, Action<SubqueryMapping<V>> init)
 		{
-			var submapping = new SubqueryMapping<V>(this) { Direction = _inlineDirection, SubqueryName = subqueryName };
+			var submapping = new SubqueryMapping<V>(this) { Direction = _shorthandDirection, SubqueryName = subqueryName };
 			this.SubMappings.Add(submapping);
 			init(submapping);
 
@@ -277,17 +277,12 @@ namespace Eggplant.Entities.Persistence
 			var context = (MappingContext<T>) c;
 
 			// .......................
-			// GET ALL MAPPINGS
-			
-			List<IMapping> mappingsToApply = null;
+			// GET ALL MAPPINGS FOR CURRENT DIRECTION
 
-			foreach (IMapping mapping in ((IMapping)this).GetAllMappings(includeBase: true))
-			{
-				if (mappingsToApply == null)
-					mappingsToApply = new List<IMapping>();
-
-				mappingsToApply.Add(mapping);
-			}
+			List<IMapping> mappingsToApply = ((IMapping)this)
+				.GetAllMappings(includeBase: true)
+				.Where(mapping => mapping.Direction == c.Direction)				
+				.ToList();
 
 			// .......................
 			// APPLY CHILD MAPPINGS

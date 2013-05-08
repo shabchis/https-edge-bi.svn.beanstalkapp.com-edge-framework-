@@ -15,7 +15,6 @@ namespace Eggplant.Entities.Queries
 		
 		public EntitySpace EntitySpace { get; internal set; }
 		public abstract PersistenceConnection Connection { get; internal set; }
-		public MappingContext MappingContext { get; protected set; }
 		
 		public virtual List<IEntityProperty> SelectList { get; private set; }
 		public virtual List<SortingDefinition> SortingList { get; private set; }

@@ -16,8 +16,9 @@ namespace Eggplant.Entities.Persistence
 		IMapping BaseMapping { get; }
 		IMapping ParentMapping { get; }
 		IList<IMapping> SubMappings { get; }
+		MappingDirection Direction { get; }
 
-		MappingContext CreateContext(MappingContext baseContext);
+		MappingContext CreateContext(MappingContext parentContext);
 		MappingContext CreateContext(PersistenceAdapter adapter, Subquery subquery, MappingDirection direction);
 
 		void Apply(MappingContext context);

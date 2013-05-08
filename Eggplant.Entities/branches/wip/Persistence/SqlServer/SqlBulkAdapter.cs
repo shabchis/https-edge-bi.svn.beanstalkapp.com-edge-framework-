@@ -37,54 +37,62 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			get { throw new NotImplementedException(); }
 		}
 
-		public override bool HasField(string field)
+		public override void Begin()
 		{
 			throw new NotImplementedException();
 		}
 
-		public override object GetField(string field)
+		public override void End()
 		{
 			throw new NotImplementedException();
 		}
 
-		public override void SetField(string field, object value)
+		public override bool HasOutboundField(string field)
 		{
 			throw new NotImplementedException();
 		}
 
-		public override bool HasParam(string param)
+		public override object GetOutboundField(string field)
 		{
 			throw new NotImplementedException();
 		}
 
-		public override object GetParam(string param)
+		public override void SetOutboundField(string field, object value)
 		{
 			throw new NotImplementedException();
 		}
 
-		public override void SetParam(string param, object value)
+		public override void NewOutboundRow()
 		{
 			throw new NotImplementedException();
 		}
 
-		public override void ExecuteAction()
-		{
-			// TODO: only execute if Flush should be called now
-
-			throw new NotImplementedException();
-		}
-
-		public override bool NextResultSet()
+		public override bool SubmitOutboundRow()
 		{
 			throw new NotImplementedException();
 		}
 
-		public override bool NextResult()
+		public override bool NextInboundSet()
 		{
 			throw new NotImplementedException();
 		}
 
-		public override void Dispose()
+		public override bool NextInboundRow()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override int InboundSetIndex
+		{
+			get { throw new NotImplementedException(); }
+		}
+
+		public override bool HasInboundField(string field)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override object GetInboundField(string field)
 		{
 			throw new NotImplementedException();
 		}

@@ -75,13 +75,6 @@ namespace Eggplant.Entities.Queries
 			}
 		}
 
-		public new MappingContext<T> MappingContext
-		{
-			get { return (MappingContext<T>)base.MappingContext; }
-			protected set { base.MappingContext = value; }
-		}
-
-
 		public new Query<T> Select(params IEntityProperty[] properties)
 		{
 			return (Query<T>) base.Select(properties);
@@ -133,7 +126,7 @@ namespace Eggplant.Entities.Queries
 				if (!subquery.IsPrepared)
 					subquery.Prepare();
 
-				if ((subquery.Template.IsStandalone || !subquery.PersistenceAction.IsAppendable) && !subquery.Template.IsRoot)
+				if (!subquery.Template.IsRoot && !subquery.PersistenceAction.IsAppendable)
 				{
 					// Standalone subquery, use its prepared action as-is
 					this.PersistenceActions.Add(subquery.PersistenceAction);
@@ -169,6 +162,13 @@ namespace Eggplant.Entities.Queries
 			this.Connection = connection;
 
 			return this;
+		}
+
+		class SubqueryExecutionData
+		{
+			public MappingContext OutboundContext;
+			public MappingContext InboundContext;
+			public IEnumerator OutboundEnumerator;
 		}
 
 		public IEnumerable<T> Execute()
@@ -209,7 +209,7 @@ namespace Eggplant.Entities.Queries
 						if (adapter != null)
 							adapter.End();
 
-						adapters[action] = adapter = action.GetAdapter();
+						adapters[action] = adapter = action.GetAdapter(this.Connection);
 					}
 
 					// Find associated subqueries and order them by inbound set index
@@ -222,50 +222,73 @@ namespace Eggplant.Entities.Queries
 					//        before(subquery);
 					//}
 
+					var executionDataCache = new Dictionary<Subquery, SubqueryExecutionData>();
+
 					// Begin processing
 					adapter.Begin();
 
 					bool done = false;
 					while (!done)
 					{
-						adapter.BeginOutboundRow();
+						adapter.NewOutboundRow();
 
 						// Each subquery associated with this action must map its outbound fields
 						foreach (Subquery subquery in subqueries)
 						{
-							// Map the fields and indicate wheter we are done sending outbound rows
-							done &= subquery.MapOutboundRow(outboundContext);
+							SubqueryExecutionData executionData;
+							if (!executionDataCache.TryGetValue(subquery, out executionData))
+							{
+								executionData.OutboundEnumerator = subquery.Mapping.GetEnumerator();
+								executionData.OutboundContext = subquery.Mapping.CreateContext(adapter, subquery, MappingDirection.Outbound);
+								executionDataCache.Add(subquery, executionData);
+							}
+
+							if (executionData.OutboundEnumerator != null)
+							{
+								// Map the fields and indicate wheter we are done sending outbound rows
+								subquery.Mapping.Apply(executionData.OutboundContext);
+								executionData.OutboundContext.Reset();
+
+								// Advance the outbound enumerator, if there is nothing else to output mark remove it
+								executionData.OutboundEnumerator = executionData.OutboundEnumerator.MoveNext() ? executionData.OutboundEnumerator : null;
+							}
+
+							// Not enumerator means nothing to output means we finished
+							done &= executionData.OutboundEnumerator == null;
 						}
-						
+
 						// Submit the entire row
-						adapter.EndOutboundRow();
+						bool hasResults = adapter.SubmitOutboundRow();
 
 						// Not every outbound row will result in inbound rows, but when it does, iterate them
-						while (adapter.NextInboundSet())
+						if (hasResults)
 						{
-							Subquery subquery = subqueries[adapter.InboundSetIndex];
-							MappingContext inboundContext = subquery.Mapping.CreateContext(adapter, subquery, MappingDirection.Inbound);
-
-							// Process each row as it comes in
-							while (adapter.NextInboundRow())
+							while (adapter.NextInboundSet())
 							{
-								subquery.Mapping.Apply(inboundContext);
-								var result = (T)inboundContext.MappedValue;
+								Subquery subquery = subqueries[adapter.InboundSetIndex];
+								MappingContext inboundContext = subquery.Mapping.CreateContext(adapter, subquery, MappingDirection.Inbound);
 
-								// Inbound rows on the root query need to be transformed into results
-								if (subquery.Template.IsRoot)
+								// Process each row as it comes in
+								while (adapter.NextInboundRow())
 								{
-									// Yield results with no buffering only if this is the root subquery and it is the last to be executed
-									if (adapter.InboundSetIndex == subqueries.Length - 1 && action == this.PersistenceActions[this.PersistenceActions.Count - 1])
+									subquery.Mapping.Apply(inboundContext);
+									var result = (T)inboundContext.MappedValue;
+
+									// Inbound rows on the root query need to be transformed into results
+									if (subquery.Template.IsRoot)
 									{
-										yield return result;
+										// Yield results with no buffering only if this is the root subquery and it is the last to be executed
+										if (adapter.InboundSetIndex == subqueries.Length - 1 && action == this.PersistenceActions[this.PersistenceActions.Count - 1])
+										{
+											yield return result;
+										}
+										else
+										{
+											buffer.Add((T)inboundContext.MappedValue);
+										}
 									}
-									else
-									{
-										buffer.Add((T)inboundContext.MappedValue);
-									}
+									inboundContext.Reset();
 								}
-								inboundContext.Reset();
 							}
 						}
 					}

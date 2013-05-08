@@ -25,7 +25,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 
 		public override bool IsAppendable
 		{
-			get { return false; }
+			get { return true; }
 		}
 
 		protected override void OnAppend(PersistenceAction action)
@@ -46,9 +46,9 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			return new SqlCommandAction(this.CommandText, this.CommandType);
 		}
 
-		public override PersistenceAdapter GetAdapter()
+		public override PersistenceAdapter GetAdapter(PersistenceConnection connection)
 		{
-			return new SqlCommandAdapter(this);
+			return new SqlCommandAdapter((SqlPersistenceConnection)connection, this);
 		}
 	}
 }

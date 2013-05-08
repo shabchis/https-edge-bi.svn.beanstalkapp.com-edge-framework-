@@ -56,9 +56,19 @@ namespace Eggplant.Entities.Persistence
 				null;
 		}
 
+		private void ValidateState()
+		{
+			if (this.Direction != MappingDirection.Inbound && this.Direction != MappingDirection.Outbound)
+				throw new InvalidOperationException("MappingContext.Direction must be either inbound or outbound. It is set to something unrecognized.");
+		}
+
 		public bool HasField(string field)
 		{
-			return this.Adapter.HasField(field);
+			ValidateState();
+
+			return this.Direction == MappingDirection.Inbound ?
+				this.Adapter.HasInboundField(field) :
+				this.Adapter.HasOutboundField(field);
 		}
 
 		public object GetField(string field)
@@ -66,22 +76,38 @@ namespace Eggplant.Entities.Persistence
 			return this.GetField<object>(field);
 		}
 
-		public V GetField<V>(string field, Func<object, V> convertIn = null)
+		public V GetField<V>(string field, Func<object, V> convert = null)
 		{
-			object val = this.Adapter.GetField(field);
-			if (convertIn == null)
-				return (V)val;
+			ValidateState();
+
+			object rawVal = this.Direction == MappingDirection.Inbound?
+				this.Adapter.GetInboundField(field) :
+				this.Adapter.GetOutboundField(field)
+			;
+
+			V convertedVal;
+			if (convert == null)
+				convertedVal = (V)rawVal;
 			else
-				return convertIn(val);
+				convertedVal = convert(rawVal);
+
+			return convertedVal;
 		}
 		
 		public void SetField(string field, object value)
 		{
 			this.SetField<object>(field, value);
 		}
-		public void SetField<V>(string field, V value, Func<V, object> convertOut = null)
+		public void SetField<V>(string field, V value, Func<V, object> convert = null)
 		{
-			this.Adapter.SetField(field, convertOut == null ? value : convertOut(value));
+			ValidateState();
+
+			object convertedValue = convert == null ? (object)value : convert(value);
+
+			if (this.Direction == MappingDirection.Inbound)
+				throw new InvalidOperationException("Setting an inbound field is not a valid operation. It doesn't make sense anyway.");
+			else
+				this.Adapter.SetOutboundField(field, convertedValue);
 		}
 
 		public void SetVariable(string variable, object value)
