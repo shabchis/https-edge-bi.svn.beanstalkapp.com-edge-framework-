@@ -12,8 +12,9 @@ namespace Eggplant.Entities.Queries
 {
 	public class SubqueryTemplate: QueryTemplateBase
 	{
-		public bool IsBatched { get; set; }
-		public bool IsStandalone { get; set; }
+		//public bool IsBatched { get; set; }
+		//public bool IsAppendable { get; set; }
+		public bool IsDeferred { get; set; }
 		public QueryTemplate Template { get; internal set; }
 		public string Name { get; set; }
 		public PersistenceAction PersistenceAction { get; set; }
@@ -29,12 +30,6 @@ namespace Eggplant.Entities.Queries
 		public bool IsRoot
 		{
 			get { return this.Template.RootSubqueryTemplate == this; }
-		}
-
-		public SubqueryTemplate SetStandalone(bool standalone)
-		{
-			this.IsStandalone = standalone;
-			return this;
 		}
 
 		public SubqueryTemplate Param(string paramName, object defaultValue = null, MappingDirection direction = MappingDirection.Outbound, PersistenceParameterOptions options = null)

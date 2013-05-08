@@ -29,15 +29,15 @@ namespace Eggplant.Entities.Persistence
 		public abstract bool HasOutboundField(string field);
 		public abstract object GetOutboundField(string field);
 		public abstract void SetOutboundField(string field, object value);
-		public abstract void BeginOutboundRow();
-		public abstract void EndOutboundRow();
+		public abstract void NewOutboundRow();
+		public abstract bool SubmitOutboundRow();
 
 		public abstract bool NextInboundSet();
 		public abstract bool NextInboundRow();
 		public abstract int InboundSetIndex { get; }
 		public abstract bool HasInboundField(string field);
 		public abstract object GetInboundField(string field);
-		public abstract void SetInboundField(string field, object value);
+		//public abstract void SetInboundField(string field, object value);
 
 		#region IDisposable Members
 

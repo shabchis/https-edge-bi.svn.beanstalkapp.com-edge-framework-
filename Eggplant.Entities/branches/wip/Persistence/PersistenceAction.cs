@@ -37,6 +37,6 @@ namespace Eggplant.Entities.Persistence
 		/// <summary>
 		/// Gets an adapter that can be used to execute and interact with the results of this action.
 		/// </summary>
-		public abstract PersistenceAdapter GetAdapter();
+		public abstract PersistenceAdapter GetAdapter(PersistenceConnection connection);
 	}
 }

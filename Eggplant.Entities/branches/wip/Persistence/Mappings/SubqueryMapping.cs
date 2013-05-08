@@ -20,7 +20,6 @@ namespace Eggplant.Entities.Persistence
 			return String.Format("subquery \"{0}\" ({1})", this.SubqueryName, typeof(T).Name);
 		}
 
-
 		#region Sugar
 		// =========================
 		public new SubqueryMapping<T> Inherit(IMapping baseMapping)

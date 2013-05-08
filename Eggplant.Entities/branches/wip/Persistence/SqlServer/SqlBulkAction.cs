@@ -34,9 +34,9 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			return new SqlBulkAction(this.TableName, this.BatchSize, this.BulkCopyOptions);
 		}
 
-		public override PersistenceAdapter GetAdapter()
+		public override PersistenceAdapter GetAdapter(PersistenceConnection connection)
 		{
-			return new SqlBulkAdapter(null, this);
+			return new SqlBulkAdapter((SqlPersistenceConnection)connection, this);
 		}
 	}
 }

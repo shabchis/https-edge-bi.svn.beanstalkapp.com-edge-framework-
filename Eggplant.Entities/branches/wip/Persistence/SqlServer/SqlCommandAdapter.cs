@@ -12,7 +12,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 		public SqlCommand Command { get; private set; }
 		public SqlDataReader Reader { get; private set; }
 
-		public SqlCommandAdapter(SqlCommandAction action) : base(action)
+		public SqlCommandAdapter(SqlPersistenceConnection connection, SqlCommandAction action) : base(connection, action)
 		{
 			this.Command = new SqlCommand(action.CommandText);
 			this.Command.CommandType = action.CommandType;
@@ -48,11 +48,8 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			get { return (SqlPersistenceConnection)base.Connection; }
 		}
 
-		public override bool IsReusable
-		{
-			get { return true; }
-		}
-
+		/*
+		
 		public override bool HasField(string field)
 		{
 			for (int i = 0; i < this.Reader.FieldCount; i++)
@@ -122,6 +119,86 @@ namespace Eggplant.Entities.Persistence.SqlServer
 				this.Command.Parameters[param.Name].Value = param.Value;
 
 			this.Reader = this.Command.ExecuteReader();
+		}
+		*/
+
+		public override bool IsReusable
+		{
+			get { return true; }
+		}
+
+		public override void Begin()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override void End()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override bool HasOutboundField(string field)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override object GetOutboundField(string field)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override void SetOutboundField(string field, object value)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override void NewOutboundRow()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override bool SubmitOutboundRow()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override bool NextInboundSet()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override bool NextInboundRow()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override int InboundSetIndex
+		{
+			get { throw new NotImplementedException(); }
+		}
+
+		public override bool HasInboundField(string field)
+		{
+			for (int i = 0; i < this.Reader.FieldCount; i++)
+				if (this.Reader.GetName(i) == field)
+					return true;
+
+			return false;
+		}
+
+		public override object GetInboundField(string field)
+		{
+			try
+			{
+				object val = this.Reader[field];
+				if (val is DBNull)
+					val = null;
+				return val;
+			}
+			catch (IndexOutOfRangeException ex)
+			{
+				throw new MappingException(String.Format("Field '{0}' not preset in the SQL results.", field), ex);
+			}
 		}
 	}
 }

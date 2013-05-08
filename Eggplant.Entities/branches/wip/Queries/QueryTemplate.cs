@@ -37,28 +37,27 @@ namespace Eggplant.Entities.Queries
 			return new Query<T>(this);
 		}
 
-		public QueryTemplate<T> RootSubquery(PersistenceAction action, Action<SubqueryTemplate> inner = null, bool standalone = false)
+		public QueryTemplate<T> RootSubquery(PersistenceAction action, Action<SubqueryTemplate> inner = null)
 		{
-			SubqueryTemplate root = SubqueryInit(null, action, inner, true, standalone);
+			SubqueryTemplate root = SubqueryInit(null, action, inner, true);
 			this.RootSubqueryTemplate = root;
 			return this;
 		}
 
-		public QueryTemplate<T> Subquery(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner = null, bool batched = false, bool standalone = false)
+		public QueryTemplate<T> Subquery(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner = null, bool deferred = false)
 		{
-			SubqueryInit(subqueryName, action, inner, batched, standalone);
+			SubqueryInit(subqueryName, action, inner, deferred);
 			return this;
 		}
 
-		private SubqueryTemplate SubqueryInit(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner, bool batched, bool standalone)
+		private SubqueryTemplate SubqueryInit(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner, bool deferred)
 		{
 			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{
 				Name = subqueryName,
 				PersistenceAction = action,
 				Template = this,
-				IsBatched = batched,
-				IsStandalone = standalone
+				IsDeferred = deferred
 			};
 
 			if (this.SubqueryTemplates.Any(p => p.Name == subqueryName))
