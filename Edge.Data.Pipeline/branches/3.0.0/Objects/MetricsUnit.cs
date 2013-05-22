@@ -13,7 +13,7 @@ namespace Edge.Data.Pipeline.Objects
 
 		public Channel Channel;
 		public Account Account;
-		public Currency Currency;
+		public EdgeCurrency Currency;
 
 		// contains Ad, Targets and other extra fields
 		public Dictionary<EdgeField, object> Dimensions; 
