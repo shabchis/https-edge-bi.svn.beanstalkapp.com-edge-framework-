@@ -69,7 +69,14 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				//	EdgeFields.Add(field.Field);
 				//}
 			}
+			// Load mapping configuration
+			AddExternalMethods();
+			
+			Mappings.Compile();
+		}
 
+		protected virtual void AddExternalMethods()
+		{
 			// Load mapping configuration
 			Mappings.ExternalMethods.Add("GetChannel", new Func<dynamic, Channel>(GetChannel));
 			Mappings.ExternalMethods.Add("GetCurrentChannel", new Func<Channel>(GetCurrentChannel));
@@ -85,8 +92,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetObjectByEdgeTypeAndEdgeField", new Func<dynamic, dynamic, EdgeObject>(GetObjectByEdgeTypeAndEdgeField));
 			Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
-			
-			Mappings.Compile();
 		}
 		#endregion
 
