@@ -5,13 +5,13 @@ using Eggplant.Entities.Model;
 
 namespace Edge.Data.Objects
 {
-	public partial class Currency
+	public partial class EdgeCurrency
 	{
-		public static EntityDefinition<Currency> Definition = new EntityDefinition<Currency>(fromReflection: true);
+		public static EntityDefinition<EdgeCurrency> Definition = new EntityDefinition<EdgeCurrency>(fromReflection: true);
 
 		public static class Properties
 		{
-			public static EntityProperty<Currency, string> Code = new EntityProperty<Currency, string>("Code");
+			public static EntityProperty<EdgeCurrency, string> Code = new EntityProperty<EdgeCurrency, string>("Code");
 		}
 	}
 }
