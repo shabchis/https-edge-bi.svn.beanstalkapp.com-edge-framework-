@@ -12,6 +12,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 	/// </summary>
 	public static class EdgeViewer
 	{
+		#region Public Methods
 		/// <summary>
 		/// Per each type combine flat SELECT fields by real names in Metrics 
 		/// </summary>
@@ -77,7 +78,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 			var edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(accountId, connection);
 			var sql = String.Format("SELECT EdgeFieldName, ParentFieldName, EdgeTypeID, MeasureName FROM [EdgeDeliveries].[dbo].[MD_MetricsMetadata] WHERE TABLENAME='{0}'", tableName);
-			
+
 			using (var cmd = new SqlCommand(sql, connection))
 			{
 				using (var reader = cmd.ExecuteReader())
@@ -88,8 +89,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 						if (!String.IsNullOrEmpty(reader["EdgeFieldName"].ToString()))
 						{
 							var edgeType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["EdgeTypeID"].ToString()));
-							if (edgeType == null) continue; 
-							
+							if (edgeType == null) continue;
+
 							var fieldName = reader["EdgeFieldName"].ToString().Replace("_gk", "");
 							var parentFieldName = reader["ParentFieldName"].ToString().Replace("_gk", "");
 
@@ -97,7 +98,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							fromStr = String.Format("{0}\tINNER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n",
 														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName);
 						}
-							// add measure fields
+						// add measure fields
 						else if (!String.IsNullOrEmpty(reader["MeasureName"].ToString()))
 						{
 							selectStr = String.Format("{0}\tMetrics.{1},\n", selectStr, reader["MeasureName"]);
@@ -106,14 +107,95 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				}
 			}
 			// combine select
-			return selectStr.Length == 0  ?
+			return selectStr.Length == 0 ?
 					"No data relevant data in MD_MetricsMetadata" :
 					String.Format("SELECT\n{0}\nFROM\n{1}", selectStr.Remove(selectStr.Length - 2, 2), fromStr);
 		}
-		
+
+		/// <summary>
+		/// Perfrom metrics staging: insert all metrics table data into staging table
+		/// </summary>
+		/// <param name="accountId"></param>
+		/// <param name="deliveryTableName"></param>
+		/// <param name="stagingTableName"></param>
+		/// <param name="connection"></param>
+		public static string StageMetrics(int accountId, string deliveryTableName, string stagingTableName, SqlConnection connection)
+		{
+			var selectStr = String.Empty;
+			var insertStr = String.Empty;
+			var fromStr = String.Format("\t[EdgeDeliveries].{0} AS Metrics\n", deliveryTableName);
+			var tablePrefix = deliveryTableName.ToLower().Replace("_metrics]", "").Replace("[dbo].[", "");
+
+			if (!stagingTableName.ToLower().Contains("edgeetaging"))
+				stagingTableName = String.Format("[EdgeStaging].{0}", stagingTableName);
+
+			var edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(accountId, connection);
+
+			// System Fields (e.g. Account, Channel, time, etc.)
+			using (var cmd = new SqlCommand("SELECT SystemField FROM [EdgeStaging].[dbo].[SystemFields]", connection))
+			{
+				using (var reader = cmd.ExecuteReader())
+				{
+					while (reader.Read())
+					{
+						selectStr = String.Format("{0}\tMetrics.{1},\n", selectStr, reader["SystemField"]);
+						insertStr = String.Format("{0}\t{1},\n", insertStr, reader["SystemField"]);
+					}
+				}
+			}
+
+			// metrics fields (according to metrics metadata table) 
+			var sql = String.Format("SELECT EdgeFieldName, ParentFieldName, EdgeTypeID, MeasureName FROM [EdgeDeliveries].[dbo].[MD_MetricsMetadata] WHERE TABLENAME='{0}'", deliveryTableName);
+			using (var cmd = new SqlCommand(sql, connection))
+			{
+				using (var reader = cmd.ExecuteReader())
+				{
+					while (reader.Read())
+					{
+						// add dimension field (JOIN according TK to find GK and WHERE by type ID)
+						if (!String.IsNullOrEmpty(reader["EdgeFieldName"].ToString()))
+						{
+							var edgeType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == int.Parse(reader["EdgeTypeID"].ToString()));
+							if (edgeType == null) continue;
+
+							var fieldName = reader["EdgeFieldName"].ToString().Replace("_gk", "");
+							var parentFieldName = reader["ParentFieldName"].ToString().Replace("_gk", "");
+
+							selectStr = String.Format("{0}\t{1}.GK AS {1}_gk,\n", selectStr, fieldName);
+							insertStr = String.Format("{0}\t{1}_gk,\n", insertStr, fieldName);
+							fromStr = String.Format("{0}\tINNER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n",
+														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName);
+						}
+						// add measure fields
+						else if (!String.IsNullOrEmpty(reader["MeasureName"].ToString()))
+						{
+							selectStr = String.Format("{0}\tMetrics.{1},\n", selectStr, reader["MeasureName"]);
+							insertStr = String.Format("{0}\t{1},\n", insertStr, reader["MeasureName"]);
+						}
+					}
+				}
+			}
+
+			// perform staging (insert metrics table data into staging table)
+			sql = String.Format("INSERT INTO {0} ({1})\nSELECT {2}\nFROM {3}",
+								stagingTableName,
+								insertStr.TrimEnd(new[] { ',', '\n' }),
+								selectStr.TrimEnd(new[] { ',', '\n' }),
+								fromStr);
+
+			return sql;
+			//using (var cmd = new SqlCommand(sql, connection))
+			//{
+			//	cmd.ExecuteNonQuery();
+			//}
+		} 
+		#endregion
+
+		#region Private Methods
 		private static string GetTableName(string tablePrefix, string tableName)
 		{
 			return String.Format("[EdgeDeliveries].[dbo].[{0}_{1}]", tablePrefix, tableName);
-		}
+		} 
+		#endregion
 	}
 }
