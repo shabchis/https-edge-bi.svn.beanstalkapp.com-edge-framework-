@@ -161,9 +161,9 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							var fieldName = reader["EdgeFieldName"].ToString().Replace("_gk", "");
 							var parentFieldName = reader["ParentFieldName"].ToString().Replace("_gk", "");
 
-							selectStr = String.Format("{0}\t{1}.GK AS {1}_gk,\n", selectStr, fieldName);
+							selectStr = String.Format("{0}\tCOALESCE({1}.GK,0) AS {1}_gk,\n", selectStr, fieldName);
 							insertStr = String.Format("{0}\t{1}_gk,\n", insertStr, fieldName);
-							fromStr = String.Format("{0}\tINNER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n",
+							fromStr = String.Format("{0}\tLEFT OUTER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n",
 														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName);
 						}
 						// add measure fields
@@ -182,12 +182,11 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 								insertStr.TrimEnd(new[] { ',', '\n' }),
 								selectStr.TrimEnd(new[] { ',', '\n' }),
 								fromStr);
-
+			using (var cmd = new SqlCommand(sql, connection))
+			{
+				cmd.ExecuteNonQuery();
+			}
 			return sql;
-			//using (var cmd = new SqlCommand(sql, connection))
-			//{
-			//	cmd.ExecuteNonQuery();
-			//}
 		} 
 		#endregion
 
