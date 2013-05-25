@@ -186,25 +186,29 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				if (CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName] != null &&
 					CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName] != null)
 				{
+					var deliveryTable = CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString();
+					var stagingTable = CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString();
+					if (!stagingTable.ToLower().StartsWith("[dbo]"))
+						stagingTable = String.Format("[dbo].[{0}]", stagingTable);
+
 					// for Debug only - execute Edge Viewer in .NET
 					if (Options.IdentityInDebug)
 					{
-						EdgeViewer.StageMetrics(delivery.Account.ID, 
-												CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString(),
-												CurrentDelivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString(), 
-												_deliverySqlConnection);
+						EdgeViewer.StageMetrics(delivery.Account.ID, deliveryTable, stagingTable, _deliverySqlConnection);
 					}
 					// to be executed in real scenario - execute SQL CLR (DB stored procedure that executes .NET code of Edge Viewer)
 					else
 					{
-						using (var cmd = SqlUtility.CreateCommand("EdgeStaging.dbo.StageMetrics", CommandType.StoredProcedure))
+						using (var cmd = SqlUtility.CreateCommand("EdgeObjects.dbo.MetricsStaging", CommandType.StoredProcedure))
 						{
 							cmd.Connection = _objectsSqlConnection;
 							cmd.CommandTimeout = 300;
+							var stageSqlParam = new SqlParameter { ParameterName = "@stagingSql", Size = 4000, Direction = ParameterDirection.Output };
+							cmd.Parameters.Add(stageSqlParam);
 							cmd.Parameters.AddWithValue("@accoutId", delivery.Account.ID);
-							cmd.Parameters.AddWithValue("@deliveryTable", delivery.Parameters[Consts.DeliveryHistoryParameters.DeliveryMetricsTableName].ToString());
-							cmd.Parameters.AddWithValue("@stagingTable", delivery.Parameters[Consts.DeliveryHistoryParameters.StagingMetricsTableName].ToString());
-
+							cmd.Parameters.AddWithValue("@deliveryTable", deliveryTable);
+							cmd.Parameters.AddWithValue("@stagingTable", stagingTable);
+				
 							cmd.ExecuteNonQuery();
 						}
 					}
