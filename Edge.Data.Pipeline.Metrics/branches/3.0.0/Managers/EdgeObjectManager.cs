@@ -276,23 +276,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="paramList"></param>
 		private void BuildSpecificFields(EdgeObject edgeObject, ref string columns, ref string values, ICollection<SqlParameter> paramList)
 		{
-			if (edgeObject is Ad)
-			{
-				// destination Url
-				AddColumn(ref columns, ref values, paramList, "DestinationUrl", (edgeObject as Ad).DestinationUrl);
-			}
-			else if (edgeObject is CreativeDefinition)
-			{
-				// destination Url
-				AddColumn(ref columns, ref values, paramList, "DestinationUrl", (edgeObject as CreativeDefinition).DestinationUrl);
-			}
-
 			// fields defined for channel specific objects
 			if (edgeObject is ChannelSpecificObject)
 			{
 				var channelObj = edgeObject as ChannelSpecificObject;
 				AddColumn(ref columns, ref values, paramList, "ChannelID", channelObj.Channel.ID);
-				AddColumn(ref columns, ref values, paramList, "OriginalID", channelObj.OriginalID);
+				//AddColumn(ref columns, ref values, paramList, "OriginalID", channelObj.OriginalID);
 				AddColumn(ref columns, ref values, paramList, "Status", (int)channelObj.Status);
 			}
 		}

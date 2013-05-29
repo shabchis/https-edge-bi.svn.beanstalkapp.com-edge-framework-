@@ -6,6 +6,7 @@ namespace Edge.Data.Objects
 	{
 		public EdgeField Field;
 		public string ColumnName;
+		public string ColumnDbType;
 		public bool IsIdentity;
 
 		public string ColumnNameGK
