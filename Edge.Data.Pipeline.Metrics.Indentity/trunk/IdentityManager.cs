@@ -439,7 +439,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 				if (field.IsIdentity)
 				{
-					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, EdgeObjectConfigLoader.GetDbFieldType(field));
+					createfieldsStr = String.Format("{0}{1} {2},", createfieldsStr, field.ColumnNameGK, field.ColumnDbType); //EdgeObjectConfigLoader.GetDbFieldType(field));
 					whereStr = String.Format("{0}({2}.{1}=#TEMP.{1} OR {2}.{1} IS NULL) AND ", whereStr, field.ColumnNameGK, GetDeliveryTableName(edgeType.TableName));
 					outputStr = String.Format("{0}INSERTED.{1},", outputStr, field.ColumnNameGK);
 				}
