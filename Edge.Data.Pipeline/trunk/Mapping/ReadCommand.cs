@@ -86,7 +86,7 @@ namespace Edge.Data.Pipeline.Mapping
 		{
 			if (!String.IsNullOrWhiteSpace(this.RegexPattern))
 			{
-				_regex = new Regex(_fixRegex.Replace(this.RegexPattern, _fixReplace), RegexOptions.ExplicitCapture);
+				_regex = new Regex(_fixRegex.Replace(this.RegexPattern, _fixReplace), RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase);
 
 				// skip the '0' group which is always first, the asshole
 				string[] groupNames = this.Regex.GetGroupNames();
