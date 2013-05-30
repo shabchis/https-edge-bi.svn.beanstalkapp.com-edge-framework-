@@ -204,7 +204,7 @@ namespace Edge.Core.Services
 				_wcfHost.AddServiceEndpoint(typeof(IServiceEngine), binding, instance.ServiceUrl);
 
 				// Open the listener
-				_wcfHost.Open();
+			_wcfHost.Open();
 			}
 
 			OnInit();

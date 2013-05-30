@@ -66,7 +66,7 @@ namespace Edge.Core.Data
 		/// <summary>
 		/// The regular expression used to parse SQL command texts for parameter definitions.
 		/// </summary>
-		private static Regex _paramFinder = new Regex(@"[@$\?][A-Za-z0-9_]+:[A-Za-z0-9_]+");
+		private static Regex _paramFinder = new Regex(@"[@$\?][A-Za-z0-9_]+:[A-Za-z0-9_]+:?[A-Za-z0-9_]+");
 
 		/// <summary>
 		/// The prefix indicating in/out parameter direction.
@@ -409,6 +409,11 @@ namespace Edge.Core.Data
 				string name = placeHolders[i].Value.Substring(1).Split(':')[0];
 				string type = placeHolders[i].Value.Substring(1).Split(':')[1];
 				string indicator = placeHolders[i].Value[0].ToString();
+				int size = 0;
+
+				//Getting size of param
+				if (placeHolders[i].Value.Substring(1).Split(':').Length >= 3)
+					size = Convert.ToInt32(placeHolders[i].Value.Substring(1).Split(':')[2]);
 
 				// Replace placeholder with actual parameter
 				commandText = commandText.Remove(placeHolders[i].Index + offsetChange, placeHolders[i].Length);
@@ -433,7 +438,11 @@ namespace Edge.Core.Data
 				else if (indicator == PrefixOut)
 				{
 					param.Direction = ParameterDirection.Output;
+					if (size != 0)
+						param.Size = size;
 				}
+
+				
 
 				// Add the parameter
 				command.Parameters.Add(param);
