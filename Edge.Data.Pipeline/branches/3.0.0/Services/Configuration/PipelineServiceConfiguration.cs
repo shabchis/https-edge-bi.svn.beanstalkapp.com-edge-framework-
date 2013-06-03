@@ -34,7 +34,7 @@ namespace Edge.Data.Pipeline.Services
 		{
 			base.Serialize(info, context);
 			info.AddValue("_deliveryID", _deliveryID);
-			info.AddValue("_timePeriod", _timePeriod);
+			info.AddValue("_timePeriod", _timePeriod.ToString());
 			info.AddValue("_conflictBehavior", _conflictBehavior);
 			info.AddValue("_mappingConfigPath", _mappingConfigPath);
 		}
@@ -43,9 +43,11 @@ namespace Edge.Data.Pipeline.Services
 		{
 			base.Deserialize(info, context);
 			_deliveryID = (Guid?)info.GetValue("_deliveryID", typeof(Guid?));
-			_timePeriod = (DateTimeRange?)info.GetValue("_timePeriod", typeof(DateTimeRange?));
 			_conflictBehavior = (DeliveryConflictBehavior?)info.GetValue("_conflictBehavior", typeof(DeliveryConflictBehavior?));
 			_mappingConfigPath = (string)info.GetValue("_mappingConfigPath", typeof(string));
+			var timeStr = (string)info.GetValue("_timePeriod", typeof(string));
+			if (!String.IsNullOrEmpty(timeStr))
+				_timePeriod = DateTimeRange.Parse(timeStr); //(DateTimeRange?)info.GetValue("_timePeriod", typeof(DateTimeRange?));
 		}
 
 		protected override void CopyConfigurationData(ServiceConfiguration sourceConfig, ServiceConfiguration targetConfig)
