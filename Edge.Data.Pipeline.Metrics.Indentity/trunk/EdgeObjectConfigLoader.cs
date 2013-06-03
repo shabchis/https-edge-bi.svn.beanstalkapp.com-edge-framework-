@@ -226,6 +226,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							// find parent edge type nad edge field
 							var parentTypeId = int.Parse(reader["ParentTypeID"].ToString());
 							var fieldtId = int.Parse(reader["FieldID"].ToString());
+							// TODO: Amit to remove COLLATE Hebrew_CI_AS (DB definition)
 							var clmLength = reader["ColumnLength"] == DBNull.Value ? String.Empty : String.Format("({0}) COLLATE Hebrew_CI_AS", reader["ColumnLength"]);
 
 							var parentType = edgeTypes.Values.FirstOrDefault(x => x.TypeID == parentTypeId);
@@ -284,24 +285,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			}
 			return dependencies;
 		}
-
-		/// <summary>
-		/// Get DB type of edge field - TODO: can be generic???
-		/// </summary>
-		//public static object GetDbFieldType(EdgeTypeField field)
-		//{
-		//	// edge object
-		//	if (field.Field.FieldEdgeType != null) return SqlDbType.BigInt.ToString();
-
-		//	// TODO: Amit to remove COLLATE Hebrew_CI_AS (DB definition)
-		//	if (field.ColumnName.StartsWith("string")) return String.Format("{0}(1000) COLLATE Hebrew_CI_AS", SqlDbType.NVarChar);
-
-		//	if (field.ColumnName.StartsWith("int")) return SqlDbType.Int.ToString();
-
-		//	if (field.ColumnName.StartsWith("float")) return String.Format("{0}(18,3)", SqlDbType.Float);
-
-		//	throw new Exception(String.Format("Cannot find DB tpe for column {0} of EdgeField {1}", field.ColumnName, field.Field.Name));
-		//}
 
 		/// <summary>
 		/// Find all inheritors (child types) for source edge type for flat Metrics and Objects tables
