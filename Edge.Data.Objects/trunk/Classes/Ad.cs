@@ -27,7 +27,7 @@ namespace Edge.Data.Objects
 			if (TargetDefinitions == null) yield break;
 			foreach (var target in TargetDefinitions)
 			{
-				// TODO: set edge field for Traget definition, may be should be dictionary
+				// TODO: set edge field for Target definition, may be should be dictionary
 				yield return new ObjectDimension {Value = target};
 			}
 		}
