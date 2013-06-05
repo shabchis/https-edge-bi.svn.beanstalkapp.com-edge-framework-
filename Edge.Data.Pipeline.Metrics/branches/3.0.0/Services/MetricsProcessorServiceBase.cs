@@ -92,6 +92,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetObjectByEdgeTypeAndEdgeField", new Func<dynamic, dynamic, EdgeObject>(GetObjectByEdgeTypeAndEdgeField));
 			Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
+			Mappings.ExternalMethods.Add("GetConfigValue", new Func<dynamic, string>(GetConfigValue));
 		}
 		#endregion
 
@@ -276,6 +277,14 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				.ToDateTime();
 
 			return period;
+		}
+
+		public string GetConfigValue(dynamic configKey)
+		{
+			if (!Configuration.Parameters.ContainsKey(configKey.ToString()))
+				throw new MappingConfigurationException(String.Format("Missing configuration key '{0}', GetConfigValue() failed.", configKey));
+
+			return Configuration.Parameters[configKey.ToString()].ToString();
 		}
 
 		// ==============================================

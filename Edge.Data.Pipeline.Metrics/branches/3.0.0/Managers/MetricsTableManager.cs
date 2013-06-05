@@ -297,7 +297,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			else
 				throw new ArgumentException(String.Format("Unknown object type '{0}' for creating metrics columns", obj.GetType()));
 
-			return new Column { Name = clmName, Value = clmValue, DbType = clmType, Nullable = isNullable, Size = clmType == SqlDbType.NVarChar ? 100 : 0};
+			return new Column { Name = clmName, Value = clmValue, DbType = clmType, Nullable = isNullable, Size = clmType == SqlDbType.NVarChar ? 100 : 
+																												  clmType == SqlDbType.VarChar ? 32 : 0 };
 		}
 
 		private static SqlDbType Convert2DbType(Type type)
