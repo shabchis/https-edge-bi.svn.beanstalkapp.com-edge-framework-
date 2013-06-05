@@ -84,7 +84,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
 				ReaderAdapter.Reader.Read();
 
-				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField};
+				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField, Output = new DeliveryOutput()};
 				MetricsMappings.Apply(CurrentMetricsUnit);	
 				return CurrentMetricsUnit;
 			}
@@ -94,7 +94,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 		} 
 		
-		protected void ProcessMetrics()
+		protected virtual void ProcessMetrics()
 		{
 			// fill the metrics using mapping
 			CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField };
@@ -104,15 +104,12 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			SignatureMappings.Apply(signature);
 
 			// check if signature is already exists in delivery outputs
-			var outputs = from output in Delivery.Outputs
-						  where output.Signature.Equals(signature.ToString())
-						  select output;
+			var output = Delivery.Outputs.FirstOrDefault(x => x.Signature == signature.Value);
 
 			// attach output to Metrics: take existing or create new
-			var op = outputs.FirstOrDefault();
-			if (op != null)
-				CurrentMetricsUnit.Output = op;
-			else
+			if (output != null)
+				CurrentMetricsUnit.Output = output;
+			else 
 			{
 				var deliveryOutput = new DeliveryOutput
 				{
