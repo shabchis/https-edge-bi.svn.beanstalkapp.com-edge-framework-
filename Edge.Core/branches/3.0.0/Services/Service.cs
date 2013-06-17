@@ -88,7 +88,8 @@ namespace Edge.Core.Services
 
 		protected void Error(string message, Exception inner = null, bool fatal = false)
 		{
-			this.Error(new ServiceException(message, inner), fatal);
+			Log(message, inner);
+			Error(new ServiceException(message, inner), fatal);
 		}
 
 		protected virtual string GetLogContextInfo()
