@@ -202,7 +202,7 @@ namespace Edge.Data.Pipeline
 			if (fullPath.Length > FileManager.MaxPathLength || !File.Exists(fullPath) )
 			{
 				if (archiveType == ArchiveType.None)
-					throw new ArgumentException("Specified file path does not exist. If it is an archive, set archiveType parameter.", "location");
+					throw new ArgumentException(String.Format("Specified file path {0} does not exist. If it is an archive, set archiveType parameter.", location));
 
 				container = Path.GetDirectoryName(fullPath);
 				while (container.Length > 0 && (container.Length > FileManager.MaxPathLength || !File.Exists(container)))
