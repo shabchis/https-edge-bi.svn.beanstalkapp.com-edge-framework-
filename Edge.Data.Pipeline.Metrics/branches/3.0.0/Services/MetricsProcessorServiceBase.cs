@@ -93,6 +93,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
 			Mappings.ExternalMethods.Add("GetConfigValue", new Func<dynamic, string>(GetConfigValue));
+			Mappings.ExternalMethods.Add("GetDeliveryPeriodStart", new Func<DateTime>(GetDeliveryPeriodStart));
+			Mappings.ExternalMethods.Add("GetDeliveryPeriodEnd", new Func<DateTime>(GetDeliveryPeriodEnd));
 		}
 		#endregion
 
@@ -285,6 +287,22 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				throw new MappingConfigurationException(String.Format("Missing configuration key '{0}', GetConfigValue() failed.", configKey));
 
 			return Configuration.Parameters[configKey.ToString()].ToString();
+		}
+
+		public DateTime GetDeliveryPeriodStart()
+		{
+			if (Delivery == null)
+				throw new MappingException("Delivery is NULL");
+
+			return Delivery.TimePeriodDefinition.Start.BaseDateTime;
+		}
+
+		public DateTime GetDeliveryPeriodEnd()
+		{
+			if (Delivery == null)
+				throw new MappingException("Delivery is NULL");
+
+			return Delivery.TimePeriodDefinition.End.BaseDateTime;
 		}
 
 		// ==============================================
