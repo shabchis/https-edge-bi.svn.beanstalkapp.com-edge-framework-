@@ -21,6 +21,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		private MetricsDeliveryManagerOptions _importManagerOptions;
 		private FileCompression _compression;
 		private DeliveryFile _deliveryFile;
+		private string _eofIndication; // indication for end of file - optional
+		private string _eofFieldName;  // field which will contain EOF indication - optional
 
 		protected MappingContainer MetricsMappings;
 		protected MappingContainer SignatureMappings;
@@ -59,7 +61,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						
 						// for each row in file read and import into metrics table
 						var readSuccess = false; 
-						while (ReaderAdapter.Reader.Read())
+						while (ReaderAdapter.Reader.Read() && _eofIndication != null && _eofFieldName != null && ReaderAdapter.GetField(_eofFieldName).ToString() != _eofIndication)
 						{
 							readSuccess = true;
 							ProcessMetrics();
@@ -81,7 +83,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			try
 			{
 				// load sample file, read only one row in order to create metrics table by sample metric unit
-				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: _compression), Configuration);
+				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: FileCompression.None), Configuration);
 				ReaderAdapter.Reader.Read();
 
 				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField, Output = new DeliveryOutput()};
@@ -146,6 +148,11 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			if (!Enum.TryParse(Configuration.Compression, out _compression))
 				throw new ConfigurationErrorsException(String.Format("Invalid compression type '{0}'.", Configuration.Compression));
+
+			if (Configuration.Parameters.ContainsKey("EOF"))
+				_eofIndication = Configuration.Parameters.Get<string>("EOF");
+			if (Configuration.Parameters.ContainsKey("EOF_FieldName"))
+				_eofFieldName = Configuration.Parameters.Get<string>("EOF_FieldName");
 
 			// Create format processor from configuration
 			var readerAdapterType = Type.GetType(Configuration.ReaderAdapterType, true);

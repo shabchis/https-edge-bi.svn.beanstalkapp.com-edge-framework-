@@ -282,7 +282,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				var channelObj = edgeObject as ChannelSpecificObject;
 				AddColumn(ref columns, ref values, paramList, "ChannelID", channelObj.Channel.ID);
 				//AddColumn(ref columns, ref values, paramList, "OriginalID", channelObj.OriginalID);
-				AddColumn(ref columns, ref values, paramList, "Status", (int)channelObj.Status);
+				//AddColumn(ref columns, ref values, paramList, "Status", (int)channelObj.Status);
 			}
 		}
 
