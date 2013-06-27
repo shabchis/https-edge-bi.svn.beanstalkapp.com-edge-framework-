@@ -428,7 +428,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var createfieldsStr = "GK BIGINT,";
 			var whereStr = "TYPEID=@typeId AND ";
 			var outputStr = "INSERTED.GK,";
-			var fieldsStr = String.Format("LASTUPDATED,TYPEID,ACCOUNTID,{0}",
+			var fieldsStr = String.Format("CREATEDON,LASTUPDATEDON,TYPEID,ACCOUNTID,{0}",
 							edgeType.ClrType.IsSubclassOf(typeof(ChannelSpecificObject)) ? "CHANNELID," : String.Empty);
 
 			foreach (var field in edgeType.Fields)
@@ -456,7 +456,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				cmd.CommandText = String.Format(@"CREATE TABLE #TEMP ({0})
 												  INSERT INTO {1} ({2})
 												  OUTPUT {5} INTO #TEMP
-												  SELECT @{2} FROM {3} 
+												  SELECT {6} FROM {3} 
 												  WHERE TYPEID=@typeId AND IDENTITYSTATUS=@newStatus;
 
 												UPDATE {3} SET GK=#TEMP.GK, IDENTITYSTATUS=@unchangesStatus FROM #TEMP, {3} WHERE {4};
@@ -468,10 +468,11 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 											fieldsStr,
 											GetDeliveryTableName(edgeType.TableName),
 											whereStr,
-											outputStr);
+											outputStr,
+											fieldsStr.Replace("CREATEDON,LASTUPDATEDON", "@date,@date"));
 
 				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
-				cmd.Parameters.AddWithValue("@lastUpdated", DateTime.Now);
+				cmd.Parameters.AddWithValue("@date", DateTime.Now);
 				cmd.Parameters.AddWithValue("@newStatus", (int)IdentityStatus.New);
 				cmd.Parameters.AddWithValue("@unchangesStatus", (int)IdentityStatus.Unchanged);
 
@@ -486,7 +487,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// <param name="edgeType"></param>
 		private void UpdateExistingEdgeObjectsByDelivery(EdgeType edgeType)
 		{
-			var updateFieldStr = "LASTUPDATED=@lastUpdated,";
+			var updateFieldStr = "LASTUPDATEDON=@lastUpdated,";
 			foreach (var field in edgeType.Fields.Where(x => !x.IsIdentity))
 			{
 				updateFieldStr = String.Format("{0}{1}=delivery.{1},", updateFieldStr, field.ColumnNameGK);
@@ -537,7 +538,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
-				cmd.CommandText = String.Format(@"SELECT GK,{0} INTO #DELTA FROM {1} WHERE TYPEID=@typeId AND LASTUPDATED > @timestamp;
+				cmd.CommandText = String.Format(@"SELECT GK,{0} INTO #DELTA FROM {1} WHERE TYPEID=@typeId AND LASTUPDATEDON > @timestamp;
 												  UPDATE {2} SET GK=#DELTA.GK, IDENTITYSTATUS=@identityStatus FROM #DELTA WHERE {3};
 												  DROP TABLE #DELTA;",
 												selectStr, edgeType.TableName, GetDeliveryTableName(edgeType.TableName), whereStr);

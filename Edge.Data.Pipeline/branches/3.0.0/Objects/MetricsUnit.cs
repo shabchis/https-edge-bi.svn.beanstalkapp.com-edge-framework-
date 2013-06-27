@@ -80,7 +80,7 @@ namespace Edge.Data.Pipeline.Objects
 
 			yield return new ObjectDimension { Value = new ConstEdgeField { Name = "TimePeriodStart", Value = TimePeriodStart, Type = typeof(DateTime) } };
 			yield return new ObjectDimension { Value = new ConstEdgeField { Name = "TimePeriodEnd", Value = TimePeriodEnd, Type = typeof(DateTime) } };
-			if (Currency != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = Currency.GetType().Name, Value = Currency.Code, Type = typeof(string) }};
+			if (Currency != null) yield return new ObjectDimension { Value = new ConstEdgeField { Name = "Currency", Value = Currency.Code, Type = typeof(string) } };
 
 			if (Dimensions != null)
 			{
