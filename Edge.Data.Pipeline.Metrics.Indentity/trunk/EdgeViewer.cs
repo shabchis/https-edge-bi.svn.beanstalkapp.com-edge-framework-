@@ -126,7 +126,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var fromStr = String.Format("\t[EdgeDeliveries].{0} AS Metrics\n", deliveryTableName);
 			var tablePrefix = deliveryTableName.ToLower().Replace("_metrics]", "").Replace("[dbo].[", "");
 
-			if (!stagingTableName.ToLower().Contains("edgeetaging"))
+			if (!stagingTableName.ToLower().Contains("edgestaging"))
 				stagingTableName = String.Format("[EdgeStaging].{0}", stagingTableName);
 
 			var edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(accountId, connection);
