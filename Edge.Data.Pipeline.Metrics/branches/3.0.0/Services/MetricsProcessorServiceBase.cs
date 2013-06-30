@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using Edge.Core.Configuration;
 using Edge.Data.Objects;
@@ -11,6 +13,7 @@ using Edge.Data.Pipeline.Objects;
 using Edge.Data.Pipeline.Services;
 using Eggplant.Entities.Cache;
 using Eggplant.Entities.Persistence.SqlServer;
+using LogMessageType = Edge.Core.Utilities.LogMessageType;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
@@ -25,6 +28,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		public Dictionary<string, Measure>    Measures { get; private set; }
 		public Dictionary<string, EdgeType>   EdgeTypes { get; private set; }
 		public List<EdgeField> EdgeFields { get; private set; }
+		private Dictionary<string, Dictionary<string, string>> _lookupTable = new Dictionary<string, Dictionary<string, string>>(); 
 
 		public MetricsDeliveryManager ImportManager { get; protected set; }
 		private int _accountId = -1;
@@ -95,6 +99,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			Mappings.ExternalMethods.Add("GetConfigValue", new Func<dynamic, string>(GetConfigValue));
 			Mappings.ExternalMethods.Add("GetDeliveryPeriodStart", new Func<DateTime>(GetDeliveryPeriodStart));
 			Mappings.ExternalMethods.Add("GetDeliveryPeriodEnd", new Func<DateTime>(GetDeliveryPeriodEnd));
+			Mappings.ExternalMethods.Add("LookupMatch", new Func<dynamic, dynamic, string>(LookupMatch));
 		}
 		#endregion
 
@@ -303,6 +308,50 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				throw new MappingException("Delivery is NULL");
 
 			return Delivery.TimePeriodDefinition.End.BaseDateTime;
+		}
+
+		public string LookupMatch(dynamic lookupTableName, dynamic fieldValue)
+		{
+			// load lookup if not loaded yet (on demand)
+			if (!_lookupTable.ContainsKey(lookupTableName))
+				LoadLookupTable(lookupTableName);
+
+			// try to find lookup value inside the field
+			foreach (var lookupValue in _lookupTable[lookupTableName])
+			{
+				if (fieldValue.ToString().Contains(lookupValue.Value))
+					return lookupValue.Key;
+			}
+
+			// warning if no found (extended feature to be varry by behavior: Ignor, Insert new, Warn)
+			Log(String.Format("Cannot match any value of Lookup '{0}' in field '{1}'", lookupTableName, fieldValue), LogMessageType.Warning);
+			return null;
+		}
+
+		private void LoadLookupTable(string lookupTableName)
+		{
+			_lookupTable.Add(lookupTableName, new Dictionary<string, string>());
+
+			try
+			{
+				using (var cmd = new SqlCommand("SELECT ValueID,Value FROM SegmentValue sv, Segment s WHERE s.SegmentID = sv.SegmentID and s.Name = @segmentName AND (sv.AccountID = -1 or sv.AccountID = @accountId)", ImportManager.ObjectsConnection))
+				{
+					cmd.Parameters.AddWithValue("@segmentName", lookupTableName);
+					cmd.Parameters.AddWithValue("@accountId", _accountId);
+
+					using (var reader = cmd.ExecuteReader())
+					{
+						while (reader.Read())
+						{
+							_lookupTable[lookupTableName].Add(reader["ValueID"].ToString(), reader["Value"].ToString());
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Error while trying to load segment '{0}' for account {1} from DB, ex: {3}", lookupTableName, _accountId, ex.Message), ex);
+			}
 		}
 
 		// ==============================================

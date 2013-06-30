@@ -28,6 +28,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		public MetricsDeliveryManagerOptions Options { get; private set; }
 		public Action<string, LogMessageType> OnLog { get; set; }
 
+		public SqlConnection ObjectsConnection 
+		{
+			get { return _objectsSqlConnection; }
+		}
+
 		#endregion
 
 		#region Constructors
