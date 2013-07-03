@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Edge.Data.Objects
 {
@@ -9,7 +8,7 @@ namespace Edge.Data.Objects
 		public string DestinationUrl;
 
 		public List<TargetDefinition> TargetDefinitions;
-		public CreativeDefinition CreativeDefinition;
+		public CreativeMatch CreativeMatch;
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
@@ -18,10 +17,10 @@ namespace Edge.Data.Objects
 				yield return dimension;
 			}
 
-			if (CreativeDefinition != null) yield return new ObjectDimension
+			if (CreativeMatch != null) yield return new ObjectDimension
 			{
-				Field = this.EdgeType[String.Format("{0}_CreativeDefinition", this.EdgeType.Name)],
-				Value = CreativeDefinition
+				Field = EdgeType[String.Format("{0}_CreativeMatch", EdgeType.Name)],
+				Value = CreativeMatch
 			};
 
 			if (TargetDefinitions == null) yield break;
