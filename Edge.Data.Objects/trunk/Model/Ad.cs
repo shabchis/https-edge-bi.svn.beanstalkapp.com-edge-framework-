@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using Eggplant.Entities.Model;
 
 namespace Edge.Data.Objects
@@ -12,8 +10,8 @@ namespace Edge.Data.Objects
 		public static class Properties
 		{
 			public static EntityProperty<Ad, string> DestinationUrl = new EntityProperty<Ad, string>("DestinationUrl");
-			public static EntityProperty<Ad, List<Edge.Data.Objects.TargetDefinition>> TargetDefinitions = new EntityProperty<Ad, List<Edge.Data.Objects.TargetDefinition>>("TargetDefinitions");
-			public static EntityProperty<Ad, CreativeDefinition> CreativeDefinition = new EntityProperty<Ad, CreativeDefinition>("CreativeDefinition");
+			public static EntityProperty<Ad, List<TargetDefinition>> TargetDefinitions = new EntityProperty<Ad, List<TargetDefinition>>("TargetDefinitions");
+			public static EntityProperty<Ad, CreativeMatch> CreativeMatch = new EntityProperty<Ad, CreativeMatch>("CreativeMatch");
 		}
 	}
 }

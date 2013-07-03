@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Edge.Data.Objects
 {
@@ -14,10 +12,24 @@ namespace Edge.Data.Objects
 			get { return typeof(CompositeCreative); }
 		}
 
-		public new CompositeCreative Creative
+		//public new CompositeCreative Creative
+		//{
+		//	get { return base.Creative as CompositeCreative; }
+		//	//set { base.Creative = value; }
+		//}
+
+		public override IEnumerable<ObjectDimension> GetObjectDimensions()
 		{
-			get { return base.Creative as CompositeCreative; }
-			//set { base.Creative = value; }
+			foreach (var dimension in base.GetObjectDimensions())
+			{
+				yield return dimension;
+			}
+
+			if (CreativesMatches == null) yield break;
+			foreach (var match in CreativesMatches)
+			{
+				yield return new ObjectDimension { Field = match.Key, Value = match.Value };
+			}
 		}
 	}
 }
