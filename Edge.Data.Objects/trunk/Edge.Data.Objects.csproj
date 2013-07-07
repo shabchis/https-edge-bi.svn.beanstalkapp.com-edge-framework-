@@ -53,6 +53,7 @@
     <Compile Include="Classes\CompositeCreativeDefinition.cs" />
     <Compile Include="Classes\CompositeCreativeMatch.cs" />
     <Compile Include="Classes\CompositePartField.cs" />
+    <Compile Include="Classes\Destination.cs" />
     <Compile Include="Classes\EdgeTypeField.cs" />
     <Compile Include="Classes\ExtraField.cs" />
     <Compile Include="Classes\ObjectDimension.cs" />

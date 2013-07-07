@@ -8,7 +8,8 @@ namespace Edge.Data.Objects
 		public EdgeObject Parent;
 		public Target Target;
 		public TargetDefinition TargetDefinition;
-		public string DestinationUrl;
+		//public string DestinationUrl;
+		public Destination Destination;
 		
 		public override bool HasChildsObjects
 		{
@@ -21,11 +22,19 @@ namespace Edge.Data.Objects
 			{
 				yield return dimension;
 			}
+
 			if (Target != null) yield return new ObjectDimension
-				{
-					Field = EdgeType[String.Format("{0}_Target", EdgeType.Name)],
-					Value = Target
-				};
+			{
+				Field = EdgeType[String.Format("{0}_Target", EdgeType.Name)],
+				Value = Target
+			};
+
+			if (Destination != null) yield return new ObjectDimension
+			{
+				Field = EdgeType["Destination"],
+				Value = Destination
+			};
+
 			if (TargetDefinition != null) yield return new ObjectDimension 
 			{
 				Field = EdgeType[String.Format("{0}_TargetDefinition", EdgeType.Name)],

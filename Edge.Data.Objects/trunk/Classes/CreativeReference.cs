@@ -9,9 +9,8 @@ namespace Edge.Data.Objects
 		private Creative _creative;
 
 		//public EdgeObject Parent;
-
-		public string DestinationUrl;
-
+		//public string DestinationUrl;
+		public Destination Destination;
 		public Creative Creative
 		{
 			get { return _creative; }
@@ -34,6 +33,12 @@ namespace Edge.Data.Objects
 			{
 				yield return dimension;
 			}
+
+			if (Destination != null) yield return new ObjectDimension
+			{
+				Field = EdgeType["Destination"],
+				Value = Destination
+			};
 
 			if (Creative != null) yield return new ObjectDimension
 			{
