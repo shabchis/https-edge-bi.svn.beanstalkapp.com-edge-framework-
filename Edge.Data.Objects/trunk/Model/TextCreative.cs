@@ -11,7 +11,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<TextCreative, TextCreativeType> TextType = new EntityProperty<TextCreative, TextCreativeType>("TextType");
+			//public static EntityProperty<TextCreative, TextCreativeType> TextCreativeType = new EntityProperty<TextCreative, TextCreativeType>("TextCreativeType");
 			public static EntityProperty<TextCreative, string> Text = new EntityProperty<TextCreative, string>("Text");
 		}
 	}
