@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var accounts = new Dictionary<string, Account>();
 			try
 			{
-				using (var cmd = new SqlCommand("Account_Get", connection))
+				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[Account_Get]", connection))
 				{
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.CommandType = CommandType.StoredProcedure;
@@ -60,7 +60,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var channels = new Dictionary<string, Channel>(StringComparer.CurrentCultureIgnoreCase);
 			try
 			{
-				using (var cmd = new SqlCommand("Channel_Get", connection))
+				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[Channel_Get]", connection))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 					using (var reader = cmd.ExecuteReader())
@@ -92,7 +92,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var measures = new Dictionary<string, Measure>();
 			try
 			{
-				using (var cmd = new SqlCommand("MD_Measure_Get", connection))
+				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[MD_Measure_Get]", connection))
 				{
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.CommandType = CommandType.StoredProcedure;
@@ -131,7 +131,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var edgeTypes = new Dictionary<string, EdgeType>();
 			try
 			{
-				using (var cmd = new SqlCommand("MD_EdgeType_Get", connection))
+				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[MD_EdgeType_Get]", connection))
 				{
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.CommandType = CommandType.StoredProcedure;
@@ -171,7 +171,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var edgeFields = new List<EdgeField>();
 			try
 			{
-				using (var cmd = new SqlCommand("MD_EdgeField_Get", connection))
+				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[MD_EdgeField_Get]", connection))
 				{
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.CommandType = CommandType.StoredProcedure;
@@ -214,7 +214,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		{
 			try
 			{
-				using (var cmd = new SqlCommand("MD_EdgeTypeField_Get", connection))
+				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[MD_EdgeTypeField_Get]", connection))
 				{
 					cmd.Parameters.AddWithValue("@accountID", accountId);
 					cmd.CommandType = CommandType.StoredProcedure;
