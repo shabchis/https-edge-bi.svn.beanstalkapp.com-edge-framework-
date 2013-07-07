@@ -200,7 +200,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 			var field = EdgeFields.FirstOrDefault(x => x.GetType() == type && x.Name == strFieldName);
 			if (field == null)
-				throw new MappingException(String.Format("Cannot find field '{0}' if type '{1}'", strFieldName, type.ToString()));
+				throw new MappingException(String.Format("Cannot find field '{0}' of type '{1}'", strFieldName, type.ToString()));
 			return field;
 		}
 

@@ -9,7 +9,7 @@ namespace Edge.Data.Objects
 
 		public static class Properties
 		{
-			public static EntityProperty<Ad, string> DestinationUrl = new EntityProperty<Ad, string>("DestinationUrl");
+			public static EntityProperty<Ad, Destination> Destination = new EntityProperty<Ad, Destination>("Destination");
 			public static EntityProperty<Ad, List<TargetDefinition>> TargetDefinitions = new EntityProperty<Ad, List<TargetDefinition>>("TargetDefinitions");
 			public static EntityProperty<Ad, CreativeMatch> CreativeMatch = new EntityProperty<Ad, CreativeMatch>("CreativeMatch");
 		}

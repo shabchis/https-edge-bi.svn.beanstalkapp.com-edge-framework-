@@ -14,7 +14,7 @@ namespace Edge.Data.Objects
 			public static EntityProperty<TargetMatch, EdgeObject> Parent = new EntityProperty<TargetMatch, EdgeObject>("Parent");
 			public static EntityProperty<TargetMatch, Target> Target = new EntityProperty<TargetMatch, Target>("Target");
 			public static EntityProperty<TargetMatch, TargetDefinition> TargetDefinition = new EntityProperty<TargetMatch, TargetDefinition>("TargetDefinition");
-			public static EntityProperty<TargetMatch, string> DestinationUrl = new EntityProperty<TargetMatch, string>("DestinationUrl");
+			public static EntityProperty<TargetMatch, Destination> Destination = new EntityProperty<TargetMatch, Destination>("Destination");
 		}
 	}
 }

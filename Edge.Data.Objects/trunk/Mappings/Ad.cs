@@ -12,8 +12,7 @@ namespace Edge.Data.Objects
 		{
 			public static Mapping<Ad> Default = EdgeUtility.EntitySpace.CreateMapping<Ad>(ad => ad
 				.Inherit(ChannelSpecificObject.Mappings.Default)
-
-				.Map<string>(Ad.Properties.DestinationUrl, "DestinationUrl")
+				.Map<Destination>(Ad.Properties.Destination, "Destination")
 			);
 		}
 	}

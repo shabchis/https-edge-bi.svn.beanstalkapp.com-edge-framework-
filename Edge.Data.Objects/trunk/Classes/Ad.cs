@@ -5,8 +5,8 @@ namespace Edge.Data.Objects
 {
 	public partial class Ad : ChannelSpecificObject
 	{
-		public string DestinationUrl;
-
+		//public string DestinationUrl;
+		public Destination Destination;
 		public List<TargetDefinition> TargetDefinitions;
 		public CreativeMatch CreativeMatch;
 
@@ -16,6 +16,12 @@ namespace Edge.Data.Objects
 			{
 				yield return dimension;
 			}
+
+			if (Destination != null) yield return new ObjectDimension
+			{
+				Field = EdgeType["Destination"],
+				Value = Destination
+			};
 
 			if (CreativeMatch != null) yield return new ObjectDimension
 			{

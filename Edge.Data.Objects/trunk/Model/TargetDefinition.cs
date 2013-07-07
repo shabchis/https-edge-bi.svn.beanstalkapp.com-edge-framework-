@@ -13,7 +13,7 @@ namespace Edge.Data.Objects
 		{
 			public static EntityProperty<TargetDefinition, EdgeObject> Parent = new EntityProperty<TargetDefinition, EdgeObject>("Parent");
 			public static EntityProperty<TargetDefinition, Target> Target = new EntityProperty<TargetDefinition, Target>("Target");
-			public static EntityProperty<TargetDefinition, string> DestinationUrl = new EntityProperty<TargetDefinition, string>("DestinationUrl");
+			public static EntityProperty<TargetDefinition, Destination> Destination = new EntityProperty<TargetDefinition, Destination>("Destination");
 		}
 	}
 }
