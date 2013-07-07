@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using Edge.Data.Objects;
 using Microsoft.SqlServer.Server;
+using System.Text;
 
 namespace Edge.Data.Pipeline.Metrics.Indentity
 {
@@ -31,37 +32,43 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			{	
 				new SqlMetaData("TypeID", SqlDbType.Int), 
 				new SqlMetaData("Name", SqlDbType.NVarChar, 50),
+				new SqlMetaData("FieldList", SqlDbType.NVarChar, 1000),
 				new SqlMetaData("Select", SqlDbType.NVarChar, 1000)
 			});
 			pipe.SendResultsStart(record);
 
-			foreach (var type in edgeTypes.Values.Where(x => x.IsAbstract == false))
+			using (var cmd = new SqlCommand("SELECT Name FROM [EdgeObjects].[dbo].[MD_EdgeField] WHERE FieldTypeID=@edgeType", connection))
 			{
-				// prepare type fields SELECT
-				var fieldsStr = String.Empty;
-				foreach (var field in type.Fields)
+				cmd.Parameters.AddWithValue("@edgeType", 0);
+				foreach (var type in edgeTypes.Values.Where(x => x.IsAbstract == false))
 				{
-					fieldsStr = String.Format("{0}{1} AS {2}, ", fieldsStr, field.ColumnNameGK, field.FieldNameGK);
-					if (field.Field.FieldEdgeType == null) continue;
-
-					// add to select all options of child edge types
-					foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(field.Field.FieldEdgeType, edgeTypes))
+					// prepare type fields SELECT
+					var fieldsStr = String.Empty;
+					foreach (var field in type.Fields)
 					{
-						if (childType == field.Field.FieldEdgeType) continue;
-						fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK, field.Field.Name, childType.Name);
+						fieldsStr = String.Format("{0}{1} AS {2}, ", fieldsStr, field.ColumnNameGK, field.FieldNameGK);
+						if (field.Field.FieldEdgeType == null) continue;
+
+						// add to select all options of child edge types
+						foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(field.Field.FieldEdgeType, edgeTypes))
+						{
+							if (childType == field.Field.FieldEdgeType) continue;
+							fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK, field.Field.Name, childType.Name);
+						}
 					}
+					if (fieldsStr.Length <= 0) continue;
+
+					fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
+					var select = String.Format("SELECT GK,AccountID,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
+
+					// set report and and it
+					record.SetInt32 (0, type.TypeID);
+					record.SetString(1, type.Name);
+					record.SetString(2, GetFieldList(type, cmd));
+					record.SetString(3, select);
+
+					pipe.SendResultsRow(record);
 				}
-				if (fieldsStr.Length <= 0) continue;
-
-				fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
-				var select = String.Format("SELECT GK,AccountID,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
-
-				// set report and and it
-				record.SetInt32(0, type.TypeID);
-				record.SetString(1, type.Name);
-				record.SetString(2, select);
-
-				pipe.SendResultsRow(record);
 			}
 			pipe.SendResultsEnd();
 		}
@@ -194,7 +201,24 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		private static string GetTableName(string tablePrefix, string tableName)
 		{
 			return String.Format("[EdgeDeliveries].[dbo].[{0}_{1}]", tablePrefix, tableName);
-		} 
+		}
+
+		/// <summary>
+		/// Get fields of specific type seperated by COMMA
+		/// </summary>
+		private static string GetFieldList(EdgeType type, SqlCommand cmd)
+		{
+			var fieldList = new StringBuilder();
+			cmd.Parameters["@edgeType"].Value = type.TypeID;
+			using (var reader = cmd.ExecuteReader())
+			{
+				while (reader.Read())
+				{
+					fieldList.AppendFormat("{0}{1}", fieldList.Length > 0 ? "," : "", reader["Name"]);
+				}
+			}
+			return fieldList.ToString();
+		}
 		#endregion
 	}
 }
