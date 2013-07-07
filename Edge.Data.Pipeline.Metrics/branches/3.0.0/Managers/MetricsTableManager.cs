@@ -130,6 +130,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 					var dimension = obj as ObjectDimension;
 					if (dimension != null && dimension.Value is EdgeObject && dimension.Field != null)
 					{
+						if (dimension.Field.FieldEdgeType == null)
+							throw new Exception(String.Format("ieldEdgeType not set for field '{0}'", dimension.Field.Name));
+
 						// GK field and all its childs if exist
 						foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(dimension.Field.FieldEdgeType, EdgeTypes))
 						{
