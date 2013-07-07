@@ -163,8 +163,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 							selectStr = String.Format("{0}\tCOALESCE({1}.GK,0) AS {1}_gk,\n", selectStr, fieldName);
 							insertStr = String.Format("{0}\t{1}_gk,\n", insertStr, fieldName);
-							fromStr = String.Format("{0}\tLEFT OUTER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n",
-														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName);
+							fromStr = String.Format("{0}\tLEFT OUTER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n AND {3}.TYPEID={4}",
+														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName, edgeType.TypeID);
 						}
 						// add measure fields
 						else if (!String.IsNullOrEmpty(reader["MeasureName"].ToString()))
