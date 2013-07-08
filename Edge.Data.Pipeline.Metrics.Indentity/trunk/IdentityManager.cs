@@ -184,16 +184,18 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var createTempTableCmd = new SqlCommand { Connection = _objectsSqlConnection };
 			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
 
-
 			foreach (var field in edgeType.Fields)
 			{
+				if (selectColumnStr.Contains(String.Format("{0},", field.ColumnNameGK))) continue;
+				
 				// add columns to SELECT (later check if edge object was updated or not)
 				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.ColumnNameGK);
 				if (field.IsIdentity)
 				{
 					// add identity fields to WHERE (some fields could be null when using edge type inheritance)
-					whereParamsStr = String.Format("{0}(@{1} IS NULL OR {1} IS NULL OR {1}= @{1}) AND ", whereParamsStr, field.ColumnNameGK);
-					var param = new SqlParameter(String.Format("@{0}", field.ColumnNameGK), null) { IsNullable = true };
+					whereParamsStr = String.Format("{0}(@{1} IS NULL OR {1} IS NULL OR {1}= @{1}) AND ", whereParamsStr,
+					                               field.ColumnNameGK);
+					var param = new SqlParameter(String.Format("@{0}", field.ColumnNameGK), null) {IsNullable = true};
 					selectCmd.Parameters.Add(param);
 
 					indexFieldsStr = String.Format("{0}{1},", indexFieldsStr, field.ColumnNameGK);
@@ -490,7 +492,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var updateFieldStr = "LASTUPDATEDON=@lastUpdated,";
 			foreach (var field in edgeType.Fields.Where(x => !x.IsIdentity))
 			{
-				updateFieldStr = String.Format("{0}{1}=delivery.{1},", updateFieldStr, field.ColumnNameGK);
+				if (!updateFieldStr.Contains(String.Format("{0}=delivery.{0},", field.ColumnNameGK)))
+					updateFieldStr = String.Format("{0}{1}=delivery.{1},", updateFieldStr, field.ColumnNameGK);
 			}
 			if (updateFieldStr.Length == 0) return;
 

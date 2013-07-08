@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using Edge.Data.Objects;
 using Microsoft.SqlServer.Server;
-using System.Text;
 
 namespace Edge.Data.Pipeline.Metrics.Indentity
 {
@@ -14,18 +14,21 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 	public static class EdgeViewer
 	{
 		#region Public Methods
+
 		/// <summary>
 		/// Per each type combine flat SELECT fields by real names in Metrics 
 		/// </summary>
 		/// <param name="accountId"></param>
+		/// <param name="stagingTableName"></param>
 		/// <param name="connection"></param>
 		/// <param name="pipe">Pipe to send SQL rows reply</param>
-		public static void GetObjectsView(int accountId, SqlConnection connection, SqlPipe pipe)
+		public static void GetObjectsView(int accountId, string stagingTableName, SqlConnection connection, SqlPipe pipe)
 		{
 			// load configuration
 			var edgeTypes = EdgeObjectConfigLoader.LoadEdgeTypes(accountId, connection);
 			var edgeFields = EdgeObjectConfigLoader.LoadEdgeFields(accountId, edgeTypes, connection);
 			EdgeObjectConfigLoader.SetEdgeTypeEdgeFieldRelation(accountId, edgeTypes, edgeFields, connection);
+			var fieldsMap = LoadStageFields(stagingTableName, edgeFields, edgeTypes.Values.ToList(), connection);
 
 			// prepare result record
 			var record = new SqlDataRecord(new[] 
@@ -37,38 +40,34 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			});
 			pipe.SendResultsStart(record);
 
-			using (var cmd = new SqlCommand("SELECT Name FROM [EdgeObjects].[dbo].[MD_EdgeField] WHERE FieldTypeID=@edgeType", connection))
+			foreach (var type in edgeTypes.Values.Where(x => x.IsAbstract == false))
 			{
-				cmd.Parameters.AddWithValue("@edgeType", 0);
-				foreach (var type in edgeTypes.Values.Where(x => x.IsAbstract == false))
+				// prepare type fields SELECT
+				var fieldsStr = String.Empty;
+				foreach (var field in type.Fields)
 				{
-					// prepare type fields SELECT
-					var fieldsStr = String.Empty;
-					foreach (var field in type.Fields)
+					fieldsStr = String.Format("{0}{1} AS {2}, ", fieldsStr, field.ColumnNameGK, field.FieldNameGK);
+					if (field.Field.FieldEdgeType == null) continue;
+
+					// add to select all options of child edge types
+					foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(field.Field.FieldEdgeType, edgeTypes))
 					{
-						fieldsStr = String.Format("{0}{1} AS {2}, ", fieldsStr, field.ColumnNameGK, field.FieldNameGK);
-						if (field.Field.FieldEdgeType == null) continue;
-
-						// add to select all options of child edge types
-						foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(field.Field.FieldEdgeType, edgeTypes))
-						{
-							if (childType == field.Field.FieldEdgeType) continue;
-							fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK, field.Field.Name, childType.Name);
-						}
+						if (childType == field.Field.FieldEdgeType) continue;
+						fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK, field.Field.Name, childType.Name);
 					}
-					if (fieldsStr.Length <= 0) continue;
-
-					fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
-					var select = String.Format("SELECT GK,AccountID,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
-
-					// set report and and it
-					record.SetInt32 (0, type.TypeID);
-					record.SetString(1, type.Name);
-					record.SetString(2, GetFieldList(type, cmd));
-					record.SetString(3, select);
-
-					pipe.SendResultsRow(record);
 				}
+				if (fieldsStr.Length <= 0) continue;
+
+				fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
+				var select = String.Format("SELECT GK,AccountID,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
+
+				// set report and and it
+				record.SetInt32 (0, type.TypeID);
+				record.SetString(1, type.Name);
+				record.SetString(2, fieldsMap.ContainsKey(type.TypeID) ? String.Join(",", fieldsMap[type.TypeID]) : "");
+				record.SetString(3, select);
+
+				pipe.SendResultsRow(record);
 			}
 			pipe.SendResultsEnd();
 		}
@@ -204,20 +203,42 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		}
 
 		/// <summary>
-		/// Get fields of specific type seperated by COMMA
+		/// create map of field list per type
 		/// </summary>
-		private static string GetFieldList(EdgeType type, SqlCommand cmd)
+		private static Dictionary<int, List<string>> LoadStageFields(string stagingTableName, List<EdgeField> edgeFields, List<EdgeType> edgeTypes, SqlConnection connection)
 		{
-			var fieldList = new StringBuilder();
-			cmd.Parameters["@edgeType"].Value = type.TypeID;
-			using (var reader = cmd.ExecuteReader())
+			var fieldTypeMap = new Dictionary<int, List<string>>();
+
+			using (var cmd = new SqlCommand("SELECT EdgeFieldName FROM [EdgeStaging].[dbo].[MD_StagingMetadata] WHERE TableName=@tableName", connection))
 			{
-				while (reader.Read())
+				cmd.Parameters.AddWithValue("@tableName", stagingTableName);
+				using (var reader = cmd.ExecuteReader())
 				{
-					fieldList.AppendFormat("{0}{1}", fieldList.Length > 0 ? "," : "", reader["Name"]);
+					while (reader.Read())
+					{
+						var fieldName = reader["EdgeFieldName"].ToString().ToLower().Replace("_gk", "");
+						var fieldType = 0;
+						if (fieldName.Contains("@"))
+						{
+							fieldName = fieldName.Substring(fieldName.LastIndexOf('@') + 1);
+							if (edgeTypes.Any(x => x.Name.ToLower() == fieldName))
+								fieldType = edgeTypes.First(x => x.Name.ToLower() == fieldName).TypeID;
+						}
+						else
+						{
+							if (edgeFields.Any(x => x.Name.ToLower() == fieldName && x.FieldEdgeType != null))
+								fieldType = edgeFields.First(x => x.Name.ToLower() == fieldName).FieldEdgeType.TypeID;
+						}
+						if (fieldType == 0) continue;
+						
+						// add to map
+						if (!fieldTypeMap.ContainsKey(fieldType))
+							fieldTypeMap.Add(fieldType, new List<string>());
+						fieldTypeMap[fieldType].Add(reader["EdgeFieldName"].ToString());
+					}
 				}
 			}
-			return fieldList.ToString();
+			return fieldTypeMap;
 		}
 		#endregion
 	}

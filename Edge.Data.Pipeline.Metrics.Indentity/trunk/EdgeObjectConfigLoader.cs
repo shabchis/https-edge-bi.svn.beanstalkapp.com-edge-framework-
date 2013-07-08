@@ -4,8 +4,6 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using Edge.Data.Objects;
-using Microsoft.SqlServer.Server;
-using System.Data.SqlTypes;
 
 namespace Edge.Data.Pipeline.Metrics.Indentity
 {
@@ -275,13 +273,13 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var dependencies = edgeFields.Where(f => f.FieldEdgeType != null).ToDictionary(f => f, f => new EdgeFieldDependencyInfo { Field = f });
 			foreach (var field in dependencies.Values)
 			{
-				FindFieldDependencies(field.Field, dependencies);
+				FindFieldDependencies(field.Field, dependencies, edgeFields);
 			}
 
 			// set dependency depth of each object 
 			foreach (var field in edgeFields.Where(x => x.FieldEdgeType != null))
 			{
-				dependencies[field].Depth = SetFieldDependencyDepth(field);
+				dependencies[field].Depth = SetFieldDependencyDepth(field, edgeFields);
 			}
 			return dependencies;
 		}
@@ -311,33 +309,64 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		#endregion
 
 		#region Private Methods
-		private static int SetFieldDependencyDepth(EdgeField field)
+		private static int SetFieldDependencyDepth(EdgeField field, List<EdgeField> edgeFields)
 		{
 			var maxDepth = 0;
 			foreach (var childField in field.FieldEdgeType.Fields)
 			{
 				if (childField.Field.FieldEdgeType != null)
 				{
-					var childDepth = SetFieldDependencyDepth(childField.Field);
-					maxDepth = maxDepth > childDepth + 1 ? maxDepth : childDepth + 1;
+					if (childField.Field.FieldEdgeType.IsAbstract)
+					{
+						foreach (var inheritor in GetInheritorsByType(childField.Field.FieldEdgeType.TypeID, edgeFields))
+						{
+							var childDepth = SetFieldDependencyDepth(inheritor, edgeFields);
+							maxDepth = maxDepth > childDepth + 1 ? maxDepth : childDepth + 1;
+						}
+					}
+					else
+					{
+						var childDepth = SetFieldDependencyDepth(childField.Field, edgeFields);
+						maxDepth = maxDepth > childDepth + 1 ? maxDepth : childDepth + 1;
+					}
 				}
 			}
 			return maxDepth;
 		}
 
-		private static void FindFieldDependencies(EdgeField field, Dictionary<EdgeField, EdgeFieldDependencyInfo> dependencies)
+		private static IEnumerable<EdgeField> GetInheritorsByType(int typeId, IEnumerable<EdgeField> edgeFields)
+		{
+			return edgeFields.Where(x => x.FieldEdgeType != null && x.FieldEdgeType.BaseEdgeType != null &&
+			                             x.FieldEdgeType.BaseEdgeType.TypeID == typeId);
+		}
+
+		private static void FindFieldDependencies(EdgeField field, Dictionary<EdgeField, EdgeFieldDependencyInfo> dependencies, List<EdgeField> edgeFields)
 		{
 			foreach (var childField in field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
 			{
 				if (!dependencies[childField.Field].DependentFields.ContainsKey(field))
 				{
+					if (childField.Field.FieldEdgeType.IsAbstract)
+					{
+						// take care of edge types inheritance
+						foreach (var inheritor in GetInheritorsByType(childField.Field.FieldEdgeType.TypeID, edgeFields))
+						{
+							dependencies[inheritor].DependentFields.Add(field, new EdgeTypeField
+							{
+								Field = field,
+								ColumnName = childField.ColumnName,
+								IsIdentity = childField.IsIdentity
+							});
+							FindFieldDependencies(inheritor, dependencies, edgeFields);
+						}
+					}
 					dependencies[childField.Field].DependentFields.Add(field, new EdgeTypeField
 																		{
 																			Field = field,
 																			ColumnName = childField.ColumnName,
 																			IsIdentity = childField.IsIdentity
 																		});
-					FindFieldDependencies(childField.Field, dependencies);
+					FindFieldDependencies(childField.Field, dependencies, edgeFields);
 				}
 			}
 		} 
