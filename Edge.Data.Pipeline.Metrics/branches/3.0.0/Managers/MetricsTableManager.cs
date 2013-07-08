@@ -136,7 +136,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						// GK field and all its childs if exist
 						foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(dimension.Field.FieldEdgeType, EdgeTypes))
 						{
-							var fieldName = childType == dimension.Field.FieldEdgeType ? dimension.Field.Name : String.Format("{0}_{1}", dimension.Field.Name, childType.Name);
+							var fieldName = childType == dimension.Field.FieldEdgeType ? dimension.Field.Name : String.Format("{0}@{1}", dimension.Field.Name, childType.Name);
 							cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
 							cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_gk", fieldName);
 							cmd.Parameters["@EdgeTypeID"].Value = childType.TypeID;
