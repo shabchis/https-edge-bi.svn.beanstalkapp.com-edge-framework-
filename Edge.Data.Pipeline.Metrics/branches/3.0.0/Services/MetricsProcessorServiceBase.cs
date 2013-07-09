@@ -77,6 +77,10 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			AddExternalMethods();
 			
 			Mappings.Compile();
+
+			// set full account info including parent accounts
+			if (Delivery.Account != null && Accounts.Any(x => x.Value.ID == Delivery.Account.ID))
+				Delivery.Account = Accounts.First(x => x.Value.ID == Delivery.Account.ID).Value;
 		}
 
 		protected virtual void AddExternalMethods()

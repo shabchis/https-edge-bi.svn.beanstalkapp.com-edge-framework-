@@ -59,7 +59,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				if (fieldsStr.Length <= 0) continue;
 
 				fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
-				var select = String.Format("SELECT GK,AccountID,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
+				var select = String.Format("SELECT GK,AccountID,ParentAccountId,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
 
 				// set report and and it
 				record.SetInt32 (0, type.TypeID);
