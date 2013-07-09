@@ -26,7 +26,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 
 		protected MappingContainer MetricsMappings;
 		protected MappingContainer SignatureMappings;
-
 		#endregion
 
 		#region Properties
@@ -35,7 +34,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			get { return (AutoMetricsProcessorServiceConfiguration)base.Configuration; }
 		}
-
 		#endregion
 
 		#region Override DoWork
@@ -61,7 +59,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 						
 						// for each row in file read and import into metrics table
 						var readSuccess = false; 
-						while (ReaderAdapter.Reader.Read() && _eofIndication != null && _eofFieldName != null && ReaderAdapter.GetField(_eofFieldName).ToString() != _eofIndication)
+						while (CheckEndOfFile())
 						{
 							readSuccess = true;
 							ProcessMetrics();
@@ -77,7 +75,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			}
 			return ServiceOutcome.Success;
 		}
-
+		
 		protected override MetricsUnit GetSampleMetrics()
 		{
 			try
@@ -167,7 +165,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			if (!Mappings.Objects.TryGetValue(typeof(Signature), out SignatureMappings))
 				throw new MappingConfigurationException("Missing mapping definition for Signature.", "Object");
 		}
+		#endregion
 
+		#region Private Methods
+		private bool CheckEndOfFile()
+		{
+			// if defined EOF indication read till the indication, otherwise read till the end of the file
+			return (_eofIndication != null && _eofFieldName != null) ? ReaderAdapter.Reader.Read() && ReaderAdapter.GetField(_eofFieldName).ToString() != _eofIndication :
+																	   ReaderAdapter.Reader.Read();
+		} 
 		#endregion
 	}
 }

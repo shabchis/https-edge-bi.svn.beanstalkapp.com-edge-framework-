@@ -435,8 +435,9 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 			foreach (var field in edgeType.Fields)
 			{
-				fieldsStr = String.Format("{0}{1},", fieldsStr, field.ColumnNameGK);
-				if (field.Field.FieldEdgeType != null)
+				if (!fieldsStr.Contains(String.Format("{0},", field.ColumnNameGK)))
+					fieldsStr = String.Format("{0}{1},", fieldsStr, field.ColumnNameGK);
+				if (field.Field.FieldEdgeType != null && !fieldsStr.Contains(String.Format("{0}_type,", field.ColumnName)))
 					fieldsStr = String.Format("{0}{1}_type,", fieldsStr, field.ColumnName);
 
 				if (field.IsIdentity)
