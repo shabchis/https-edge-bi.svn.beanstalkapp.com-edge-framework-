@@ -430,7 +430,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			var createfieldsStr = "GK BIGINT,";
 			var whereStr = "TYPEID=@typeId AND ";
 			var outputStr = "INSERTED.GK,";
-			var fieldsStr = String.Format("CREATEDON,LASTUPDATEDON,TYPEID,ACCOUNTID,{0}",
+			var fieldsStr = String.Format("CREATEDON,LASTUPDATEDON,TYPEID,ACCOUNTID,PARENTACCOUNTID,{0}",
 							edgeType.ClrType.IsSubclassOf(typeof(ChannelSpecificObject)) ? "CHANNELID," : String.Empty);
 
 			foreach (var field in edgeType.Fields)

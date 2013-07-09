@@ -21,13 +21,13 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		public static Dictionary<string, Account> LoadAccounts(int accountId, SqlConnection connection)
 		{
 			var accounts = new Dictionary<string, Account>();
+			var accountMap = new Dictionary<int, KeyValuePair<Account, int>>();
+
 			try
 			{
-				using (var cmd = new SqlCommand("[EdgeObjects].[dbo].[Account_Get]", connection))
+				// load all accounts
+				using (var cmd = new SqlCommand("SELECT Id, Name, ParentAccountID FROM [EdgeObjects].[dbo].[Account] WHERE Status=1", connection))
 				{
-					cmd.Parameters.AddWithValue("@accountID", accountId);
-					cmd.CommandType = CommandType.StoredProcedure;
-
 					using (var reader = cmd.ExecuteReader())
 					{
 						while (reader.Read())
@@ -37,10 +37,21 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 								ID = int.Parse(reader["ID"].ToString()),
 								Name = reader["Name"].ToString()
 							};
-							accounts.Add(account.Name, account);
+							accountMap.Add(account.ID, new KeyValuePair<Account, int>(account, reader["ParentAccountID"] == DBNull.Value ? 0 : int.Parse(reader["ParentAccountID"].ToString())));
 						}
 					}
 				}
+				// set recursively all parent accounts of current account (till Parent Id == 0)
+				if (accountMap.ContainsKey(accountId))
+				{
+					var account = accountMap[accountId].Key;
+					var parentId = accountMap[accountId].Value;
+					SetParentAccount(account, parentId, accountMap);
+					accounts.Add(account.Name, account);
+				}
+				else
+					throw new Exception(String.Format("Account {0} is not found or is inactive", accountId));
+
 			}
 			catch (Exception ex)
 			{
@@ -48,6 +59,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			}
 			return accounts;
 		}
+
+		
 
 		/// <summary>
 		/// Load channels by account (all if account id = -1)
@@ -369,7 +382,30 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					FindFieldDependencies(childField.Field, dependencies, edgeFields);
 				}
 			}
-		} 
+		}
+
+		/// <summary>
+		/// Set recursively parent account to specific account according to received Accounts Map
+		/// </summary>
+		private static void SetParentAccount(Account account, int parentId, Dictionary<int, KeyValuePair<Account, int>> accountMap)
+		{
+			// no parent
+			if (parentId == 0) return;
+
+			// parent is already set - to avoid circling
+			if (account.ParentAccount != null) return;
+
+			if (accountMap.ContainsKey(parentId))
+			{
+				var parentAccount = accountMap[parentId].Key;
+				var grantPaId = accountMap[parentId].Value;
+				account.ParentAccount = parentAccount;
+
+				SetParentAccount(parentAccount, grantPaId, accountMap);
+			}
+			else
+				throw new Exception(String.Format("Account {0} is not found or is inactive", parentId));
+		}
 		#endregion
 	}
 }

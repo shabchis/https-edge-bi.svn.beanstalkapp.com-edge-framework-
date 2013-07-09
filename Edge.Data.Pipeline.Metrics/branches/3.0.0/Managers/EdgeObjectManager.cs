@@ -78,7 +78,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <summary>
 		/// Insert objects into object DB tables
 		/// </summary>
-		public void ImportObjects(string tablePrefix)
+		public void ImportObjects(string tablePrefix, Account parentAccount)
 		{
 			foreach (var obj in _objectsCache)
 			{
@@ -92,6 +92,10 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 				// account
 				AddColumn(ref columns, ref values, paramList, "AccountID", obj.Value.Account.ID);
+
+				// parent account
+				if (parentAccount != null)
+					AddColumn(ref columns, ref values, paramList, "ParentAccountID", parentAccount.ID);
 
 				// type ID
 				AddColumn(ref columns, ref values, paramList, "TypeID", obj.Value.EdgeType.TypeID);
