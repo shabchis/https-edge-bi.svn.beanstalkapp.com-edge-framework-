@@ -60,8 +60,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			return accounts;
 		}
 
-		
-
 		/// <summary>
 		/// Load channels by account (all if account id = -1)
 		/// </summary>

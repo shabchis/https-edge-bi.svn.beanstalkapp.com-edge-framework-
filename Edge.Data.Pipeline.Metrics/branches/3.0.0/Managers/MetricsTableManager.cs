@@ -136,7 +136,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 						// GK field and all its childs if exist
 						foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(dimension.Field.FieldEdgeType, EdgeTypes))
 						{
-							var fieldName = childType == dimension.Field.FieldEdgeType ? dimension.Field.Name : String.Format("{0}@{1}", dimension.Field.Name, childType.Name);
+							var fieldName = childType == dimension.Field.FieldEdgeType ? dimension.Field.Name : String.Format("{0}|{1}", dimension.Field.Name, childType.Name);
 							cmd.Parameters["@EdgeFieldID"].Value = dimension.Field.FieldID;
 							cmd.Parameters["@EdgeFieldName"].Value = String.Format("{0}_gk", fieldName);
 							cmd.Parameters["@EdgeTypeID"].Value = childType.TypeID;
@@ -340,24 +340,6 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				return tableNameParam.Value.ToString();
 			}
 		}
-
-		///// <summary>
-		///// Call stored procedure to insert delivery metrics data from delivery table into staging table
-		///// </summary>
-		//public void Stage(int accountId, string deliveryTableName, string stagingTableName)
-		//{
-		//	// nothing to do if there is no metrics table (import objects only)
-		//	if (String.IsNullOrEmpty(deliveryTableName) || String.IsNullOrEmpty(stagingTableName)) return;
-
-		//	using (var cmd = SqlUtility.CreateCommand(SP_STAGE_DELIVERY_METRICS, CommandType.StoredProcedure))
-		//	{
-		//		cmd.Connection = _deliverySqlConnection;
-		//		cmd.Parameters.AddWithValue("@AccountId", accountId);
-		//		cmd.Parameters.AddWithValue("@FromTable", deliveryTableName);
-		//		cmd.Parameters.AddWithValue("@ToTable", String.Format("[dbo].[{0}]", stagingTableName));
-		//		cmd.ExecuteNonQuery();
-		//	}
-		//} 
 		#endregion
 	}
 }

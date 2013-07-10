@@ -59,7 +59,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				if (fieldsStr.Length <= 0) continue;
 
 				fieldsStr = fieldsStr.Remove(fieldsStr.Length - 2, 2);
-				var select = String.Format("SELECT GK,AccountID,ParentAccountId,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
+				var select = String.Format("SELECT GK,AccountID,RootAccountId,ChannelID,CreatedOn,LastUpdatedOn,{0} FROM {1} WHERE TYPEID={2}", fieldsStr, type.TableName, type.TypeID);
 
 				// set report and and it
 				record.SetInt32 (0, type.TypeID);
@@ -167,7 +167,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							var fieldName = reader["EdgeFieldName"].ToString().Replace("_gk", "");
 							var parentFieldName = reader["ParentFieldName"].ToString().Replace("_gk", "");
 
-							selectStr = String.Format("{0}\tCOALESCE({1}.GK,0) AS {1}_gk,\n", selectStr, fieldName);
+							selectStr = String.Format("{0}\tCOALESCE({1}.GK,-1) AS {1}_gk,\n", selectStr, fieldName);
 							insertStr = String.Format("{0}\t{1}_gk,\n", insertStr, fieldName);
 							fromStr = String.Format("{0}\tLEFT OUTER JOIN {1} AS {3} ON Metrics.{2}_tk={3}.TK\n AND {3}.TYPEID={4}",
 														fromStr, GetTableName(tablePrefix, edgeType.TableName), parentFieldName, fieldName, edgeType.TypeID);
@@ -218,9 +218,9 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					{
 						var fieldName = reader["EdgeFieldName"].ToString().ToLower().Replace("_gk", "");
 						var fieldType = 0;
-						if (fieldName.Contains("@"))
+						if (fieldName.Contains("|"))
 						{
-							fieldName = fieldName.Substring(fieldName.LastIndexOf('@') + 1);
+							fieldName = fieldName.Substring(fieldName.LastIndexOf("|", StringComparison.Ordinal) + 1);
 							if (edgeTypes.Any(x => x.Name.ToLower() == fieldName))
 								fieldType = edgeTypes.First(x => x.Name.ToLower() == fieldName).TypeID;
 						}
