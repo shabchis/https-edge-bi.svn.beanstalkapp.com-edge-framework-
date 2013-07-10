@@ -101,7 +101,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		protected override void OnEndImport()
 		{
 			// insert all objects into DB
-			_edgeObjectsManager.ImportObjects(_tablePrefix, CurrentDelivery != null ? GetParentAccount(CurrentDelivery.Account) : null);
+			_edgeObjectsManager.ImportObjects(_tablePrefix, CurrentDelivery != null ? GetRootAccount(CurrentDelivery.Account) : null);
 
 			foreach(var output in CurrentDelivery.Outputs)
 				output.Status = DeliveryOutputStatus.Imported;
@@ -113,12 +113,12 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				throw new InvalidOperationException("BeginImport must be called before anything can be imported.");
 		}
 
-		private Account GetParentAccount(Account currentAccount)
+		private Account GetRootAccount(Account currentAccount)
 		{
 			if (currentAccount == null || currentAccount.ParentAccount == null)
 				return currentAccount;
 
-			return GetParentAccount(currentAccount.ParentAccount);
+			return GetRootAccount(currentAccount.ParentAccount);
 		}
 		
 		/*=========================*/
