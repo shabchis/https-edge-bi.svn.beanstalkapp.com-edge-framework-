@@ -46,14 +46,16 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				var fieldsStr = String.Empty;
 				foreach (var field in type.Fields)
 				{
-					fieldsStr = String.Format("{0}{1} AS {2}, ", fieldsStr, field.ColumnNameGK, field.FieldNameGK);
+					fieldsStr = String.Format("{0}{1} AS {2}, ", fieldsStr, field.ColumnNameGK.StartsWith("obj") ? String.Format("COALESCE({0},-1)", field.ColumnNameGK) : 
+																 field.ColumnNameGK, field.FieldNameGK);
 					if (field.Field.FieldEdgeType == null) continue;
 
 					// add to select all options of child edge types
 					foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(field.Field.FieldEdgeType, edgeTypes))
 					{
 						if (childType == field.Field.FieldEdgeType) continue;
-						fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK, field.Field.Name, childType.Name);
+						fieldsStr = String.Format("{0}{1} AS {2}_{3}_gk, ", fieldsStr, field.ColumnNameGK.StartsWith("obj") ? String.Format("COALESCE({0},-1)", field.ColumnNameGK) :  
+																			field.ColumnNameGK, field.Field.Name, childType.Name);
 					}
 				}
 				if (fieldsStr.Length <= 0) continue;
