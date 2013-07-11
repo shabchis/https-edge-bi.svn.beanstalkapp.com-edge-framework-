@@ -218,9 +218,9 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					{
 						var fieldName = reader["EdgeFieldName"].ToString().ToLower().Replace("_gk", "");
 						var fieldType = 0;
-						if (fieldName.Contains("|"))
+						if (fieldName.Contains("-"))
 						{
-							fieldName = fieldName.Substring(fieldName.LastIndexOf("|", StringComparison.Ordinal) + 1);
+							fieldName = fieldName.Substring(fieldName.LastIndexOf("-", StringComparison.Ordinal) + 1);
 							if (edgeTypes.Any(x => x.Name.ToLower() == fieldName))
 								fieldType = edgeTypes.First(x => x.Name.ToLower() == fieldName).TypeID;
 						}
