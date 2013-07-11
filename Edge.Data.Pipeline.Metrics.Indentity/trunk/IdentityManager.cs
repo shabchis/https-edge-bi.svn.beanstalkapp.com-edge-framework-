@@ -64,6 +64,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			Log("IdentifyDeliveryObjects:: EdgeObjects dependencies loaded");
 
 			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
+			var updatedTypes = new List<EdgeType>();
+
 			for (int i = 0; i <= maxDependecyDepth; i++)
 			{
 				var currentDepth = i;
@@ -71,8 +73,11 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
+					// nothing to do if field of the same type was already updated
+					if (updatedTypes.Contains(field.Field.FieldEdgeType)) continue;
+
 					Log(String.Format("IdentifyDeliveryObjects:: starting identify field '{0}'", field.Field.Name));
-					UpdateObjectDependencies(field.Field);
+					UpdateObjectDependencies(field.Field.FieldEdgeType);
 
 					var deliveryObjects = GetDeliveryObjects(field.Field.FieldEdgeType);
 					if (deliveryObjects == null)
@@ -97,13 +102,14 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 								updateGkCommand.Parameters["@identityStatus"].Value = deliveryObject.IdentityStatus;
 
 								updateGkCommand.ExecuteNonQuery();
-								Log(String.Format("IdentifyDeliveryObjects:: GK={0} was updated for {2} with TK={1}, identity status={3}",
-												  deliveryObject.GK, deliveryObject.TK, field.Field.Name, deliveryObject.IdentityStatus));
+								//Log(String.Format("IdentifyDeliveryObjects:: GK={0} was updated for {2} with TK={1}, identity status={3}",
+								//				  deliveryObject.GK, deliveryObject.TK, field.Field.Name, deliveryObject.IdentityStatus));
 							}
 							else
 								Log(String.Format("IdentifyDeliveryObjects:: GK={0} was not found for {2} with TK={1}", deliveryObject.GK, deliveryObject.TK, field.Field.Name));
 						}
 						CreateTempGkTkTable4Field(field.Field.FieldEdgeType);
+						updatedTypes.Add(field.Field.FieldEdgeType);
 						Log(String.Format("IdentifyDeliveryObjects:: Temp GK-TK table was created for {0}", field.Field.Name));
 					}
 				}
@@ -298,16 +304,16 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
 		/// </summary>
 		/// <param name="field"></param>
-		private void UpdateObjectDependencies(EdgeField field)
+		private void UpdateObjectDependencies(EdgeType edgeType)
 		{
 			// nothitng to do if there are no GK to update
-			if (field.FieldEdgeType.Fields.All(x => x.Field.FieldEdgeType == null)) return;
+			if (edgeType.Fields.All(x => x.Field.FieldEdgeType == null)) return;
 
-			var mainTableName = GetDeliveryTableName(field.FieldEdgeType.TableName);
-			var paramList = new List<SqlParameter> { new SqlParameter("@typeId", field.FieldEdgeType.TypeID) };
+			var mainTableName = GetDeliveryTableName(edgeType.TableName);
+			var paramList = new List<SqlParameter> { new SqlParameter("@typeId", edgeType.TypeID) };
 			var cmdStr = String.Empty;
 
-			foreach (var parentField in field.FieldEdgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
+			foreach (var parentField in edgeType.Fields.Where(x => x.Field.FieldEdgeType != null))
 			{
 				foreach (var childType in EdgeObjectConfigLoader.FindEdgeTypeInheritors(parentField.Field.FieldEdgeType, EdgeTypes))
 				{
@@ -329,7 +335,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 				cmd.ExecuteNonQuery();
 			}
-			Log(String.Format("UpdateObjectDependencies:: dependencies updated for field '{0}'", field.Name));
+			Log(String.Format("UpdateObjectDependencies:: dependencies updated for edge type '{0}'", edgeType.Name));
 		}
 
 		private string GetDeliveryTableName(string tableName)
@@ -364,8 +370,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
-					Log(String.Format("UpdateEdgeObjects:: starting update field '{0}'", field.Field.Name));
-					UpdateObjectDependencies(field.Field);
+					Log(String.Format("UpdateEdgeObjects:: starting update field '{0}' of type '{1}'", field.Field.Name, field.Field.FieldEdgeType.Name));
+					UpdateObjectDependencies(field.Field.FieldEdgeType);
 
 					if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Unchanged, true))
 					{

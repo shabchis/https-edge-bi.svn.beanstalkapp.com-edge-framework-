@@ -9,13 +9,28 @@ namespace Edge.Data.Objects
 	{
 		public string Value;
 		public PlacementType PlacementType;
+
+		public override IEnumerable<ObjectDimension> GetObjectDimensions()
+		{
+			foreach (var dimension in base.GetObjectDimensions())
+			{
+				yield return dimension;
+			}
+
+			if (PlacementType != null) yield return new ObjectDimension
+			{
+				Field = EdgeType["PlacementType"],
+				Value = PlacementType
+			};
+		}
 	}
 
-	public enum PlacementType
-	{
-		Unidentified = 0,
-		Automatic = 4,
-		Managed = 5
-	}
+	public class PlacementType : StringValue { }
 
+	//public enum PlacementType
+	//{
+	//	Unidentified = 0,
+	//	Automatic = 4,
+	//	Managed = 5
+	//}
 }
