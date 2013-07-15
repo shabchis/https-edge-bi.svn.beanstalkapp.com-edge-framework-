@@ -10,12 +10,14 @@ namespace Edge.Data.Objects
 		public Gender Gender;
 	}
 
-	public enum Gender
-	{
-		Unspecified = 0,
-		Male = 1,
-		Female = 2,
-		Other = 3
-	}
+	public class Gender : StringValue {}
+
+	//public enum Gender
+	//{
+	//	Unspecified = 0,
+	//	Male = 1,
+	//	Female = 2,
+	//	Other = 3
+	//}
 
 }
