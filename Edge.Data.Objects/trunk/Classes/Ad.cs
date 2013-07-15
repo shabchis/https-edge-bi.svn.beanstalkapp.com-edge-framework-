@@ -7,7 +7,7 @@ namespace Edge.Data.Objects
 	{
 		//public string DestinationUrl;
 		public Destination MatchDestination;
-		public List<TargetDefinition> TargetDefinitions;
+		public Dictionary<TargetField, TargetDefinition> TargetDefinitions;
 		public CreativeMatch CreativeMatch;
 
 		public override IEnumerable<ObjectDimension> GetObjectDimensions()
@@ -32,8 +32,7 @@ namespace Edge.Data.Objects
 			if (TargetDefinitions == null) yield break;
 			foreach (var target in TargetDefinitions)
 			{
-				// TODO: set edge field for Target definition, may be should be dictionary
-				yield return new ObjectDimension {Value = target};
+				yield return new ObjectDimension {Field = target.Key, Value = target.Value};
 			}
 		}
 	}

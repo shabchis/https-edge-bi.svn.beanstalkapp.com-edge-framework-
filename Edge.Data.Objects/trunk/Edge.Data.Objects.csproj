@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="Classes\Account.cs" />
     <Compile Include="Classes\Ad.cs" />
+    <Compile Include="Classes\AgeTargetDefinition.cs" />
     <Compile Include="Classes\ChannelSpecificObject.cs" />
     <Compile Include="Classes\CompositeCreative.cs" />
     <Compile Include="Classes\CompositeCreativeDefinition.cs" />
@@ -56,6 +57,7 @@
     <Compile Include="Classes\Destination.cs" />
     <Compile Include="Classes\EdgeTypeField.cs" />
     <Compile Include="Classes\ExtraField.cs" />
+    <Compile Include="Classes\GenderTargetDefinition.cs" />
     <Compile Include="Classes\KeywordTargetMatch.cs" />
     <Compile Include="Classes\ObjectDimension.cs" />
     <Compile Include="Classes\PlacementTargetMatch.cs" />
