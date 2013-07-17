@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using Edge.Data.Objects;
+using System.Text;
 
 namespace Edge.Data.Pipeline.Metrics.Indentity
 {
@@ -63,63 +64,130 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
 			Log("IdentifyDeliveryObjects:: EdgeObjects dependencies loaded");
 
-			int maxDependecyDepth = Dependencies.Max(x => x.Depth);
+			var maxDependecyDepth = Dependencies.Max(x => x.Depth);
 			var updatedTypes = new List<EdgeType>();
 
-			for (int i = 0; i <= maxDependecyDepth; i++)
+			for (var i = 0; i <= maxDependecyDepth; i++)
 			{
 				var currentDepth = i;
 				Log(String.Format("IdentifyDeliveryObjects:: dependency depth={0}", currentDepth));
 
 				foreach (var field in Dependencies.Where(x => x.Depth == currentDepth))
 				{
+					Log(String.Format("IdentifyDeliveryObjects:: starting identify field '{0}' of type '{1}'", field.Field.Name, field.Field.FieldEdgeType.Name));
+
 					// nothing to do if field of the same type was already updated
-					if (updatedTypes.Contains(field.Field.FieldEdgeType)) continue;
-
-					Log(String.Format("IdentifyDeliveryObjects:: starting identify field '{0}'", field.Field.Name));
-					UpdateObjectDependencies(field.Field.FieldEdgeType);
-
-					var deliveryObjects = GetDeliveryObjects(field.Field.FieldEdgeType);
-					if (deliveryObjects == null)
+					if (updatedTypes.Contains(field.Field.FieldEdgeType))
 					{
-						CreateTempGkTkTable4Field(field.Field.FieldEdgeType); // even if there are no objects from temp table
-						Log(String.Format("IdentifyDeliveryObjects:: there are no objects for field '{0}' of type '{1}'", field.Field.Name, field.Field.FieldEdgeType.Name));
+						Log(String.Format("IdentifyDeliveryObjects:: nothing to Identify for field '{0}', type '{1}' was already identified", field.Field.Name, field.Field.FieldEdgeType.Name));
 						continue;
 					}
 
-					using (var selectEdgeObjectCommand = PrepareSelectEdgeObjectCommand(field.Field.FieldEdgeType))
-					using (var updateGkCommand = PrepareUpdateGkCommand(field))
-					{
-						foreach (var deliveryObject in deliveryObjects)
-						{
-							SetDeliveryObjectByEdgeObject(deliveryObject, selectEdgeObjectCommand);
+					Log(String.Format("IdentifyDeliveryObjects:: update '{0}' type dependencies", field.Field.FieldEdgeType.Name));
+					UpdateObjectDependencies(field.Field.FieldEdgeType);
 
-							// update delivery with GKs if GK was found by identity fields and set IdentityStatus accordingly (Modified or Unchanged)
-							if (!String.IsNullOrEmpty(deliveryObject.GK))
-							{
-								updateGkCommand.Parameters["@gk"].Value = deliveryObject.GK;
-								updateGkCommand.Parameters["@tk"].Value = deliveryObject.TK;
-								updateGkCommand.Parameters["@identityStatus"].Value = deliveryObject.IdentityStatus;
+					Log(String.Format("IdentifyDeliveryObjects:: Create Temp Objects table for type '{0}'", field.Field.FieldEdgeType.Name));
+					CreateTempObjectsTable(field.Field.FieldEdgeType);
 
-								updateGkCommand.ExecuteNonQuery();
-								//Log(String.Format("IdentifyDeliveryObjects:: GK={0} was updated for {2} with TK={1}, identity status={3}",
-								//				  deliveryObject.GK, deliveryObject.TK, field.Field.Name, deliveryObject.IdentityStatus));
-							}
-							else
-								Log(String.Format("IdentifyDeliveryObjects:: GK={0} was not found for {2} with TK={1}", deliveryObject.GK, deliveryObject.TK, field.Field.Name));
-						}
-						CreateTempGkTkTable4Field(field.Field.FieldEdgeType);
-						updatedTypes.Add(field.Field.FieldEdgeType);
-						Log(String.Format("IdentifyDeliveryObjects:: Temp GK-TK table was created for {0}", field.Field.Name));
-					}
+					Log(String.Format("IdentifyDeliveryObjects:: Set delivery objects identity (GK) for type '{0}'", field.Field.FieldEdgeType.Name));
+					SetIdentity(field.Field.FieldEdgeType);
+
+					Log(String.Format("IdentifyDeliveryObjects:: Create Temp Delivery GK-TK table for type '{0}'", field.Field.FieldEdgeType.Name));
+					CreateTempDeliveryGkTkTable(field.Field.FieldEdgeType);
+
+					Log(String.Format("IdentifyDeliveryObjects:: Finished identify type '{0}'", field.Field.FieldEdgeType.Name));
+					updatedTypes.Add(field.Field.FieldEdgeType);
 				}
+			}
+		}
+
+		/// <summary>
+		/// Set identity of Delivery objects by edge type:
+		/// update GK according to identity fields against temp object table
+		/// set identity status=1 (unchanged) if non-identity fields were NOT changed
+		/// set identity status=2 (modified) if non-identity fields WERE changed
+		/// </summary>
+		private void SetIdentity(EdgeType edgeType)
+		{
+			var identityFieldsSb = new StringBuilder();
+			var fieldsSb = new StringBuilder();
+
+			foreach (var field in edgeType.Fields)
+			{
+				if (field.IsIdentity)
+					identityFieldsSb.AppendFormat("{0}delivery.{1}=temp.{1}", identityFieldsSb.Length > 0 ? " AND " : "", field.ColumnNameGK);
+				else
+					fieldsSb.AppendFormat("{0}delivery.{1}=temp.{1}", fieldsSb.Length > 0 ? " AND " : "", field.ColumnNameGK);
+			}
+			if (identityFieldsSb.Length == 0)
+				throw new Exception(String.Format("No identity fields are defined for type '{0}'", edgeType.Name));
+
+			var sql = String.Format(@"UPDATE {0} 
+										SET Gk = temp.Gk, IdentityStatus = {1} 
+										FROM {0} delivery, ##TempEdgeObject_{2} temp
+										WHERE delivery.TypeId = @typeId AND {3}", 
+							GetDeliveryTableName(edgeType.TableName),
+							fieldsSb.Length > 0 ? String.Format("CASE WHEN {0} THEN 1 ELSE 2 END", fieldsSb) : "1",
+							edgeType.Name,
+							identityFieldsSb
+						);
+
+			Log(String.Format("IdentifyDeliveryObjects:: Identity type '{0}' SQL: {1}", edgeType.Name, sql));
+
+			using(var cmd = new SqlCommand {Connection = _objectsSqlConnection, CommandText = sql})
+			{
+				cmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+				cmd.ExecuteNonQuery();
+			}
+		}
+
+		/// <summary>
+		/// Create temporary table by edge type from original EdgeObjects table indexed by identity fields
+		/// </summary>
+		private void CreateTempObjectsTable(EdgeType edgeType)
+		{
+			if (!edgeType.Fields.Any(x => x.IsIdentity))
+				throw new Exception(String.Format("There are no identity fields defined for type {0}", edgeType.Name));
+
+			var selectColumnStr = "GK,";
+			var indexFieldsStr = String.Empty;
+			var tempObjectTableName = String.Format("##TempEdgeObject_{0}", edgeType.Name);
+
+			foreach (var field in edgeType.Fields)
+			{
+				if (selectColumnStr.Contains(String.Format("{0},", field.ColumnNameGK))) continue;
+
+				// add columns to SELECT (later check if edge object was updated or not)
+				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.ColumnNameGK);
+				if (field.IsIdentity)
+					indexFieldsStr = String.Format("{0}{1},", indexFieldsStr, field.ColumnNameGK);
+			}
+
+			selectColumnStr = selectColumnStr.Remove(selectColumnStr.Length - 1, 1);
+			indexFieldsStr = indexFieldsStr.Remove(indexFieldsStr.Length - 1, 1);
+
+			using (var createTempTableCmd = new SqlCommand {Connection = _objectsSqlConnection})
+			{
+				// create temp table from EdgeObjectd DB table by edge type + indexes on Identity fields
+				createTempTableCmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM TEMPDB.INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{1}')
+																	BEGIN
+																		SELECT {0} INTO {1} FROM {2} WHERE typeId=@typeId; 
+																		CREATE NONCLUSTERED INDEX [IDX_{4}] ON {1} ({3});
+																	END",
+												  selectColumnStr,
+												  tempObjectTableName,
+												  edgeType.TableName,
+												  indexFieldsStr,
+												  edgeType.Name);
+				createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+				createTempTableCmd.ExecuteNonQuery();
 			}
 		}
 
 		/// <summary>
 		/// Create temporary table which contains GK, TK mapping of updated object type in Delivery
 		/// </summary>
-		private void CreateTempGkTkTable4Field(EdgeType edgeType)
+		private void CreateTempDeliveryGkTkTable(EdgeType edgeType)
 		{
 			// do not create table for abstract objects
 			if (edgeType.IsAbstract) return;
@@ -136,174 +204,12 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				cmd.ExecuteNonQuery();
 			}
 		}
-
-		/// <summary>
-		/// Retrieve EdgeObject according to delivery object ideintity fields to get GK
-		/// if found, check if additional fields were changed and set Status to accordingly
-		/// </summary>
-		private void SetDeliveryObjectByEdgeObject(DeliveryEdgeObject deliveryObject, SqlCommand selectEdgeObjectCommand)
-		{
-			// set identity fields parameters values to retrieve relevant edge object
-			foreach (var identity in deliveryObject.FieldList.Where(x => x.IsIdentity))
-			{
-				selectEdgeObjectCommand.Parameters[String.Format("@{0}", identity.FieldName)].Value = !String.IsNullOrEmpty(identity.Value) ? (object)identity.Value : DBNull.Value;
-			}
-
-			using (var reader = selectEdgeObjectCommand.ExecuteReader())
-			{
-				while (reader.Read())
-				{
-					// if found set GK
-					deliveryObject.GK = reader["GK"].ToString();
-					deliveryObject.IdentityStatus = IdentityStatus.Unchanged;
-
-					// check if additional fields where changed, if yes --> set status to Modified
-					foreach (var field in deliveryObject.FieldList.Where(x => !x.IsIdentity))
-					{
-						if (field.Value != reader[field.FieldName].ToString())
-						{
-							deliveryObject.IdentityStatus = IdentityStatus.Modified;
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		/// <summary>
-		/// Create temporary table by EdgeType, index it by identity fields and insert all EdgeObjects into it -
-		/// all this for provide fast retrivals and avoid EdgeObject tbale locks
-		/// Prepare SQL command for retrieving object GK from TEMP EdgeObject table by identity fields
-		/// </summary>
-		/// <returns></returns>
-		private SqlCommand PrepareSelectEdgeObjectCommand(EdgeType edgeType)
-		{
-			if (!edgeType.Fields.Any(x => x.IsIdentity))
-				throw new Exception(String.Format("There are no identity fields defined for type {0}", edgeType.Name));
-			
-			var selectColumnStr = "GK,";
-			var whereParamsStr = String.Empty;
-			var indexFieldsStr = String.Empty;
-			var tempObjectTableName = String.Format("##TempEdgeObject_{0}", edgeType.Name);
-
-			var selectCmd = new SqlCommand { Connection = _objectsSqlConnection };
-			var createTempTableCmd = new SqlCommand { Connection = _objectsSqlConnection };
-			createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
-
-			foreach (var field in edgeType.Fields)
-			{
-				if (selectColumnStr.Contains(String.Format("{0},", field.ColumnNameGK))) continue;
-				
-				// add columns to SELECT (later check if edge object was updated or not)
-				selectColumnStr = String.Format("{0}{1},", selectColumnStr, field.ColumnNameGK);
-				if (field.IsIdentity)
-				{
-					// add identity fields to WHERE (some fields could be null when using edge type inheritance)
-					whereParamsStr = String.Format("{0}(@{1} IS NULL OR {1} IS NULL OR {1}= @{1}) AND ", whereParamsStr,
-					                               field.ColumnNameGK);
-					var param = new SqlParameter(String.Format("@{0}", field.ColumnNameGK), null) {IsNullable = true};
-					selectCmd.Parameters.Add(param);
-
-					indexFieldsStr = String.Format("{0}{1},", indexFieldsStr, field.ColumnNameGK);
-				}
-			}
-
-			selectColumnStr = selectColumnStr.Remove(selectColumnStr.Length - 1, 1);
-			indexFieldsStr = indexFieldsStr.Remove(indexFieldsStr.Length - 1, 1);
-			if (whereParamsStr.Length > 5) whereParamsStr = whereParamsStr.Remove(whereParamsStr.Length - 5, 5);
-
-			// create temp table from EdgeObjectd DB table by edge type + indexes on Identity fields
-			createTempTableCmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM TEMPDB.INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{1}')
-										BEGIN
-											SELECT {0} INTO {1} FROM {2} WHERE typeId=@typeId; 
-											CREATE NONCLUSTERED INDEX [IDX_{4}] ON {1} ({3});
-										END",
-											selectColumnStr,
-											tempObjectTableName,
-											edgeType.TableName,
-											indexFieldsStr,
-											edgeType.Name);
-
-			createTempTableCmd.ExecuteNonQuery();
-			createTempTableCmd.Dispose();
-
-			selectCmd.CommandText = String.Format("SELECT {0} FROM {1} WHERE {2}", selectColumnStr, tempObjectTableName, whereParamsStr);
-			return selectCmd;
-		}
-
-		/// <summary>
-		/// Prepare update GK command by TK which contains updates GK in all tables which contains this object:
-		/// 1. Object table itself
-		/// 2. All dependent parent tables
-		/// 3. Metrics table
-		/// </summary>
-		/// <param name="field"></param>
-		/// <returns></returns>
-		private SqlCommand PrepareUpdateGkCommand(EdgeFieldDependencyInfo field)
-		{
-			var sqlCmd = new SqlCommand
-			{
-				Connection = _objectsSqlConnection,
-				CommandText = String.Format("UPDATE {0} \nSET GK=@gk, IdentityStatus=@identityStatus \nWHERE TK=@tk AND TYPEID=@typeId",
-											GetDeliveryTableName(field.Field.FieldEdgeType.TableName))
-			};
-
-			sqlCmd.Parameters.Add(new SqlParameter("@gk", null));
-			sqlCmd.Parameters.Add(new SqlParameter("@tk", null));
-			sqlCmd.Parameters.Add(new SqlParameter("@typeId", field.Field.FieldEdgeType.TypeID));
-			sqlCmd.Parameters.Add(new SqlParameter("@identityStatus", null));
-
-			return sqlCmd;
-		}
-
-		/// <summary>
-		/// Load objects by type from Delivery DB (by identity fields)
-		/// </summary>
-		/// <param name="edgeType"></param>
-		/// <returns></returns>
-		private IEnumerable<DeliveryEdgeObject> GetDeliveryObjects(EdgeType edgeType)
-		{
-			var columnsStr = edgeType.Fields.Aggregate(String.Empty, (current, field) => String.Format("{0}{1},", current, field.ColumnNameGK));
-			if (columnsStr.Length == 0) return null;
-
-			columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
-
-			var deliveryObjects = new List<DeliveryEdgeObject>();
-			using (var command = new SqlCommand { Connection = _objectsSqlConnection })
-			{
-				command.CommandText = String.Format("SELECT TK, {0} FROM {1} WHERE TYPEID = @typeId",
-														columnsStr,
-														GetDeliveryTableName(edgeType.TableName));
-
-				command.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
-
-				using (var reader = command.ExecuteReader())
-				{
-					while (reader.Read())
-					{
-						var deliveryObj = new DeliveryEdgeObject { TK = reader["TK"].ToString() };
-						foreach (var field in edgeType.Fields)
-						{
-							deliveryObj.FieldList.Add(new FieldValue
-							{
-								FieldName = field.ColumnNameGK,
-								IsIdentity = field.IsIdentity,
-								Value = reader[field.ColumnNameGK].ToString()
-							});
-						}
-						deliveryObjects.Add(deliveryObj);
-					}
-				}
-			}
-			return deliveryObjects;
-		}
-
+		
 		/// <summary>
 		/// Before searching for object GKs update all GK of its parent fields 
 		/// (objects it depends on)
 		/// For example: before searching for AdGroup GKs, update all AdGroup Campaings
 		/// </summary>
-		/// <param name="field"></param>
 		private void UpdateObjectDependencies(EdgeType edgeType)
 		{
 			// nothitng to do if there are no GK to update
@@ -394,7 +300,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					else
 						Log(String.Format("UpdateEdgeObjects:: delivery doen't contain changes of {0}, nothing to sync", field.Field.Name));
 
-					CreateTempGkTkTable4Field(field.Field.FieldEdgeType);
+					CreateTempDeliveryGkTkTable(field.Field.FieldEdgeType);
 				}
 			}
 		}
