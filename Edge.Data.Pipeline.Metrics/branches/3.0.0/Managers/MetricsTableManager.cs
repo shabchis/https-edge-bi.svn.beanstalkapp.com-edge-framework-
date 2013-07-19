@@ -37,6 +37,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 
 		private readonly SqlConnection _deliverySqlConnection;
 		private readonly EdgeObjectsManager _edgeObjectsManger;
+		private SqlCommand _insertMetricsCommand;
 
 		private const string SP_FIND_BEST_MATCH_METRICS_TABLE = "EdgeStaging.dbo.sp_BestMatch";
 		private const string SP_STAGE_DELIVERY_METRICS = "EdgeStaging.dbo.sp_MetricsStaging";
@@ -47,6 +48,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		{
 			_deliverySqlConnection = connection;
 			_edgeObjectsManger = edgeObjectsManager;
+			_insertMetricsCommand = new SqlCommand { Connection = _deliverySqlConnection };
 		} 
 		#endregion
 
@@ -79,31 +81,49 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <summary>
 		/// Build DML statement to create delivery table according to the column list
 		/// Run DML statement
+		/// In parallel create insert command for Import Metrics to avoid SQL parsing per row
+		/// In Import Metrics just set parameters
 		/// </summary>
 		/// <param name="columnList"></param>
 		/// <returns></returns>
-		private void CreateTable(IEnumerable<Column> columnList)
+		private void CreateTable(IEnumerable<Column> columnList) 
 		{
+			var columnsStr = String.Empty;
+			var valuesStr = String.Empty;
+
 			var builder = new StringBuilder();
 			builder.AppendFormat("CREATE TABLE {0}(\n", TableName);
 
-			foreach (var col in columnList)
+			foreach (var column in columnList)
 			{
 				builder.AppendFormat("\t[{0}] [{1}] {2} {3} {4}, \n",
-					col.Name,
-					col.DbType,
-					col.Size != 0 ? string.Format("({0})", col.Size) : null,
-					col.Nullable ? "null" : "not null",
-					!string.IsNullOrWhiteSpace(col.DefaultValue) ? string.Format("Default {0}", col.DefaultValue) : string.Empty
+					column.Name,
+					column.DbType,
+					column.Size != 0 ? string.Format("({0})", column.Size) : null,
+					column.Nullable ? "null" : "not null",
+					!string.IsNullOrWhiteSpace(column.DefaultValue) ? string.Format("Default {0}", column.DefaultValue) : string.Empty
 				);
+
+				columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
+				valuesStr = String.Format("{0}\n@{1},", valuesStr, column.Name);
+				_insertMetricsCommand.Parameters.Add(new SqlParameter(String.Format("@{0}", column.Name), column.Value));
 			}
 			builder.Remove(builder.Length - 3, 3);
 			builder.Append(");");
+
+			// execute create metrics table command
 			using (var command = new SqlCommand(builder.ToString(), _deliverySqlConnection))
 			{
 				command.CommandTimeout = 80; //DEFAULT IS 30 AND SOMTIME NOT ENOUGH WHEN RUNING CUBE
 				command.ExecuteNonQuery();
 			}
+
+			// remove last commas
+			if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
+			if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
+
+			// prepare insert metrics command
+			_insertMetricsCommand.CommandText = String.Format("INSERT INTO {0} ({1}) VALUES ({2});", TableName, columnsStr, valuesStr);
 		}
 
 		/// <summary>
@@ -166,6 +186,9 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="metricsUnit"></param>
 		public void ImportMetrics(MetricsUnit metricsUnit)
 		{
+			if (_insertMetricsCommand == null || String.IsNullOrEmpty(_insertMetricsCommand.CommandText))
+				throw new Exception(String.Format("Insert command is not ready to import metrics for Table '{0}'", TableName));
+
 			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
 
 			var columnList = GetColumnList(flatObjectList);
@@ -175,29 +198,21 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 				ImportMetricsData(columnList);
 		}
 
+		/// <summary>
+		/// Insert command is already prepared when created Delivery table
+		/// only set parameters values and execute INSERT (to avoid SQL command parsing per each row)
+		/// </summary>
 		private void ImportMetricsData(IEnumerable<Column> columnList)
 		{
-			var columnsStr = String.Empty;
-			var valuesStr = String.Empty;
-
-			using (var command = new SqlCommand())
+			foreach (var column in columnList)
 			{
-				foreach (var column in columnList)
-				{
-					columnsStr = String.Format("{0}\n{1},", columnsStr, column.Name);
-					valuesStr = String.Format("{0}\n@{1},", valuesStr, column.Name);
-					command.Parameters.Add(new SqlParameter(String.Format("@{0}", column.Name), column.Value));
-				}
-
-				// remove last commas
-				if (columnsStr.Length > 1) columnsStr = columnsStr.Remove(columnsStr.Length - 1, 1);
-				if (valuesStr.Length > 1) valuesStr = valuesStr.Remove(valuesStr.Length - 1, 1);
-
-				// prepare and execute INSERT
-				command.Connection = _deliverySqlConnection;
-				command.CommandText = String.Format("INSERT INTO {0} ({1}) VALUES ({2});", TableName, columnsStr, valuesStr);
-				command.ExecuteNonQuery();
+				if (_insertMetricsCommand.Parameters[String.Format("@{0}", column.Name)] != null)
+					_insertMetricsCommand.Parameters[String.Format("@{0}", column.Name)].Value =  column.Value;
+				else
+					throw new Exception(String.Format("Parameter named '{0}' does not exists in Insert command into Table '{1}'", column.Name, TableName));
 			}
+			// execute INSERT
+			_insertMetricsCommand.ExecuteNonQuery();
 		} 
 		#endregion
 
