@@ -168,7 +168,7 @@ namespace Eggplant.Entities.Queries
 		{
 			public MappingContext OutboundContext;
 			public MappingContext InboundContext;
-			public IEnumerator OutboundEnumerator;
+			public IEnumerator OutboundSource;
 		}
 
 		public IEnumerable<T> Execute()
@@ -238,23 +238,23 @@ namespace Eggplant.Entities.Queries
 							SubqueryExecutionData executionData;
 							if (!executionDataCache.TryGetValue(subquery, out executionData))
 							{
-								executionData.OutboundEnumerator = subquery.Mapping.GetEnumerator();
+								executionData.OutboundSource = subquery.Mapping.GetOutboundSource();
 								executionData.OutboundContext = subquery.Mapping.CreateContext(adapter, subquery, MappingDirection.Outbound);
 								executionDataCache.Add(subquery, executionData);
 							}
 
-							if (executionData.OutboundEnumerator != null)
+							if (executionData.OutboundSource != null)
 							{
 								// Map the fields and indicate wheter we are done sending outbound rows
 								subquery.Mapping.Apply(executionData.OutboundContext);
 								executionData.OutboundContext.Reset();
 
 								// Advance the outbound enumerator, if there is nothing else to output mark remove it
-								executionData.OutboundEnumerator = executionData.OutboundEnumerator.MoveNext() ? executionData.OutboundEnumerator : null;
+								executionData.OutboundSource = executionData.OutboundSource.MoveNext() ? executionData.OutboundSource : null;
 							}
 
 							// Not enumerator means nothing to output means we finished
-							done &= executionData.OutboundEnumerator == null;
+							done &= executionData.OutboundSource == null;
 						}
 
 						// Submit the entire row
