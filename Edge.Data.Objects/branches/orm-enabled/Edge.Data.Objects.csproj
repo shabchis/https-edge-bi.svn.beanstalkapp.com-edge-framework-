@@ -251,7 +251,7 @@
     <None Include="Properties\AssemblyInfo.cs.template" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Eggplant.Entities\trunk\Eggplant.Entities.csproj">
+    <ProjectReference Include="..\..\..\Eggplant.Entities\branches\wip\Eggplant.Entities.csproj">
       <Project>{AD4B53AD-B28A-4E90-9483-E2F7C8E6D436}</Project>
       <Name>Eggplant.Entities</Name>
     </ProjectReference>

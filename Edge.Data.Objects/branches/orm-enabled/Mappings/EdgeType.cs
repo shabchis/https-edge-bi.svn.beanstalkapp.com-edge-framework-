@@ -63,7 +63,7 @@ namespace Edge.Data.Objects
 					.Subquery<EdgeTypeField>("EdgeTypeFields", subquery => subquery
 						
 						.WhenOutbound(outbound => outbound
-							.Enumerate(context => fields.FromContext(context))
+							.OutboundSource(context => fields.FromContext(context))
 						)
 
 						.Map<EdgeField>(EdgeTypeField.Properties.Field, field => field
