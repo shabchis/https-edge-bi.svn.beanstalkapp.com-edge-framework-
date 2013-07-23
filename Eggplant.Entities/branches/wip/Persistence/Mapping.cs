@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using Eggplant.Entities.Model;
 using Eggplant.Entities.Queries;
+using System.Collections;
 
 namespace Eggplant.Entities.Persistence
 {
@@ -240,6 +241,8 @@ namespace Eggplant.Entities.Persistence
 		{
 			return new MappingContext<T>(adapter, subquery, this, direction);
 		}
+
+		IEnumerator IMapping.GetOutboundSource
 
 		// ===================================
 		// Apply
