@@ -321,6 +321,64 @@ namespace Edge.Data.Objects
 
 			return mapping;
 		}
+
+		/// <summary>
+		/// Shortcut for mapping a collection from a subquery.
+		/// </summary>
+		public static Mapping<ParentT> MapListFromSubquery<ParentT, ItemT>(
+			this Mapping<ParentT> mapping,
+			EntityProperty<ParentT, List<ItemT>> listProperty,
+			string subqueryName,
+			Action<Mapping<ParentT>> parentMappingFunction,
+			Action<Mapping<ItemT>> itemMappingFunction
+		)
+		{
+
+			mapping.Map<List<ItemT>>(listProperty, list => list
+				.Subquery<ItemT>(subqueryName, subquery => subquery
+
+					.WhenInbound(inbound => inbound
+						.Map<ParentT>("parent", parentMappingFunction)
+						.Map<ItemT>("item", itemMappingFunction)
+						.Do(context =>
+						{
+							var parent = context.GetVariable<ParentT>("parent");
+							var item = context.GetVariable<ItemT>("item");
+							var l = listProperty.GetValue(parent);
+							if (l == null)
+							{
+								l = new List<ItemT>();
+								listProperty.SetValue(parent, l);
+							}
+
+							l.Add(item);
+
+							// This has no real value but helps makes sense of this cruel world
+							context.MappedValue = item;
+						})
+					)
+					.WhenOutbound(outbound =>
+						{
+							// Define the outbound source from the context, since in outbound mode we have the parent context
+							// TODO: check significance of IsDeferred
+							outbound.OutboundSource(context =>
+							{
+								List<ItemT> l = list.FromContext(context);
+								if (l == null)
+									return null;
+								else
+									return l.GetEnumerator();
+							});
+
+							// Apply the item mappings to the outbound definition
+							itemMappingFunction(outbound);
+						}
+					)
+				)
+			);
+
+			return mapping;
+		}
 	}
 
 	[Serializable]
