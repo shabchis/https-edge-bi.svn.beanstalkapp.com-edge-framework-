@@ -33,6 +33,11 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 			get { return _objectsSqlConnection; }
 		}
 
+		public EdgeObjectsManager EdgeObjectsManager
+		{
+			get { return _edgeObjectsManager; }
+		}
+
 		#endregion
 
 		#region Constructors

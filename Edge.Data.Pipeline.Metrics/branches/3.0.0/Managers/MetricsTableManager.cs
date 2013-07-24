@@ -65,7 +65,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		public void CreateDeliveryMetricsTable(string tablePrefix, MetricsUnit metricsUnit)
 		{
 			// no need to create metrics table if there are only dimensions no measures (import objects only)
-			if (metricsUnit.MeasureValues == null) return;
+			if (metricsUnit == null || metricsUnit.MeasureValues == null) return;
 
 			TableName = string.Format("[DBO].[{0}_Metrics]", tablePrefix);
 

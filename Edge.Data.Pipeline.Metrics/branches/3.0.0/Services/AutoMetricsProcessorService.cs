@@ -18,9 +18,9 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	public class AutoMetricsProcessorService: MetricsProcessorServiceBase
 	{
 		#region Data Members
-		private MetricsDeliveryManagerOptions _importManagerOptions;
-		private FileCompression _compression;
-		private DeliveryFile _deliveryFile;
+		protected MetricsDeliveryManagerOptions _importManagerOptions;
+		protected FileCompression _compression;
+		protected DeliveryFile _deliveryFile;
 		private string _eofIndication; // indication for end of file - optional
 		private string _eofFieldName;  // field which will contain EOF indication - optional
 

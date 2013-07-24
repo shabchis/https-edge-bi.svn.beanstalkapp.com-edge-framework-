@@ -16,7 +16,7 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 	/// 2. Contains cache of delivery objects and Import them into EdgeObject delivery tables
 	/// 3. Supply flat object list from Metrics 
 	/// </summary>
-	internal class EdgeObjectsManager
+	public class EdgeObjectsManager
 	{
 		#region Data Members
 
