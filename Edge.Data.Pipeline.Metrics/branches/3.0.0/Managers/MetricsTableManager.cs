@@ -186,8 +186,8 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// <param name="metricsUnit"></param>
 		public void ImportMetrics(MetricsUnit metricsUnit)
 		{
-			if (_insertMetricsCommand == null || String.IsNullOrEmpty(_insertMetricsCommand.CommandText))
-				throw new Exception(String.Format("Insert command is not ready to import metrics for Table '{0}'", TableName));
+			//if (_insertMetricsCommand == null || String.IsNullOrEmpty(_insertMetricsCommand.CommandText))
+			//	throw new Exception(String.Format("Insert command is not ready to import metrics for Table '{0}'", TableName));
 
 			var flatObjectList = _edgeObjectsManger.GetFlatObjectList(metricsUnit);
 

@@ -25,6 +25,6 @@ namespace Edge.Data.Pipeline.Metrics.Misc
 		//public MetaPropertyOptions MetaPropertyOptions { get; set; }
 		public OptionsMatching MetaPropertyOptionsMatch { get; set; }
 		public bool IdentityInDebug { get; set; } // indication if to run Identity Manager in .NET debug mode or using SQL CLR (default)
-		public bool CreateNewEdgeObjects { get; set; }
+		public string IdentityConfig { get; set; }
 	}
 }
