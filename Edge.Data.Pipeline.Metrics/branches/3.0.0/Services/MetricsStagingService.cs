@@ -14,15 +14,15 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			var checksumThreshold = Configuration.Parameters.Get<string>(Consts.ConfigurationOptions.ChecksumTheshold, false);
 			var identityInDebug = Configuration.Parameters.ContainsKey("IdentityInDebug") && Configuration.Parameters.Get<bool>("IdentityInDebug", false);
-			var createNewEdgeObjects = !Configuration.Parameters.ContainsKey("CreateNewEdgeObjects") || 
-									   (Configuration.Parameters.ContainsKey("CreateNewEdgeObjects") && Configuration.Parameters.Get<bool>("CreateNewEdgeObjects", false));
+			var identityConfig = Configuration.Parameters.ContainsKey("IdentityConfig") ? Configuration.Parameters.Get<string>("IdentityConfig") : null;
+			
 			var options = new MetricsDeliveryManagerOptions
 				{
 					SqlStageCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlStageCommand),
 					SqlRollbackCommand = Configuration.Parameters.Get<string>(Consts.AppSettings.SqlRollbackCommand),
 					ChecksumThreshold = checksumThreshold == null ? 0.01 : double.Parse(checksumThreshold),
 					IdentityInDebug = identityInDebug,
-					CreateNewEdgeObjects = createNewEdgeObjects
+					IdentityConfig = identityConfig
 				};
 
 			using (var importManager = new MetricsDeliveryManager(InstanceID, options: options))
