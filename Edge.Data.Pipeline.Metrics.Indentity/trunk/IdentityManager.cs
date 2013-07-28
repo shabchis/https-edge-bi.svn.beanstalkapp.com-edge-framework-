@@ -25,12 +25,13 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		private readonly SqlConnection _objectsSqlConnection;
 		private SqlCommand _logCommand;
 		private Dictionary<string, EdgeType> _edgeTypes;
+		private IdentityConfig _config;
 
 		public List<EdgeFieldDependencyInfo> Dependencies { get; set; }
 		public string TablePrefix { get; set; }
 		public int AccountId { get; set; }
 		public DateTime TransformTimestamp { get; set; }
-		public bool CreateNewEdgeObjects { get; set; }
+		public string ConfigXml { get; set; }
 
 		public Dictionary<string, EdgeType> EdgeTypes
 		{
@@ -46,7 +47,6 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		public IdentityManager(SqlConnection objectsConnection)
 		{
 			_objectsSqlConnection = objectsConnection;
-			CreateNewEdgeObjects  = true;
 
 			PrepareLogCommand();
 		}
@@ -264,6 +264,8 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// </summary>
 		public void UpdateEdgeObjects()
 		{
+			_config = String.IsNullOrEmpty(ConfigXml) ? new IdentityConfig() : IdentityConfig.Deserialize(ConfigXml);
+
 			// load object dependencies
 			Dependencies = EdgeObjectConfigLoader.GetEdgeObjectDependencies(AccountId, _objectsSqlConnection).Values.ToList();
 			Log("UpdateEdgeObjects:: EdgeObjects dependencies loaded");
@@ -279,7 +281,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 					Log(String.Format("UpdateEdgeObjects:: starting update field '{0}' of type '{1}'", field.Field.Name, field.Field.FieldEdgeType.Name));
 					UpdateObjectDependencies(field.Field.FieldEdgeType);
 
-					if (DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Unchanged, true))
+					if (_config.UpdateExistingObjects && DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.Unchanged, true))
 					{
 						Log(String.Format("UpdateEdgeObjects:: delivery contains changes of {0}, starting sync", field.Field.Name));
 						
@@ -291,7 +293,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 							Log(String.Format("UpdateEdgeObjects:: update modified object of type '{0}'", field.Field.FieldEdgeType));
 						}
 
-						if (CreateNewEdgeObjects && DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
+						if (_config.CreateNewObjects && DeliveryContainsChanges(field.Field.FieldEdgeType, IdentityStatus.New))
 						{
 							InsertNewEdgeObjects(field.Field.FieldEdgeType);
 							Log(String.Format("UpdateEdgeObjects:: insert new objects of type '{0}'", field.Field.FieldEdgeType));
@@ -338,6 +340,14 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		private void InsertNewEdgeObjects(EdgeType edgeType)
 		{
 			if (edgeType.Fields.Count == 0) return;
+
+			// check if configured to update fields
+			var typeConfig = _config.EdgeTypes.FirstOrDefault(x => x.Name == edgeType.Name);
+			if (typeConfig != null && typeConfig.CreateNewObjects == false)
+			{
+				Log(String.Format("Insert new objects into Staging is not performed for type '{0}' according to IdentityConfig", edgeType.Name));
+				return;
+			}
 
 			var createfieldsStr = "GK BIGINT,";
 			var whereStr = "TYPEID=@typeId AND ";
@@ -402,11 +412,25 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 		/// <param name="edgeType"></param>
 		private void UpdateExistingEdgeObjectsByDelivery(EdgeType edgeType)
 		{
+			// check if configured to update fields
+			var typeConfig = _config.EdgeTypes.FirstOrDefault(x => x.Name == edgeType.Name);
+			if (typeConfig != null && typeConfig.UpdateExistingObjects == false)
+			{
+				Log(String.Format("Update existing objects in Staging is not performed for type '{0}' according to IdentityConfig", edgeType.Name));
+				return;
+			}
+			// indication if t update all fields otr just a few of them
+			var updateAllFields = typeConfig == null || typeConfig.Fields.Count == 0;
+
 			var updateFieldStr = "LASTUPDATEDON=@lastUpdated,";
 			foreach (var field in edgeType.Fields.Where(x => !x.IsIdentity))
 			{
-				if (!updateFieldStr.Contains(String.Format("{0}=delivery.{0},", field.ColumnNameGK)))
-					updateFieldStr = String.Format("{0}{1}=delivery.{1},", updateFieldStr, field.ColumnNameGK);
+				// update all fields or only fields configured to be updated
+				if (updateAllFields || typeConfig.Fields.Any(x => x.Name == field.Field.Name))
+				{
+					if (!updateFieldStr.Contains(String.Format("{0}=delivery.{0},", field.ColumnNameGK)))
+						updateFieldStr = String.Format("{0}{1}=delivery.{1},", updateFieldStr, field.ColumnNameGK);
+				}
 			}
 			if (updateFieldStr.Length == 0) return;
 
