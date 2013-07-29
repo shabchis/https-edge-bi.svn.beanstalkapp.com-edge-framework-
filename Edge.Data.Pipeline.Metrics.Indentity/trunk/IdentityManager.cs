@@ -171,7 +171,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 				// create temp table from EdgeObjectd DB table by edge type + indexes on Identity fields
 				createTempTableCmd.CommandText = String.Format(@"IF NOT EXISTS (SELECT * FROM TEMPDB.INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{1}')
 																	BEGIN
-																		SELECT {0} INTO {1} FROM {2} WHERE typeId=@typeId; 
+																		SELECT {0} INTO {1} FROM {2} WHERE typeId=@typeId and accountId=@accountId; 
 																		CREATE NONCLUSTERED INDEX [IDX_{4}] ON {1} ({3});
 																	END",
 												  selectColumnStr,
@@ -180,6 +180,7 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 												  indexFieldsStr,
 												  edgeType.Name);
 				createTempTableCmd.Parameters.Add(new SqlParameter("@typeId", edgeType.TypeID));
+				createTempTableCmd.Parameters.Add(new SqlParameter("@accountId", AccountId));
 				createTempTableCmd.ExecuteNonQuery();
 			}
 		}
@@ -478,12 +479,13 @@ namespace Edge.Data.Pipeline.Metrics.Indentity
 
 			using (var cmd = new SqlCommand { Connection = _objectsSqlConnection })
 			{
-				cmd.CommandText = String.Format(@"SELECT GK,{0} INTO #DELTA FROM {1} WHERE TYPEID=@typeId AND LASTUPDATEDON > @timestamp;
+				cmd.CommandText = String.Format(@"SELECT GK,{0} INTO #DELTA FROM {1} WHERE TYPEID=@typeId AND ACCOUNTID=@accountId AND LASTUPDATEDON > @timestamp;
 												  UPDATE {2} SET GK=#DELTA.GK, IDENTITYSTATUS=@identityStatus FROM #DELTA WHERE {3};
 												  DROP TABLE #DELTA;",
 												selectStr, edgeType.TableName, GetDeliveryTableName(edgeType.TableName), whereStr);
 
 				cmd.Parameters.AddWithValue("@typeId", edgeType.TypeID);
+				cmd.Parameters.AddWithValue("@accountId", AccountId);
 				cmd.Parameters.AddWithValue("@timestamp", TransformTimestamp);
 				cmd.Parameters.AddWithValue("@identityStatus", (int)IdentityStatus.Unchanged);
 
