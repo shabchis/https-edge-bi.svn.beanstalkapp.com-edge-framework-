@@ -1,13 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Edge.Data.Objects
 {
 	public partial class GenderTarget : Target
 	{
 		public Gender Gender;
+
+		public override IEnumerable<ObjectDimension> GetObjectDimensions()
+		{
+			foreach (var dimension in base.GetObjectDimensions())
+			{
+				yield return dimension;
+			}
+
+			if (Gender != null) yield return new ObjectDimension
+			{
+				Field = EdgeType["Gender"],
+				Value = Gender
+			};
+		}
 	}
 
 	public class Gender : StringValue {}
