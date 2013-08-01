@@ -204,10 +204,14 @@ namespace Edge.Data.Pipeline.Metrics.Managers
 		/// </summary>
 		private void ImportMetricsData(IEnumerable<Column> columnList)
 		{
+			// clear all parameter values
+			foreach (SqlParameter param in _insertMetricsCommand.Parameters)
+				param.Value = DBNull.Value;
+
 			foreach (var column in columnList)
 			{
 				if (_insertMetricsCommand.Parameters[String.Format("@{0}", column.Name)] != null)
-					_insertMetricsCommand.Parameters[String.Format("@{0}", column.Name)].Value =  column.Value;
+					_insertMetricsCommand.Parameters[String.Format("@{0}", column.Name)].Value =  column.Value ?? DBNull.Value;
 				else
 					throw new Exception(String.Format("Parameter named '{0}' does not exists in Insert command into Table '{1}'", column.Name, TableName));
 			}
