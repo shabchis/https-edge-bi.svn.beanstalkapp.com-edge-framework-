@@ -81,7 +81,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			try
 			{
 				// load sample file, read only one row in order to create metrics table by sample metric unit
-				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath, compression: FileCompression.None), Configuration);
+				ReaderAdapter.Init(FileManager.Open(Configuration.SampleFilePath), Configuration);
 				ReaderAdapter.Reader.Read();
 
 				CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField, Output = new DeliveryOutput()};
