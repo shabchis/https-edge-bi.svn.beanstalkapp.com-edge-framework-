@@ -96,8 +96,16 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		
 		protected virtual void ProcessMetrics()
 		{
+			LoadCurrentMetrics();
+
+			// import metrics into DB
+			ImportManager.ImportMetrics(CurrentMetricsUnit);
+		}
+
+		protected void LoadCurrentMetrics()
+		{
 			// fill the metrics using mapping
-			CurrentMetricsUnit = new MetricsUnit {GetEdgeField = GetEdgeField };
+			CurrentMetricsUnit = new MetricsUnit { GetEdgeField = GetEdgeField };
 			MetricsMappings.Apply(CurrentMetricsUnit);
 
 			var signature = new Signature();
@@ -109,7 +117,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			// attach output to Metrics: take existing or create new
 			if (output != null)
 				CurrentMetricsUnit.Output = output;
-			else 
+			else
 			{
 				var deliveryOutput = new DeliveryOutput
 				{
@@ -122,9 +130,6 @@ namespace Edge.Data.Pipeline.Metrics.Services
 				Delivery.Outputs.Add(deliveryOutput);
 				CurrentMetricsUnit.Output = deliveryOutput;
 			}
-
-			// import metrics into DB
-			ImportManager.ImportMetrics(CurrentMetricsUnit);
 		}
 		#endregion
 
