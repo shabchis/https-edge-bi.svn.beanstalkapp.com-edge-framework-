@@ -30,6 +30,7 @@ namespace Eggplant.Entities.Persistence
 		public IList<IMapping> SubMappings { get; private set; }
 		public IdentityDefinition CacheIdentity { get; set; }
 		public MappingDirection Direction { get; set; }
+		public Func<MappingContext<T>, IEnumerator<T>> OutboundSourceFunction { get; set; }
 
 		private MappingDirection _shorthandDirection = MappingDirection.Inbound | MappingDirection.Outbound;
 
@@ -215,6 +216,12 @@ namespace Eggplant.Entities.Persistence
 			return this;
 		}
 
+		public Mapping<T> OutboundSource(Func<MappingContext<T>, IEnumerator<T>> outboundSourceFunc)
+		{
+			this.OutboundSourceFunction = outboundSourceFunc;
+			return this;
+		}
+
 		// ===================================
 		// Other
 
@@ -242,7 +249,10 @@ namespace Eggplant.Entities.Persistence
 			return new MappingContext<T>(adapter, subquery, this, direction);
 		}
 
-		IEnumerator IMapping.GetOutboundSource
+		IEnumerator IMapping.GetOutboundSource(MappingContext context)
+		{
+			return this.OutboundSourceFunction == null ? null : this.OutboundSourceFunction((MappingContext<T>)context);
+		}
 
 		// ===================================
 		// Apply

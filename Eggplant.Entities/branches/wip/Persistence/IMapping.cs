@@ -21,6 +21,8 @@ namespace Eggplant.Entities.Persistence
 		MappingContext CreateContext(MappingContext parentContext);
 		MappingContext CreateContext(PersistenceAdapter adapter, Subquery subquery, MappingDirection direction);
 
+		IEnumerator GetOutboundSource(MappingContext context);
+
 		void Apply(MappingContext context);
 		void InnerApply(MappingContext context);
 
