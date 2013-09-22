@@ -16,9 +16,9 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			return new SqlPersistenceConnection(this, innerConnection);
 		}
 
-		public override PersistenceAction NewPersistenceAction()
+		public override PersistenceCommand NewPersistenceCommand()
 		{
-			return new SqlCommandAction();
+			return new SqlTextCommand();
 		}
 	}
 }

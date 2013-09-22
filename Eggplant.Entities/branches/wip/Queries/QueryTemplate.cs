@@ -37,20 +37,20 @@ namespace Eggplant.Entities.Queries
 			return new Query<T>(this);
 		}
 
-		public QueryTemplate<T> RootSubquery(PersistenceAction action, Action<SubqueryTemplate> inner = null)
+		public QueryTemplate<T> RootSubquery(PersistenceCommand action, Action<SubqueryTemplate> inner = null)
 		{
 			SubqueryTemplate root = SubqueryInit(null, action, inner, true);
 			this.RootSubqueryTemplate = root;
 			return this;
 		}
 
-		public QueryTemplate<T> Subquery(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner = null, bool deferred = false)
+		public QueryTemplate<T> Subquery(string subqueryName, PersistenceCommand action, Action<SubqueryTemplate> inner = null, bool deferred = false)
 		{
 			SubqueryInit(subqueryName, action, inner, deferred);
 			return this;
 		}
 
-		private SubqueryTemplate SubqueryInit(string subqueryName, PersistenceAction action, Action<SubqueryTemplate> inner, bool deferred)
+		private SubqueryTemplate SubqueryInit(string subqueryName, PersistenceCommand action, Action<SubqueryTemplate> inner, bool deferred)
 		{
 			var subqueryTemplate = new SubqueryTemplate(this.EntitySpace)
 			{

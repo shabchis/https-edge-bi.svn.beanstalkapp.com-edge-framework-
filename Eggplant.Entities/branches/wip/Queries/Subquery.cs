@@ -15,7 +15,7 @@ namespace Eggplant.Entities.Queries
 		public Query ParentQuery { get; private set; }
 		public SubqueryTemplate Template { get; private set; }
 		public ISubqueryMapping Mapping { get; private set; }
-		public PersistenceAction PersistenceAction { get; internal set; }
+		public PersistenceCommand PersistenceCommand { get; internal set; }
 		internal int InboundSetIndex { get; set; }
 
 		internal Subquery(Query parent, SubqueryTemplate template, ISubqueryMapping mapping)
@@ -61,12 +61,12 @@ namespace Eggplant.Entities.Queries
 
 		public object Param(string name)
 		{
-			return this.PersistenceAction.Parameters[name].Value;
+			return this.PersistenceCommand.Parameters[name].Value;
 		}
 
 		public Subquery Param(string name, object value)
 		{
-			this.PersistenceAction.Parameters[name].Value = value;
+			this.PersistenceCommand.Parameters[name].Value = value;
 			return this;
 		}
 
@@ -92,7 +92,7 @@ namespace Eggplant.Entities.Queries
 			// TODO: filters
 			// TODO: sorting
 
-			this.PersistenceAction = this.Template.PersistenceAction.Clone();
+			this.PersistenceCommand = this.Template.PersistenceAction.Clone();
 			this.IsPrepared = true;
 		}
 

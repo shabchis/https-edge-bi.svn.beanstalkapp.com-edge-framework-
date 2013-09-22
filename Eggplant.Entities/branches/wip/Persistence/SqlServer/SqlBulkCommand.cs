@@ -6,13 +6,13 @@ using System.Data.SqlClient;
 
 namespace Eggplant.Entities.Persistence.SqlServer
 {
-	public class SqlBulkAction: PersistenceAction
+	public class SqlBulkCommand: PersistenceCommand
 	{
 		public string TableName {get; set;}
 		public int BatchSize {get; set;}
 		public SqlBulkCopyOptions BulkCopyOptions { get; set; }
 
-		public SqlBulkAction(string tableName, int batchSize, SqlBulkCopyOptions bulkCopyOptions = SqlBulkCopyOptions.Default)
+		public SqlBulkCommand(string tableName, int batchSize, SqlBulkCopyOptions bulkCopyOptions = SqlBulkCopyOptions.Default)
 		{
 			this.TableName = tableName;
 			this.BatchSize = batchSize;
@@ -24,14 +24,14 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			get { return false; }
 		}
 
-		protected override void OnAppend(PersistenceAction action)
+		protected override void OnAppend(PersistenceCommand command)
 		{
-			throw new NotSupportedException("Appending bulk actions is not supported.");
+			throw new NotSupportedException("Appending bulk commands is not supported.");
 		}
 
-		public override PersistenceAction Clone()
+		public override PersistenceCommand Clone()
 		{
-			return new SqlBulkAction(this.TableName, this.BatchSize, this.BulkCopyOptions);
+			return new SqlBulkCommand(this.TableName, this.BatchSize, this.BulkCopyOptions);
 		}
 
 		public override PersistenceAdapter GetAdapter(PersistenceConnection connection)

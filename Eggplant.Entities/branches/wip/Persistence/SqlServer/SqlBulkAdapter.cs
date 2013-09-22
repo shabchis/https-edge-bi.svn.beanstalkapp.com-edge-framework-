@@ -12,7 +12,7 @@ namespace Eggplant.Entities.Persistence.SqlServer
 		SqlBulkCopy _bulk;
 		DataTable _buffer;
 
-		internal SqlBulkAdapter(SqlPersistenceConnection connection, SqlBulkAction action) :base(connection, action)
+		internal SqlBulkAdapter(SqlPersistenceConnection connection, SqlBulkCommand action) :base(connection, action)
 		{
 			_bulk = new SqlBulkCopy(connection.DbConnection, action.BulkCopyOptions, null)
 			{
