@@ -77,11 +77,10 @@ namespace Edge.Data.Pipeline
 		{
 			long downloaded = 0;
 			long total = 0;
-			_operations.All(operation =>
+			_operations.ForEach(operation =>
 			{
 				downloaded += operation.DownloadedBytes;
 				total += operation.TotalBytes;
-				return true;
 			});
 
 			this.DownloadedBytes = downloaded;
