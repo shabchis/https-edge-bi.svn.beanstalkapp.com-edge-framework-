@@ -12,13 +12,13 @@ namespace Eggplant.Entities.Persistence
 	public abstract class PersistenceAdapter: IDisposable
 	{
 		public PersistenceConnection Connection { get; private set; }
-		public PersistenceAction Action { get; private set; }
+		public PersistenceCommand Command { get; private set; }
 		//public Action InboundRowReceived { get; set; }
 
-		protected PersistenceAdapter(PersistenceConnection connection, PersistenceAction action)
+		protected PersistenceAdapter(PersistenceConnection connection, PersistenceCommand command)
 		{
 			this.Connection = connection;
-			this.Action = action;
+			this.Command = command;
 		}
 
 		public abstract bool IsReusable { get; }

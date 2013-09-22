@@ -50,7 +50,7 @@ namespace Edge.Data.Objects
 
 			public static QueryTemplate<Nothing> SaveBulk = EdgeUtility.EntitySpace.CreateQueryTemplate<Nothing>()
 				.Input<Account>("account", required: true)
-				.RootSubquery(new SqlBulkAction("Account", 20), init => init
+				.RootSubquery(new SqlBulkCommand("Account", 20), init => init
 					.ParamsFromMappedInput(Account.Mappings.Default, "account")
 				)
 			;

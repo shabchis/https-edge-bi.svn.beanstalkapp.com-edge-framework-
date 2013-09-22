@@ -8,16 +8,16 @@ using System.Data;
 
 namespace Eggplant.Entities.Persistence.SqlServer
 {
-	public class SqlCommandAction: PersistenceAction
+	public class SqlTextCommand: PersistenceCommand
 	{
 		public string CommandText { get; private set; }
 		public CommandType CommandType { get; private set; }
 
-		public SqlCommandAction()
+		public SqlTextCommand()
 		{
 		}
 
-		public SqlCommandAction(string commandText, CommandType commandType)
+		public SqlTextCommand(string commandText, CommandType commandType)
 		{
 			this.CommandText = commandText;
 			this.CommandType = commandType;
@@ -28,9 +28,9 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			get { return true; }
 		}
 
-		protected override void OnAppend(PersistenceAction action)
+		protected override void OnAppend(PersistenceCommand command)
 		{
-			var ac = (SqlCommandAction) action;
+			var ac = (SqlTextCommand) command;
 
 			var builder = new StringBuilder(this.CommandText);
 			if (builder.Length > 0)
@@ -41,14 +41,14 @@ namespace Eggplant.Entities.Persistence.SqlServer
 			this.CommandText = builder.ToString();
 		}
 
-		public override PersistenceAction Clone()
+		public override PersistenceCommand Clone()
 		{
-			return new SqlCommandAction(this.CommandText, this.CommandType);
+			return new SqlTextCommand(this.CommandText, this.CommandType);
 		}
 
 		public override PersistenceAdapter GetAdapter(PersistenceConnection connection)
 		{
-			return new SqlCommandAdapter((SqlPersistenceConnection)connection, this);
+			return new SqlTextCommandAdapter((SqlPersistenceConnection)connection, this);
 		}
 	}
 }

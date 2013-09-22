@@ -17,7 +17,7 @@ namespace Eggplant.Entities.Queries
 		public bool IsDeferred { get; set; }
 		public QueryTemplate Template { get; internal set; }
 		public string Name { get; set; }
-		public PersistenceAction PersistenceAction { get; set; }
+		public PersistenceCommand PersistenceAction { get; set; }
 		public Dictionary<string, SubqueryConditionalColumn> ConditionalColumns { get; private set; }
 		internal List<Action<Subquery>> DelegatesBefore = new List<Action<Subquery>>();
 		internal List<Action<Subquery>> DelegatesAfter = new List<Action<Subquery>>();

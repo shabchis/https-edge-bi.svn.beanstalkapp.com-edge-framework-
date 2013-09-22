@@ -31,6 +31,6 @@ namespace Eggplant.Entities.Persistence
 			return connection;
 		}
 
-		public abstract PersistenceAction NewPersistenceAction();
+		public abstract PersistenceCommand NewPersistenceCommand();
 	}
 }

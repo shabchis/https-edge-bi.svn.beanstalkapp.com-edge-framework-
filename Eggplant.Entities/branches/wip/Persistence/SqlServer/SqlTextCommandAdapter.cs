@@ -7,17 +7,17 @@ using System.Data.Sql;
 
 namespace Eggplant.Entities.Persistence.SqlServer
 {
-	public class SqlCommandAdapter: PersistenceAdapter
+	public class SqlTextCommandAdapter: PersistenceAdapter
 	{
-		public SqlCommand Command { get; private set; }
+		public SqlCommand SqlCommand { get; private set; }
 		public SqlDataReader Reader { get; private set; }
 
-		public SqlCommandAdapter(SqlPersistenceConnection connection, SqlCommandAction action) : base(connection, action)
+		public SqlTextCommandAdapter(SqlPersistenceConnection connection, SqlTextCommand command) : base(connection, command)
 		{
-			this.Command = new SqlCommand(action.CommandText);
-			this.Command.CommandType = action.CommandType;
+			this.SqlCommand = new SqlCommand(command.CommandText);
+			this.SqlCommand.CommandType = command.CommandType;
 
-			foreach (PersistenceParameter param in action.Parameters.Values)
+			foreach (PersistenceParameter param in command.Parameters.Values)
 			{
 				var p = new SqlParameter()
 				{
@@ -34,13 +34,13 @@ namespace Eggplant.Entities.Persistence.SqlServer
 						p.SqlDbType = options.SqlDbType.Value;
 				}
 
-				this.Command.Parameters.Add(p);
+				this.SqlCommand.Parameters.Add(p);
 			}
 		}
 
-		public new SqlCommandAction Action
+		public new SqlTextCommand Command
 		{
-			get { return (SqlCommandAction)base.Action; }
+			get { return (SqlTextCommand)base.Command; }
 		}
 
 		public new SqlPersistenceConnection Connection

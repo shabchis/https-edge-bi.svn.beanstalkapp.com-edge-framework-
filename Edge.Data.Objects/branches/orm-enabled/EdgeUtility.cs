@@ -43,7 +43,7 @@ namespace Edge.Data.Objects
 			};
 		}
 
-		public static SqlCommandAction GetSql<T>(string templateName)
+		public static SqlTextCommand GetSql<T>(string templateName)
 		{
 			const string tplSeparatorPattern = @"^--\s*#\s*TEMPLATE\s+(.*)$";
 			Regex tplSeparatorRegex = new Regex(tplSeparatorPattern, RegexOptions.Singleline);
@@ -78,7 +78,7 @@ namespace Edge.Data.Objects
 			if (templateString.Length == 0)
 				throw new Exception("Template not found in resource.");
 
-			return new SqlCommandAction(templateString.ToString(), System.Data.CommandType.Text);
+			return new SqlTextCommand(templateString.ToString(), System.Data.CommandType.Text);
 		}
 
 		#region ParseEdgeTemplate (disabled)
@@ -353,7 +353,7 @@ namespace Edge.Data.Objects
 
 							l.Add(item);
 
-							// This has no real value but helps makes sense of this cruel world
+							// This has no real purpose but helps makes sense of this cruel world
 							context.MappedValue = item;
 						})
 					)
