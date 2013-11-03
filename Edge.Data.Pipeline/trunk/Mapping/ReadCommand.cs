@@ -49,6 +49,11 @@ namespace Edge.Data.Pipeline.Mapping
 		/// </summary>
 		public bool IsRequired { get; internal set; }
 
+        /// <summary>
+        /// Indicates whether this command is optional, i.e. will not throw an exception if it fails but will write error to log.
+        /// </summary>
+        public bool IsRequiredAlert { get; internal set; }
+
 		/// <summary>
 		/// Indicates whether this read command is implicit (part of a &lt;Map&gt; command).
 		/// </summary>
@@ -121,13 +126,14 @@ namespace Edge.Data.Pipeline.Mapping
 				try { rawValue = context.Root.OnFieldRequired(this.Field); }
 				catch (Exception ex)
 				{
-					if (this.IsRequired)
-						throw new MappingException(String.Format("Failed to read field '{0}'. See inner exception for details.", this.Field), ex);
-					else
-					{
-						Log.Write(String.Format("Failed to read field '{0}'.", this.Field), ex);
-						return;
-					}
+                    if (this.IsRequired)
+                        throw new MappingException(String.Format("Failed to read field '{0}'. See inner exception for details.", this.Field), ex);
+                    else if (this.IsRequiredAlert)
+                    {
+                        Log.Write(String.Format("Failed to read field '{0}'.", this.Field), ex);
+                        return;
+                    }
+                    else return;
 				}
 				context.FieldValues.Add(this.Field, rawValue);
 			}

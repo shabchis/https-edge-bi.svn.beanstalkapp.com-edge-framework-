@@ -161,9 +161,15 @@ namespace Edge.Data.Pipeline.Mapping
 
 					// Check if mapping command is required
 					bool required = true;
+                    bool requiredAlert = false;
 					string srequired = element.GetAttribute("Required");
-					if (srequired != null && !bool.TryParse(srequired, out required))
+                    string srequiredAlert = element.GetAttribute("RequiredAlert");
+				
+                    if (srequired != null && !bool.TryParse(srequired, out required))
 						throw new MappingConfigurationException("Invalid value for Required.", element.Name, element);
+
+                    if (srequiredAlert != null && !bool.TryParse(srequiredAlert, out requiredAlert))
+                        throw new MappingConfigurationException("Invalid value for requiredAlert.", element.Name, element);
 
 					if (field != null)
 					{
@@ -172,7 +178,8 @@ namespace Edge.Data.Pipeline.Mapping
                             Field=field,
 							VarName = element.GetAttribute("Var") ?? field,
 							RegexPattern = element.GetAttribute("Regex"),
-							IsRequired = required
+							IsRequired = required,
+                            IsRequiredAlert = requiredAlert
 						};
 					}
 					

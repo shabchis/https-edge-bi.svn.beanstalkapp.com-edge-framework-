@@ -14,7 +14,12 @@ namespace Edge.Data.Objects
 		{
 			public const string Campaign = "Campaign";
 			public const string AdGroup = "AdGroup";
-			public const string Tracker = "Tracker";
+            public const string Tracker = "Tracker";
+            public const string LandingPage = "LandingPage";
+            public const string USP = "USP";
+            public const string Region = "Region";
+            public const string Language = "Language";
+            public const string Theme = "Theme";
 		}
 		#endregion
 
@@ -30,7 +35,13 @@ namespace Edge.Data.Objects
 			{
 				{Common.Campaign,  new Segment() { ID = -875, Name = Common.Campaign }},
 				{Common.AdGroup, new Segment() { ID = -876, Name = Common.AdGroup }},
-				{Common.Tracker, new Segment() { ID = -977, Name=Common.Tracker }}
+				{Common.Tracker, new Segment() { ID = -977, Name=Common.Tracker }},
+
+				{Common.LandingPage, new Segment() { ID = -823, Name=Common.LandingPage }},
+				{Common.USP, new Segment() { ID = -824, Name=Common.USP }},
+				{Common.Region, new Segment() { ID = -825, Name=Common.Region }},
+				{Common.Language, new Segment() { ID = -826, Name=Common.Language }},
+				{Common.Theme, new Segment() { ID = -827, Name=Common.Theme }},
 			};
 		}
 	}
