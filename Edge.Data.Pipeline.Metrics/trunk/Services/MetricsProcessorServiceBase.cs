@@ -20,12 +20,14 @@ namespace Edge.Data.Pipeline.Metrics.Services
 	{
 		public Dictionary<string, Account> Accounts {get; private set;}
 		public Dictionary<string, Channel> Channels {get; private set;}
+        public Dictionary<string, CurrencyRate> CurrencyRates { get; private set; }
 		public MetricsImportManager ImportManager { get; protected set; }
 
 		protected override void OnInit()
 		{
 			Accounts = GetAccountsFromDB(Instance.AccountID);
 			Channels = GetChannelsFromDB();
+            CurrencyRates = CurrencyRate.GetCurrencyRates(this.Delivery.TimePeriodStart);
 			
 			// Load mapping configuration
 			// ------------------------------------------
@@ -34,7 +36,8 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			this.Mappings.ExternalMethods.Add("GetAccount", new Func<dynamic, Account>(GetAccount));
 			this.Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
 			this.Mappings.ExternalMethods.Add("GetSegment", new Func<dynamic, Segment>(GetSegment));
-			this.Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
+            this.Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
+            this.Mappings.ExternalMethods.Add("ConvertToUSD", new Func<dynamic,dynamic, double>(ConvertToUSD));
 			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
 
@@ -51,7 +54,19 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Scriptable methods
 		// ==============================================
 
-		public Account GetAccount(dynamic name)
+        public Double ConvertToUSD (dynamic rateCode,dynamic sourceValue)
+        {
+            if (((string)rateCode).ToUpper().Equals("USD")) 
+                return 1;
+            
+            var code = ((string)rateCode).ToUpper();
+            CurrencyRate rate;
+            if (!CurrencyRates.TryGetValue(code, out rate))
+                throw new MappingException(String.Format("Currncy code '{0}' could not be found in DB.", rateCode));
+            return rate.RateValue * sourceValue;
+        }
+
+        public Account GetAccount(dynamic name)
 		{
 			var n = (string)name;
 			Account a;

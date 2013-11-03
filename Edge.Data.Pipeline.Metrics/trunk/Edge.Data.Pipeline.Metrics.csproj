@@ -43,8 +43,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Base\Classes.cs" />
-    <Compile Include="Checksums\DbDbChecksumBaseService.cs" />
-    <Compile Include="Checksums\DeliveryDBChecksumBaseService.cs" />
+    <Compile Include="Base\Checksums\DbDbChecksumBaseService.cs" />
+    <Compile Include="Base\Checksums\DeliveryDBChecksumBaseService.cs" />
     <Compile Include="Implementation\AdMetricsImportManager.cs" />
     <Compile Include="Implementation\AutoAdMetricsProcessorService.cs" />
     <Compile Include="Implementation\AutoGenericMetricsProcessorService.cs" />
