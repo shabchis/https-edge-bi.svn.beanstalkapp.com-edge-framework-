@@ -208,6 +208,12 @@ namespace Edge.Data.Pipeline
 				return false;
 			}
 		}
+
+		public object GetMemberByPath(string path)
+		{
+			throw new NotImplementedException();
+		}
+
 		public object[] GetArray(string childName)
 		{
 			object child;
