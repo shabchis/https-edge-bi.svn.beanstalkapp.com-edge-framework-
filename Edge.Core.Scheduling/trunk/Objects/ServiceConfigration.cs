@@ -15,7 +15,7 @@ namespace Edge.Core.Scheduling.Objects
 		public ServiceConfiguration BaseConfiguration;			
 		public string Name;
 		public int MaxConcurrent;
-		public int MaxCuncurrentPerProfile;
+		public int MaxConcurrentPerProfile;
 		public Profile SchedulingProfile;
 		public List<SchedulingRule> SchedulingRules=new List<SchedulingRule>();
 		public bool Scheduled = false;
