@@ -42,17 +42,16 @@ namespace Edge.Core.Scheduling
 		private TimeSpan _timeToDeleteServiceFromTimeLine;
 		public event EventHandler ServiceRunRequiredEvent;
 		public event EventHandler NewScheduleCreatedEvent;
-		private volatile bool _needReschedule = false;
-		private TimeSpan _executionTimeCashTimeOutAfter;
-		private object _sync;
-		private bool _started = false;
+		volatile bool _needReschedule = false;
+		TimeSpan _executionTimeCashTimeOutAfter;
+		object _sync;
+		SchedulerState _state = SchedulerState.Stopped;
 
 		private BackgroundWorker _timers;
 	
 		#endregion
 
-		public event EventHandler Starting;
-		public event EventHandler Stopping;
+		public event EventHandler StateChanged;
 
 		/// <summary>
 		/// Initialize all the services from configuration file or db4o
@@ -71,9 +70,67 @@ namespace Edge.Core.Scheduling
 			_timeToDeleteServiceFromTimeLine = TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
 			_executionTimeCashTimeOutAfter = TimeSpan.Parse(AppSettings.Get(this, "DeleteEndedServiceInterval"));
 			_sync = new object();
-
-
 		}
+
+		public SchedulerState State
+		{
+			get { return _state; }
+			set
+			{
+				_state = value;
+				if (this.StateChanged != null)
+					this.StateChanged(this, EventArgs.Empty);
+			}
+		}
+
+		/// <summary>
+		/// start the timers of new scheduling and services required to run
+		/// </summary>
+		public void Start()
+		{
+			if (this.State != SchedulerState.Stopped)
+				return;
+
+			this.State = SchedulerState.Starting;
+			Schedule(false);
+			NotifyServicesToRun();
+
+			_timers = new BackgroundWorker()
+			{
+				WorkerReportsProgress = false,
+				WorkerSupportsCancellation = true
+			};
+			_timers.DoWork += new DoWorkEventHandler((worker, args) =>
+			{
+				this.State = SchedulerState.Started;
+				DateTime last = DateTime.Now;
+				while (!((BackgroundWorker)worker).CancellationPending)
+				{
+					if (last - DateTime.Now >= _intervalNewSchedule)
+						Schedule(false);
+					if (last - DateTime.Now >= _intervalfindServicesToRun)
+						NotifyServicesToRun();
+					last = DateTime.Now;
+					Thread.Sleep(TimeSpan.FromSeconds(1));
+				}
+			});
+			_timers.RunWorkerCompleted += new RunWorkerCompletedEventHandler((worker, args) =>
+			{
+				this.State = SchedulerState.Stopped;
+				_timers.Dispose();
+			});
+			_timers.RunWorkerAsync();
+		}
+
+		/// <summary>
+		///  stop the timers of new scheduling and services required to run
+		/// </summary>
+		public void Stop()
+		{
+			this.State = SchedulerState.Stopping;
+			_timers.CancelAsync();
+		}
+
 
 		/// <summary>
 		/// The main method of creating scheduler 
@@ -718,43 +775,6 @@ namespace Edge.Core.Scheduling
 			return TimeSpan.FromMinutes(Math.Ceiling(TimeSpan.FromSeconds(averageExacutionTime).TotalMinutes));
 		}
 		
-		/// <summary>
-		/// start the timers of new scheduling and services required to run
-		/// </summary>
-		public void Start()
-		{
-
-			if (_started)
-				return;
-
-			if (Starting != null)
-				Starting(this, EventArgs.Empty);
-
-			_started = true;
-			Schedule(false);
-			NotifyServicesToRun();
-
-			_timers = new BackgroundWorker()
-			{
-				WorkerReportsProgress = false,
-				WorkerSupportsCancellation = true
-			};
-			_timers.DoWork += new DoWorkEventHandler((worker, args) =>
-			{
-				DateTime last = DateTime.Now;
-				while (!((BackgroundWorker)worker).CancellationPending)
-				{
-					if (last - DateTime.Now >= _intervalNewSchedule)
-						Schedule(false);
-					if (last - DateTime.Now >= _intervalfindServicesToRun)
-						NotifyServicesToRun();
-					last = DateTime.Now;
-					Thread.Sleep(TimeSpan.FromSeconds(1));
-				}		
-			});
-			_timers.RunWorkerAsync();
-		}
-
 		private void NotifyServicesToRun()
 		{
 			//DO some checks
@@ -789,17 +809,7 @@ namespace Edge.Core.Scheduling
 			instancesToRun.Clear();
 		}
 
-		/// <summary>
-		///  stop the timers of new scheduling and services required to run
-		/// </summary>
-		public void Stop()
-		{
-			if (Stopping != null)
-				Stopping(this, EventArgs.Empty);
-
-			_timers.CancelAsync();
-		}
-
+		
 		/// <summary>
 		/// send event for the services which need to be runing
 		/// </summary>
