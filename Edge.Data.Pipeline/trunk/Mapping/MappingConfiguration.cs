@@ -22,7 +22,6 @@ namespace Edge.Data.Pipeline.Mapping
 		public Dictionary<Type, MappingContainer> Objects { get; set; }
 		public Dictionary<string, Delegate> ExternalMethods { get; set; }
 		public Func<string, object> OnFieldRequired {get; set;}
-
 		private List<EvaluatorExpression> _evalExpressions = new List<EvaluatorExpression>();
 		internal int NextEvalID = 0;
 		internal Evaluator Eval = new Evaluator()
