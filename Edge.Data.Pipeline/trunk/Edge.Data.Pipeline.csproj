@@ -58,6 +58,15 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>Edge.Data.Pipeline.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'EdgeQA|AnyCPU'">
+    <OutputPath>bin\EdgeQA\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="DataStreams, Version=5.15.0.0, Culture=neutral, PublicKeyToken=9c9b03c227e1bea6, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
