@@ -40,8 +40,8 @@ namespace Edge.Core.Scheduling
 		private TimeSpan _intervalNewSchedule;
 		private TimeSpan _intervalfindServicesToRun;
 		private TimeSpan _timeToDeleteServiceFromTimeLine;
-		public event EventHandler ServiceRunRequiredEvent;
-		public event EventHandler NewScheduleCreatedEvent;
+		public event EventHandler<ServiceRunRequiredEventArgs> ServiceRunRequired;
+		public event EventHandler<ScheduleCreatedEventsArgs> ScheduleCreated;
 		volatile bool _needReschedule = false;
 		TimeSpan _executionTimeCashTimeOutAfter;
 		object _sync;
@@ -52,6 +52,18 @@ namespace Edge.Core.Scheduling
 		#endregion
 
 		public event EventHandler StateChanged;
+
+		public struct Entry
+		{
+			public SchedulingData Data;
+			public ServiceInstance Instance;
+
+			public Entry(SchedulingData scheduleData, ServiceInstance instance)
+			{
+				this.Data = scheduleData;
+				this.Instance = instance;
+			}
+		}
 
 		/// <summary>
 		/// Initialize all the services from configuration file or db4o
@@ -103,14 +115,22 @@ namespace Edge.Core.Scheduling
 			_timers.DoWork += new DoWorkEventHandler((worker, args) =>
 			{
 				this.State = SchedulerState.Started;
-				DateTime last = DateTime.Now;
+				DateTime lastNewSchedule = DateTime.Now;
+				DateTime lastFindServicesToRun = DateTime.Now;
+
 				while (!((BackgroundWorker)worker).CancellationPending)
 				{
-					if (last - DateTime.Now >= _intervalNewSchedule)
+					if (DateTime.Now - lastNewSchedule >= _intervalNewSchedule)
+					{
+						lastNewSchedule = DateTime.Now;
 						Schedule(false);
-					if (last - DateTime.Now >= _intervalfindServicesToRun)
+					}
+					if (DateTime.Now - lastFindServicesToRun >= _intervalfindServicesToRun)
+					{
+						lastFindServicesToRun = DateTime.Now;
 						NotifyServicesToRun();
-					last = DateTime.Now;
+					}
+					
 					Thread.Sleep(TimeSpan.FromSeconds(1));
 				}
 			});
@@ -127,6 +147,9 @@ namespace Edge.Core.Scheduling
 		/// </summary>
 		public void Stop()
 		{
+			if (_timers == null || _timers.CancellationPending)
+				return;
+
 			this.State = SchedulerState.Stopping;
 			_timers.CancelAsync();
 		}
@@ -154,7 +177,7 @@ namespace Edge.Core.Scheduling
 						if (_scheduledServices.ContainsKey(schedulingData))
 						{
 							//not tag as deleted
-							if (_scheduledServices[schedulingData].Deleted == false)
+							if (!_scheduledServices[schedulingData].Removed)
 							{
 								// and it's uninitalized then 
 								if (_scheduledServices[schedulingData].LegacyInstance.State == Legacy.ServiceState.Uninitialized)
@@ -171,7 +194,7 @@ namespace Edge.Core.Scheduling
 						//if service ended 
 						if (scheduledService.Value.LegacyInstance.State == Legacy.ServiceState.Ended ||
 							//or aborting  or tag as delted
-							scheduledService.Value.LegacyInstance.State == Legacy.ServiceState.Aborting || scheduledService.Value.Deleted == true)
+							scheduledService.Value.LegacyInstance.State == Legacy.ServiceState.Aborting || scheduledService.Value.Removed == true)
 						{
 							// if the difference between and time and now bigger or equal to configure time then remove it.
 							if (scheduledService.Value.LegacyInstance.TimeEnded + _timeToDeleteServiceFromTimeLine < DateTime.Now)
@@ -224,7 +247,7 @@ namespace Edge.Core.Scheduling
 							var servicesWithSameConfiguration = from s in _scheduledServices
 																where s.Key.Configuration.Name == schedulingData.Configuration.BaseConfiguration.Name && //should be id but no id yet
 																s.Value.LegacyInstance.State != Legacy.ServiceState.Ended &&
-																s.Value.Deleted == false //runnig or not started yet
+																!s.Value.Removed //runnig or not started yet
 																orderby s.Value.StartTime ascending
 																select s;
 
@@ -234,7 +257,7 @@ namespace Edge.Core.Scheduling
 														  where s.Value.ProfileID == schedulingData.Configuration.SchedulingProfile.ID &&
 														  s.Key.Configuration.Name == schedulingData.Configuration.BaseConfiguration.Name &&
 														  s.Value.LegacyInstance.State != Legacy.ServiceState.Ended &&
-														  s.Value.Deleted == false //not deleted
+														  !s.Value.Removed //not deleted
 														  orderby s.Value.StartTime ascending
 														  select s;
 
@@ -380,7 +403,7 @@ namespace Edge.Core.Scheduling
 					//}
 
 					#endregion
-					OnNewScheduleCreated(new ScheduledInformationEventArgs() { NotScheduledInformation = _mayNotBescheduleServices, ScheduleInformation = _scheduledServices });
+					OncheduleCreated(new ScheduleCreatedEventsArgs() { UnscheduledInstances = _mayNotBescheduleServices, ScheduledInstances = _scheduledServices });
 
 
 				}
@@ -406,11 +429,11 @@ namespace Edge.Core.Scheduling
 		/// returns all scheduled services
 		/// </summary>
 		/// <returns></returns>
-		public IEnumerable<KeyValuePair<SchedulingData, ServiceInstance>> GetAllScheduledServices()
+		public Entry[] GetAllScheduledServices()
 		{
-			var returnObject = from s in _scheduledServices
-							   select s;
-			return returnObject;
+			return _scheduledServices
+				.Select<KeyValuePair<SchedulingData, ServiceInstance>, Entry>(pair => new Entry(pair.Key, pair.Value))
+				.ToArray();
 		}
 
 		/// <summary>
@@ -716,9 +739,9 @@ namespace Edge.Core.Scheduling
 		/// Delete specific instance of service (service for specific time not all the services)
 		/// </summary>
 		/// <param name="schedulingData"></param>
-		public void DeleteScpecificServiceInstance(SchedulingData schedulingData)
+		public void RemoveFromSchedule(SchedulingData schedulingData)
 		{
-			_scheduledServices[schedulingData].Deleted = true;
+			_scheduledServices[schedulingData].Removed = true;
 		}
 		/// <summary>
 		/// event handler for change of the state of servics
@@ -804,7 +827,7 @@ namespace Edge.Core.Scheduling
 			if (instancesToRun.Count > 0)
 			{
 				instancesToRun = (List<ServiceInstance>)instancesToRun.OrderBy(s => s.StartTime).ToList<ServiceInstance>();
-				OnTimeToRun(new TimeToRunEventArgs() { ServicesToRun = instancesToRun.ToArray() });
+				OnTimeToRun(new ServiceRunRequiredEventArgs() { ServicesToRun = instancesToRun.ToArray() });
 			}
 			instancesToRun.Clear();
 		}
@@ -814,13 +837,13 @@ namespace Edge.Core.Scheduling
 		/// send event for the services which need to be runing
 		/// </summary>
 		/// <param name="e"></param>
-		public void OnTimeToRun(TimeToRunEventArgs e)
+		public void OnTimeToRun(ServiceRunRequiredEventArgs e)
 		{
 			//foreach (ServiceInstance serviceToRun in e.ServicesToRun)
 			//{
 			//	Log.Write(this.ToString(), string.Format("Service {0} required to run", serviceToRun.ServiceName), LogMessageType.Information);
 			//}
-			ServiceRunRequiredEvent(this, e);
+			ServiceRunRequired(this, e);
 
 		}
 
@@ -828,43 +851,20 @@ namespace Edge.Core.Scheduling
 		/// set event new schedule created
 		/// </summary>
 		/// <param name="e"></param>
-		public void OnNewScheduleCreated(ScheduledInformationEventArgs e)
+		public void OncheduleCreated(ScheduleCreatedEventsArgs e)
 		{
-			NewScheduleCreatedEvent(this, e);
+			if (ScheduleCreated != null)
+				ScheduleCreated(this, e);
 		}
-
-		/// <summary>
-		/// abort runing service
-		/// </summary>
-		/// <param name="schedulingData"></param>
-		public void AbortRunningService(SchedulingData schedulingData)
-		{
-			_scheduledServices[schedulingData].LegacyInstance.Abort();
-		}
-
-
-
-
 	}
-	public class TimeToRunEventArgs : EventArgs
+	public class ServiceRunRequiredEventArgs : EventArgs
 	{
 		public ServiceInstance[] ServicesToRun;
 	}
-	public class ScheduledInformationEventArgs : EventArgs
+	public class ScheduleCreatedEventsArgs : EventArgs
 	{
-		public Dictionary<SchedulingData, ServiceInstance> ScheduleInformation;
-		public Dictionary<SchedulingData, ServiceInstance> NotScheduledInformation;
+		public Dictionary<SchedulingData, ServiceInstance> ScheduledInstances;
+		public Dictionary<SchedulingData, ServiceInstance> UnscheduledInstances;
 	}
-	public class WillNotRunEventArgs : EventArgs
-	{
-		public List<SchedulingData> WillNotRun = new List<SchedulingData>();
-	}
-	public class SchedulingInformationEventArgs : EventArgs
-	{
-		public Dictionary<SchedulingData, ServiceInstanceInfo> ScheduleInformation;
-	}
-
-
-
 
 }

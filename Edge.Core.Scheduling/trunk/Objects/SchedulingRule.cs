@@ -20,7 +20,7 @@ namespace Edge.Core.Scheduling.Objects
     }
     public class SchedulingData
     {
-        internal Guid Guid;
+        public Guid Guid;
         public ServiceConfiguration Configuration;
         public SchedulingRule Rule;
         public int profileID;
@@ -34,25 +34,15 @@ namespace Edge.Core.Scheduling.Objects
         {
             Guid = Guid.NewGuid();
         }
-
         
         public override string ToString()
         {
-
             string uniqueKey = string.Empty;
-            /*
-            // Hash code example:
-            string s1, s2;
-            s1 = "blah blah";
-            s2 = "blah blah";
-
-            s1.GetHashCode() == s2.GetHashCode(); // this is true!!
-            */
+          
             if (Rule.Scope != SchedulingScope.UnPlanned)
-                uniqueKey = String.Format("ConfigurationBaseName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5},ConfigurationName{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID,Configuration.Name);
+                uniqueKey = String.Format("{0},{1},{2},{3},{4},{5},{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID,Configuration.Name);
             else
             {               
-                //uniqueKey = String.Format("ConfigurationName:{0},SelectedDay:{1},SelectedHour:{2},RuleScope:{3},TimeToRun:{4},ProfileID:{5}{6}", Configuration.BaseConfiguration.Name, SelectedDay, SelectedHour, Rule.Scope, TimeToRun, profileID, Guid);
                 uniqueKey = Guid.ToString();
             }
             return uniqueKey;
