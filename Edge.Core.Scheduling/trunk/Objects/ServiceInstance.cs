@@ -27,7 +27,7 @@ namespace Edge.Core.Scheduling.Objects
 		public TimeSpan MaxDeviationAfter;
 		public TimeSpan ActualDeviation;
 		public double Odds;		
-		public bool Deleted;		
+		public bool Removed;		
 		public Legacy.ServiceInstance LegacyInstance;
 		
 		
