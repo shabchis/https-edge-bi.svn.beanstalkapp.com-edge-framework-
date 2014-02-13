@@ -25,7 +25,7 @@ namespace Edge.Data.Pipeline.Metrics
 		public Dictionary<string, Measure> Measures { get; private set; }
 		public Dictionary<string, Segment> SegmentTypes { get; private set; }
 		public MetricsImportManagerOptions Options { get; private set; }
-        public List<CurrencyRate> CurrencyRates { get; private set; }
+        public Dictionary<string, CurrencyRate> CurrencyRates { get; private set; }
 
 		/*=========================*/
 		#endregion
@@ -94,10 +94,9 @@ namespace Edge.Data.Pipeline.Metrics
 					this.Options.SegmentOptionsOperator
 					);
 
-                //this.CurrencyRates = CurrencyRate.GetCurrencyRate(
-                //    oltpConnection,
-                //    this.CurrentDelivery.TimePeriodStart
-                //    );
+                this.CurrencyRates = CurrencyRate.GetCurrencyRates(
+                    this.CurrentDelivery.TimePeriodDefinition.Start.ToDateTime()
+                    );
 			}
 
 			// Add measure columns to metrics

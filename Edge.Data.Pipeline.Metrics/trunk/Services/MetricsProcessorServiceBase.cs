@@ -13,6 +13,7 @@ using System.Data.SqlClient;
 using Edge.Core.Configuration;
 using Edge.Core.Services;
 using Edge.Data.Pipeline.Metrics.AdMetrics;
+using System.Web;
 
 namespace Edge.Data.Pipeline.Metrics.Services
 {
@@ -27,7 +28,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		{
 			Accounts = GetAccountsFromDB(Instance.AccountID);
 			Channels = GetChannelsFromDB();
-            CurrencyRates = CurrencyRate.GetCurrencyRates(this.Delivery.TimePeriodStart);
+            CurrencyRates = CurrencyRate.GetCurrencyRates(this.Delivery.TimePeriodDefinition.Start.ToDateTime());
 			
 			// Load mapping configuration
 			// ------------------------------------------
@@ -37,6 +38,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			this.Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
 			this.Mappings.ExternalMethods.Add("GetSegment", new Func<dynamic, Segment>(GetSegment));
             this.Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
+            this.Mappings.ExternalMethods.Add("UrlEncode", new Func<dynamic,string>(UrlEncode));
             this.Mappings.ExternalMethods.Add("ConvertToUSD", new Func<dynamic,dynamic, double>(ConvertToUSD));
 			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
@@ -54,16 +56,28 @@ namespace Edge.Data.Pipeline.Metrics.Services
 		#region Scriptable methods
 		// ==============================================
 
+        public string UrlEncode(dynamic sourceUrl)
+        {
+            try
+            {
+                return HttpUtility.UrlEncode((string)sourceUrl);
+            }
+            catch(Exception e)
+            {
+                throw new Exception("Error while trying to use UrlEncode", e);
+            }
+        }
+        
         public Double ConvertToUSD (dynamic rateCode,dynamic sourceValue)
         {
-            if (((string)rateCode).ToUpper().Equals("USD")) 
-                return 1;
+            if (((string)rateCode).ToUpper().Equals("USD"))
+                return sourceValue;
             
             var code = ((string)rateCode).ToUpper();
             CurrencyRate rate;
             if (!CurrencyRates.TryGetValue(code, out rate))
-                throw new MappingException(String.Format("Currncy code '{0}' could not be found in DB.", rateCode));
-            return rate.RateValue * sourceValue;
+                throw new MappingException(String.Format("Currncy code '{0}' could not be found in DB for date {1}.", rateCode, this.Delivery.TimePeriodDefinition.Start.ToDateTime()));
+            return Convert.ToDouble(rate.RateValue) * Convert.ToDouble(sourceValue);
         }
 
         public Account GetAccount(dynamic name)
