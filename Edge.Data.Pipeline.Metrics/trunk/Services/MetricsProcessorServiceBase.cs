@@ -38,7 +38,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
 			this.Mappings.ExternalMethods.Add("GetCurrentAccount", new Func<Account>(GetCurrentAccount));
 			this.Mappings.ExternalMethods.Add("GetSegment", new Func<dynamic, Segment>(GetSegment));
             this.Mappings.ExternalMethods.Add("GetMeasure", new Func<dynamic, Measure>(GetMeasure));
-            this.Mappings.ExternalMethods.Add("UrlEncode", new Func<dynamic,string>(UrlEncode));
+            this.Mappings.ExternalMethods.Add("UrlEncode", new Func<dynamic,dynamic>(UrlEncode));
             this.Mappings.ExternalMethods.Add("ConvertToUSD", new Func<dynamic,dynamic, double>(ConvertToUSD));
 			this.Mappings.ExternalMethods.Add("CreatePeriodStart", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodStart));
 			this.Mappings.ExternalMethods.Add("CreatePeriodEnd", new Func<dynamic, dynamic, dynamic, DateTime>(CreatePeriodEnd));
@@ -60,7 +60,7 @@ namespace Edge.Data.Pipeline.Metrics.Services
         {
             try
             {
-                return HttpUtility.UrlEncode((string)sourceUrl);
+                return HttpUtility.UrlPathEncode((string)sourceUrl);
             }
             catch(Exception e)
             {
