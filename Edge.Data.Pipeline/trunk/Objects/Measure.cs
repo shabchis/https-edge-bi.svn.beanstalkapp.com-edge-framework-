@@ -13,6 +13,8 @@ namespace Edge.Data.Objects
 		#region Const
 		public static class Common
 		{
+            public const string USDConversionRate = "CostConversionRate";
+            public const string CostBeforeConversion = "CostBeforeConversion";
 			public const string Cost = "Cost";
 			public const string Impressions = "Impressions";
 			public const string UniqueImpressions = "UniqueImpressions";
