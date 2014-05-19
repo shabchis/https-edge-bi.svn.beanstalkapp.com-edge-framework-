@@ -13,7 +13,7 @@ namespace Edge.Data.Objects
     {
         public Currency Currency;
         public DateTime RateDate;
-        public double RateValue;
+        public Decimal RateValue;
         public DateTime DateCreated;
 
         public CurrencyRate()
@@ -31,7 +31,7 @@ namespace Edge.Data.Objects
                     System.Data.CommandType.StoredProcedure);
                 cmd.Connection = connection;
 
-                cmd.Parameters["@Date"].Value = dateTime;
+                cmd.Parameters["@Date"].Value = Convert.ToInt64(dateTime.ToString("yyyyMMdd")); ;
 
                 List<CurrencyRate> currencyRates = new List<CurrencyRate>();
 
@@ -42,7 +42,7 @@ namespace Edge.Data.Objects
                         CurrencyRate c = new CurrencyRate()
                         {
                             Currency = new Currency() { Code = Convert.ToString(reader["Code"]) },
-                            RateValue = Convert.ToDouble(reader["Rate"])
+                            RateValue = Convert.ToDecimal(reader["Rate"])
                         };
 
                         currencyRates.Add(c);
@@ -59,7 +59,6 @@ namespace Edge.Data.Objects
             {
                 connection.Open();
                 SqlCommand cmd = DataManager.CreateCommand(AppSettings.Get(typeof(CurrencyRate), "SP.SaveCurrencyRates"), System.Data.CommandType.StoredProcedure);
-               // DataManager.Current.StartTransaction();
                 SqlTransaction transaction = connection.BeginTransaction("SaveCurrencyRates");
 
                 try
@@ -75,21 +74,11 @@ namespace Edge.Data.Objects
                         cmd.ExecuteNonQuery();
                     }
 
-                //    DataManager.Current.CommitTransaction();
                   transaction.Commit();
                 }
                 catch (Exception ex)
                 {
                     Log.Write("Error while trying to save currencies in DB", ex);
-                    // Attempt to roll back the transaction. 
-                    //try
-                    //{
-                    //    //transaction.Rollback();
-                    //}
-                    //catch (Exception ex2)
-                    //{
-                    //    Log.Write("Rollback Exception Type: {0}", ex2);
-                    //}
                 }
             }
         }
