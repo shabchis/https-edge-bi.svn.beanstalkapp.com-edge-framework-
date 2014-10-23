@@ -33,7 +33,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 				public static ColumnDef Channel_ID = new ColumnDef("Channel_ID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Account_ID = new ColumnDef("Account_ID", type: SqlDbType.Int, nullable: false);
 				public static ColumnDef Account_OriginalID = new ColumnDef("Account_OriginalID", type: SqlDbType.NVarChar, size: 100, nullable: true);
-				public static ColumnDef Name = new ColumnDef("Name", size: 100);
+				public static ColumnDef Name = new ColumnDef("Name", size: 400);
 				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
 				public static ColumnDef DestinationUrl = new ColumnDef("DestinationUrl", size: 4000);
 				public static ColumnDef AdStatus = new ColumnDef("AdStatus", type: SqlDbType.Int, nullable: true);
@@ -44,7 +44,7 @@ namespace Edge.Data.Pipeline.Metrics.AdMetrics
 			{
 				public static ColumnDef AdUsid = new ColumnDef("AdUsid", size: 100, nullable: false);
 				public static ColumnDef OriginalID = new ColumnDef("OriginalID", size: 100);
-				public static ColumnDef Name = new ColumnDef("Name", size: 100);
+				public static ColumnDef Name = new ColumnDef("Name", size: 400);
 				public static ColumnDef CreativeType = new ColumnDef("CreativeType", type: SqlDbType.Int);
 				public static ColumnDef FieldX = new ColumnDef("Field{0}", type: SqlDbType.NVarChar, size: 4000, copies: 4);
 				public static ColumnDef ExtraFieldX = new ColumnDef("ExtraField{0}", type: SqlDbType.NVarChar, copies: 6, size: 4000);
