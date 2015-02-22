@@ -11,7 +11,7 @@ namespace Edge.Data.Pipeline
 	public class DynamicDictionaryObject: DynamicObject, ISerializable
 	{
 		public bool CaseSensitive = true;
-		internal protected Dictionary<string, object> Values { get; private set; }
+		public Dictionary<string, object> Values { get; private set; }
 
 		public DynamicDictionaryObject()
 		{
